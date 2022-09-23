@@ -1,0 +1,20 @@
+/*!
+  \page      coverage Quality
+
+@section coverage_gcov Gcov
+
+- <a href="DEBUG/test_coverage/index.html"
+target="_blank">Unit-, and regression-test code coverage report (Debug)</a>
+
+- <a href="RELEASE/test_coverage/index.html"
+target="_blank">Unit-, and regression-test coverage report (Release)</a>
+
+@section coverage_cppcheck Cppcheck
+
+- <a href="DEBUG/cppcheck/index.html"
+target="_blank">Static analysis report (Debug)</a>
+
+- <a href="RELEASE/cppcheck/index.html"
+target="_blank">Static analysis report (Release)</a>
+
+*/

@@ -1,0 +1,109 @@
+/*!
+  \page      inciter_example_f16 Inciter: Example setup for marching a transonic problem to steady-state
+
+This example runs the @ref inciter_alecg algorithm marching the solution to
+steady state using a local time-stepping procedure. The problem is initialized
+with a free-stream Mach number of `M=0.84` and an angle of attack of 3.06
+degrees.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/f16_mesh.png"/>
+Surface mesh for computing the flow around the F16, nelem=6M, npoin=1M, see
+below.
+@m_enddiv
+
+@section f16_control Control file
+
+@code{.bash}
+# vim: filetype=sh:
+# This is a comment
+# Keywords are case-sensitive
+
+title "F16"
+
+inciter
+
+  ttyi 10      # TTY output interval
+
+  cfl 0.5
+  steady_state true
+  residual 1.0e-5
+  rescomp 1
+
+  scheme alecg
+
+  partitioning
+    algorithm mj
+  end
+
+  compflow
+    depvar u
+    physics euler
+
+    ic
+      density 1.225 end # density of air at STP, kg/m3
+      pressure 1.0e+5 end # N/m^2
+      # sound speed: sqrt(1.4*1.0e+5/1.225) = 338.06 m/s
+      # free stream Mach number: M = 0.84
+      # angle of attack: 3.06 degrees
+      # u = M * a * cos(3.06*pi/180) = 283.57
+      # v = M * a * sin(3.06*pi/180) = 15.159
+      velocity 0.0 15.159 -283.57 end
+    end
+
+    material
+      gamma 1.4 end
+    end
+
+    bc_sym
+      sideset 1 2 7 end
+    end
+
+    bc_farfield
+      pressure 1.0e+5
+      density 1.225
+      velocity 0.0 15.159 -283.57 end
+      sideset 12 end
+    end
+
+  end
+
+  field_output
+    interval 1000
+    var
+      density
+      pressure
+      x-velocity
+      y-velocity
+      z-velocity
+      specific_total_energy
+    end
+    sideset 1 2 7 end
+  end
+
+  diagnostics
+    interval  1
+    format    scientific
+    error     l2
+    precision 12
+  end
+
+end
+@endcode
+
+@section f16_run Run on 34 CPUs
+@code{.bash}
+./charmrun +p34 Main/inciter -v -i ../../tmp/f16b_tet.exo -c ../../tmp/f16.q
+@endcode
+
+As the above screen output shows, the simulation took about three and a half
+minutes using 34 CPUs.
+
+@section f16_sol Solution
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/f16.png"/>
+Pressure contours.
+@m_enddiv
+
+*/

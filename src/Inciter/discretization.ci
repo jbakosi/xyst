@@ -1,0 +1,60 @@
+// *****************************************************************************
+/*!
+  \file      src/Inciter/discretization.ci
+  \copyright 2012-2015 J. Bakosi,
+             2016-2018 Los Alamos National Security, LLC.,
+             2019-2021 Triad National Security, LLC.
+             All rights reserved. See the LICENSE file for details.
+  \brief     Charm++ module interface file for common stuff to discretizations
+  \details   Charm++ module interface file for common stuff to discretizations.
+  \see       Discretization.h and Discretization.C for more info.
+*/
+// *****************************************************************************
+
+module discretization {
+
+  extern module transporter;
+  extern module meshwriter;
+  extern module distfct;
+  extern module ale;
+  extern module conjugategradients;
+
+  include "UnsMesh.hpp";
+  include "CommMap.hpp";
+
+  namespace inciter {
+
+    array [1D] Discretization {
+      entry Discretization(
+        std::size_t meshid,
+        const std::vector< CProxy_Discretization >& disc,
+        const CProxy_DistFCT& fctproxy,
+        const CProxy_ALE& aleproxy,
+        const tk::CProxy_ConjugateGradients& conjugategradientsproxy,
+        const CProxy_Transporter& transporter,
+        const tk::CProxy_MeshWriter& meshwriter,
+        const tk::UnsMesh::CoordMap& coordmap,
+        const tk::UnsMesh::Chunk& el,
+        const tk::CommMaps& msum,
+        int nchare );
+      initnode void registerReducers();
+      entry void vol();
+      entry void comvol( const std::vector< std::size_t >& gid,
+                         const std::vector< tk::real >& nodevol );
+      entry void stat( tk::real mesh_volume );
+      entry void transferInit();
+      entry void comcb( std::size_t srcmeshid, CkCallback c );
+
+      // SDAG code follows. See http://charm.cs.illinois.edu/manuals/html/
+      // charm++/manual.html, Sec. "Structured Control Flow: Structured Dagger".
+
+      entry void wait4vol() {
+        when ownvol_complete(), comvol_complete() serial "vol" { totalvol(); } }
+
+      entry void ownvol_complete();
+      entry void comvol_complete();
+    }
+
+  } // inciter::
+
+}

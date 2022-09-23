@@ -1,0 +1,55 @@
+/*!
+  \page      inciter_main Inciter
+
+__Navier-Stokes solver for complex domains__
+
+Inciter is a fully asynchronous distributed-memory-parallel fluid solver for
+complex 3D engineering geometries. Computational domains of arbitrary shapes
+are discretized into tetrahedron elements and decomposed into small chunks
+assigned to different CPUs. The number of chunks may be more than the number of
+CPUs allowing _overdecomposition_, which is useful for effective automatic load
+balancing across large computers. The solution along partition boundaries, that
+exists on multiple processing elements, is made consistent with _asynchronous_
+communication which enables overlapping parallel computation, communication,
+input, and output (I/O).
+
+Inciter can solve the Euler equations, modeling ideal single-, and
+multi-material compressible flow, using continuous and discontinuous Galerkin
+finite element methods, with solution-adaptive mesh-, and polynomial-degree
+refinement, enabling dynamically concentrating compute resources to regions
+with interesting physics. Current development continues in the following
+directions: (A) a solver for multi-material flows (single velocity, multiple
+densities, multiple mass fractions, and multiple internal energies) solving the
+Euler equations for simple ideal gases, (B) polynomial adaptation for both
+single-, and multi-material flows, (C) productize the solvers (i.e., increase
+robustness, user-friendliness, and add practicality features), and (D)
+prototype implementation of 3D parallel mesh-to-mesh solution transfer to
+enable fluid-structure interaction problems, coupling compressible flow with
+the kinematics of rigid body motion of objects embedded in a fluid flow,
+allowing the computation of body motion in response to aerodynamic forces.
+
+Inciter currently has three different family of fluid dynamics algorithms:
+
+1. `DiagCG`, a node-centered continuous Galerkin finite element method,
+   combining flux-corrected transport with Lax-Wendroff time
+   stepping, see @ref inciter_diagcg for a high-level description and
+   @ref papers for more details.
+
+2. `ALECG`, a node-centered continuous Galerkin finite element method,
+   featuring Riemann solvers and MUSCL reconstruction on cell-edges, combined
+   with Runge-Kutta time stepping, see @ref inciter_alecg for a high-level
+   description and @ref papers for more details.
+
+@section inciter_pages Related pages
+- @ref inciter_diagcg "DiagCG hydrodynamics"
+- @ref inciter_alecg "ALECG hydrodynamics"
+- @ref inciter_amr "Adaptive Mesh Refinement (TetAMR)"
+- @ref inciter_cmd "Command line arguments"
+- @ref inciter_ctr "Control file keywords"
+- @ref papers "Publications"
+- @ref inciter_performance "Performance"
+- @ref inciter_design "Software design"
+- @ref inciter_newscheme "How to add a new scheme"
+- @ref layout "Data layout"
+- @ref inciter_examples "Examples"
+*/

@@ -1,0 +1,55 @@
+/*!
+  \page      inciter_example_slot_cyl Inciter: Integrating the scalar advection equation for a non-smooth problem
+
+This example runs @ref inciter_main to integrate the advection equation (see
+e.g., PDE/Transport/CGTransport.h) configured to solve the Zalesak's slotted
+cylinder (inciter::TransportProblemSlotCyl) problem, which contains both smooth
+and non-smooth regions.
+
+@section inciter_example_slot_cyl_control Control file
+
+@code{.bash}
+# vim: filetype=sh:
+# This is a comment
+# Keywords are case-sensitive
+
+title "Zalesak's slotted cylinder"
+
+inciter
+
+  #nstep 10  # Max number of time steps
+  #term 6.28318530718  # Max time = 2*pi
+  term 1.57079632679  # Max time = pi/2
+  #term 0.78539816339  # Max time = pi/4
+  #term 0.39270  # Max time = pi/8
+  cfl  0.5
+  ttyi 10      # TTY output interval
+  ctau 1.0  # FCT mass diffusivity
+
+  transport
+    physics advection
+    problem slot_cyl
+    ncomp 1
+  end
+
+  field_output
+    interval 100
+  end
+
+end
+@endcode
+
+@section inciter_example_slot_cyl_run Example run on 80 CPUs
+@code{.bash}
+./charmrun +p80 Main/inciter -v -c slot_cyl.q -i unitcube_01_6M.exo
+@endcode
+
+@section inciter_example_slot_cyl_fieldvis Example visualization
+
+Example visualization of the 3D field data result with [ParaView](https://www.paraview.org).
+
+@code{.bash}
+paraview out.0
+@endcode
+
+*/

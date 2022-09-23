@@ -1,0 +1,48 @@
+// *****************************************************************************
+/*!
+  \file      src/Main/XystConfig.cpp
+  \copyright 2012-2015 J. Bakosi,
+             2016-2018 Los Alamos National Security, LLC.,
+             2019-2021 Triad National Security, LLC.
+             All rights reserved. See the LICENSE file for details.
+  \brief     Xyst configuration imported from cmake
+  \details   Xyst configuration inported from cmake.
+  \see       src/CMakeListst.txt
+*/
+// *****************************************************************************
+
+#include <string>
+
+#include "XystConfig.hpp"
+
+namespace tk {
+
+#define UNITTEST_EXECUTABLE          "@UNITTEST_EXECUTABLE@"
+#define INCITER_EXECUTABLE           "@INCITER_EXECUTABLE@"
+#define MESHCONV_EXECUTABLE          "@MESHCONV_EXECUTABLE@"
+
+#define XYST_VERSION                 "@VERSION_MAJOR@.@VERSION_MINOR@"
+#define COPYRIGHT                    "@COPYRIGHT@"
+#define MPI_COMPILER                 "@MPI_COMPILER@"
+#define COMPILER                     "@COMPILER@"
+#define BUILD_HOSTNAME               "@HOSTNAME@"
+#define BUILD_TYPE                   "@BUILD_TYPE@"
+#define BUILD_DATE                   "@BUILD_DATE@"
+#define REGRESSION_DIR               "@REGRESSION_DIR@"
+
+// Accessor definitions as strings of configuration values imported from cmake
+
+std::string unittest_executable() { return UNITTEST_EXECUTABLE; }
+std::string inciter_executable() { return INCITER_EXECUTABLE; }
+std::string meshconv_executable() { return MESHCONV_EXECUTABLE; }
+
+std::string xyst_version() { return XYST_VERSION; }
+std::string copyright() { return COPYRIGHT; }
+std::string mpi_compiler() { return MPI_COMPILER; }
+std::string compiler() { return COMPILER; }
+std::string build_hostname() { return BUILD_HOSTNAME; }
+std::string build_type() { return BUILD_TYPE; }
+std::string build_date() { return BUILD_DATE; }
+std::string regression_dir() { return REGRESSION_DIR; }
+
+} // tk::

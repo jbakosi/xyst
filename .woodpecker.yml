@@ -1,0 +1,30 @@
+matrix:
+  include:
+    - BUILDTYPE: Release
+      COMPILER: gnu
+   # - BUILDTYPE: Debug
+   #   COMPILER: clang
+
+pipeline:
+  build:
+    image: jbakosi/xyst-gnu
+    #pull: true
+    commands:
+     - mkdir build && cd build && cmake -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DTPL_DIR=/xyst/external/install/${COMPILER} .. && make -sj2
+    when:
+      matrix:
+        COMPILER: gnu
+
+  #build-clang:
+  #  image: jbakosi/xyst-clang
+  #  #pull: true
+  #  commands:
+  #   - mkdir build && cd build && cmake -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DTPL_DIR=/xyst/external/install/${COMPILER}-x86_64 .. && make -sj2
+  #  when:
+  #    matrix:
+  #      COMPILER: clang
+
+  test:
+    image: jbakosi/xyst-${COMPILER}
+    commands:
+      - cd build && mpirun --allow-run-as-root -n 2 Main/unittest -v -q && ctest -j2 --output-on-failure -LE extreme

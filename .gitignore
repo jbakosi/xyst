@@ -1,0 +1,6 @@
+*~
+*sw?
+.gitignore
+/build
+*/build
+*/install

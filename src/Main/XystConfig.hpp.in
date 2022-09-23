@@ -1,0 +1,39 @@
+// *****************************************************************************
+/*!
+  \file      src/Main/XystConfig.hpp
+  \copyright 2012-2015 J. Bakosi,
+             2016-2018 Los Alamos National Security, LLC.,
+             2019-2021 Triad National Security, LLC.
+             All rights reserved. See the LICENSE file for details.
+  \brief     Xyst configuration imported from cmake
+  \details   Xyst configuration inported from cmake.
+  \see       src/CMakeListst.txt
+ */
+// *****************************************************************************
+#ifndef XystConfig_h
+#define XystConfig_h
+
+#include <iosfwd>
+
+#include "XystBuildConfig.hpp"
+
+namespace tk {
+ 
+// Accessor declarations as strings of configuration values imported from cmake
+
+std::string unittest_executable();
+std::string inciter_executable();
+std::string meshconv_executable();
+
+std::string xyst_version();
+std::string copyright();
+std::string mpi_compiler();
+std::string compiler();
+std::string build_hostname();
+std::string build_type();
+std::string build_date();
+std::string regression_dir();
+
+} // tk::
+
+#endif // XystConfig_h

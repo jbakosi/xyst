@@ -62,7 +62,7 @@ add_regression_test(compflow_euler_alecg_ale_gcl ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES gcl.q rectangle_01_1.5k.exo
                     ARGS -c gcl.q -i rectangle_01_1.5k.exo -v
-                          -u 0.5 +balancer RandCentLB +LBDebug 1
+                          -u 0.5 +balancer RecBipartLB +LBDebug 1
                     BIN_BASELINE gcl.0.std.exo.0
                                  gcl.0.std.exo.1
                                  gcl.0.std.exo.2
@@ -102,7 +102,7 @@ add_regression_test(compflow_euler_alecg_ale_sod_fluid ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES sod_shocktube_alecg_ale_fluid.q tube.exo
                     ARGS -c sod_shocktube_alecg_ale_fluid.q -v
-                          +balancer RandCentLB +LBDebug 1
+                          +balancer RecBipartLB +LBDebug 1
                     BIN_BASELINE sod_shocktube_alecg_ale_fluid.0.std.exo.0
                                  sod_shocktube_alecg_ale_fluid.0.std.exo.1
                                  sod_shocktube_alecg_ale_fluid.0.std.exo.2

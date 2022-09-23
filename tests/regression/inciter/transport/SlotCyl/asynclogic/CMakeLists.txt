@@ -16,10 +16,10 @@
 #   npes: total number of PEs to run test with
 #   ppn: number of PEs per logical (compute) node, only used in Charm++'s
 #        SMP mode, ignored in non-SMP mode
-#   migr: 1: enable migration using RandCentLB, 0: no migration
+#   migr: 1: enable migration, 0: no migration
 function(add_async_test scheme virt npes ppn migr)
   if (migr)
-    set(migr_cmd "+balancer RandCentLB +LBDebug 1 +cs")
+    set(migr_cmd "+balancer RecBipartLB +LBDebug 1 +cs")
     set(migr_append_name "_migr")
     set(migr_label "migration")
   endif()

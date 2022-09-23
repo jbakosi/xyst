@@ -222,7 +222,7 @@ add_regression_test(compflow_euler_sodshocktube_u0.8_migr ${INCITER_EXECUTABLE}
                     NUMPES 2 PPN 1
                     INPUTFILES sod_shocktube.q rectangle_01_1.5k.exo
                     ARGS -c sod_shocktube.q -i rectangle_01_1.5k.exo -v -u 0.8
-                         +balancer RandCentLB +LBDebug 1
+                         +balancer RecBipartLB +LBDebug 1
                     BIN_BASELINE sod_shocktube_pe2_u0.8.std.exo.0
                                  sod_shocktube_pe2_u0.8.std.exo.1
                                  sod_shocktube_pe2_u0.8.std.exo.2
@@ -252,7 +252,7 @@ add_regression_test(compflow_euler_sodshocktube_u0.8_surf_migr
                     NUMPES 2 PPN 1
                     INPUTFILES sod_shocktube_surf.q rectangle_01_1.5k.exo
                     ARGS -c sod_shocktube_surf.q -i rectangle_01_1.5k.exo -v
-                         -u 0.8 +balancer RandCentLB +LBDebug 1
+                         -u 0.8 +balancer RecBipartLB +LBDebug 1
                     BIN_BASELINE sod_shocktube_pe2_u0.8.std.exo.0
                                  sod_shocktube_pe2_u0.8.std.exo.1
                                  sod_shocktube_pe2_u0.8.std.exo.2
@@ -336,7 +336,7 @@ add_regression_test(compflow_euler_sodshocktube_alecg_u0.8_migr
                     NUMPES 4
                     INPUTFILES sod_shocktube_alecg.q rectangle_01_1.5k.exo
                     ARGS -c sod_shocktube_alecg.q -i rectangle_01_1.5k.exo -v
-                         -u 0.8 +balancer RandCentLB +LBDebug 1
+                         -u 0.8 +balancer RecBipartLB +LBDebug 1
                     BIN_BASELINE sod_shocktube_alecg_pe4_u0.8.std.exo.0
                                  sod_shocktube_alecg_pe4_u0.8.std.exo.1
                                  sod_shocktube_alecg_pe4_u0.8.std.exo.2

@@ -134,7 +134,7 @@ add_regression_test(gauss_hump_alecg_u0.9_migr ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES gauss_hump_alecg.q unitsquare_01_3.6k.exo
                     ARGS -c gauss_hump_alecg.q -i unitsquare_01_3.6k.exo -v -u 0.9
-                         -l 10 +balancer RandCentLB +LBDebug 1
+                         -l 10 +balancer RecBipartLB +LBDebug 1
                     BIN_BASELINE gauss_hump_alecg_u0.9.std.exo.0
                                  gauss_hump_alecg_u0.9.std.exo.1
                                  gauss_hump_alecg_u0.9.std.exo.2

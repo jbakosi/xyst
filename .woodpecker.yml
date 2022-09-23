@@ -10,7 +10,7 @@ pipeline:
     image: jbakosi/xyst-gnu
     #pull: true
     commands:
-     - mkdir build && cd build && cmake -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DTPL_DIR=/xyst/external/install/${COMPILER} .. && make -sj2
+     - mkdir build && cd build && cmake -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DTPL_DIR=/xyst/external/install/${COMPILER} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root --bind-to none -oversubscribe" ../src && make -sj2
     when:
       matrix:
         COMPILER: gnu
@@ -19,7 +19,7 @@ pipeline:
   #  image: jbakosi/xyst-clang
   #  #pull: true
   #  commands:
-  #   - mkdir build && cd build && cmake -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DTPL_DIR=/xyst/external/install/${COMPILER}-x86_64 .. && make -sj2
+  #   - mkdir build && cd build && cmake -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DTPL_DIR=/xyst/external/install/${COMPILER} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root --bind-to none -oversubscribe" .. && make -sj2
   #  when:
   #    matrix:
   #      COMPILER: clang

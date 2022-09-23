@@ -15,5 +15,3 @@ resources efficiently, even for problems with _a priori_ unknown,
 heterogeneous, and dynamic load distribution.
 
 More details at [xyst.cc](https://xyst.cc) or [doc/pages/mainpage.dox](doc/pages/mainpage.dox).
-
-*/

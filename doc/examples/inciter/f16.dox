@@ -96,8 +96,7 @@ end
 ./charmrun +p34 Main/inciter -v -i ../../tmp/f16b_tet.exo -c ../../tmp/f16.q
 @endcode
 
-As the above screen output shows, the simulation took about three and a half
-minutes using 34 CPUs.
+The simulation took about three and a half minutes using 34 CPUs.
 
 @section f16_sol Solution
 

@@ -146,9 +146,7 @@ paraview out.0
 The following figure shows the time evolution of the
 \f$\color[HTML]{dcdcdc}L_2\f$ error for three different meshes whose edge
 lengths are successively halved, which indicates approximately second-order
-convergence. See also
-https://github.com/quinoacomputing/quinoa-examples/tree/master/inciter/Hump for
-the diagnostics files.
+convergence.
 
 @m_div{m-col-m-10 m-center-m}
 <img src="images/l2.svg"/>

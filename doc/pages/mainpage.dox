@@ -1,6 +1,10 @@
 /*!
 @mainpage Xyst
 
+@m_div{m-col-m-2 m-right-m}
+<img src="images/Eo_circle_deep-orange_letter-x.svg"/>
+@m_enddiv
+
 Xyst is a Navier-Stokes solver for complex domains.
 
 Using the [Charm++](http://charmplusplus.org/) runtime system, it employs
@@ -43,12 +47,13 @@ Install prerequisites: _Debian/Ubuntu linux_
 apt-get install git autoconf cmake gfortran g++ gmsh libblas-dev liblapack-dev liblapacke-dev libopenmpi-dev libhdf5-dev libhdf5-openmpi-dev libnetcdf-mpi-dev libboost-all-dev tao-pegtl-dev libpstreams-dev libbackward-cpp-dev libdw-dev binutils-dev libpugixml-dev
 @endcode
 
-Clone, build third-party libraries, build & test
+Clone, build third-party libraries, build, test
 
 @code
-git clone https://codeberg.org/xyst/xyst.git; cd xyst
-mkdir external/build; cd external/build; cmake .. && make; cd -
-mkdir build; cd build; cmake ../src && make && ./charmrun +p4 Main/unittest -v -q && ctest -j4 --output-on-failure -LE extreme
+git clone https://codeberg.org/xyst/xyst.git && cd xyst
+mkdir external/build && cd external/build && cmake .. && make -sj$(grep -c processor /proc/cpuinfo) && cd -
+mkdir build && cd build && cmake ../src && make -sj$(grep -c processor /proc/cpuinfo) && cd -
+cd build && ./charmrun +p $(grep -c processor /proc/cpuinfo) Main/unittest -v -q && ctest -j $(grep -c processor /proc/cpuinfo) --output-on-failure -LE extreme && cd -
 @endcode
 
 All executables will be under `build/Main/`.

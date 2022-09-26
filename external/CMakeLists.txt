@@ -1,3 +1,5 @@
+# Build Xyst external libraries
+
 cmake_minimum_required(VERSION 3.1.0 FATAL_ERROR)
 
 project(xyst-external C CXX)
@@ -17,11 +19,16 @@ set(BUILD_SHARED_LIBS ON
 # Set compiler id
 string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" COMP)
 
+option(SMP "Build Charm++ in SMP mode")
+if(SMP)
+  set(smp "-smp")
+endif()
+
 # Set install directory based on compiler ID if was not given on command line
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install/${COMP}"
+  set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install/${COMP}${smp}"
       CACHE STRING "Third-party libraries install prefix." FORCE)
-  message(STATUS "CMAKE_INSTALL_PREFIX not specified, setting to '${PROJECT_SOURCE_DIR}/install/${COMP}'")
+  message(STATUS "CMAKE_INSTALL_PREFIX not specified, setting to ${CMAKE_INSTALL_PREFIX}")
 else()
   message(STATUS "CMAKE_INSTALL_PREFIX: " ${CMAKE_INSTALL_PREFIX})
 endif()
@@ -38,8 +45,9 @@ ExternalProject_Add(
   PREFIX trilinos
   GIT_REPOSITORY https://github.com/trilinos/Trilinos.git
   GIT_TAG trilinos-release-12-12-1
-  PATCH_COMMAND patch -p1 -t -i ${PROJECT_SOURCE_DIR}/../cmake/exodus_gcc10.patch  
+  PATCH_COMMAND patch -p1 -t -i ${PROJECT_SOURCE_DIR}/../cmake/exodus_gcc10.patch
   CMAKE_ARGS -D Trilinos_ENABLE_ALL_PACKAGES:BOOL=OFF
+             -D CMAKE_CXX_STANDARD:STRING=17
              -D TPL_ENABLE_MPI:BOOL=ON
              -D BUILD_SHARED_LIBS:BOOL=ON
              -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF
@@ -52,6 +60,8 @@ ExternalProject_Add(
              -D Netcdf_LIBRARY_DIRS:PATH=${NETCDF_LIBRARY_DIRS}
              -D TPL_Netcdf_INCLUDE_DIRS:PATH=${NETCDF_INCLUDES}
              -D CMAKE_INSTALL_RPATH:PATH=${CMAKE_INSTALL_PREFIX}/lib
+             -D CMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
+             -D CMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
              -D CMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
              -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
   LOG_DOWNLOAD 1
@@ -68,7 +78,9 @@ ExternalProject_Add(
   GIT_TAG v7.0.0-rc2
   CMAKE_ARGS -D TARGET=LIBS
              -D NETWORK=mpi
-             -D SMP=off
+             -D SMP=${SMP}
+             -D CMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
+             -D CMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
              -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
@@ -93,7 +105,9 @@ ExternalProject_Add(
   numdiff
   PREFIX numdiff
   GIT_REPOSITORY https://codeberg.org/xyst/ndiff
-  CMAKE_ARGS -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
+  CMAKE_ARGS -D CMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
+             -D CMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
+             -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
@@ -130,7 +144,9 @@ ExternalProject_Add(
   testu01 
   PREFIX testu01
   GIT_REPOSITORY https://codeberg.org/xyst/TestU01-threadsafe
-  CMAKE_ARGS -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}/testu01
+  CMAKE_ARGS -D CMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
+             -D CMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
+             -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}/testu01
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1

@@ -2,15 +2,19 @@ matrix:
   include:
     - BUILDTYPE: Release
       COMPILER: gnu
+    - BUILDTYPE: Release
+      COMPILER: gnu
+      SMP: on
    # - BUILDTYPE: Debug
    #   COMPILER: clang
+   #   smp: ""
 
 pipeline:
   build:
-    image: jbakosi/xyst-gnu
+    image: jbakosi/xyst-gnu${SMP:+-smp}
     #pull: true
     commands:
-     - mkdir build && cd build && cmake -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DTPL_DIR=/xyst/external/install/${COMPILER} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root --bind-to none -oversubscribe" ../src && make -sj2
+     - mkdir build && cd build && cmake ${SMP:+-DSMP=on} -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DTPL_DIR=/xyst/external/install/${COMPILER} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" ../src && make -sj2
     when:
       matrix:
         COMPILER: gnu

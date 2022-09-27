@@ -14,13 +14,6 @@ include(BuildType)
 # Find MPI compilers
 include(MPICompilers)
 
-# Set compilers
-set(COMPILER ${CMAKE_CXX_COMPILER})
-set(MPI_COMPILER ${MPI_CXX_COMPILER})
-
-MESSAGE(STATUS "Underlying C compiler: " ${UNDERLYING_C_COMPILER})
-MESSAGE(STATUS "Underlying C++ compiler: " ${UNDERLYING_CXX_COMPILER})
-
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries. Possible values: ON | OFF")
 
 # Set compiler id
@@ -148,6 +141,15 @@ endif()
 
 # Query build hostname
 site_name(HOSTNAME)
+
+# Set compilers
+set(COMPILER ${CMAKE_CXX_COMPILER})
+set(MPI_COMPILER ${MPI_CXX_COMPILER})
+set(LINKER_COMPILER ${CHARM_COMPILER})
+
+MESSAGE(STATUS "Underlying C compiler: " ${UNDERLYING_C_COMPILER})
+MESSAGE(STATUS "Underlying C++ compiler: " ${UNDERLYING_CXX_COMPILER})
+MESSAGE(STATUS "Linker compiler: " ${LINKER_COMPILER})
 
 # Set runner configuration. This is used when generating code coverage and
 # running regression tests using ctest. Note that ninja puts chamrun to <build>

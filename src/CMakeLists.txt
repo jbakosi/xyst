@@ -18,13 +18,13 @@ include(MPICompilers)
 set(COMPILER ${UNDERLYING_CXX_COMPILER})
 set(MPI_COMPILER ${MPI_CXX_COMPILER})
 
+MESSAGE(STATUS "Underlying C compiler: " ${UNDERLYING_C_COMPILER})
+MESSAGE(STATUS "Underlying C++ compiler: " ${UNDERLYING_CXX_COMPILER})
+
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries. Possible values: ON | OFF")
 
 # Set compiler id
 string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" COMP)
-
-# Set compiler var (will be exported to the source)
-set(COMPILER "${CMAKE_CXX_COMPILER}")
 
 # set version
 set(VERSION_MAJOR "1")
@@ -51,6 +51,20 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 
   add_compiler_flag("-fcolor-diagnostics")
   add_compiler_flag("-Weverything")
+  add_compiler_flag("-Wno-c++98-compat")
+  add_compiler_flag("-Wno-c++98-compat-pedantic")
+  add_compiler_flag("-Wno-padded")
+  add_compiler_flag("-Wno-global-constructors")
+  add_compiler_flag("-Wno-weak-vtables")
+  add_compiler_flag("-Wno-reserved-id-macro")
+  add_compiler_flag("-Wno-unknown-pragmas")
+  add_compiler_flag("-Wno-exit-time-destructors")
+  add_compiler_flag("-Wno-source-uses-openmp")
+
+  # Linker flags for clang
+  set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)      # clear link flags
+  set(CMAKE_EXE_LINKER_FLAGS
+    "${CMAKE_EXE_LINKER_FLAGS} -Wno-missing-prototypes -Wno-unused-parameter -Wno-unused-command-line-argument")
 
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 

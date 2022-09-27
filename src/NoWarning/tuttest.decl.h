@@ -50,6 +50,7 @@
   #pragma clang diagnostic ignored "-Wunused-template"
   #pragma clang diagnostic ignored "-Wsuggest-override"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
+  #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wredundant-decls"

@@ -33,7 +33,10 @@ extern CProxy_TUTSuite g_suiteProxy;
 
 namespace tut {
 
-#if defined(STRICT_GNUC)
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wmissing-noreturn"
+#elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wsuggest-attribute=noreturn"
 #endif
@@ -519,7 +522,9 @@ void Factory_object::test< 14 >() {
     fail( "cannot find key in factory" );
 }
 
-#if defined(STRICT_GNUC)
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
 

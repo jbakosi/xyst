@@ -124,7 +124,10 @@
 
 namespace tut {
 
-#if defined(STRICT_GNUC)
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wmissing-noreturn"
+#elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wsuggest-attribute=noreturn"
 #endif
@@ -1010,6 +1013,11 @@ void DerivedData_object::test< 23 >() {
   #endif
 }
 
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wunreachable-code"
+#endif
+
 //! \brief Test genEsuel if it throws on inpoel non-divisible by the number of
 //!   nodes per elements
 template<> template<>
@@ -1030,6 +1038,10 @@ void DerivedData_object::test< 24 >() {
   }
   #endif
 }
+
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#endif
 
 //! Generate and test elements surrounding elements for tetrahedron-only mesh
 template<> template<>
@@ -3612,7 +3624,9 @@ void DerivedData_object::test< 77 >() {
   }
 }
 
-#if defined(STRICT_GNUC)
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
 

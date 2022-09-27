@@ -52,6 +52,7 @@
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
   #pragma clang diagnostic ignored "-Wanon-enum-enum-conversion"
   #pragma clang diagnostic ignored "-Wuninitialized-const-reference"
+  #pragma clang diagnostic ignored "-Wint-in-bool-context"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"

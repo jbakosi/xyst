@@ -36,8 +36,6 @@ RUN apt-get update -y && apt-get install -y git autoconf libtool-bin cmake gfort
 # Install OpenMPI
 ADD https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.4.tar.bz2 /openmpi/
 RUN cd /openmpi/ && tar xjf openmpi-4.1.4.tar.bz2 && cd openmpi-4.1.4 && ./configure --disable-shared --enable-static CFLAGS=-fPIC --prefix=/opt/openmpi && make -sj$(grep -c processor /proc/cpuinfo) install
-#ENV PATH /opt/openmpi/bin:$PATH
-#ENV LD_LIBRARY_PATH /opt/openmpi/lib:$LD_LIBRARY_PATH
 ENV CC /opt/openmpi/bin/mpicc
 ENV CXX /opt/openmpi/bin/mpicxx
 RUN rm -rf /openmpi

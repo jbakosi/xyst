@@ -12,6 +12,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
 include(DisallowInSourceBuilds)
 # Set CMAKE_BUILD_TYPE
 include(BuildType)
+# Find MPI compilers
+include(MPICompilers)
+
+MESSAGE(STATUS "Underlying C++ compiler: " ${UNDERLYING_CXX_COMPILER})
 
 set(BUILD_SHARED_LIBS ON
     CACHE BOOL "Build shared libraries. Possible values: ON | OFF")
@@ -60,8 +64,8 @@ ExternalProject_Add(
              -D Netcdf_LIBRARY_DIRS:PATH=${NETCDF_LIBRARY_DIRS}
              -D TPL_Netcdf_INCLUDE_DIRS:PATH=${NETCDF_INCLUDES}
              -D CMAKE_INSTALL_RPATH:PATH=${CMAKE_INSTALL_PREFIX}/lib
-             -D CMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
-             -D CMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
+             -D CMAKE_C_COMPILER:PATH=${MPI_C_COMPILER}
+             -D CMAKE_CXX_COMPILER:PATH=${MPI_CXX_COMPILER}
              -D CMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
              -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
   LOG_DOWNLOAD 1
@@ -81,8 +85,8 @@ ExternalProject_Add(
              -D NETWORK=mpi
              -D SMP=${SMP}
              -D ENABLE_FORTRAN=off
-             -D CMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
-             -D CMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
+             -D CMAKE_C_COMPILER:PATH=${MPI_C_COMPILER}
+             -D CMAKE_CXX_COMPILER:PATH=${MPI_CXX_COMPILER}
              -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1

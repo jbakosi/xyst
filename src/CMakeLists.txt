@@ -15,7 +15,7 @@ include(BuildType)
 include(MPICompilers)
 
 # Set compilers
-set(COMPILER ${UNDERLYING_CXX_COMPILER})
+set(COMPILER ${CMAKE_CXX_COMPILER})
 set(MPI_COMPILER ${MPI_CXX_COMPILER})
 
 MESSAGE(STATUS "Underlying C compiler: " ${UNDERLYING_C_COMPILER})

@@ -10,28 +10,17 @@ matrix:
       TPL_DIR: "/xyst/external/install/gnu-smp"
       SMP: on
       POSTFIX_RUNNER_ARGS: "+setcpuaffinity"
-   # - BUILDTYPE: Debug
-   #   COMPILER: clang
-   #   smp: ""
+    - BUILDTYPE: Debug
+      COMPILER: clang
+      IMAGE: "xyst-clang"
+      TPL_DIR: "/xyst/external/install/clang"
 
 pipeline:
   build:
     image: jbakosi/${IMAGE}
     #pull: true
     commands:
-     - mkdir build && cd build && cmake -DSMP=${SMP} -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DTPL_DIR=${TPL_DIR}  -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=${POSTFIX_RUNNER_ARGS} ../src && make -sj2
-    when:
-      matrix:
-        COMPILER: gnu
-
-  #build-clang:
-  #  image: jbakosi/xyst-clang
-  #  #pull: true
-  #  commands:
-  #   - mkdir build && cd build && cmake -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DTPL_DIR=/xyst/external/install/${COMPILER} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root --bind-to none -oversubscribe" .. && make -sj2
-  #  when:
-  #    matrix:
-  #      COMPILER: clang
+     - mkdir build && cd build && cmake -DSMP=${SMP} -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DTPL_DIR=${TPL_DIR} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=${POSTFIX_RUNNER_ARGS} ../src && make -sj2
 
   test:
     image: jbakosi/${IMAGE}

@@ -14,17 +14,14 @@ include(BuildType)
 # Find MPI compilers
 include(MPICompilers)
 
+set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries. Possible values: ON | OFF")
+
 # Set compilers, will become compiler defines
 set(COMPILER ${UNDERLYING_CXX_COMPILER})
 set(MPI_COMPILER ${MPI_CXX_COMPILER})
 MESSAGE(STATUS "Underlying C++ compiler: " ${UNDERLYING_CXX_COMPILER})
-
-set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries. Possible values: ON | OFF")
-
 # Set compiler id
 string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" COMP)
-
-set(COMPILER "${CMAKE_CXX_COMPILER}")
 
 # set version
 set(VERSION_MAJOR "1")

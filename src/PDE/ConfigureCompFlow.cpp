@@ -102,10 +102,6 @@ infoCompFlow( std::map< ctr::PDEType, tk::ctr::ncomp_t >& cnt )
   if (k.size() > c)
     nfo.emplace_back( "heat conductivity", parameter( k[c][0] ) );
 
-  const auto& npar = g_inputdeck.get< tag::param, eq, tag::npar >();
-  if (!npar.empty())
-    nfo.emplace_back( "number of tracker particles", parameters( npar ) );
-
   const auto& alpha = g_inputdeck.get< tag::param, eq, tag::alpha >();
   if (!alpha.empty()) nfo.emplace_back( "coeff alpha", parameters( alpha ) );
 

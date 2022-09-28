@@ -36,7 +36,6 @@
 #include "Inciter/Types.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
 #include "NodeDiagnostics.hpp"
-#include "ElemDiagnostics.hpp"
 #include "DiagWriter.hpp"
 #include "Callback.hpp"
 #include "CartesianProduct.hpp"
@@ -158,12 +157,12 @@ Transporter::input()
   // Extract mesh filenames specified in the control file (assigned to solvers)
   auto ctrinput = g_inputdeck.mesh();
 
-  ErrChk( !cmdinput.empty() || !ctrinput.empty(),
+  ErrChk( not cmdinput.empty() or not ctrinput.empty(),
     "Either a single input mesh must be given on the command line or multiple "
     "meshes must be configured in the control file." );
 
    // Prepend control file path to mesh filenames in given in control file
-  if (!ctrinput.empty()) {
+  if (not ctrinput.empty()) {
      const auto& ctr = g_inputdeck.get< tag::cmd, tag::io, tag::control >();
      auto path = ctr.substr( 0, ctr.find_last_of("/")+1 );
      for (auto& f : ctrinput) f = path + f;
@@ -256,63 +255,64 @@ Transporter::info( const InciterPrint& print )
                 g_inputdeck.depvar() );
 
   // Print out adaptive mesh refinement configuration
-  const auto amr = g_inputdeck.get< tag::amr, tag::amr >();
-  if (amr) {
-    print.section( "Mesh refinement (h-ref)" );
-    print.refvar( g_inputdeck.get< tag::amr, tag::refvar >(),
-                  g_inputdeck.get< tag::amr, tag::id >() );
-    print.Item< ctr::AMRError, tag::amr, tag::error >();
+  if (g_inputdeck.get< tag::amr, tag::amr >()) {
     auto t0ref = g_inputdeck.get< tag::amr, tag::t0ref >();
-    print.item( "Refinement at t<0 (t0ref)", t0ref );
-    if (t0ref) {
-      const auto& initref = g_inputdeck.get< tag::amr, tag::init >();
-      print.item( "Initial refinement steps", initref.size() );
-      print.ItemVec< ctr::AMRInitial >( initref );
-      print.ItemVecLegend< ctr::AMRInitial >();
-      print.edgeref( g_inputdeck.get< tag::amr, tag::edge >() );
-
-      auto eps =
-        std::numeric_limits< kw::amr_xminus::info::expect::type >::epsilon();
-     
-      auto xminus = g_inputdeck.get< tag::amr, tag::xminus >();
-      auto xminus_default = g_inputdeck_defaults.get< tag::amr, tag::xminus >();
-      if (std::abs( xminus - xminus_default ) > eps)
-        print.item( "Initial refinement x-", xminus );
-      auto xplus = g_inputdeck.get< tag::amr, tag::xplus >();
-      auto xplus_default = g_inputdeck_defaults.get< tag::amr, tag::xplus >();
-      if (std::abs( xplus - xplus_default ) > eps)
-        print.item( "Initial refinement x+", xplus );
-
-      auto yminus = g_inputdeck.get< tag::amr, tag::yminus >();
-      auto yminus_default = g_inputdeck_defaults.get< tag::amr, tag::yminus >();
-      if (std::abs( yminus - yminus_default ) > eps)
-        print.item( "Initial refinement y-", yminus );
-      auto yplus = g_inputdeck.get< tag::amr, tag::yplus >();
-      auto yplus_default = g_inputdeck_defaults.get< tag::amr, tag::yplus >();
-      if (std::abs( yplus - yplus_default ) > eps)
-        print.item( "Initial refinement y+", yplus );
-
-      auto zminus = g_inputdeck.get< tag::amr, tag::zminus >();
-      auto zminus_default = g_inputdeck_defaults.get< tag::amr, tag::zminus >();
-      if (std::abs( zminus - zminus_default ) > eps)
-        print.item( "Initial refinement z-", zminus );
-      auto zplus = g_inputdeck.get< tag::amr, tag::zplus >();
-      auto zplus_default = g_inputdeck_defaults.get< tag::amr, tag::zplus >();
-      if (std::abs( zplus - zplus_default ) > eps)
-        print.item( "Initial refinement z+", zplus );
-    }
     auto dtref = g_inputdeck.get< tag::amr, tag::dtref >();
-    print.item( "Refinement at t>0 (dtref)", dtref );
-    if (dtref) {
-      auto dtfreq = g_inputdeck.get< tag::amr, tag::dtfreq >();
-      print.item( "Mesh refinement frequency, t>0", dtfreq );
-      print.item( "Uniform-only mesh refinement, t>0",
-                  g_inputdeck.get< tag::amr, tag::dtref_uniform >() );
+    if (t0ref or dtref) {
+      print.section( "Mesh refinement (h-ref)" );
+      print.refvar( g_inputdeck.get< tag::amr, tag::refvar >(),
+                    g_inputdeck.get< tag::amr, tag::id >() );
+      auto maxlevels = g_inputdeck.get< tag::amr, tag::maxlevels >();
+      print.item( "Maximum mesh refinement levels", maxlevels );
+      print.Item< ctr::AMRError, tag::amr, tag::error >();
+      if (t0ref) {
+        print.item( "Refinement at t<0 (t0ref)", t0ref );
+        const auto& initref = g_inputdeck.get< tag::amr, tag::init >();
+        print.item( "Initial refinement steps", initref.size() );
+        print.edgeref( g_inputdeck.get< tag::amr, tag::edge >() );
+
+        auto eps =
+          std::numeric_limits< kw::amr_xminus::info::expect::type >::epsilon();
+
+        auto xminus = g_inputdeck.get< tag::amr, tag::xminus >();
+        auto xminus_default = g_inputdeck_defaults.get< tag::amr, tag::xminus >();
+        if (std::abs( xminus - xminus_default ) > eps)
+          print.item( "Initial refinement x-", xminus );
+        auto xplus = g_inputdeck.get< tag::amr, tag::xplus >();
+        auto xplus_default = g_inputdeck_defaults.get< tag::amr, tag::xplus >();
+        if (std::abs( xplus - xplus_default ) > eps)
+          print.item( "Initial refinement x+", xplus );
+
+        auto yminus = g_inputdeck.get< tag::amr, tag::yminus >();
+        auto yminus_default = g_inputdeck_defaults.get< tag::amr, tag::yminus >();
+        if (std::abs( yminus - yminus_default ) > eps)
+          print.item( "Initial refinement y-", yminus );
+        auto yplus = g_inputdeck.get< tag::amr, tag::yplus >();
+        auto yplus_default = g_inputdeck_defaults.get< tag::amr, tag::yplus >();
+        if (std::abs( yplus - yplus_default ) > eps)
+          print.item( "Initial refinement y+", yplus );
+
+        auto zminus = g_inputdeck.get< tag::amr, tag::zminus >();
+        auto zminus_default = g_inputdeck_defaults.get< tag::amr, tag::zminus >();
+        if (std::abs( zminus - zminus_default ) > eps)
+          print.item( "Initial refinement z-", zminus );
+        auto zplus = g_inputdeck.get< tag::amr, tag::zplus >();
+        auto zplus_default = g_inputdeck_defaults.get< tag::amr, tag::zplus >();
+        if (std::abs( zplus - zplus_default ) > eps)
+          print.item( "Initial refinement z+", zplus );
+      }
+      if (dtref) {
+        print.item( "Refinement at t>0 (dtref)", dtref );
+        auto dtfreq = g_inputdeck.get< tag::amr, tag::dtfreq >();
+        print.item( "Mesh refinement frequency, t>0", dtfreq );
+        print.item( "Uniform-only mesh refinement, t>0",
+                    g_inputdeck.get< tag::amr, tag::dtref_uniform >() );
+      }
+      print.item( "Refinement tolerance",
+                  g_inputdeck.get< tag::amr, tag::tolref >() );
+      print.item( "De-refinement tolerance",
+                  g_inputdeck.get< tag::amr, tag::tolderef >() );
     }
-    print.item( "Refinement tolerance",
-                g_inputdeck.get< tag::amr, tag::tolref >() );
-    print.item( "De-refinement tolerance",
-                g_inputdeck.get< tag::amr, tag::tolderef >() );
   }
 
   // Print out ALE configuration
@@ -400,7 +400,7 @@ Transporter::info( const InciterPrint& print )
   const auto nodeoutvars = g_inputdeck.outvars();
   const auto aliases = g_inputdeck.outvar_aliases();
   const auto outsets = g_inputdeck.outsets();
-  if (!nodeoutvars.empty() || !outsets.empty())
+  if (not nodeoutvars.empty() or not outsets.empty())
      print.section( "Output fields" );
   if (!nodeoutvars.empty())
     print.item( "Node field(s)", tk::parameters(nodeoutvars) );
@@ -724,13 +724,11 @@ Transporter::respondedRef( std::size_t meshid )
 }
 
 void
-Transporter::compatibility( std::size_t meshid, std::size_t modified )
+Transporter::compatibility( std::size_t meshid )
 // *****************************************************************************
 // Reduction target: all Refiner chares have received a round of edges,
 // and have run their compatibility algorithm
 //! \param[in] meshid Mesh id (aggregated across all chares using operator max)
-//! \param[in] modified Modified flag, aggregated across all chares using
-//!   operator max), if nonzero, mesh is modified
 //! \details This is called iteratively, until convergence by Refiner. At this
 //!   point all Refiner chares have received a round of edge data (tags whether
 //!   an edge needs to be refined, etc.), and applied the compatibility
@@ -739,10 +737,7 @@ Transporter::compatibility( std::size_t meshid, std::size_t modified )
 //!   round of edge data communication started in Refiner::comExtra().
 // *****************************************************************************
 {
-  if (modified)
-    m_refiner[meshid].comExtra();
-  else
-    m_refiner[meshid].correctref();
+  m_refiner[meshid].correctref();
 }
 
 void
@@ -1423,8 +1418,7 @@ Transporter::checkpoint( std::size_t finished, std::size_t meshid )
   if (++m_nchk == m_nelem.size()) { // all worker arrays have checkpointed
     m_nchk = 0;
     #ifndef HAS_EXAM2M
-    const auto benchmark = g_inputdeck.get< tag::cmd, tag::benchmark >();
-    if (!benchmark) {
+    if (not g_inputdeck.get< tag::cmd, tag::benchmark >()) {
       const auto& restart = g_inputdeck.get< tag::cmd, tag::io, tag::restart >();
       CkCallback res( CkIndex_Transporter::resume(), thisProxy );
       CkStartCheckpoint( restart.c_str(), res );
@@ -1432,6 +1426,7 @@ Transporter::checkpoint( std::size_t finished, std::size_t meshid )
       resume();
     }
     #else
+      printer() << ">>> WARNING: Checkpointing with ExaM2M not yet implemented\n";
       resume();
     #endif
   }

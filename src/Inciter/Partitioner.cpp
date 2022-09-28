@@ -523,8 +523,8 @@ Partitioner::distribute( std::unordered_map< int, MeshData >&& mesh )
     Assert( mesh.find(chid) == end(mesh), "Not all owned mesh data stored" );
   }
 
-  // Construct export map associating mesh connectivities with global node
-  // indices and node coordinates for mesh chunks associated to chare IDs
+  // Construct export map (associating mesh connectivities with global node
+  // indices and node coordinates) for mesh chunks associated to chare IDs
   // owned by chares we do not own.
   std::unordered_map< int,                     // target compute node
     std::unordered_map< int,                   // chare ID
@@ -553,8 +553,8 @@ Partitioner::distribute( std::unordered_map< int, MeshData >&& mesh )
                 m_cbp.get< tag::distributed >() );
   } else {
      m_ndist += exp.size();
-     for (const auto& [ targetchare, chunk ] : exp)
-       thisProxy[ targetchare ].addMesh( CkMyNode(), chunk );
+     for (const auto& [ targetnode, chunk ] : exp)
+       thisProxy[ targetnode ].addMesh( CkMyNode(), chunk );
   }
 }
 

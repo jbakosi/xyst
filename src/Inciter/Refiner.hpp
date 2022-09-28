@@ -52,12 +52,8 @@ class Refiner : public CBase_Refiner {
     template< std::size_t N > using Hash = tk::UnsMesh::Hash< N >;
     template< std::size_t N > using Eq = tk::UnsMesh::Eq< N >;
 
-    //! Boundary face data bundle, see boundary()
-    using BndFaceData = std::tuple<
-      std::unordered_map< Face, std::size_t, Hash<3>, Eq<3> >,
-      std::unordered_map< Face, Tet, Hash<3>, Eq<3> >,
-      std::unordered_map< int, FaceSet >
-    >;
+    //! Boundary face data, see boundary()
+    using BndFaceData = std::unordered_map< Face, std::size_t, Hash<3>, Eq<3> >;
 
     //! Used to associate error to edges
     using EdgeError = std::unordered_map< Edge, tk::real, Hash<2>, Eq<2> >;
@@ -162,6 +158,7 @@ class Refiner : public CBase_Refiner {
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
     void pup( PUP::er &p ) override {
       p | m_meshid;
+      p | m_ncit;
       p | m_host;
       p | m_sorter;
       p | m_meshwriter;
@@ -199,14 +196,15 @@ class Refiner : public CBase_Refiner {
       p | m_addedNodes;
       p | m_addedTets;
       p | m_removedNodes;
+      p | m_amrNodeMap;
       p | m_oldntets;
       p | m_coarseBndFaces;
       p | m_coarseBndNodes;
       p | m_rid;
-      p | m_oldrid;
+      //p | m_oldrid;
       p | m_lref;
       //p | m_oldlref;
-      p | m_parent;
+      //p | m_oldparent;
       p | m_writeCallback;
       p | m_outref_ginpoel;
       p | m_outref_el;
@@ -227,6 +225,8 @@ class Refiner : public CBase_Refiner {
   private:
     //! Mesh ID
     std::size_t m_meshid;
+    //! Number of parallel-compatibility (mesh ref correction) iterations
+    std::size_t m_ncit;
     //! Host proxy
     CProxy_Transporter m_host;
     //! Mesh sorter proxy
@@ -285,11 +285,12 @@ class Refiner : public CBase_Refiner {
     std::unordered_map< Edge, std::vector< int >, Hash<2>, Eq<2> > m_edgech;
     //! Chare->edge map used to build shared boundary edges
     std::unordered_map< int, EdgeSet > m_chedge;
-    //! Refinement data associated to edges
+    //! Refinement data associated to edges (edges stored with node-gids)
     AMR::EdgeData m_localEdgeData;
-    //! Refinement data associated to edges shared with other chares
+    //! \brief Refinement data associated to edges shared with other chares
+    //!   (edges stored with node-gids)
     std::unordered_map< int, std::vector< std::tuple<
-      Edge, int, AMR::Edge_Lock_Case > > > m_remoteEdgeData;
+      Edge, int, int, AMR::Edge_Lock_Case > > > m_remoteEdgeData;
     //! Edges received from other chares
     std::unordered_map< int, std::vector< Edge > > m_remoteEdges;
     //! Intermediate nodes
@@ -303,8 +304,10 @@ class Refiner : public CBase_Refiner {
     std::unordered_map< std::size_t, Edge > m_addedNodes;
     //! Newly added mesh cells (local id) and their parent (local id)
     std::unordered_map< std::size_t, std::size_t > m_addedTets;
-    //! Newly removed mesh nodes (local id) and their ...? (local ids)
+    //! Newly removed mesh node local ids
     std::set< std::size_t > m_removedNodes;
+    //! Node id maps from old mesh to new refined mesh
+    std::unordered_map< std::size_t, std::size_t > m_amrNodeMap;
     //! Number of tetrahedra in the mesh before refinement/derefinement step
     std::size_t m_oldntets;
     //! A unique set of faces associated to side sets of the coarsest mesh
@@ -314,13 +317,13 @@ class Refiner : public CBase_Refiner {
     //! Local -> refiner lib node id map
     std::vector< std::size_t > m_rid;
     //! Local -> refiner lib node id map for previous mesh
-    std::vector< std::size_t > m_oldrid;
+    //std::vector< std::size_t > m_oldrid;
     //! Refiner lib -> local node id map
     std::unordered_map< std::size_t, std::size_t > m_lref;
     //! Refiner lib -> local node id map for previous mesh
     //std::unordered_map< std::size_t, std::size_t > m_oldlref;
-    //! Child -> parent tet map
-    std::unordered_map< Tet, Tet, Hash<4>, Eq<4> > m_parent;
+    //! Child -> parent tet map for previous mesh
+    //std::unordered_map< Tet, Tet, Hash<4>, Eq<4> > m_oldparent;
     //! Function to continue with after writing field output
     CkCallback m_writeCallback;
     //! \brief Tetrahedron element connectivity of our chunk of the mesh
@@ -357,8 +360,8 @@ class Refiner : public CBase_Refiner {
     //! (Re-)generate local -> refiner lib node id map and its inverse
     void libmap();
 
-    //! (Re-)generate boundary data structures for coarse mesh
-    void coarseBnd();
+    //! (Re-)generate side set and block data structures for coarse mesh
+    void coarseMesh();
 
     //! Generate flat coordinate data from coordinate map
     tk::UnsMesh::Coords flatcoord( const tk::UnsMesh::CoordMap& coordmap );
@@ -403,6 +406,9 @@ class Refiner : public CBase_Refiner {
     //! Query AMR lib and update our local store of edge data
     void updateEdgeData();
 
+    //! Query AMR lib and update our local store of boundary edge data
+    void updateBndEdgeData();
+
     //! Aggregate number of extra edges across all chares
     void matched();
 
@@ -420,19 +426,15 @@ class Refiner : public CBase_Refiner {
     //!   refined/derefined boundary faces and nodes of side sets
     BndFaceData boundary();
 
-    //! Regenerate boundary faces after mesh refinement/derefinement step
-    void updateBndFaces( const std::unordered_set< std::size_t >& ref,
-                         const BndFaceData& bnd );
-
-    //! Regenerate boundary nodes after mesh refinement/derefinement step
-    void updateBndNodes( const std::unordered_set< std::size_t >& ref,
-                         const BndFaceData& bnd );
+    //! Regenerate boundary faces and nodes after AMR step
+    void updateBndData( const std::unordered_set< std::size_t >& ref,
+                        const BndFaceData& bnd );
 
     //! Evaluate initial conditions (IC) at mesh nodes
     tk::Fields
-    nodeinit( std::size_t npoin,
+    nodeinit( std::size_t /*npoin*/,
               const std::pair< std::vector< std::size_t >,
-                               std::vector< std::size_t > >& esup ) const;
+                               std::vector< std::size_t > >& /*esup*/ ) const;
 
     //! Output mesh to file(s)
     void writeMesh( const std::string& basefilename,
@@ -469,16 +471,6 @@ class Refiner : public CBase_Refiner {
         if (s.second.find(p) != end(s.second))
           ss.insert( s.first );
       return ss;
-    }
-
-    //! Call a function on each item of an array
-    //! \tparam N Number of nodes in array
-    //! \tparam F Function to pass each item to
-    //! \param[in] array Array whose items to pass to function
-    //! \param[in] f Function to pass each item of array to
-    template< std::size_t N, class F >
-    void addBndNodes( const std::array< std::size_t, N >& array, F f ) {
-      for (auto n : array) f( n );
     }
 };
 

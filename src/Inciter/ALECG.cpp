@@ -1185,8 +1185,11 @@ ALECG::refine( const std::vector< tk::real >& l2res )
   // if t>0 refinement enabled and we hit the frequency
   if (dtref && !(d->It() % dtfreq)) {   // refine
 
+    // Convert to conserved unknowns, since the next step changes volumes
+    conserved(m_u, d->Vol());
+
     d->startvol();
-    d->Ref()->dtref( {}, m_bnode, {} );
+    d->Ref()->dtref( m_bface, m_bnode, m_triinpoel );
     d->refined() = 1;
 
   } else {      // do not refine
@@ -1208,6 +1211,7 @@ ALECG::resizePostAMR(
   const std::unordered_map< std::size_t, tk::UnsMesh::Edge >& addedNodes,
   const std::unordered_map< std::size_t, std::size_t >& /*addedTets*/,
   const std::set< std::size_t >& removedNodes,
+  const std::unordered_map< std::size_t, std::size_t >& amrNodeMap,
   const tk::NodeCommMap& nodeCommMap,
   const std::map< int, std::vector< std::size_t > >& bface,
   const std::map< int, std::vector< std::size_t > >& bnode,
@@ -1219,7 +1223,8 @@ ALECG::resizePostAMR(
 //! \param[in] coord New mesh node coordinates
 //! \param[in] addedNodes Newly added mesh nodes and their parents (local ids)
 //! \param[in] addedTets Newly added mesh cells and their parents (local ids)
-//! \param[in] removedNodes Newly removed mesh nodes (local ids)
+//! \param[in] removedNodes Newly removed mesh node local ids
+//! \param[in] amrNodeMap Node id map after amr (local ids)
 //! \param[in] nodeCommMap New node communication map
 //! \param[in] bface Boundary-faces mapped to side set ids
 //! \param[in] bnode Boundary-node lists mapped to side set ids
@@ -1232,7 +1237,7 @@ ALECG::resizePostAMR(
   ++d->Itr();    // Increase number of iterations with a change in the mesh
 
   // Resize mesh data structures after mesh refinement
-  d->resizePostAMR( chunk, coord, nodeCommMap );
+  d->resizePostAMR( chunk, coord, amrNodeMap, nodeCommMap, removedNodes );
 
   // Remove newly removed nodes from solution vectors
   m_u.rm(removedNodes);
@@ -1246,11 +1251,19 @@ ALECG::resizePostAMR(
   m_un.resize( npoin );
   m_rhs.resize( npoin );
   m_chBndGrad.resize( d->Bid().size() );
+  tk::destroy(m_esup);
+  tk::destroy(m_psup);
+  m_esup = tk::genEsup( d->Inpoel(), 4 );
+  m_psup = tk::genPsup( d->Inpoel(), 4, m_esup );
 
   // Update solution on new mesh
   for (const auto& n : addedNodes)
-    for (std::size_t c=0; c<nprop; ++c)
+    for (std::size_t c=0; c<nprop; ++c) {
+      Assert(n.first < m_u.nunk(), "Added node index out of bounds post-AMR");
+      Assert(n.second[0] < m_u.nunk() && n.second[1] < m_u.nunk(),
+        "Indices of parent-edge nodes out of bounds post-AMR");
       m_u(n.first,c,0) = (m_u(n.second[0],c,0) + m_u(n.second[1],c,0))/2.0;
+    }
 
   // Update physical-boundary node-, face-, and element lists
   m_bnode = bnode;
@@ -1269,6 +1282,16 @@ ALECG::resized()
 // Resizing data sutrctures after mesh refinement has been completed
 // *****************************************************************************
 {
+  auto d = Disc();
+
+  // Revert to volumetric unknowns, if soln was converted in ALECG::refine()
+  auto dtref = g_inputdeck.get< tag::amr, tag::dtref >();
+  auto dtfreq = g_inputdeck.get< tag::amr, tag::dtfreq >();
+  if (dtref && !(d->It() % dtfreq) && d->refined()) {
+    volumetric(m_u, d->Vol());
+    d->Voln() = d->Vol();       // update previous volumes after refinement
+  }
+
   resize_complete();
 }
 

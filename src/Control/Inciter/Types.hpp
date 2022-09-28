@@ -54,6 +54,7 @@ using amr = tk::TaggedTuple< brigand::list<
   , tag::dtref,   bool                            //!< AMR during t>0 on/off
   , tag::dtref_uniform, bool                      //!< Force dtref uniform-only
   , tag::dtfreq,  kw::amr_dtfreq::info::expect::type //!< Refinement frequency
+  , tag::maxlevels, kw::amr_maxlevels::info::expect::type //!< Max refine levels
   , tag::init,    std::vector< AMRInitialType >   //!< List of initial AMR types
   , tag::refvar,  std::vector< std::string >      //!< List of refinement vars
   , tag::id,      std::vector< std::size_t >      //!< List of refvar indices
@@ -396,8 +397,6 @@ using CompFlowPDEParameters = tk::TaggedTuple< brigand::list<
     //! Heat conductivity
   , tag::k,             std::vector<
                           std::vector< kw::mat_k::info::expect::type > >
-    //! total number of optional passive tracker particles for visualization
-  , tag::npar,          std::vector< kw::npar::info::expect::type >
 > >;
 
 //! Parameters storage

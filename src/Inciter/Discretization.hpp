@@ -126,9 +126,12 @@ class Discretization : public CBase_Discretization {
     void transfer( const tk::Fields& u );
 
     //! Resize mesh data structures after mesh refinement
-    void resizePostAMR( const tk::UnsMesh::Chunk& chunk,
-                        const tk::UnsMesh::Coords& coord,
-                        const tk::NodeCommMap& nodeCommMap );
+    void resizePostAMR(
+      const tk::UnsMesh::Chunk& chunk,
+      const tk::UnsMesh::Coords& coord,
+      const std::unordered_map< std::size_t, std::size_t >& amrNodeMap,
+      const tk::NodeCommMap& nodeCommMap,
+      const std::set< std::size_t >& removedNodes );
 
     //! Get ready for (re-)computing/communicating nodal volumes
     void startvol();
@@ -594,6 +597,8 @@ class Discretization : public CBase_Discretization {
     //! \brief True if all stages of the time step converged the mesh velocity
     //!   linear solve in ALE
     bool m_meshvel_converged;
+    //! Generate chare-boundary node id map
+    std::unordered_map< std::size_t, std::size_t > genBid();
 
     //! Generate {A,x,b} for Laplacian mesh velocity smoother
     std::tuple< tk::CSR, std::vector< tk::real >, std::vector< tk::real > >

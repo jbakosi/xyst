@@ -207,6 +207,22 @@ add_regression_test(amr_dtref_u_compflow_nleg_reord_diagcg ${INCITER_EXECUTABLE}
                      TEXT_DIFF_PROG_CONF nleg_diagcg.ndiff.cfg
                      LABELS diagcg amr migration)
 
+add_regression_test(amr_dtref_u_compflow_diagcg ${INCITER_EXECUTABLE}
+                    NUMPES 2
+                    INPUTFILES sod_amr_diagcg.q rectangle_01_112.exo
+                    ARGS -c sod_amr_diagcg.q -i rectangle_01_112.exo -v
+                    BIN_BASELINE sod_diagcg_pe2_u0.0.std.e-s.0.2.0
+                                 sod_diagcg_pe2_u0.0.std.e-s.0.2.1
+                                 sod_diagcg_pe2_u0.0.std.e-s.1.2.0
+                                 sod_diagcg_pe2_u0.0.std.e-s.1.2.1
+                    BIN_RESULT out.e-s.0.2.0
+                               out.e-s.0.2.1
+                               out.e-s.1.2.0
+                               out.e-s.1.2.1
+                    BIN_DIFF_PROG_CONF exodiff_sod_amr_diagcg.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    LABELS diagcg amr)
+
 # Parallel, virtualization
 
 add_regression_test(amr_dtref_u_trans_diagcg_u0.8 ${INCITER_EXECUTABLE}

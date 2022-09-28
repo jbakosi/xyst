@@ -133,7 +133,7 @@ geomPartMesh( tk::ctr::PartitioningAlgorithmType algorithm,
   //  * 1st argument, 'scalar': the data type for element values, weights and
   //    coordinates
   //  * 2nd argument, 'lno' (local number): the integral data type used by
-  //    the application aand by Zoltan2 for local indices and local
+  //    the application and by Zoltan2 for local indices and local
   //    counts
   //  * 3rd argument 'gno' (global number): is the integral data type used by
   //    the application and Zoltan2 to represent global

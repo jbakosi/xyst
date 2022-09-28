@@ -40,7 +40,6 @@ std::vector< std::vector< tk::real > >
 CompFlowFieldOutput( ncomp_t system,
                      ncomp_t offset,
                      std::size_t nunk,
-                     std::size_t rdof,
                      const tk::Fields& U )
 // *****************************************************************************
 //  Return field output going to file
@@ -49,19 +48,16 @@ CompFlowFieldOutput( ncomp_t system,
 //! \param[in] offset System offset specifying the position of the system of
 //!   PDEs among other systems
 //! \param[in] nunk Number of unknowns to extract
-//! \param[in] rdof Number of reconstructed degrees of freedom. This is used as
-//!   the number of scalar components to shift when extracting scalar
-//!   components.
 //! \param[in] U Solution vector at recent time step
 //! \return Vector of vectors to be output to file
 // *****************************************************************************
 {
   std::vector< std::vector< tk::real > > out;
-  const auto r  = U.extract( 0*rdof, offset );
-  const auto ru = U.extract( 1*rdof, offset );
-  const auto rv = U.extract( 2*rdof, offset );
-  const auto rw = U.extract( 3*rdof, offset );
-  const auto re = U.extract( 4*rdof, offset );
+  const auto r  = U.extract( 0, offset );
+  const auto ru = U.extract( 1, offset );
+  const auto rv = U.extract( 2, offset );
+  const auto rw = U.extract( 3, offset );
+  const auto re = U.extract( 4, offset );
 
   Assert( r.size() >= nunk, "Size mismatch" );
   Assert( ru.size() >= nunk, "Size mismatch" );

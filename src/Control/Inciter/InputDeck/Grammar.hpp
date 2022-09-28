@@ -1291,8 +1291,6 @@ namespace deck {
                            parameter_bool< tag::compflow,
                                            kw::sysfct,
                                            tag::sysfct >,
-                           parameter< tag::compflow, kw::npar,
-                                      tag::npar, pegtl::digit >,
                            parameter< tag::compflow, kw::pde_alpha,
                                       tag::alpha >,
                            parameter< tag::compflow, kw::pde_p0,
@@ -1398,7 +1396,11 @@ namespace deck {
                              pegtl::alpha >,
                            tk::grm::process< use< kw::amr_dtfreq >,
                              tk::grm::Store< tag::amr, tag::dtfreq >,
-                             pegtl::digit > >,
+                             pegtl::digit >,
+                           tk::grm::process< use< kw::amr_maxlevels >,
+                             tk::grm::Store< tag::amr, tag::maxlevels >,
+                             pegtl::digit >
+                         >,
            tk::grm::check_amr_errors > {};
 
 

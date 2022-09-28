@@ -27,9 +27,11 @@ namespace AMR {
             //! Default constructor for migration
             mesh_adapter_t() {}
 
-            //! Constructor taking a mesh graph
-            explicit mesh_adapter_t( const std::vector< std::size_t >& inpoel ) :
-                node_connectivity( tk::npoin_in_graph(inpoel) )
+            //! Constructor taking a max refinement level and a mesh graph
+            explicit mesh_adapter_t( std::size_t u_mrl,
+                const std::vector< std::size_t >& inpoel ) :
+                node_connectivity( tk::npoin_in_graph(inpoel) ),
+                refiner( u_mrl )
             {
                 consume_tets( inpoel );
                 tet_store.generate_edges();
@@ -92,6 +94,7 @@ namespace AMR {
             void reset_intermediate_edges();
             void update_tet_edges_lock_type(size_t tet_id, AMR::Edge_Lock_Case check, AMR::Edge_Lock_Case new_case);
             void remove_edge_locks(int intermediate = 0);
+            void remove_edge_temp_locks();
             void remove_normals();
 
             size_t convert_derefine_edges_to_points(

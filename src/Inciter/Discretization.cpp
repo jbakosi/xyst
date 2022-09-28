@@ -136,13 +136,8 @@ Discretization::Discretization(
   // Get ready for computing/communicating nodal volumes
   startvol();
 
-  // Count the number of mesh nodes at which we receive data from other chares
-  // and compute map associating boundary-chare node ID to global node ID
-  std::vector< std::size_t > c( tk::sumvalsize( m_nodeCommMap ) );
-  std::size_t j = 0;
-  for (const auto& [ch,n] : m_nodeCommMap) for (auto i : n) c[j++] = i;
-  tk::unique( c );
-  m_bid = tk::assignLid( c );
+  // Generate chare-boundary node-id map
+  m_bid = genBid();
 
   // Find host elements of user-specified points where time histories are
   // saved, and save the shape functions evaluated at the point locations
@@ -192,6 +187,23 @@ Discretization::Discretization(
     transferInit();
     #endif
   }
+}
+
+std::unordered_map< std::size_t, std::size_t >
+Discretization::genBid()
+// *****************************************************************************
+// Generate chare-boundary node id map
+//! \return Local chare-boundary mesh node IDs at which we receive contributions
+//!  associated to global mesh node IDs of elements we contribute to
+// *****************************************************************************
+{
+  // Count the number of mesh nodes at which we receive data from other chares
+  // and compute map associating boundary-chare node ID to global node ID
+  std::vector< std::size_t > c( tk::sumvalsize( m_nodeCommMap ) );
+  std::size_t j = 0;
+  for (const auto& [ch,n] : m_nodeCommMap) for (auto i : n) c[j++] = i;
+  tk::unique( c );
+  return tk::assignLid( c );
 }
 
 void
@@ -449,28 +461,31 @@ Discretization::bndel() const
 }
 
 void
-Discretization::resizePostAMR( const tk::UnsMesh::Chunk& chunk,
-                               const tk::UnsMesh::Coords& coord,
-                               const tk::NodeCommMap& nodeCommMap )
+Discretization::resizePostAMR(
+  const tk::UnsMesh::Chunk& chunk,
+  const tk::UnsMesh::Coords& coord,
+  const std::unordered_map< std::size_t, std::size_t >& /*amrNodeMap*/,
+  const tk::NodeCommMap& nodeCommMap,
+  const std::set< std::size_t >& /*removedNodes*/ )
 // *****************************************************************************
 //  Resize mesh data structures after mesh refinement
 //! \param[in] chunk New mesh chunk (connectivity and global<->local id maps)
 //! \param[in] coord New mesh node coordinates
+//! \param[in] amrNodeMap Node id map after amr (local ids)
 //! \param[in] nodeCommMap New node communication map
+//! \param[in] removedNodes Newly removed mesh node local ids
 // *****************************************************************************
 {
   m_el = chunk;         // updates m_inpoel, m_gid, m_lid
+  m_nodeCommMap.clear();
   m_nodeCommMap = nodeCommMap;        // update node communication map
 
   // Update mesh volume container size
   m_vol.resize( m_gid.size(), 0.0 );
+  if (!m_voln.empty()) m_voln.resize( m_gid.size(), 0.0 );
 
-  // Generate local ids for new chare boundary global ids
-  std::size_t bid = m_bid.size();
-  for (const auto& [ neighborchare, sharednodes ] : m_nodeCommMap)
-    for (auto g : sharednodes)
-      if (m_bid.find(g) == end(m_bid))
-        m_bid[g] = bid++;
+  // Regenerate chare-boundary node ids map
+  m_bid = genBid();
 
   // update mesh node coordinates
   m_coord = coord;

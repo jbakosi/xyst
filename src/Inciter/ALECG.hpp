@@ -150,6 +150,7 @@ class ALECG : public CBase_ALECG {
       const std::unordered_map< std::size_t, tk::UnsMesh::Edge >& addedNodes,
       const std::unordered_map< std::size_t, std::size_t >& addedTets,
       const std::set< std::size_t >& removedNodes,
+      const std::unordered_map< std::size_t, std::size_t >& amrNodeMap,
       const tk::NodeCommMap& nodeCommMap,
       const std::map< int, std::vector< std::size_t > >& bface,
       const std::map< int, std::vector< std::size_t > >& bnode,
@@ -346,7 +347,8 @@ class ALECG : public CBase_ALECG {
     std::vector< tk::real > m_tp;
     //! True in the last time step
     int m_finished;
-    //! State indicating the reason we are recomputing the normals
+    //! \brief State indicating the reason we are recomputing the normals.
+    //    0: after ALE; 1: after AMR
     int m_newmesh;
 
     //! Access bound Discretization class pointer

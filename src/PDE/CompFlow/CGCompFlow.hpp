@@ -90,7 +90,7 @@ class CompFlow {
       const auto& y = coord[1];
       const auto& z = coord[2];
 
-      // Detect if user has configured a IC boxes
+      // Detect if user has configured IC boxes
       const auto& icbox = g_inputdeck.get<tag::param, eq, tag::ic, tag::box>();
       if (icbox.size() > m_system) {
         std::size_t bcnt = 0;

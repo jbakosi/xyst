@@ -71,10 +71,10 @@ try :
   for (i=0; i<rnz.size(); ++i)
     for (std::size_t k=0; k<ncomp; ++k)
       for (std::size_t j=psup2[i]+1; j<=psup2[i+1]; ++j)
-         for (std::size_t l=1; l<rnz[i]; ++l)   // sort column indices of row i
-            for (std::size_t e=0; e<rnz[i]-l; ++e)
-              if (ja[ia[i*ncomp+k]-1+e] > ja[ia[i*ncomp+k]+e])
-	        std::swap( ja[ia[i*ncomp+k]-1+e], ja[ia[i*ncomp+k]+e] );
+        for (std::size_t l=1; l<rnz[i]; ++l)   // sort column indices of row i
+          for (std::size_t e=0; e<rnz[i]-l; ++e)
+            if (ja[ia[i*ncomp+k]-1+e] > ja[ia[i*ncomp+k]+e])
+	      std::swap( ja[ia[i*ncomp+k]-1+e], ja[ia[i*ncomp+k]+e] );
 
 } // Catch std::exception
   catch (std::exception& se) {

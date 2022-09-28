@@ -64,11 +64,17 @@ GPL v3.
 
 @section mainpage_history History
 
-Xyst was originally developed as part of
-[Quinoa](https://quinoacomputing.github.io/archive/) (as Inciter) and later was
-split off from the stochastic differential equation solver (Walker) to contain
-only the tools in this repository. Compared to Quinoa::Inciter the
-cell-centered schemes have also been removed.
+Xyst is forked from [Quinoa](https://quinoacomputing.github.io). Compared to
+Quinoa Xyst
+
+1. removes the stochastic differential equation solver
+([walker](https://wlkr.cc)), and also
+
+2. removes the cell-centered schemes, keeping only the node-centered @ref
+inciter_diagcg and @ref inciter_alecg.
+
+Development on [Quinoa](https://github.com/quinoacomputing/quinoa) and
+[Xyst](https://codeberg.org/xyst/xyst) continues on two different forks.
 
 @section authors Authors
 

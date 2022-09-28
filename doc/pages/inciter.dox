@@ -20,7 +20,7 @@ resources to regions with interesting physics. Current development continues
 towards productizing the solver, i.e., increase robustness, user-friendliness,
 and add practicality features.
 
-Inciter currently has three different family of fluid dynamics algorithms:
+Inciter currently has the following different fluid dynamics algorithms:
 
 1. `DiagCG`, a node-centered continuous Galerkin finite element method,
    combining flux-corrected transport with Lax-Wendroff time

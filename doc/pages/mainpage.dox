@@ -70,4 +70,20 @@ split off from the stochastic differential equation solver (Walker) to contain
 only the tools in this repository. Compared to Quinoa::Inciter the
 cell-centered schemes have also been removed.
 
+@section authors Authors
+
+@m_class{m-note m-default m-text-center}
+
+[Jozsef Bakosi](https://github.com/jbakosi) -
+[Aditya Pandare](https://github.com/adityakpandare) -
+[Weizhao Li](https://github.com/WeizhaoLi2018) -
+[Bob Bird](https://github.com/rfbird) -
+[Marc Charest](https://github.com/charest) -
+[Tanner Nielsen](https://github.com/TannerNielsen) -
+[Christoph Junghans](https://github.com/junghans) -
+[Francisco Gonzalez](https://github.com/franjgonzalez) -
+[Aditya Pakki](https://github.com/adityapakki) -
+[Robert Pavel](https://github.com/rspavel) -
+[Brandon Rogers](https://github.com/brog2610)
+
 */

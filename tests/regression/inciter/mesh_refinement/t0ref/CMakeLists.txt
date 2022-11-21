@@ -117,41 +117,43 @@ add_regression_test(amr_t0ref_u_trans_diagcg ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     LABELS diagcg amr)
 
-add_regression_test(amr_t0ref_ii ${INCITER_EXECUTABLE}
-                    NUMPES 2
-                    INPUTFILES ic_ic.q unitsquare_01_141.exo
-                    ARGS -c ic_ic.q -i unitsquare_01_141.exo -v
-                    BIN_BASELINE ic_ic_t0ref.e-s.0.2.0
-                                 ic_ic_t0ref.e-s.0.2.1
-                                 ic_ic_t0ref.e-s.1.2.0
-                                 ic_ic_t0ref.e-s.1.2.1
-                                 ic_ic_t0ref.e-s.2.2.0
-                                 ic_ic_t0ref.e-s.2.2.1
-                                 amr_ic_ic.std.exo.0
-                                 amr_ic_ic.std.exo.1
-                    BIN_RESULT t0ref.e-s.0.2.0
-                               t0ref.e-s.0.2.1
-                               t0ref.e-s.1.2.0
-                               t0ref.e-s.1.2.1
-                               t0ref.e-s.2.2.0
-                               t0ref.e-s.2.2.1
-                               out.e-s.0.2.0
-                               out.e-s.0.2.1
-                    BIN_DIFF_PROG_ARGS -m
-                    BIN_DIFF_PROG_CONF exodiff.cfg
-                    LABELS diagcg amr)
+# See 90811bfa
+#add_regression_test(amr_t0ref_ii ${INCITER_EXECUTABLE}
+#                    NUMPES 2
+#                    INPUTFILES ic_ic.q unitsquare_01_141.exo
+#                    ARGS -c ic_ic.q -i unitsquare_01_141.exo -v
+#                    BIN_BASELINE ic_ic_t0ref.e-s.0.2.0
+#                                 ic_ic_t0ref.e-s.0.2.1
+#                                 ic_ic_t0ref.e-s.1.2.0
+#                                 ic_ic_t0ref.e-s.1.2.1
+#                                 ic_ic_t0ref.e-s.2.2.0
+#                                 ic_ic_t0ref.e-s.2.2.1
+#                                 amr_ic_ic.std.exo.0
+#                                 amr_ic_ic.std.exo.1
+#                    BIN_RESULT t0ref.e-s.0.2.0
+#                               t0ref.e-s.0.2.1
+#                               t0ref.e-s.1.2.0
+#                               t0ref.e-s.1.2.1
+#                               t0ref.e-s.2.2.0
+#                               t0ref.e-s.2.2.1
+#                               out.e-s.0.2.0
+#                               out.e-s.0.2.1
+#                    BIN_DIFF_PROG_ARGS -m
+#                    BIN_DIFF_PROG_CONF exodiff.cfg
+#                    LABELS diagcg amr)
 
-add_regression_test(amr_t0ref_iu_trans ${INCITER_EXECUTABLE}
-                    NUMPES 2
-                    INPUTFILES ic_uniform.q unitsquare_01_141.exo
-                    ARGS -c ic_uniform.q -i unitsquare_01_141.exo -v
-                    BIN_BASELINE amr_ic_uniform.std.exo.0
-                                 amr_ic_uniform.std.exo.1
-                    BIN_RESULT  out.e-s.0.2.0
-                                out.e-s.0.2.1
-                    BIN_DIFF_PROG_ARGS -m
-                    BIN_DIFF_PROG_CONF exodiff.cfg
-                    LABELS diagcg amr)
+# See 90811bfa
+#add_regression_test(amr_t0ref_iu_trans ${INCITER_EXECUTABLE}
+#                    NUMPES 2
+#                    INPUTFILES ic_uniform.q unitsquare_01_141.exo
+#                    ARGS -c ic_uniform.q -i unitsquare_01_141.exo -v
+#                    BIN_BASELINE amr_ic_uniform.std.exo.0
+#                                 amr_ic_uniform.std.exo.1
+#                    BIN_RESULT  out.e-s.0.2.0
+#                                out.e-s.0.2.1
+#                    BIN_DIFF_PROG_ARGS -m
+#                    BIN_DIFF_PROG_CONF exodiff.cfg
+#                    LABELS diagcg amr)
 
 add_regression_test(amr_t0ref_idiu_trans ${INCITER_EXECUTABLE}
                     NUMPES 2

@@ -12,7 +12,7 @@ learn more about how the source code is organized into directories.
 @details This directory contains basic, usually small, utility-like
 functionality. The classes and functions defined here are general purpose,
 usually generic, and therefore can and are heavily reused across all
-executables built by Quinoa.
+executables built by Xyst.
 
 @dir src/Control
 @brief Command line and input file parsing and grammars for all executables
@@ -254,7 +254,7 @@ chares for all executables. It contains
    chares,
  - executable-specific pretty-printers in `<executable>Print.[Ch]`,
  - configuration compiler macros and values imported from cmake in
-   `QuinoaConfig.[Ch]`, and
+   `XystConfig.[Ch]`, and
  - generic initialization routines reused across all executables, Init.h.
 
 In other words, this is where all execution starts for all executables.

@@ -14,7 +14,7 @@ meshes from and to either of the following formats:
   - UGRID, https://www.simcenter.msstate.edu/software/documentation/aflr3
   - RDGFLO, https://www.mae.ncsu.edu/people/hluo2
 
-Similar to the rest of Quinoa, meshconv also uses the Charm++ runtime system,
+Similar to the rest of Xyst, meshconv also uses the Charm++ runtime system,
 however, meshconv is currently not parallelized.
 
 @section meshconv_pages Related pages

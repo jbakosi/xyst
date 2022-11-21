@@ -18,7 +18,8 @@ scaling</a> of the different solvers in @ref inciter_main.
 @m_div{m-col-m-10 m-center-m}
 <img src="images/inciter_scaling_smp.svg"/>
 Strong scaling of the time stepping phase (i.e., excluding setup) running @ref
-inciter_diagcg "DiagCG", @ref inciter_alecg "ALECG", and the DG (only in Quinoa)
+inciter_diagcg "DiagCG", @ref inciter_alecg "ALECG", and the DG (only in Quinoa,
+see https://quinoacomputing.github.io)
 "DG" single-material Euler solvers using a 794-million-cell mesh without
 large-file I/O up to about 50 thousand CPUs. The vertical axis here measures
 wall-clock time. SMP means that Charm++ is running in <a
@@ -28,7 +29,7 @@ message-based communication is only used on the network, i.a., across compute
 nodes and not within nodes. One can see that SMP vs. non-SMP mode can make a
 large difference in absolute performance at large scales. Note that running in
 SMP mode simply amounts to "building Charm++ in SMP mode" and recompiling
-Quinoa and Inciter, without any changes to the source code.
+Inciter, without any changes to the source code.
 @m_enddiv
 
 Note that the vertical axis above measures wall-clock time in seconds, thus the

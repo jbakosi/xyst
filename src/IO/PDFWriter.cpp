@@ -1163,7 +1163,7 @@ PDFWriter::writeExHdr( int outFileId, int nnode, int nelem ) const
 // *****************************************************************************
 {
   ErrChk( ex_put_init( outFileId,
-                       "Written by Quinoa",
+                       "Written by Xyst",
                        3,                     // number of dimensions
                        nnode,                 // number of nodes
                        nelem,                 // number of elements

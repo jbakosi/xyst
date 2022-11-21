@@ -15,7 +15,8 @@ entity such as cell, face, node, etc.
 
 @section layout_req Data layout requirements and design
 
-How should field values, storing particle properties (e.g., in Quinoa::Walker)
+How should field values, storing particle properties (e.g., in Quinoa::Walker,
+see https://wlkr.cc)
 should be stored in memory? How should mesh field data (associated to nodes,
 elements, faces, etc., in @ref inciter_main) should be stored in memory? These
 are the single largest chunks of data a particle-, and/or mesh-based code
@@ -131,7 +132,7 @@ shared-memory parallelism. While Kokkos has been successfully used in Charm++
 code, at this point (Jan 2016) we opt for _not_ adopting Kokkos' views and keep
 our original data layout abstractions, discussed below. The reasons:
 
-  - At this point we are too early in the development of Quinoa and its tools to
+  - At the time of this writing we were too early in the development to
     be able to say that the current abstractions Charm++ provides are sufficient
     or not to strike the correct balance between performance and productivity.
     In particular, it could be possible that Charm++'s abstractions (using
@@ -165,8 +166,7 @@ particle-code and will not specifically mention mesh-based unknowns, stored at
 the nodes, elements, faces, etc., of a computational mesh. The former is for a
 particle-code, the latter is for a mesh-code. The data layout discussion is
 independent of whether particles or mesh entities (nodes, cells, etc.) are used,
-and accordingly both Quinoa::Walker and @ref inciter_main uses the same
-implementation.
+and @ref inciter_main uses this implementation.
 
 In principle there are a total of 6 permutations:
 
@@ -427,12 +427,13 @@ configurable data-access policy discussed above. The implementation is via a
 thin data-access interface with zero run-time cost, no code-duplication, and in
 a way that is invisible to client code.
 
-@subsection layout_input Quinoa::Walker input file used for the benchmark
+@subsection layout_input Quinoa::Walker (see https://wlkr.cc) input file used for the benchmark
 
 We will integrate for the duration of a 100,000 time steps a system of 100
 coupled non-linear stochastic differential equations (SDEs) whose statistically
 stationary solution converge to the Dirichlet distribution and measure the
-wall-clock time. For more on the Dirichlet SDE, see [src/DiffEq/Dirichlet.h](https://github.com/quinoacomputing/quinoa/blob/master/src/DiffEq/Dirichlet.h).
+wall-clock time. For more on the Dirichlet SDE, see src/DiffEq/Dirichlet.h at
+https://wlkr.cc.
 
 @code{.bash}
 walker
@@ -620,12 +621,12 @@ at compile time. Data access is abstracted (and optimized) away.
 Note that the above discussion is independent of whether a particle-code or a
 mesh-code is used. From the data layout viewpoint the particle-major and
 mesh-field-major are equivalent and in the code, and in tk::Data, this is called
-the _unknown_-major. See [src/Base/Data.h](https://github.com/quinoacomputing/quinoa/blob/master/src/Base/Data.h) and its specializations in [src/Base/Fields.h](https://github.com/quinoacomputing/quinoa/blob/master/src/Base/Fields.h) and
-[src/Base/Particles.h](https://github.com/quinoacomputing/quinoa/blob/master/src/Base/Particles.h).
+the _unknown_-major. See src/Base/Data.h and its specializations in src/Base/Fields.h
+and src/Base/Particles.h in https://wlkr.cc
 The data layouts for mesh-fields and particles can be configured independently
 at compile time via cmake variables @code{.cmake}PARTICLE_DATA_LAYOUT@endcode
-and @code{.cmake}FIELD_DATA_LAYOUT@endcode, see also
-[cmake/ConfigureDataLayout.cmake](https://github.com/quinoacomputing/quinoa/blob/master/cmake/ConfigureDataLayout.cmake).
+and @code{.cmake}FIELD_DATA_LAYOUT@endcode.
 
-For the API, see tk::Data, and for the full (and current) implementation, see [src/Base/Data.h](https://github.com/quinoacomputing/quinoa/blob/master/src/Base/Data.h).
+For the API, see tk::Data, and for the full (and current) implementation, see
+src/Base/Data.h.
 */

@@ -27,7 +27,7 @@ namespace inciter {
 extern std::vector< CGPDE > g_cgpde;
 
 std::unordered_map< std::size_t, std::vector< std::pair< bool, tk::real > > >
-match( [[maybe_unused]] tk::ctr::ncomp_t ncomp,
+match( [[maybe_unused]] tk::ctr::ncomp_t nprop,
        tk::real t,
        tk::real dt,
        const std::vector< tk::real >& tp,
@@ -38,7 +38,7 @@ match( [[maybe_unused]] tk::ctr::ncomp_t ncomp,
        bool increment )
 // *****************************************************************************
 //  Match user-specified boundary conditions at nodes for side sets
-//! \param[in] ncomp Number of scalar components in PDE system
+//! \param[in] nprop Number of scalar components in all PDE systems solved
 //! \param[in] t Physical time at which to query boundary conditions
 //! \param[in] dt Time step size (for querying BC increments in time)
 //! \param[in] tp Physical time for each mesh node
@@ -96,15 +96,6 @@ match( [[maybe_unused]] tk::ctr::ncomp_t ncomp,
   // less) scalars should go in the positions starting at 5, leaving the first 5
   // false, indicating no BCs for the flow variables.
   //
-  // Note that the logic described above is only partially implemented at this
-  // point. What works is the correct insertion of multiple BCs for nodes shared
-  // among multiple side sets, e.g., corners, originating from the same PDE
-  // system. What is not yet implemented is the case when there are no BCs set
-  // for flow variables but there are BCs for transport, the else branch below
-  // will incorrectly NOT skip the space for the flow variables. In other words,
-  // this only works for a single PDE system and a sytem of systems. This
-  // machinery is only tested with a single system of PDEs at this point.
-  //
   // When a particular node belongs to two or more side sets with different BCs,
   // there is an ambiguity as to which of the multiple BCs should be applied to
   // the node. This issue is described in case (1) above. In the current
@@ -123,29 +114,20 @@ match( [[maybe_unused]] tk::ctr::ncomp_t ncomp,
   };
 
   // Query Dirichlet BCs for all PDEs integrated and assign to nodes
-  for (const auto& s : bnode) {     // for all side sets passed in
-    std::size_t c = 0;
+  for (const auto& s : bnode) { // for all side sets passed in
     auto l = local(s.second);   // generate local node ids on side set
     for (std::size_t eq=0; eq<g_cgpde.size(); ++eq) {
       // query Dirichlet BCs at nodes of this side set
       auto eqbc =
         g_cgpde[eq].dirbc( t, dt, tp, dtp, {s.first,l}, coord, increment );
-      for (const auto& n : eqbc) {
-        auto id = n.first;                      // BC node ID
-        const auto& bcs = n.second;             // BCs
-        auto& nodebc = dirbc[ id ];     // BCs to be set for node
-        if (nodebc.size() > c) {        // node already has BCs from this PDE
-          Assert( nodebc.size() == c+bcs.size(), "Size mismatch" );
-          for (std::size_t i=0; i<bcs.size(); i++) {
-            if (bcs[i].first) nodebc[c+i] = bcs[i];
-          }
-        } else {        // node does not yet have BCs from this PDE
-          // This branch needs to be completed for system of systems of PDEs.
-          // See note above.
-          nodebc.insert( end(nodebc), begin(bcs), end(bcs) );
-        }
+      auto ncomp = g_cgpde[eq].ncomp();
+      auto offset = g_cgpde[eq].offset();
+      for (const auto& [node,bcval] : eqbc) {
+        auto& nodebc = dirbc[node];
+        nodebc.clear(); // multiple BCs at a node: last one wins
+        for (std::size_t c=0; c<nprop; ++c) nodebc.push_back( {false,0.0} );
+        for (std::size_t c=0; c<ncomp; ++c) nodebc[offset+c] = bcval[c];
       }
-      if (!eqbc.empty()) c += eqbc.cbegin()->second.size();
     }
   }
 
@@ -153,9 +135,9 @@ match( [[maybe_unused]] tk::ctr::ncomp_t ncomp,
   // equal to the total number of scalar components for all systems of PDEs
   // integrated.
   Assert( std::all_of( begin(dirbc), end(dirbc),
-            [ ncomp ]( const auto& n ){ return n.second.size() == ncomp; } ),
+            [ nprop ]( const auto& n ){ return n.second.size() == nprop; } ),
           "Size of NodeBC vector incorrect" );
- 
+
   return dirbc;
 }
 

@@ -97,15 +97,13 @@ NodeDiagnostics::compute(
     // Evaluate analytic solution (if exist, if not, IC)
     auto an = u;
     for (std::size_t i=0; i<an.nunk(); ++i) {
-      // Query analytic solution for all components of all PDEs integrated
-      std::vector< tk::real > a;
-      for (const auto& eq : g_cgpde) {
+      for (const auto& eq : g_cgpde) {  // order not guaranteed!
         auto s = eq.solution( x[i], y[i], z[i], d.T()+d.Dt() );
-        std::move( begin(s), end(s), std::back_inserter(a) );
+        auto offset = eq.offset();
+        for (std::size_t c=0; c<s.size(); ++c) an(i,c,offset) = s[c];
       }
-      Assert( a.size() == u.nprop(), "Size mismatch" );
-      for (std::size_t c=0; c<an.nprop(); ++c) an(i,c,0) = a[c];
     }
+
     // Apply symmetry BCs on analytic solution (if exist, if not, IC)
     for (const auto& eq : g_cgpde)
       eq.symbc( an, coord, bnorm, symbcnodes );
@@ -115,23 +113,29 @@ NodeDiagnostics::compute(
 
     // Put in norms sweeping our mesh chunk
     for (std::size_t i=0; i<u.nunk(); ++i) {
-      // Compute sum for L2 norm of the numerical solution
-      for (std::size_t c=0; c<u.nprop(); ++c)
-        diag[L2SOL][c] += u(i,c,0) * u(i,c,0) * v[i];
-      // Compute sum for L2 norm of the numerical-analytic solution
-      for (std::size_t c=0; c<u.nprop(); ++c)
-        diag[L2ERR][c] += (u(i,c,0)-an(i,c,0)) * (u(i,c,0)-an(i,c,0)) * v[i];
-      // Compute sum for L2 norm of the residual
-      for (std::size_t c=0; c<u.nprop(); ++c)
-        diag[L2RES][c] += (u(i,c,0)-un(i,c,0)) * (u(i,c,0)-un(i,c,0)) * v[i];
-      // Compute max for Linf norm of the numerical-analytic solution
-      for (std::size_t c=0; c<u.nprop(); ++c) {
-        auto err = std::abs( u(i,c,0) - an(i,c,0) );
-        if (err > diag[LINFERR][c]) diag[LINFERR][c] = err;
+      for (const auto& eq : g_cgpde) {  // order not guaranteed!
+        auto ncomp = eq.ncomp();
+        auto offset = eq.offset();
+        // Compute sum for L2 norm of the numerical solution
+        for (std::size_t c=0; c<ncomp; ++c)
+          diag[L2SOL][offset+c] += u(i,c,offset) * u(i,c,offset) * v[i];
+        // Compute sum for L2 norm of the numerical-analytic solution
+        for (std::size_t c=0; c<ncomp; ++c)
+          diag[L2ERR][offset+c] += (u(i,c,offset)-an(i,c,offset)) *
+                            (u(i,c,offset)-an(i,c,offset)) * v[i];
+        // Compute sum for L2 norm of the residual
+        for (std::size_t c=0; c<ncomp; ++c)
+          diag[L2RES][offset+c] += (u(i,c,offset)-un(i,c,offset)) *
+                            (u(i,c,offset)-un(i,c,offset)) * v[i];
+        // Compute max for Linf norm of the numerical-analytic solution
+        for (std::size_t c=0; c<ncomp; ++c) {
+          auto err = std::abs( u(i,c,offset) - an(i,c,offset) );
+          if (err > diag[LINFERR][offset+c]) diag[LINFERR][offset+c] = err;
+        }
+        // Compute sum of the total energy over the entire domain (only the first
+        // entry is used)
+        if (ncomp == 5) diag[TOTALSOL][0] += u(i,u.nprop()-1,0) * v[i];
       }
-      // Compute sum of the total energy over the entire domain (only the first
-      // entry is used)
-      diag[TOTALSOL][0] += u(i,u.nprop()-1,0) * v[i];
     }
 
     // Append diagnostics vector with metadata on the current time step

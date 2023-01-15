@@ -151,14 +151,21 @@ namespace grm {
       // advection velocity, shear, and diffusion coefficients
       if (physics.back() == inciter::ctr::PhysicsType::ADVDIFF) {
         auto& u0 = stack.template get< param, eq, tag::u0 >();
-        if (u0.back().size() != ncomp.back())  // must define 1 component
+        if (not u0.empty() && u0.back().size() != ncomp.back()) {
           Message< Stack, ERROR, MsgKey::WRONGSIZE >( stack, in );
+        }
         auto& diff = stack.template get< param, eq, tag::diffusivity >();
-        if (diff.back().size() != 3*ncomp.back())  // must define 3 components
+        if (not diff.empty() && diff.back().empty()) {
           Message< Stack, ERROR, MsgKey::WRONGSIZE >( stack, in );
+        }
         auto& lambda = stack.template get< param, eq, tag::lambda >();
-        if (lambda.back().size() != 2*ncomp.back()) // must define 2 shear comps
+        if (not lambda.empty() && lambda.back().size() != 2*ncomp.back()) {
           Message< Stack, ERROR, MsgKey::WRONGSIZE >( stack, in );
+        }
+        auto& source = stack.template get< param, eq, tag::source >();
+        if (not source.empty() && source.back().size() % 5 != 0) {
+          Message< Stack, ERROR, MsgKey::WRONGSIZE >( stack, in );
+        }
       }
       // If problem type is not given, error out
       auto& problem = stack.template get< param, eq, tag::problem >();
@@ -1253,6 +1260,9 @@ namespace deck {
                            pde_parameter_vector< kw::pde_lambda,
                                                  tag::transport,
                                                  tag::lambda >,
+                           pde_parameter_vector< kw::pde_source,
+                                                 tag::transport,
+                                                 tag::source >,
                            pde_parameter_vector< kw::pde_u0,
                                                  tag::transport,
                                                  tag::u0 >,
@@ -1558,7 +1568,8 @@ namespace deck {
                tk::grm::vector<
                  use< kw::sideset >,
                  tk::grm::Store_back< tag::cmd, tag::io, tag::surface >,
-                 use< kw::end > > > > > {};
+                 use< kw::end > > >
+           > > {};
 
   //! history_output ... end block
   struct history_output :
@@ -1589,7 +1600,8 @@ namespace deck {
                    use< kw::end >,
                    tk::grm::scan< tk::grm::number,
                      tk::grm::Store_back_back< tag::history, tag::point > > >
-               > > > > {};
+               > >
+           > > {};
 
   //! 'inciter' block
   struct inciter :

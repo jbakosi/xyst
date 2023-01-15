@@ -329,7 +329,8 @@ class Transporter : public CBase_Transporter {
     template< class Eq >
     void varnames( const Eq& eq, std::vector< std::string >& var ) {
       auto o = eq.names();
-      var.insert( end(var), begin(o), end(o) );
+      auto offset = eq.offset();
+      for (std::size_t c=0; c<o.size(); ++c) var[offset+c] = o[c];
     }
 
     //! Create pretty printer specialized to Inciter

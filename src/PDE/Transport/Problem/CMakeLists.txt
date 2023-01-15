@@ -3,6 +3,7 @@ add_library(TransportProblem
             CylVortex.cpp
             GaussHump.cpp
             ShearDiff.cpp
+            PointSrc.cpp
             SlotCyl.cpp)
 
 target_include_directories(TransportProblem PUBLIC

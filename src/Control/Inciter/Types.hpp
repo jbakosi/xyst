@@ -206,6 +206,12 @@ using history = tk::TaggedTuple< brigand::list<
   , tag::id,      std::vector< std::string >     //!< Point identifiers
 > >;
 
+//! Source input parameters storage
+using Sources = tk::TaggedTuple< brigand::list<
+    tag::point,   std::vector< std::vector< kw::point::info::expect::type > >
+  , tag::id,      std::vector< std::string >     //!< Point identifiers
+> >;
+
 //! IO parameters storage
 using ios = tk::TaggedTuple< brigand::list<
     tag::nrestart,  int                             //!< Number of restarts
@@ -335,11 +341,13 @@ using TransportPDEParameters = tk::TaggedTuple< brigand::list<
   , tag::physics,       std::vector< PhysicsType >
   , tag::problem,       std::vector< ProblemType >
   , tag::diffusivity,   std::vector< std::vector<
-                        kw::pde_diffusivity::info::expect::type > >
+                          kw::pde_diffusivity::info::expect::type > >
   , tag::lambda,        std::vector< std::vector<
-                        kw::pde_lambda::info::expect::type > >
+                          kw::pde_lambda::info::expect::type > >
   , tag::u0,            std::vector< std::vector<
-                        kw::pde_u0::info::expect::type > >
+                          kw::pde_u0::info::expect::type > >
+  , tag::source,        std::vector< std::vector<
+                          kw::pde_source::info::expect::type > >
   , tag::bc,            bc
   , tag::bctimedep,     std::vector< std::vector< time_dependent_bc > >
   , tag::sponge,        SpongeParameters

@@ -22,6 +22,7 @@
 #include <array>
 
 #include "Types.hpp"
+#include "Fields.hpp"
 #include "SystemComponents.hpp"
 #include "Inciter/Options/Problem.hpp"
 
@@ -45,6 +46,11 @@ class TransportProblemCylVortex {
                       tk::real z, tk::real t )
     { return initialize( system, ncomp, x, y, z, t ); }
 
+    //! Add source
+    static void src( ncomp_t, ncomp_t, tk::real,
+                     const std::array< std::vector< tk::real >, 3 >&,
+                     tk::Fields& ) {}
+
     //! Do error checking on PDE parameters
     void errchk( ncomp_t, ncomp_t ) const {}
 
@@ -53,6 +59,9 @@ class TransportProblemCylVortex {
     prescribedVelocity( ncomp_t, ncomp_t ncomp, tk::real x, tk::real y,
       tk::real,
       tk::real t );
+
+    //! Return true if velocity is prescribed by this problem
+    static bool prescribedVel() noexcept { return true; }
 
     //! Return problem type
     static ctr::ProblemType type() noexcept

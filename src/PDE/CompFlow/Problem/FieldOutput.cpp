@@ -176,6 +176,7 @@ std::vector< std::string > CompFlowHistNames()
 
 std::vector< std::vector< tk::real > >
 CompFlowHistOutput( ncomp_t system,
+                    ncomp_t offset,
                     const std::vector< HistData >& h,
                     const std::vector< std::size_t >& inpoel,
                     const tk::Fields& U )
@@ -183,6 +184,8 @@ CompFlowHistOutput( ncomp_t system,
 //  Return time history field output evaluated at time history points
 //! \param[in] system Equation system index, i.e., which compressible
 //!   flow equation system we operate on among the systems of PDEs
+//! \param[in] offset System offset specifying the position of the system of
+//!   PDEs among other systems
 //! \param[in] h History point data
 //! \param[in] inpoel Mesh element connectivity
 //! \param[in] U Solution vector at recent time step
@@ -192,13 +195,23 @@ CompFlowHistOutput( ncomp_t system,
 {
   std::vector< std::vector< tk::real > > out( h.size() );
 
+  const auto r  = U.extract( 0, offset );
+  const auto ru = U.extract( 1, offset );
+  const auto rv = U.extract( 2, offset );
+  const auto rw = U.extract( 3, offset );
+  const auto re = U.extract( 4, offset );
+
   std::size_t j = 0;
   for (const auto& p : h) {
     auto e = p.get< tag::elem >();        // host element id
     const auto& n = p.get< tag::fn >();   // shapefunctions evaluated at point
     out[j].resize( 6, 0.0 );
     for (std::size_t i=0; i<4; ++i) {
-      const auto u = U.extract( inpoel[e*4+i] );
+      std::vector< tk::real > u{  r[ inpoel[e*4+i] ],
+                                 ru[ inpoel[e*4+i] ],
+                                 rv[ inpoel[e*4+i] ],
+                                 rw[ inpoel[e*4+i] ],
+                                 re[ inpoel[e*4+i] ] };
       Assert( u.size() == 5, "Size mismatch" );
       out[j][0] += n[i] * u[0];
       out[j][1] += n[i] * u[1]/u[0];

@@ -46,6 +46,7 @@ std::vector< std::string > CompFlowHistNames();
 //! Return time history field output evaluated at time history points
 std::vector< std::vector< tk::real > >
 CompFlowHistOutput( ncomp_t system,
+                    ncomp_t offset,
                     const std::vector< HistData >& h,
                     const std::vector< std::size_t >& inpoel,
                     const tk::Fields& U );

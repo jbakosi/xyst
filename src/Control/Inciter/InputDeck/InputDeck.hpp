@@ -69,6 +69,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::transport
                                  , kw::end
                                  , kw::shear_diff
+                                 , kw::point_src
                                  , kw::slot_cyl
                                  , kw::problem
                                  , kw::field_output
@@ -87,6 +88,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::pde_diffusivity
                                  , kw::pde_lambda
                                  , kw::pde_u0
+                                 , kw::pde_source
                                  , kw::bc_dirichlet
                                  , kw::sideset
                                  , kw::compflow

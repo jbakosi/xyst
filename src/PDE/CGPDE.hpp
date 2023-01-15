@@ -113,6 +113,12 @@ class CGPDE {
       std::vector< std::unordered_set< std::size_t > >& inbox )
     { self->IcBoxNodes( coord, inbox ); }
 
+    //! Public interface to querying the number of scalar components
+    ncomp_t ncomp() const { return self->ncomp(); }
+
+    //! Public interface to querying start offset in data array eq operates from
+    ncomp_t offset() const { return self->offset(); }
+
     //! Public interface to setting the initial conditions for the diff eq
     void initialize(
       const std::array< std::vector< real >, 3 >& coord,
@@ -121,6 +127,12 @@ class CGPDE {
       real V,
       const std::vector< std::unordered_set< std::size_t > >& inbox )
     { self->initialize( coord, unk, t, V, inbox ); }
+
+    //! Public interface to add source
+    void src( const std::array< std::vector< real >, 3 >& coord,
+              tk::Fields& U,
+              real t ) const
+    { self->src( coord, U, t ); }
 
     //! Public interface to querying a velocity
     void velocity( const tk::Fields& u, tk::UnsMesh::Coords& v ) const
@@ -175,10 +187,11 @@ class CGPDE {
       const tk::Fields& W,
       const std::vector< real >& tp,
       real V,
+      const std::array< std::vector< real >, 3 >& vel,
       tk::Fields& R ) const
     { self->rhs( t, coord, inpoel, triinpoel, gid, bid, lid, dfn, psup,
         esup, symbctri, spongenodes, vol, edgenode, edgeid,
-        boxnodes, G, U, W, tp, V, R ); }
+        boxnodes, G, U, W, tp, V, vel, R ); }
 
     //! Public interface for computing the minimum time step size
     real dt( const std::array< std::vector< real >, 3 >& coord,
@@ -300,12 +313,17 @@ class CGPDE {
       virtual Concept* copy() const = 0;
       virtual void IcBoxNodes( const tk::UnsMesh::Coords&,
         std::vector< std::unordered_set< std::size_t > >& inbox ) = 0;
+      virtual ncomp_t ncomp() const = 0;
+      virtual ncomp_t offset() const = 0;
       virtual void initialize(
         const std::array< std::vector< real >, 3 >&,
         tk::Fields&,
         real,
         real,
         const std::vector< std::unordered_set< std::size_t > >& ) = 0;
+      virtual void src( const std::array< std::vector< real >, 3 >&,
+                        tk::Fields&,
+                        real ) const = 0;
       virtual void velocity( const tk::Fields&, tk::UnsMesh::Coords& )
         const = 0;
       virtual void soundspeed( const tk::Fields&, std::vector< tk::real >& )
@@ -348,6 +366,7 @@ class CGPDE {
         const tk::Fields&,
         const std::vector< real >&,
         real,
+        const std::array< std::vector< real >, 3 >&,
         tk::Fields& ) const = 0;
       virtual real dt( const std::array< std::vector< real >, 3 >&,
                        const std::vector< std::size_t >&,
@@ -417,6 +436,8 @@ class CGPDE {
       void IcBoxNodes( const tk::UnsMesh::Coords& coord,
         std::vector< std::unordered_set< std::size_t > >& inbox )
       override { data.IcBoxNodes( coord, inbox ); }
+      ncomp_t ncomp() const override { return data.ncomp(); }
+      ncomp_t offset() const override { return data.offset(); }
       void initialize(
         const std::array< std::vector< real >, 3 >& coord,
         tk::Fields& unk,
@@ -424,6 +445,9 @@ class CGPDE {
         real V,
         const std::vector< std::unordered_set< std::size_t > >& inbox )
       override { data.initialize( coord, unk, t, V, inbox ); }
+      void src( const std::array< std::vector< real >, 3 >& coord,
+                tk::Fields& U,
+                real t ) const override { data.src( coord, U, t ); }
       void velocity( const tk::Fields& u, tk::UnsMesh::Coords& v ) const
       override { data.velocity(u,v); }
       void soundspeed( const tk::Fields& u, std::vector< tk::real >& s ) const
@@ -468,10 +492,11 @@ class CGPDE {
         const tk::Fields& W,
         const std::vector< real >& tp,
         real V,
+        const std::array< std::vector< real >, 3 >& vel,
         tk::Fields& R ) const override
       { data.rhs( t, coord, inpoel, triinpoel, gid, bid, lid, dfn, psup,
                   esup, symbctri, spongenodes, vol, edgenode,
-                  edgeid, boxnodes, G, U, W, tp, V, R ); }
+                  edgeid, boxnodes, G, U, W, tp, V, vel, R ); }
       real dt( const std::array< std::vector< real >, 3 >& coord,
                const std::vector< std::size_t >& inpoel,
                tk::real t,

@@ -2150,6 +2150,22 @@ struct shear_diff_info {
 };
 using shear_diff = keyword< shear_diff_info, TAOCPP_PEGTL_STRING("shear_diff") >;
 
+struct point_src_info {
+  using code = Code< P >;
+  static std::string name() { return "Point source"; }
+  static std::string shortDescription() { return
+    "Select the point source test problem "; }
+  static std::string longDescription() { return
+    R"(This keyword is used to select the point source test problem. The
+    initial and boundary conditions are specified to set up the test problem
+    suitable to exercise and test the advection and diffusion terms of the
+    scalar transport equation. Example: "problem point_src".)"; }
+  struct expect {
+    static std::string description() { return "string"; }
+  };
+};
+using point_src = keyword< point_src_info, TAOCPP_PEGTL_STRING("point_src") >;
+
 struct slot_cyl_info {
   using code = Code< Z >;
   static std::string name() { return "Zalesak's slotted cylinder"; }
@@ -2374,6 +2390,7 @@ struct problem_info {
     static std::string choices() {
       return '\'' + user_defined::string() + "\' | \'"
                   + shear_diff::string() + "\' | \'"
+                  + point_src::string() + "\' | \'"
                   + slot_cyl::string() + "\' | \'"
                   + gauss_hump::string() + "\' | \'"
                   + cyl_advect::string() + "\' | \'"
@@ -2522,6 +2539,23 @@ struct pde_u0_info {
   };
 };
 using pde_u0 = keyword< pde_u0_info, TAOCPP_PEGTL_STRING("u0") >;
+
+struct pde_source_info {
+  static std::string name() { return "source"; }
+  static std::string shortDescription() { return
+    R"(Set PDE parameter(s) source)"; }
+  static std::string longDescription() { return
+    R"(This keyword is used to specify a vector of real numbers used to
+    parameterize a system of partial differential equations. Example:
+    "source 5.0 2.0 3.0 0.1 end". The length of the vector depends on the
+    particular
+    type of PDE system and is controlled by the preceding keyword 'ncomp'.)"; }
+  struct expect {
+    using type = tk::real;
+    static std::string description() { return "real(s)"; }
+  };
+};
+using pde_source = keyword< pde_source_info, TAOCPP_PEGTL_STRING("source") >;
 
 struct pde_alpha_info {
   static std::string name() { return "alpha"; }
@@ -3149,6 +3183,7 @@ struct transport_info {
     + bc_inlet::string() + "\', \'"
     + bc_outlet::string() + "\', \'"
     + pde_u0::string() + "\'. "
+    + pde_source::string() + "\'. "
     + R"(For an example transport ... end block, see
       doc/html/inicter_example_transport.html.)";
   }

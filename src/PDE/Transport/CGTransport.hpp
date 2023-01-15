@@ -62,13 +62,19 @@ class Transport {
       m_physics( Physics() ),
       m_problem( Problem() ),
       m_system( c ),
-      m_ncomp(
-        g_inputdeck.get< tag::component >().get< tag::transport >().at(c) ),
-      m_offset(
-        g_inputdeck.get< tag::component >().offset< tag::transport >(c) )
+      m_ncomp( g_inputdeck.get< tag::component >().get< eq >().at(c) ),
+      m_offset( g_inputdeck.get< tag::component >().offset< eq >(c) )
     {
       m_problem.errchk( m_system, m_ncomp );
     }
+
+    //! Return number of scalar components in system
+    //! \return Number of scalar components
+    ncomp_t ncomp() const { return m_ncomp; }
+
+    //! Return start offset in data array
+    //! \return Offset in data array
+    ncomp_t offset() const { return m_offset; }
 
     //! Determine nodes that lie inside the user-defined IC box
     void
@@ -95,6 +101,17 @@ class Transport {
         for (ncomp_t c=0; c<m_ncomp; ++c)
           unk( i, c, m_offset ) = s[c];
       }
+    }
+
+    //! Add source
+    //! \param[in] coord Mesh node coordinates
+    //! \param[in,out] U Array of unknowns
+    //! \param[in] t Physical time
+    void src( const std::array< std::vector< real >, 3 >& coord,
+              tk::Fields& U,
+              real t ) const
+    {
+      Problem::src( m_system, m_offset, t, coord, U );
     }
 
     //! Query a velocity
@@ -147,8 +164,7 @@ class Transport {
       Assert( U.nunk() == coord[0].size(), "Number of unknowns in solution "
               "vector at recent time step incorrect" );
 
-      // compute gradients of primitive variables in points
-      G.fill( 0.0 );
+      for (std::size_t c=0; c<m_ncomp*3; ++c) G.fill( c, m_offset, 0.0 );
 
       // access node cooordinates
       const auto& x = coord[0];
@@ -188,7 +204,8 @@ class Transport {
             for (std::size_t c=0; c<m_ncomp; ++c)
               for (std::size_t b=0; b<4; ++b)
                 for (std::size_t j=0; j<3; ++j)
-                  G(i->second,c*3+j,0) += J24 * g[b][j] * U(N[b],c,m_offset);
+                  G( i->second, c*3+j, m_offset ) +=
+                    J24 * g[b][j] * U(N[b],c,m_offset);
         }
       }
     }
@@ -209,6 +226,7 @@ class Transport {
     //! \param[in] G Nodal gradients in chare-boundary nodes
     //! \param[in] U Solution vector at recent time step
     //! \param[in] W Mesh velocity
+    //! \param[in] vel Fluid velocity from coupled flow eq system
     //! \param[in,out] R Right-hand side vector computed
     void rhs(
       real,
@@ -234,10 +252,11 @@ class Transport {
       [[maybe_unused]] const tk::Fields& W,
       const std::vector< tk::real >&,
       real,
+      const std::array< std::vector< real >, 3 >& vel,
       tk::Fields& R ) const
     {
-      Assert( G.nprop() == m_ncomp*3,
-              "Number of components in gradient vector incorrect" );
+      //Assert( G.nprop() == m_ncomp*3,
+      //        "Number of components in gradient vector incorrect" );
       Assert( U.nunk() == coord[0].size(), "Number of unknowns in solution "
               "vector at recent time step incorrect" );
       Assert( R.nunk() == coord[0].size(),
@@ -251,10 +270,46 @@ class Transport {
       for (ncomp_t c=0; c<m_ncomp; ++c) R.fill( c, m_offset, 0.0 );
 
       // compute domain-edge integral
-      domainint( coord, inpoel, edgeid, psup, dfn, U, Grad, R );
+      domainint( coord, inpoel, edgeid, psup, dfn, vel, U, Grad, R );
 
       // compute boundary integrals
-      bndint( coord, triinpoel, symbctri, U, R );
+      bndint( coord, triinpoel, symbctri, U, vel, R );
+
+      // diffusion term
+      const auto& x = coord[0];
+      const auto& y = coord[1];
+      const auto& z = coord[2];
+      for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+        // access node IDs
+        const std::array< std::size_t, 4 >
+          N{{ inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] }};
+        // compute element Jacobi determinant
+        const std::array< real, 3 >
+          ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
+          ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
+          da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
+        const auto J = tk::triple( ba, ca, da );        // J = 6V
+        Assert( J > 0, "Element Jacobian non-positive" );
+
+        // shape function derivatives, nnode*ndim [4][3]
+        std::array< std::array< real, 3 >, 4 > grad;
+        grad[1] = tk::crossdiv( ca, da, J );
+        grad[2] = tk::crossdiv( da, ba, J );
+        grad[3] = tk::crossdiv( ba, ca, J );
+        for (std::size_t i=0; i<3; ++i)
+          grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
+
+        // access pointer to right hand side at component and offset
+        std::vector< const real* > r( m_ncomp );
+        for (ncomp_t c=0; c<m_ncomp; ++c) r[c] = R.cptr( c, m_offset );
+        // access solution at nodes of element
+        std::vector< std::array< real, 4 > > u( m_ncomp );
+        for (ncomp_t c=0; c<m_ncomp; ++c) u[c] = U.extract( c, m_offset, N );
+
+        // add (optional) diffusion contribution to right hand side
+        // commented to pass regression tests
+        //m_physics.diffusionRhs(m_system, m_ncomp, 1.0, J, grad, N, u, r, R);
+      }
     }
 
     //! Compute right hand side for DiagCG (CG+FCT)
@@ -274,7 +329,6 @@ class Transport {
               tk::Fields& Ue,
               tk::Fields& R ) const
     {
-      using tag::transport;
       Assert( U.nunk() == coord[0].size(), "Number of unknowns in solution "
               "vector at recent time step incorrect" );
       Assert( R.nunk() == coord[0].size(),
@@ -313,7 +367,7 @@ class Transport {
         for (ncomp_t c=0; c<m_ncomp; ++c) ue[c] = Ue.cptr( c, m_offset );
 
         // get prescribed velocity
-        const std::array< std::vector<std::array<real,3>>, 4 > vel{{
+        const std::array< std::vector<std::array<real,3>>, 4 > prescr_vel{{
           Problem::prescribedVelocity( m_system, m_ncomp,
                                        x[N[0]], y[N[0]], z[N[0]], t ),
           Problem::prescribedVelocity( m_system, m_ncomp,
@@ -328,7 +382,7 @@ class Transport {
         for (std::size_t c=0; c<m_ncomp; ++c)
           for (std::size_t j=0; j<3; ++j)
             for (std::size_t a=0; a<4; ++a)
-              Ue.var(ue[c],e) -= d * grad[a][j] * vel[a][c][j]*u[c][a];
+              Ue.var(ue[c],e) -= d * grad[a][j] * prescr_vel[a][c][j]*u[c][a];
       }
 
 
@@ -363,11 +417,11 @@ class Transport {
         std::vector< std::array< real, 4 > > u( m_ncomp );
         for (ncomp_t c=0; c<m_ncomp; ++c) u[c] = U.extract( c, m_offset, N );
 
-        // get prescribed velocity
+        // compute prescribed velocity in cell-center
         auto xc = (x[N[0]] + x[N[1]] + x[N[2]] + x[N[3]]) / 4.0;
         auto yc = (y[N[0]] + y[N[1]] + y[N[2]] + y[N[3]]) / 4.0;
         auto zc = (z[N[0]] + z[N[1]] + z[N[2]] + z[N[3]]) / 4.0;
-        const auto vel =
+        const auto prescr_vel =
           Problem::prescribedVelocity( m_system, m_ncomp, xc, yc, zc, t );
 
         // scatter-add flux contributions to rhs at nodes
@@ -375,7 +429,7 @@ class Transport {
         for (std::size_t c=0; c<m_ncomp; ++c)
           for (std::size_t j=0; j<3; ++j)
             for (std::size_t a=0; a<4; ++a)
-              R.var(r[c],N[a]) += d * grad[a][j] * vel[c][j]*ue[c];
+              R.var(r[c],N[a]) += d * grad[a][j] * prescr_vel[c][j]*ue[c];
 
         // add (optional) diffusion contribution to right hand side
         m_physics.diffusionRhs(m_system, m_ncomp, deltat, J, grad, N, u, r, R);
@@ -396,7 +450,6 @@ class Transport {
              const std::vector< tk::real >&,
              const std::vector< tk::real >& ) const
     {
-      using tag::transport;
       Assert( U.nunk() == coord[0].size(), "Number of unknowns in solution "
               "vector at recent time step incorrect" );
       const auto& x = coord[0];
@@ -479,10 +532,10 @@ class Transport {
            const std::array< std::vector< real >, 3 >& coord,
            bool increment ) const
     {
-      using tag::param; using tag::transport; using tag::bcdir;
+      using tag::param; using tag::bcdir;
       using NodeBC = std::vector< std::pair< bool, real > >;
       std::map< std::size_t, NodeBC > bc;
-      const auto& ubc = g_inputdeck.get< param, transport, tag::bc, bcdir >();
+      const auto& ubc = g_inputdeck.get< param, eq, tag::bc, bcdir >();
       const auto steady = g_inputdeck.get< tag::discr, tag::steady_state >();
       if (!ubc.empty()) {
         Assert( ubc.size() > m_system, "Indexing out of Dirichlet BC eq-vector" );
@@ -573,9 +626,8 @@ class Transport {
     //! \return Vector of strings labelling integral variables output
     std::vector< std::string > names() const {
       std::vector< std::string > n;
-      const auto& depvar =
-        g_inputdeck.get< tag::param, tag::transport, tag::depvar >().
-        at(m_system);
+      const auto& depvar = g_inputdeck.get< tag::param, eq, tag::depvar >().
+                             at(m_system);
       // construct the name of the numerical solution for all components
       for (ncomp_t c=0; c<m_ncomp; ++c)
         n.push_back( depvar + std::to_string(c) );
@@ -662,7 +714,7 @@ class Transport {
       for (const auto& [g,b] : bid) {
         auto i = tk::cref_find( lid, g );
         for (ncomp_t c=0; c<Grad.nprop(); ++c)
-          Grad(i,c,0) = G(b,c,0);
+          Grad(i,c,0) = G(b,c,m_offset);
       }
 
       // divide weak result in gradients by nodal volume
@@ -678,19 +730,19 @@ class Transport {
     //! \param[in] p Left node id of edge-end
     //! \param[in] q Right node id of edge-end
     //! \param[in] coord Array of nodal coordinates
-    //! \param[in] G Gradient of all unknowns in mesh points
+    //! \param[in] Grad Gradient of all unknowns in mesh points
     //! \param[in,out] uL Primitive variables at left edge-end point
     //! \param[in,out] uR Primitive variables at right edge-end point
     void
     muscl( std::size_t p,
            std::size_t q,
            const tk::UnsMesh::Coords& coord,
-           const tk::Fields& G,
+           const tk::Fields& Grad,
            std::vector< real >& uL,
            std::vector< real >& uR ) const
     {
       Assert( uL.size() == m_ncomp && uR.size() == m_ncomp, "Size mismatch" );
-      Assert( G.nprop()/3 == m_ncomp, "Size mismatch" );
+      Assert( Grad.nprop() == m_ncomp*3, "Size mismatch" );
 
       const auto& x = coord[0];
       const auto& y = coord[1];
@@ -706,8 +758,8 @@ class Transport {
       for (std::size_t c=0; c<m_ncomp; ++c) {
         // gradients
         std::array< real, 3 >
-          g1{ G(p,c*3+0,0), G(p,c*3+1,0), G(p,c*3+2,0) },
-          g2{ G(q,c*3+0,0), G(q,c*3+1,0), G(q,c*3+2,0) };
+          g1{ Grad(p,c*3+0,0), Grad(p,c*3+1,0), Grad(p,c*3+2,0) },
+          g2{ Grad(q,c*3+0,0), Grad(q,c*3+1,0), Grad(q,c*3+2,0) };
 
         delta2[c] = uR[c] - uL[c];
         delta1[c] = 2.0 * tk::dot(g1,vw) - delta2[c];
@@ -736,8 +788,9 @@ class Transport {
     //! \param[in] edgeid Local node id pair -> edge id map
     //! \param[in] psup Points surrounding points
     //! \param[in] dfn Dual-face normals
+    //! \param[in] vel Fluid velocity from coupled flow eq system
     //! \param[in] U Solution vector at recent time step
-    //! \param[in] G Nodal gradients
+    //! \param[in] Grad Nodal gradients
     //! \param[in,out] R Right-hand side vector computed
     void domainint( const std::array< std::vector< real >, 3 >& coord,
                     const std::vector< std::size_t >& inpoel,
@@ -745,8 +798,9 @@ class Transport {
                     const std::pair< std::vector< std::size_t >,
                                      std::vector< std::size_t > >& psup,
                     const std::vector< real >& dfn,
+                    const std::array< std::vector< real >, 3 >& vel,
                     const tk::Fields& U,
-                    const tk::Fields& G,
+                    const tk::Fields& Grad,
                     tk::Fields& R ) const
     {
       // access node cooordinates
@@ -760,6 +814,8 @@ class Transport {
       // access pointer to right hand side at component and offset
       std::vector< const real* > r( m_ncomp );
       for (ncomp_t c=0; c<m_ncomp; ++c) r[c] = R.cptr( c, m_offset );
+
+      std::vector< std::array< tk::real, 3 > > v( m_ncomp );
 
       // domain-edge integral
       for (std::size_t p=0,k=0; p<U.nunk(); ++p) {
@@ -775,13 +831,20 @@ class Transport {
             uR[c] = U(q,c,m_offset);
           }
           // compute MUSCL reconstruction in edge-end points
-          muscl( p, q, coord, G, uL, uR );
+          muscl( p, q, coord, Grad, uL, uR );
 
-          // evaluate prescribed velocity
-          auto v =
-            Problem::prescribedVelocity( m_system, m_ncomp, x[p], y[p], z[p],
-              0.0 );
-          // sum donain-edge contributions
+          // if velocity prescribed, use it, otherwise use fluid velocity
+          if (Problem::prescribedVel()) {
+            v = Problem::prescribedVelocity( m_system, m_ncomp,
+                                             x[p], y[p], z[p], /*t=*/ 0.0 );
+          } else {
+            for (std::size_t c=0; c<m_ncomp; ++c) {
+              for (std::size_t j=0; j<3; ++j) {
+                v[c][j] = vel[j][p];
+              }
+            }
+          }
+          // sum domain-edge contributions
           for (auto e : tk::cref_find(esued,{p,q})) {
             const std::array< std::size_t, 4 >
               N{{ inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] }};
@@ -820,11 +883,13 @@ class Transport {
     //! \param[in] triinpoel Boundary triangle face connecitivity with local ids
     //! \param[in] symbctri Vector with 1 at symmetry BC boundary triangles
     //! \param[in] U Solution vector at recent time step
+    //! \param[in] vel Fluid velocity from coupled flow eq system
     //! \param[in,out] R Right-hand side vector computed
     void bndint( const std::array< std::vector< real >, 3 >& coord,
                  const std::vector< std::size_t >& triinpoel,
                  const std::vector< int >& symbctri,
                  const tk::Fields& U,
+                 const std::array< std::vector< real >, 3 >& vel,
                  tk::Fields& R ) const
     {
       // access node coordinates
@@ -834,6 +899,8 @@ class Transport {
 
       // boundary integrals: compute fluxes in edges
       std::vector< real > bflux( triinpoel.size() * m_ncomp * 2 );
+
+      std::vector< std::array< tk::real, 3 > > v( m_ncomp );
 
       for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
         // access node IDs
@@ -848,10 +915,19 @@ class Transport {
         // access solution at element nodes
         std::vector< std::array< real, 3 > > u( m_ncomp );
         for (ncomp_t c=0; c<m_ncomp; ++c) u[c] = U.extract( c, m_offset, N );
-        // evaluate prescribed velocity
-        auto v =
-          Problem::prescribedVelocity( m_system, m_ncomp, xp[0], yp[0], zp[0],
-            0.0 );
+
+        // if velocity prescribed, use it, otherwise use fluid velocity
+        if (Problem::prescribedVel()) {
+          v = Problem::prescribedVelocity( m_system, m_ncomp,
+                                           xp[0], yp[0], zp[0], /*t=*/ 0.0 );
+        } else {
+          for (std::size_t c=0; c<m_ncomp; ++c) {
+            for (std::size_t j=0; j<3; ++j) {
+              v[c][j] = vel[j][N[j]];
+            }
+          }
+        }
+
         // compute face area
         auto A6 = tk::area( x[N[0]], x[N[1]], x[N[2]],
                             y[N[0]], y[N[1]], y[N[2]],

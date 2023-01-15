@@ -202,6 +202,7 @@ struct bcsym { static std::string name() { return "bcsym"; } };
 struct stag { static std::string name() { return "stag"; } };
 struct skip { static std::string name() { return "skip"; } };
 struct point { static std::string name() { return "point"; } };
+struct source { static std::string name() { return "source"; } };
 struct radius { static std::string name() { return "radius"; } };
 struct sideset { static std::string name() { return "sideset"; } };
 struct sponge { static std::string name() { return "sponge"; } };

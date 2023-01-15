@@ -68,17 +68,25 @@ class CompFlow {
       m_offset( g_inputdeck.get< tag::component >().offset< eq >(c) ),
       m_stagCnf( g_inputdeck.specialBC< eq, tag::stag >( c ) ),
       m_skipCnf( g_inputdeck.specialBC< eq, tag::skip >( c ) ),
-      m_fr( g_inputdeck.get< param, eq, tag::farfield_density >().size() > c ?
-            g_inputdeck.get< param, eq, tag::farfield_density >()[c] : 1.0 ),
-      m_fp( g_inputdeck.get< param, eq, tag::farfield_pressure >().size() > c ?
-            g_inputdeck.get< param, eq, tag::farfield_pressure >()[c] : 1.0 ),
-      m_fu( g_inputdeck.get< param, eq, tag::farfield_velocity >().size() > c ?
-            g_inputdeck.get< param, eq, tag::farfield_velocity >()[c] :
+      m_fr( g_inputdeck.get< param, eq, tag::farfield_density >().size() > 0 ?
+            g_inputdeck.get< param, eq, tag::farfield_density >()[0] : 1.0 ),
+      m_fp( g_inputdeck.get< param, eq, tag::farfield_pressure >().size() > 0 ?
+            g_inputdeck.get< param, eq, tag::farfield_pressure >()[0] : 1.0 ),
+      m_fu( g_inputdeck.get< param, eq, tag::farfield_velocity >().size() > 0 ?
+            g_inputdeck.get< param, eq, tag::farfield_velocity >()[0] :
             std::vector< real >( 3, 0.0 ) )
     {
       Assert( g_inputdeck.get< tag::component >().get< eq >().at(c) == m_ncomp,
        "Number of CompFlow PDE components must be " + std::to_string(m_ncomp) );
     }
+
+    //! Return number of scalar components in system
+    //! \return Number of scalar components
+    ncomp_t ncomp() const { return m_ncomp; }
+
+    //! Return start offset in data array
+    //! \return Offset in data array
+    ncomp_t offset() const { return m_offset; }
 
     //! Determine nodes that lie inside the user-defined IC box
     //! \param[in] coord Mesh node coordinates
@@ -185,6 +193,11 @@ class CompFlow {
         unk(i,4,m_offset) = s[4]; // rho * e, e: total = kinetic + internal
       }
     }
+
+    //! Add source
+    void src( const std::array< std::vector< real >, 3 >&,
+              tk::Fields&,
+              real ) const {}
 
     //! Query the fluid velocity
     //! \param[in] u Solution vector of conserved variables
@@ -421,8 +434,7 @@ class CompFlow {
       Assert( U.nunk() == coord[0].size(), "Number of unknowns in solution "
               "vector at recent time step incorrect" );
 
-      // compute gradients of primitive variables in points
-      G.fill( 0.0 );
+      for (std::size_t c=0; c<m_ncomp*3; ++c) G.fill( c, m_offset, 0.0 );
 
       // access node cooordinates
       const auto& x = coord[0];
@@ -475,7 +487,7 @@ class CompFlow {
               }
               for (std::size_t c=0; c<5; ++c)
                 for (std::size_t j=0; j<3; ++j)
-                  G(i->second,c*3+j,0) += J24 * g[b][j] * u[c];
+                  G( i->second, c*3+j, m_offset ) += J24 * g[b][j] * u[c];
             }
           }
         }
@@ -530,10 +542,9 @@ class CompFlow {
               const tk::Fields& W,
               const std::vector< tk::real >& tp,
               real V,
+              const std::array< std::vector< real >, 3 >&,
               tk::Fields& R ) const
     {
-      Assert( G.nprop() == m_ncomp*3,
-              "Number of components in gradient vector incorrect" );
       Assert( U.nunk() == coord[0].size(), "Number of unknowns in solution "
               "vector at recent time step incorrect" );
       Assert( R.nunk() == coord[0].size(),
@@ -663,7 +674,7 @@ class CompFlow {
           if (v > maxvel) maxvel = v;
         }
         // compute element dt for the Euler equations
-        auto euler_dt = L / maxvel;
+        auto euler_dt = L / std::max( maxvel, 1.0e-8 );
         // compute element dt based on the viscous force
         auto viscous_dt = m_physics.viscous_dt( L, u );
         // compute element dt based on thermal diffusion
@@ -975,7 +986,7 @@ class CompFlow {
     histOutput( const std::vector< HistData >& h,
                 const std::vector< std::size_t >& inpoel,
                 const tk::Fields& U ) const
-    { return CompFlowHistOutput( m_system, h, inpoel, U ); }
+    { return CompFlowHistOutput( m_system, m_offset, h, inpoel, U ); }
 
     //! Return names of integral variables to be output to diagnostics file
     //! \return Vector of strings labelling integral variables output
@@ -1116,7 +1127,7 @@ class CompFlow {
       for (const auto& [g,b] : bid) {
         auto i = tk::cref_find( lid, g );
         for (ncomp_t c=0; c<Grad.nprop(); ++c)
-          Grad(i,c,0) = G(b,c,0);
+          Grad(i,c,0) = G(b,c,m_offset);
       }
 
       // divide weak result in gradients by nodal volume
@@ -1136,7 +1147,7 @@ class CompFlow {
     //! \param[in] dfn Dual-face normals
     //! \param[in] U Solution vector at recent time step
     //! \param[in] W Mesh velocity
-    //! \param[in] G Nodal gradients
+    //! \param[in] Grad Nodal gradients
     //! \param[in] spmult Sponge pressure multiplers at nodes, one per symBC set
     //! \param[in,out] R Right-hand side vector computed
     void domainint( const std::array< std::vector< real >, 3 >& coord,
@@ -1148,7 +1159,7 @@ class CompFlow {
                     const std::vector< real >& dfn,
                     const tk::Fields& U,
                     const tk::Fields& W,
-                    const tk::Fields& G,
+                    const tk::Fields& Grad,
                     const std::vector< tk::real >& spmult,
                     tk::Fields& R ) const
     {
@@ -1193,7 +1204,7 @@ class CompFlow {
           ruR = rvR = rwR = 0.0;
 
         // compute MUSCL reconstruction in edge-end points
-        muscl( p, q, coord, G,
+        muscl( p, q, coord, Grad,
                rL, ruL, rvL, rwL, reL, rR, ruR, rvR, rwR, reR );
 
         // convert back to conserved variables
@@ -1257,7 +1268,7 @@ class CompFlow {
     //! \param[in] p Left node id of edge-end
     //! \param[in] q Right node id of edge-end
     //! \param[in] coord Array of nodal coordinates
-    //! \param[in] G Gradient of all unknowns in mesh points
+    //! \param[in] Grad Gradient of all unknowns in mesh points
     //! \param[in,out] rL Left density
     //! \param[in,out] uL Left X velocity
     //! \param[in,out] vL Left Y velocity
@@ -1271,7 +1282,7 @@ class CompFlow {
     void muscl( std::size_t p,
                 std::size_t q,
                 const tk::UnsMesh::Coords& coord,
-                const tk::Fields& G,
+                const tk::Fields& Grad,
                 real& rL, real& uL, real& vL, real& wL, real& eL,
                 real& rR, real& uR, real& vR, real& wR, real& eR ) const
     {
@@ -1292,8 +1303,9 @@ class CompFlow {
       // MUSCL reconstruction of edge-end-point primitive variables
       for (std::size_t c=0; c<5; ++c) {
         // gradients
-        std::array< real, 3 > g1{ G(p,c*3+0,0), G(p,c*3+1,0), G(p,c*3+2,0) },
-                              g2{ G(q,c*3+0,0), G(q,c*3+1,0), G(q,c*3+2,0) };
+        std::array< real, 3 >
+          g1{ Grad(p,c*3+0,0), Grad(p,c*3+1,0), Grad(p,c*3+2,0) },
+          g2{ Grad(q,c*3+0,0), Grad(q,c*3+1,0), Grad(q,c*3+2,0) };
 
         delta2[c] = rs[c] - ls[c];
         delta1[c] = 2.0 * tk::dot(g1,vw) - delta2[c];

@@ -575,7 +575,7 @@ ALECG::meshvelstart()
   conserved( m_u, d->Vol() );
 
   // query fluid velocity across all systems integrated
-  tk::UnsMesh::Coords vel;
+  std::array< std::vector< tk::real >, 3 > vel;
   for (const auto& eq : g_cgpde) eq.velocity( m_u, vel );
   // query speed of sound in mesh nodes across all systems integrated
   std::vector< tk::real > soundspeed;
@@ -973,12 +973,17 @@ ALECG::rhs()
   if (steady)
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
   conserved( m_u, Disc()->Vol() );
+
+  // query fluid velocity across all systems integrated
+  std::array< std::vector< tk::real >, 3 > vel;
+  for (const auto& eq : g_cgpde) eq.velocity( m_u, vel );
+
   for (const auto& eq : g_cgpde) {
     eq.rhs( d->T() + prev_rkcoef * d->Dt(), d->Coord(), d->Inpoel(),
             m_triinpoel, d->Gid(), d->Bid(), d->Lid(), m_dfn, m_psup, m_esup,
             m_symbctri, m_spongenodes, d->Vol(), m_edgenode, m_edgeid,
             m_boxnodes, m_chBndGrad, m_u, d->meshvel(), m_tp, d->Boxvol(),
-            m_rhs );
+            vel, m_rhs );
   }
   volumetric( m_u, Disc()->Vol() );
   if (steady)
@@ -1075,6 +1080,10 @@ ALECG::solve()
           coord[j][i] = d->Coordn()[j][i] + adt * w(i,j,0);
     }
 
+    // Add source
+    conserved( m_u, Disc()->Vol() );
+    for (const auto& eq : g_cgpde) eq.src( d->Coord(), m_u, d->T() );
+    volumetric( m_u, Disc()->Vol() );
   }
 
   m_newmesh = 0;  // recompute normals after ALE (if enabled)

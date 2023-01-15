@@ -1056,7 +1056,8 @@ Transporter::diagHeader()
                      g_inputdeck.get< tag::prec, tag::diag >() );
 
   // Collect variables names for integral/diagnostics output
-  std::vector< std::string > var;
+  auto ncomp = g_inputdeck.get< tag::component >().nprop();
+  std::vector< std::string > var( ncomp );
   for (const auto& eq : g_cgpde) varnames( eq, var );
 
   const tk::ctr::Error opt;

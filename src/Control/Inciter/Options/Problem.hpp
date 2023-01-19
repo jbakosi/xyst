@@ -28,16 +28,16 @@ enum class ProblemType : uint8_t { USER_DEFINED
                                  , SHEAR_DIFF
                                  , POINT_SRC
                                  , VORTICAL_FLOW
-                                 , NL_ENERGY_GROWTH
+                                 , NONLINEAR_ENERGY_GROWTH
                                  , RAYLEIGH_TAYLOR
                                  , TAYLOR_GREEN
                                  , SLOT_CYL
                                  , GAUSS_HUMP
                                  , CYL_ADVECT
                                  , CYL_VORTEX
-                                 , SOD_SHOCKTUBE
+                                 , SOD
                                  , ROTATED_SOD_SHOCKTUBE
-                                 , SEDOV_BLASTWAVE
+                                 , SEDOV
                                  };
 
 //! Pack/Unpack ProblemType: forward overload to generic enum class packer
@@ -75,35 +75,36 @@ class Problem : public tk::Toggle< ProblemType > {
         , { ProblemType::SHEAR_DIFF, kw::shear_diff::name() }
         , { ProblemType::POINT_SRC, kw::point_src::name() }
         , { ProblemType::VORTICAL_FLOW, kw::vortical_flow::name() }
-        , { ProblemType::NL_ENERGY_GROWTH, kw::nl_energy_growth::name() }
+        , { ProblemType::NONLINEAR_ENERGY_GROWTH, kw::nl_energy_growth::name() }
         , { ProblemType::RAYLEIGH_TAYLOR, kw::rayleigh_taylor::name() }
         , { ProblemType::TAYLOR_GREEN, kw::taylor_green::name() }
         , { ProblemType::SLOT_CYL, kw::slot_cyl::name() }
         , { ProblemType::GAUSS_HUMP, kw::gauss_hump::name() }
         , { ProblemType::CYL_ADVECT, kw::cyl_advect::name() }
         , { ProblemType::CYL_VORTEX, kw::cyl_vortex::name() }
-        , { ProblemType::SOD_SHOCKTUBE, kw::sod_shocktube::name() }
+        , { ProblemType::SOD, kw::sod_shocktube::name() }
         , { ProblemType::ROTATED_SOD_SHOCKTUBE,
            kw::rotated_sod_shocktube::name() }
-        , { ProblemType::SEDOV_BLASTWAVE, kw::sedov_blastwave::name() }
+        , { ProblemType::SEDOV, kw::sedov_blastwave::name() }
         },
         //! keywords -> Enums
         { { kw::user_defined::string(), ProblemType::USER_DEFINED }
         , { kw::shear_diff::string(), ProblemType::SHEAR_DIFF }
         , { kw::point_src::string(), ProblemType::POINT_SRC }
         , { kw::vortical_flow::string(), ProblemType::VORTICAL_FLOW }
-        , { kw::nl_energy_growth::string(), ProblemType::NL_ENERGY_GROWTH }
+        , { kw::nl_energy_growth::string(),
+            ProblemType::NONLINEAR_ENERGY_GROWTH }
         , { kw::rayleigh_taylor::string(), ProblemType::RAYLEIGH_TAYLOR }
         , { kw::taylor_green::string(), ProblemType::TAYLOR_GREEN }
         , { kw::slot_cyl::string(), ProblemType::SLOT_CYL }
         , { kw::gauss_hump::string(), ProblemType::GAUSS_HUMP }
         , { kw::cyl_advect::string(), ProblemType::CYL_ADVECT }
         , { kw::cyl_vortex::string(), ProblemType::CYL_VORTEX }
-        , { kw::sod_shocktube::string(), ProblemType::SOD_SHOCKTUBE }
+        , { kw::sod_shocktube::string(), ProblemType::SOD }
         , { kw::rotated_sod_shocktube::string(),
             ProblemType::ROTATED_SOD_SHOCKTUBE }
-        , { kw::sod_shocktube::string(), ProblemType::SOD_SHOCKTUBE }
-        , { kw::sedov_blastwave::string(), ProblemType::SEDOV_BLASTWAVE }
+        , { kw::sod_shocktube::string(), ProblemType::SOD }
+        , { kw::sedov_blastwave::string(), ProblemType::SEDOV }
         } )
     {
       brigand::for_each< keywords >( assertPolicyCodes() );
@@ -138,17 +139,17 @@ class Problem : public tk::Toggle< ProblemType > {
       , { ProblemType::SHEAR_DIFF, *kw::shear_diff::code() }
       , { ProblemType::POINT_SRC, *kw::point_src::code() }
       , { ProblemType::VORTICAL_FLOW, *kw::vortical_flow::code() }
-      , { ProblemType::NL_ENERGY_GROWTH, *kw::nl_energy_growth::code() }
+      , { ProblemType::NONLINEAR_ENERGY_GROWTH, *kw::nl_energy_growth::code() }
       , { ProblemType::RAYLEIGH_TAYLOR, *kw::rayleigh_taylor::code() }      
       , { ProblemType::TAYLOR_GREEN, *kw::taylor_green::code() }      
       , { ProblemType::SLOT_CYL, *kw::slot_cyl::code() }
       , { ProblemType::GAUSS_HUMP, *kw::gauss_hump::code() }
       , { ProblemType::CYL_ADVECT, *kw::cyl_advect::code() }
       , { ProblemType::CYL_VORTEX, *kw::cyl_vortex::code() }
-      , { ProblemType::SOD_SHOCKTUBE, *kw::sod_shocktube::code() }
+      , { ProblemType::SOD, *kw::sod_shocktube::code() }
       , { ProblemType::ROTATED_SOD_SHOCKTUBE,
           *kw::rotated_sod_shocktube::code() }
-      , { ProblemType::SEDOV_BLASTWAVE, *kw::sedov_blastwave::code() }
+      , { ProblemType::SEDOV, *kw::sedov_blastwave::code() }
     };
 };
 

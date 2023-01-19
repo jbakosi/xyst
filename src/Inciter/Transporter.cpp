@@ -28,7 +28,6 @@
 #include "Macro.hpp"
 #include "Transporter.hpp"
 #include "Fields.hpp"
-#include "PDEStack.hpp"
 #include "UniPDF.hpp"
 #include "PDFWriter.hpp"
 #include "ContainerUtil.hpp"
@@ -50,7 +49,6 @@ namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
 extern ctr::InputDeck g_inputdeck_defaults;
-extern std::vector< CGPDE > g_cgpde;
 
 }
 
@@ -71,7 +69,8 @@ Transporter::Transporter() :
   m_ndtrefit( m_nchare.size(), 0 ),
   m_noutrefit( m_nchare.size(), 0 ),
   m_noutderefit( m_nchare.size(), 0 ),
-  m_scheme(),
+  m_discretization(),
+  m_aircg(),
   m_partitioner(),
   m_refiner(),
   m_meshwriter(),
@@ -92,9 +91,6 @@ Transporter::Transporter() :
 //  Constructor
 // *****************************************************************************
 {
-  // Echo configuration to screen
-  info( printer() );
-
   const auto nstep = g_inputdeck.get< tag::discr, tag::nstep >();
   const auto t0 = g_inputdeck.get< tag::discr, tag::t0 >();
   const auto term = g_inputdeck.get< tag::discr, tag::term >();
@@ -133,7 +129,6 @@ Transporter::Transporter( CkMigrateMessage* m ) :
 {
    auto print = printer();
    print.diag( "Restarted from checkpoint" );
-   info( print );
    inthead( print );
 }
 
@@ -172,262 +167,6 @@ Transporter::input()
   if (cmdinput.empty()) return ctrinput; else return { cmdinput };
 }
 
-void
-Transporter::info( const InciterPrint& print )
-// *****************************************************************************
-// Echo configuration to screen
-//! \param[in] print Pretty printer object to use for printing
-// *****************************************************************************
-{
-  print.part( "Factory" );
-
-  // Print out info data layout
-  print.list( "Unknowns data layout (CMake: FIELD_DATA_LAYOUT)",
-              std::list< std::string >{ tk::Fields::layout() } );
-
-  // Re-create partial differential equations stack for output
-  PDEStack stack;
-
-  // Print out information on PDE factories
-  print.eqlegend();
-  print.eqlist( "Registered PDEs", stack.cgfactory(), stack.cgntypes() );
-  print.endpart();
-
-  // Print out information on problem
-  print.part( "Problem" );
-
-  // Print out info on problem title
-  if ( !g_inputdeck.get< tag::title >().empty() )
-    print.title( g_inputdeck.get< tag::title >() );
-
-  const auto nstep = g_inputdeck.get< tag::discr, tag::nstep >();
-  const auto t0 = g_inputdeck.get< tag::discr, tag::t0 >();
-  const auto term = g_inputdeck.get< tag::discr, tag::term >();
-  const auto constdt = g_inputdeck.get< tag::discr, tag::dt >();
-  const auto cfl = g_inputdeck.get< tag::discr, tag::cfl >();
-  const auto scheme = g_inputdeck.get< tag::discr, tag::scheme >();
-
-  // Print discretization parameters
-  print.section( "Discretization parameters" );
-  print.Item< ctr::Scheme, tag::discr, tag::scheme >();
-
-  if (scheme == ctr::SchemeType::DiagCG) {
-    auto fct = g_inputdeck.get< tag::discr, tag::fct >();
-    print.item( "Flux-corrected transport (FCT)", fct );
-    if (fct) {
-      print.item( "FCT mass diffusion coeff",
-                  g_inputdeck.get< tag::discr, tag::ctau >() );
-      print.item( "FCT small number",
-                  g_inputdeck.get< tag::discr, tag::fcteps >() );
-      print.item( "Clipping FCT",
-                  g_inputdeck.get< tag::discr, tag::fctclip >() );
-    }
-  }
-  print.item( "PE-locality mesh reordering",
-              g_inputdeck.get< tag::discr, tag::pelocal_reorder >() );
-  print.item( "Operator-access mesh reordering",
-              g_inputdeck.get< tag::discr, tag::operator_reorder >() );
-  auto steady = g_inputdeck.get< tag::discr, tag::steady_state >();
-  print.item( "Local time stepping", steady );
-  if (steady) {
-    print.item( "L2-norm residual convergence criterion",
-                g_inputdeck.get< tag::discr, tag::residual >() );
-    print.item( "Convergence criterion component index",
-                g_inputdeck.get< tag::discr, tag::rescomp >() );
-  }
-  print.item( "Number of time steps", nstep );
-  print.item( "Start time", t0 );
-  print.item( "Terminate time", term );
-
-  if (std::abs(constdt - g_inputdeck_defaults.get< tag::discr, tag::dt >()) >
-        std::numeric_limits< tk::real >::epsilon())
-    print.item( "Constant time step size", constdt );
-  else if (std::abs(cfl - g_inputdeck_defaults.get< tag::discr, tag::cfl >()) >
-             std::numeric_limits< tk::real >::epsilon())
-  {
-    print.item( "CFL coefficient", cfl );
-  }
-
-  // Print out info on settings of selected partial differential equations
-  print.pdes( "Partial differential equations integrated", stack.info() );
-
-  // Print out solver coupling info
-  print.couple( g_inputdeck.get< tag::couple, tag::transfer >(),
-                g_inputdeck.depvar() );
-
-  // Print out adaptive mesh refinement configuration
-  if (g_inputdeck.get< tag::amr, tag::amr >()) {
-    auto t0ref = g_inputdeck.get< tag::amr, tag::t0ref >();
-    auto dtref = g_inputdeck.get< tag::amr, tag::dtref >();
-    if (t0ref or dtref) {
-      print.section( "Mesh refinement (h-ref)" );
-      print.refvar( g_inputdeck.get< tag::amr, tag::refvar >(),
-                    g_inputdeck.get< tag::amr, tag::id >() );
-      auto maxlevels = g_inputdeck.get< tag::amr, tag::maxlevels >();
-      print.item( "Maximum mesh refinement levels", maxlevels );
-      print.Item< ctr::AMRError, tag::amr, tag::error >();
-      if (t0ref) {
-        print.item( "Refinement at t<0 (t0ref)", t0ref );
-        const auto& initref = g_inputdeck.get< tag::amr, tag::init >();
-        print.item( "Initial refinement steps", initref.size() );
-        print.edgeref( g_inputdeck.get< tag::amr, tag::edge >() );
-
-        auto eps =
-          std::numeric_limits< kw::amr_xminus::info::expect::type >::epsilon();
-
-        auto xminus = g_inputdeck.get< tag::amr, tag::xminus >();
-        auto xminus_default = g_inputdeck_defaults.get< tag::amr, tag::xminus >();
-        if (std::abs( xminus - xminus_default ) > eps)
-          print.item( "Initial refinement x-", xminus );
-        auto xplus = g_inputdeck.get< tag::amr, tag::xplus >();
-        auto xplus_default = g_inputdeck_defaults.get< tag::amr, tag::xplus >();
-        if (std::abs( xplus - xplus_default ) > eps)
-          print.item( "Initial refinement x+", xplus );
-
-        auto yminus = g_inputdeck.get< tag::amr, tag::yminus >();
-        auto yminus_default = g_inputdeck_defaults.get< tag::amr, tag::yminus >();
-        if (std::abs( yminus - yminus_default ) > eps)
-          print.item( "Initial refinement y-", yminus );
-        auto yplus = g_inputdeck.get< tag::amr, tag::yplus >();
-        auto yplus_default = g_inputdeck_defaults.get< tag::amr, tag::yplus >();
-        if (std::abs( yplus - yplus_default ) > eps)
-          print.item( "Initial refinement y+", yplus );
-
-        auto zminus = g_inputdeck.get< tag::amr, tag::zminus >();
-        auto zminus_default = g_inputdeck_defaults.get< tag::amr, tag::zminus >();
-        if (std::abs( zminus - zminus_default ) > eps)
-          print.item( "Initial refinement z-", zminus );
-        auto zplus = g_inputdeck.get< tag::amr, tag::zplus >();
-        auto zplus_default = g_inputdeck_defaults.get< tag::amr, tag::zplus >();
-        if (std::abs( zplus - zplus_default ) > eps)
-          print.item( "Initial refinement z+", zplus );
-      }
-      if (dtref) {
-        print.item( "Refinement at t>0 (dtref)", dtref );
-        auto dtfreq = g_inputdeck.get< tag::amr, tag::dtfreq >();
-        print.item( "Mesh refinement frequency, t>0", dtfreq );
-        print.item( "Uniform-only mesh refinement, t>0",
-                    g_inputdeck.get< tag::amr, tag::dtref_uniform >() );
-      }
-      print.item( "Refinement tolerance",
-                  g_inputdeck.get< tag::amr, tag::tolref >() );
-      print.item( "De-refinement tolerance",
-                  g_inputdeck.get< tag::amr, tag::tolderef >() );
-    }
-  }
-
-  // Print out ALE configuration
-  const auto ale = g_inputdeck.get< tag::ale, tag::ale >();
-  if (ale) {
-    print.section( "Arbitrary Lagrangian-Eulerian (ALE) mesh motion" );
-    auto dvcfl = g_inputdeck.get< tag::ale, tag::dvcfl >();
-    print.item( "Volume-change CFL coefficient", dvcfl );
-    print.Item< ctr::MeshVelocity, tag::ale, tag::meshvelocity >();
-    print.Item< ctr::MeshVelocitySmoother, tag::ale, tag::smoother >();
-    print.item( "Mesh motion dimensions", tk::parameters(
-                g_inputdeck.get< tag::ale, tag::mesh_motion >() ) );
-    const auto& meshforce = g_inputdeck.get< tag::ale, tag::meshforce >();
-    print.item( "Mesh velocity force coefficients", tk::parameters(meshforce) );
-    print.item( "Vorticity multiplier",
-                g_inputdeck.get< tag::ale, tag::vortmult >() );
-    print.item( "Mesh velocity linear solver tolerance",
-                g_inputdeck.get< tag::ale, tag::tolerance >() );
-    print.item( "Mesh velocity linear solver maxit",
-                g_inputdeck.get< tag::ale, tag::maxit >() );
-    const auto& dir = g_inputdeck.get< tag::ale, tag::bcdir >();
-    if (not dir.empty())
-      print.item( "Mesh velocity Dirichlet BC sideset(s)",
-                  tk::parameters( dir ) );
-    const auto& sym = g_inputdeck.get< tag::ale, tag::bcsym >();
-    if (not sym.empty())
-      print.item( "Mesh velocity symmetry BC sideset(s)",
-                  tk::parameters( sym ) );
-    std::size_t i = 1;
-    for (const auto& m : g_inputdeck.get< tag::ale, tag::move >()) {
-       tk::ctr::UserTable opt;
-       print.item( opt.group() + ' ' + std::to_string(i) + " interpreted as",
-                   opt.name( m.get< tag::fntype >() ) );
-       const auto& s = m.get< tag::sideset >();
-       if (not s.empty())
-         print.item( "Moving sideset(s) with table " + std::to_string(i),
-                     tk::parameters(s));
-       ++i;
-    }
-  }
-
-  // Print I/O filenames
-  print.section( "Input/Output filenames and directories" );
-  print.item( "Input mesh(es)", tk::parameters( m_input ) );
-  const auto& of = g_inputdeck.get< tag::cmd, tag::io, tag::output >();
-  print.item( "Volume field output file(s)",
-              of + ".e-s.<meshid>.<numchares>.<chareid>" );
-  print.item( "Surface field output file(s)",
-              of + "-surf.<surfid>.e-s.<meshid>.<numchares>.<chareid>" );
-  print.item( "History output file(s)", of + ".hist.{pointid}" );
-  print.item( "Diagnostics file",
-              g_inputdeck.get< tag::cmd, tag::io, tag::diag >() );
-  print.item( "Checkpoint/restart directory",
-              g_inputdeck.get< tag::cmd, tag::io, tag::restart >() + '/' );
-
-  // Print output intervals
-  print.section( "Output intervals (in units of iteration count)" );
-  print.item( "TTY", g_inputdeck.get< tag::output, tag::iter, tag::tty>() );
-  print.item( "Field and surface",
-              g_inputdeck.get< tag::output, tag::iter, tag::field >() );
-  print.item( "History",
-              g_inputdeck.get< tag::output, tag::iter, tag::history >() );
-  print.item( "Diagnostics",
-              g_inputdeck.get< tag::output, tag::iter, tag::diag >() );
-  print.item( "Checkpoint/restart",
-              g_inputdeck.get< tag::cmd, tag::rsfreq >() );
-  auto tf = g_inputdeck.get< tag::output, tag::time, tag::field >();
-  auto th = g_inputdeck.get< tag::output, tag::time, tag::history >();
-  if (tf>0.0 || th>0.0) {
-    print.section( "Output intervals (in units of physics time)" );
-    if (tf > 0.0) print.item( "Field and surface", tf );
-    if (th > 0.0) print.item( "History", th );
-  }
-  const auto& rf = g_inputdeck.get< tag::output, tag::range, tag::field >();
-  const auto& rh = g_inputdeck.get< tag::output, tag::range, tag::history >();
-  if (not rf.empty() or not rh.empty()) {
-    print.section( "Output time ranges (in units of physics time)" );
-    for (const auto& r : rf)
-      print.item("Field output { mintime, maxtime, dt }", tk::parameters(r));
-    for (const auto& r : rh)
-      print.item("History output { mintime, maxtime, dt }", tk::parameters(r));
-  }
-
-  // Print output variables: fields and surfaces
-  const auto nodeoutvars = g_inputdeck.outvars();
-  const auto aliases = g_inputdeck.outvar_aliases();
-  const auto outsets = g_inputdeck.outsets();
-  if (not nodeoutvars.empty() or not outsets.empty())
-     print.section( "Output fields" );
-  if (!nodeoutvars.empty())
-    print.item( "Node field(s)", tk::parameters(nodeoutvars) );
-  if (!aliases.empty())
-    print.item( "Alias(es)", tk::parameters(aliases) );
-  if (!outsets.empty())
-    print.item( "Surface side set(s)", tk::parameters(outsets) );
-
-  // Print output variables: history
-  const auto& pt = g_inputdeck.get< tag::history, tag::point >();
-  const auto& id = g_inputdeck.get< tag::history, tag::id >();
-  if (!pt.empty()) {
-    print.section( "Output time history" );
-    for (std::size_t p=0; p<pt.size(); ++p) {
-      std::stringstream ss;
-      auto prec = g_inputdeck.get< tag::prec, tag::history >();
-      ss << std::setprecision( static_cast<int>(prec) );
-      ss << of << ".hist." << id[p];
-      print.longitem( "At point " + id[p] + ' ' + tk::parameters(pt[p]),
-                      ss.str() );
-    }
-  }
-
-  print.endsubsection();
-}
-
 bool
 Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
 // *****************************************************************************
@@ -448,20 +187,14 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
 {
   using PDETypes = ctr::parameters::Keys;
   // Query side set ids at which BCs assigned for all BC types for all PDEs
-  using PDEsBCs =
-    tk::cartesian_product< PDETypes, ctr::bc::Keys >;
+  using PDEsBCs = tk::cartesian_product< PDETypes, ctr::bc::Keys >;
   std::unordered_set< int > usedsets;
   brigand::for_each< PDEsBCs >( UserBC( g_inputdeck, usedsets ) );
-
+ 
   // Query side sets of time dependent BCs (since tag::bctimedep is not a part
   // of tag::bc)
   brigand::for_each< PDETypes >( UserTimedepBC(g_inputdeck, usedsets) );
-
-  // Query side sets of boundaries prescribed as moving with ALE
-  for (const auto& move : g_inputdeck.get< tag::ale, tag::move >())
-    for (auto i : move.get< tag::sideset >())
-      usedsets.insert( std::stoi(i) );
-
+ 
   // Add sidesets requested for field output
   const auto& ss = g_inputdeck.get< tag::cmd, tag::io, tag::surface >();
   for (const auto& s : ss) {
@@ -470,7 +203,7 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
     conv >> num;
     usedsets.insert( num );
   }
-
+ 
   // Find user-configured side set ids among side sets read from mesh file
   std::unordered_set< int > sidesets_used;
   for (auto i : usedsets) {       // for all side sets used in control file
@@ -481,13 +214,13 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
         std::to_string(i) + " which does not exist in mesh file" );
     }
   }
-
+ 
   // Remove sidesets not used (will not process those further)
   tk::erase_if( bnd, [&]( auto& item ) {
     return sidesets_used.find( item.first ) == end(sidesets_used);
   });
 
-  return !bnd.empty();
+  return not bnd.empty();
 }
 
 void
@@ -531,12 +264,6 @@ Transporter::createPartitioner()
   // Start preparing mesh(es)
   print.diag( "Reading mesh(es)" );
 
-  // Create (discretization) Scheme chare worker arrays for all meshes
-  for ([[maybe_unused]] const auto& filename : m_input)
-    m_scheme.emplace_back( g_inputdeck.get< tag::discr, tag::scheme >(),
-                           g_inputdeck.get< tag::ale, tag::ale >(),
-                           need_linearsolver() );
-
   ErrChk( !m_input.empty(), "No input mesh" );
 
   // Read boundary (side set) data from a list of input mesh files
@@ -565,16 +292,22 @@ Transporter::createPartitioner()
     // Warn on no BCs
     if (!bcs_set) print << "\n>>> WARNING: No boundary conditions set\n\n";
 
-    auto opt = m_scheme[meshid].arrayoptions();
-    // Create empty mesh refiner chare array (bound to workers)
+    // Create empty discretization chare array
+    m_discretization.push_back( CProxy_Discretization::ckNew() );
+    CkArrayOptions opt;
+    opt.bindTo( m_discretization.back() );
+
+    // Create empty discretization scheme chare array (bound to discretization)
+    m_aircg.push_back( CProxy_Refiner::ckNew(opt) );
+    // Create empty mesh refiner chare array (bound to discretization)
     m_refiner.push_back( CProxy_Refiner::ckNew(opt) );
-    // Create empty mesh sorter Charm++ chare array (bound to workers)
+    // Create empty mesh sorter Charm++ chare array (bound to discretization)
     m_sorter.push_back( CProxy_Sorter::ckNew(opt) );
 
     // Create MeshWriter chare group for mesh
     m_meshwriter.push_back(
       tk::CProxy_MeshWriter::ckNew(
-        g_inputdeck.get< tag::selected, tag::filetype >(),
+        tk::ctr::FieldFileType::EXODUSII,
         g_inputdeck.get< tag::cmd, tag::benchmark >(),
         m_input.size() ) );
 
@@ -582,7 +315,7 @@ Transporter::createPartitioner()
     m_partitioner.push_back(
       CProxy_Partitioner::ckNew( meshid, filename, cbp, cbr, cbs,
         thisProxy, m_refiner.back(), m_sorter.back(), m_meshwriter.back(),
-        m_scheme, bface, faces, bnode ) );
+        m_discretization.back(), m_aircg.back(), bface, faces, bnode ) );
 
     ++meshid;
   }
@@ -628,7 +361,7 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
     // Print out mesh partitioning configuration
     print.section( "Mesh partitioning" );
     print.Item< tk::ctr::PartitioningAlgorithm,
-                tag::selected, tag::partitioner >();
+                tag::discr, tag::partitioner >();
     print.item( "Virtualization [0.0...1.0]",
                 g_inputdeck.get< tag::cmd, tag::virtualization >() );
     // Print out initial mesh statistics
@@ -832,15 +565,13 @@ Transporter::matched( std::size_t summeshid,
 }
 
 void
-Transporter::bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb,
-                     tk::real summeshid )
+Transporter::bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb )
 // *****************************************************************************
 // Compute surface integral across the whole problem and perform leak-test
 //! \param[in] sx X component of vector summed
 //! \param[in] sy Y component of vector summed
 //! \param[in] sz Z component of vector summed
 //! \param[in] cb Invoke callback if positive
-//! \param[in] summeshid Mesh id (summed accross all chares)
 //! \details This function aggregates partial surface integrals across the
 //!   boundary faces of the whole problem. After this global sum a
 //!   non-zero vector result indicates a leak, e.g., a hole in the boundary,
@@ -848,8 +579,6 @@ Transporter::bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb,
 //!   compute the partial surface integrals.
 // *****************************************************************************
 {
-  auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
-
   std::stringstream err;
   if (cb < 0.0) {
     err << "Mesh boundary leaky after mesh refinement step; this is due to a "
@@ -868,8 +597,6 @@ Transporter::bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb,
            ", eps = " << eps;
     Throw( err.str() );
   }
-
-  if (cb > 0.0) m_scheme[meshid].bcast< Scheme::resizeComm >();
 }
 
 void
@@ -925,19 +652,8 @@ Transporter::resized( std::size_t meshid )
 //! \note Only used for nodal schemes
 // *****************************************************************************
 {
-  m_scheme[meshid].disc().vol();
-  m_scheme[meshid].bcast< Scheme::lhs >();
-}
-
-void
-Transporter::startEsup( std::size_t meshid )
-// *****************************************************************************
-// Reduction target: all worker chares have generated their own esup
-//! \param[in] meshid Mesh id
-//! \note Only used for cell-centered schemes
-// *****************************************************************************
-{
-  m_scheme[meshid].bcast< Scheme::nodeNeighSetup >();
+  m_discretization[ meshid ].vol();
+  m_aircg[ meshid ].norm();
 }
 
 void
@@ -947,7 +663,7 @@ Transporter::discinserted( std::size_t meshid )
 //! \param[in] meshid Mesh id
 // *****************************************************************************
 {
-  m_scheme[meshid].disc().doneInserting();
+  m_discretization[ meshid ].doneInserting();
 }
 
 void
@@ -977,25 +693,6 @@ Transporter::meshstat( const std::string& header ) const
   print.endsubsection();
 }
 
-bool
-Transporter::need_linearsolver() const
-// *****************************************************************************
-//  Decide if we need a linear solver for ALE
-//! \return True if ALE will neeed a linear solver
-// *****************************************************************************
-{
-  auto smoother = g_inputdeck.get< tag::ale, tag::smoother >();
-
-  if ( g_inputdeck.get< tag::ale, tag::ale >() and
-       (smoother == ctr::MeshVelocitySmootherType::LAPLACE ||
-        smoother == ctr::MeshVelocitySmootherType::HELMHOLTZ) )
-  {
-     return true;
-  } else {
-     return false;
-  }
-}
-
 void
 Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
 // *****************************************************************************
@@ -1019,18 +716,8 @@ Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
       meshstat( "Initially (t<0) refined mesh graph statistics" );
   }
 
-  m_refiner[meshid].sendProxy();
-
-  if (g_inputdeck.get< tag::discr, tag::scheme >() == ctr::SchemeType::DiagCG)
-    m_scheme[meshid].fct().doneInserting();
-
-  if (g_inputdeck.get< tag::ale, tag::ale >())
-    m_scheme[meshid].ale().doneInserting();
-
-  if (need_linearsolver())
-    m_scheme[meshid].conjugategradients().doneInserting();
-
-  m_scheme[meshid].disc().vol();
+  m_refiner[ meshid ].sendProxy();
+  m_discretization[ meshid ].vol();
 }
 
 void
@@ -1041,7 +728,7 @@ Transporter::workinserted( std::size_t meshid )
 //! \param[in] meshid Mesh id
 // *****************************************************************************
 {
-  m_scheme[meshid].bcast< Scheme::doneInserting >();
+  m_aircg[ meshid ].doneInserting();
 }
 
 void
@@ -1056,9 +743,7 @@ Transporter::diagHeader()
                      g_inputdeck.get< tag::prec, tag::diag >() );
 
   // Collect variables names for integral/diagnostics output
-  auto ncomp = g_inputdeck.get< tag::component >().nprop();
-  std::vector< std::string > var( ncomp );
-  for (const auto& eq : g_cgpde) varnames( eq, var );
+  std::vector< std::string > var{ "r", "ru", "rv", "rw", "re" };
 
   const tk::ctr::Error opt;
   auto nv = var.size();
@@ -1087,29 +772,24 @@ Transporter::diagHeader()
 }
 
 void
-Transporter::comfinal( std::size_t initial, std::size_t summeshid )
+Transporter::comfinal( std::size_t summeshid )
 // *****************************************************************************
 // Reduction target indicating that communication maps have been setup
-//! \param[in] initial Sum of contributions from all chares. If larger than
-//!    zero, we are during time stepping and if zero we are during setup.
 //! \param[in] summeshid Mesh id (summed accross the distributed mesh)
 // *****************************************************************************
 // [Discretization-specific communication maps]
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
 
-  if (initial > 0) {
-    m_scheme[meshid].bcast< Scheme::setup >();
-    // Turn on automatic load balancing
-    if (++m_ncom == m_nelem.size()) { // all worker arrays have finished
-      m_ncom = 0;
-      auto print = printer();
-      m_progWork.end( print );
-      tk::CProxy_LBSwitch::ckNew();
-      print.diag( "Load balancing on (if enabled in Charm++)" );
-    }
-  } else {
-    m_scheme[meshid].bcast< Scheme::lhs >();
+  m_aircg[ meshid ].setup();
+
+  // Turn on automatic load balancing
+  if (++m_ncom == m_nelem.size()) { // all worker arrays have finished
+    m_ncom = 0;
+    auto print = printer();
+    m_progWork.end( print );
+    tk::CProxy_LBSwitch::ckNew();
+    print.diag( "Load balancing on (if enabled in Charm++)" );
   }
 }
 // [Discretization-specific communication maps]
@@ -1129,9 +809,9 @@ Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
   m_meshvol[meshid] = v;
 
   if (initial > 0.0)   // during initialization
-    m_scheme[meshid].disc().stat( v );
+    m_discretization[ meshid ].stat( v );
   else                  // during ALE or AMR
-    m_scheme[meshid].bcast< Scheme::resized >();
+    m_aircg[ meshid ].resized();
 }
 
 void
@@ -1283,7 +963,7 @@ Transporter::boxvol( tk::real v, tk::real summeshid )
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
   if (v > 0.0) printer().diag( "Box IC volume: " + std::to_string(v) );
-  m_scheme[meshid].bcast< Scheme::box >( v );
+  m_aircg[ meshid ].box( v );
 }
 
 void
@@ -1309,8 +989,7 @@ Transporter::inthead( const InciterPrint& print )
   "             t - physics time history\n"
   "             h - h-refinement\n"
   "             l - load balancing\n"
-  "             r - checkpoint\n"
-  "             a - ALE mesh velocity linear solver did not converge\n",
+  "             r - checkpoint\n",
   "\n      it             t            dt        ETE        ETA        EGT  flg\n"
     " -------------------------------------------------------------------------\n" );
 }
@@ -1386,7 +1065,7 @@ Transporter::diagnostics( CkReductionMsg* msg )
   dw.diag( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
 
   // Continue time step
-  m_scheme[meshid].bcast< Scheme::refine >( l2res );
+  m_aircg[ meshid ].refine( l2res );
 }
 
 void
@@ -1402,7 +1081,7 @@ Transporter::resume()
     // increased nrestart in g_inputdeck, but only on PE 0, so broadcast.
     auto nrestart = g_inputdeck.get< tag::cmd, tag::io, tag::nrestart >();
     for (std::size_t i=0; i<m_nelem.size(); ++i)
-      m_scheme[i].bcast< Scheme::evalLB >( nrestart );
+      m_aircg[ i ].evalLB( nrestart );
   } else
     mainProxy.finalize();
 }

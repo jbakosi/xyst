@@ -19,12 +19,9 @@
 #include "MeshWriter.hpp"
 #include "DiagWriter.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
-#include "Inciter/Options/Scheme.hpp"
 #include "Print.hpp"
 #include "Around.hpp"
 #include "XystBuildConfig.hpp"
-#include "ConjugateGradients.hpp"
-#include "ALE.hpp"
 
 #ifdef HAS_EXAM2M
   #include "Controller.hpp"
@@ -42,10 +39,6 @@ using inciter::Discretization;
 
 Discretization::Discretization(
   std::size_t meshid,
-  const std::vector< CProxy_Discretization >& disc,
-  const CProxy_DistFCT& fctproxy,
-  const CProxy_ALE& aleproxy,
-  const tk::CProxy_ConjugateGradients& conjugategradientsproxy,
   const CProxy_Transporter& transporter,
   const tk::CProxy_MeshWriter& meshwriter,
   const tk::UnsMesh::CoordMap& coordmap,
@@ -53,9 +46,6 @@ Discretization::Discretization(
   const tk::CommMaps& msum,
   int nc ) :
   m_meshid( meshid ),
-  m_transfer_complete(),
-  m_transfer( g_inputdeck.get< tag::couple, tag::transfer >() ),
-  m_disc( disc ),
   m_nchare( nc ),
   m_it( 0 ),
   m_itr( 0 ),
@@ -72,8 +62,6 @@ Discretization::Discretization(
   m_dt( g_inputdeck.get< tag::discr, tag::dt >() ),
   m_dtn( m_dt ),
   m_nvol( 0 ),
-  m_fct( fctproxy ),
-  m_ale( aleproxy ),
   m_transporter( transporter ),
   m_meshwriter( meshwriter ),
   m_el( el ),     // fills m_inpoel, m_gid, m_lid
@@ -85,26 +73,17 @@ Discretization::Discretization(
   m_v( m_gid.size(), 0.0 ),
   m_vol( m_gid.size(), 0.0 ),
   m_volc(),
-  m_voln( m_vol ),
   m_vol0( m_inpoel.size()/4, 0.0 ),
   m_bid(),
   m_timer(),
   m_refined( 0 ),
   m_prevstatus( std::chrono::high_resolution_clock::now() ),
   m_nrestart( 0 ),
-  m_histdata(),
-  m_nsrc( 0 ),
-  m_ndst( 0 ),
-  m_meshvel( 0, 3 ),
-  m_meshvel_converged( true )
+  m_histdata()
 // *****************************************************************************
 //  Constructor
 //! \param[in] meshid Mesh ID
 //! \param[in] disc All Discretization proxies (one per mesh)
-//! \param[in] fctproxy Distributed FCT proxy
-//! \param[in] aleproxy Distributed ALE proxy
-//! \param[in] conjugategradientsproxy Distributed Conjugrate Gradients linear
-//!   solver proxy
 //! \param[in] transporter Host (Transporter) proxy
 //! \param[in] meshwriter Mesh writer proxy
 //! \param[in] coordmap Coordinates of mesh nodes and their global IDs
@@ -155,39 +134,34 @@ Discretization::Discretization(
     }
   }
 
-  // Insert DistFCT chare array element if FCT is needed. Note that even if FCT
-  // is configured false in the input deck, at this point, we still need the FCT
-  // object as FCT is still being performed, only its results are ignored.
-  const auto sch = g_inputdeck.get< tag::discr, tag::scheme >();
-  const auto nprop = g_inputdeck.get< tag::component >().nprop();
-  if (sch == ctr::SchemeType::DiagCG)
-    m_fct[ thisIndex ].insert( m_nchare, m_gid.size(), nprop,
-                               m_nodeCommMap, m_bid, m_lid, m_inpoel );
+  // Compute number of mesh points owned
+  std::size_t npoin = m_gid.size();
+  for (auto g : m_gid) if (tk::slave(m_nodeCommMap,g,thisIndex)) --npoin;
 
-  // Insert ConjugrateGradients solver chare array element if needed
-  if (g_inputdeck.get< tag::ale, tag::ale >()) {
-    m_ale[ thisIndex ].insert( conjugategradientsproxy,
-                               m_coord, m_inpoel,
-                               m_gid, m_lid, m_nodeCommMap );
-  } else {
-    m_meshvel.resize( m_gid.size() );
-  }
+  // Tell the RTS that the Discretization chares have been created and compute
+  // the total number of mesh points across the distributed mesh
+  std::vector< std::size_t > meshdata{ m_meshid, npoin };
+  contribute( meshdata, CkReduction::sum_ulong,
+    CkCallback( CkReductionTarget(Transporter,disccreated), m_transporter ) );
 
-  // Register mesh with mesh-transfer lib
-  if (m_disc.size() == 1 || m_transfer.empty()) {
-    // skip transfer if single mesh or if not involved in coupling
-    transferInit();
-  } else {
-    #ifdef HAS_EXAM2M
-    if (thisIndex == 0) {
-      exam2m::addMesh( thisProxy, m_nchare,
-        CkCallback( CkIndex_Discretization::transferInit(), thisProxy ) );
-      std::cout << "Disc: " << m_meshid << " m2m::addMesh()\n";
-    }
-    #else
-    transferInit();
-    #endif
-  }
+}
+
+const tk::Fields&
+Discretization::meshvel() const
+// *****************************************************************************
+//! Query the mesh velocity
+//! \return Mesh velocity
+// *****************************************************************************
+{
+  return m_meshvel;
+}
+
+void
+Discretization::meshvelConv()
+// *****************************************************************************
+//! Assess and record mesh velocity linear solver convergence
+// *****************************************************************************
+{
 }
 
 std::unordered_map< std::size_t, std::size_t >
@@ -205,236 +179,6 @@ Discretization::genBid()
   for (const auto& [ch,n] : m_nodeCommMap) for (auto i : n) c[j++] = i;
   tk::unique( c );
   return tk::assignLid( c );
-}
-
-void
-Discretization::transferInit()
-// *****************************************************************************
-// Our mesh has been registered with the mesh-to-mesh transfer library (if
-// coupled to other solver)
-// *****************************************************************************
-{
-  // Compute number of mesh points owned
-  std::size_t npoin = m_gid.size();
-  for (auto g : m_gid) if (tk::slave(m_nodeCommMap,g,thisIndex)) --npoin;
-
-  // Tell the RTS that the Discretization chares have been created and compute
-  // the total number of mesh points across the distributed mesh
-  std::vector< std::size_t > meshdata{ m_meshid, npoin };
-  contribute( meshdata, CkReduction::sum_ulong,
-    CkCallback( CkReductionTarget(Transporter,disccreated), m_transporter ) );
-}
-
-void
-Discretization::meshvelStart(
-  const tk::UnsMesh::Coords vel,
-  const std::vector< tk::real >& soundspeed,
-  const std::unordered_map< int,
-    std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& bnorm,
-  tk::real adt,
-  CkCallback done ) const
-// *****************************************************************************
-// Start computing new mesh velocity for ALE mesh motion
-//! \param[in] vel Fluid velocity at mesh nodes
-//! \param[in] soundspeed Speed of sound at mesh nodes
-//! \param[in] bnorm Face normals in boundary points associated to side sets
-//! \param[in] adt alpha*dt of the RK time step
-//! \param[in] done Function to continue with when mesh velocity has been
-//!   computed
-// *****************************************************************************
-{
-  if (g_inputdeck.get< tag::ale, tag::ale >())
-    m_ale[ thisIndex ].ckLocal()->start( vel, soundspeed, done,
-      m_coord, m_coordn, m_vol0, m_vol, bnorm, m_initial, m_it, m_t, adt );
-  else
-    done.send();
-}
-
-const tk::Fields&
-Discretization::meshvel() const
-// *****************************************************************************
-//! Query the mesh velocity
-//! \return Mesh velocity
-// *****************************************************************************
-{
-  if (g_inputdeck.get< tag::ale, tag::ale >())
-    return m_ale[ thisIndex ].ckLocal()->meshvel();
-  else
-    return m_meshvel;
-}
-
-void
-Discretization::meshvelBnd(
-  const std::map< int, std::vector< std::size_t > >& bface,
-  const std::map< int, std::vector< std::size_t > >& bnode,
-  const std::vector< std::size_t >& triinpoel) const
-// *****************************************************************************
-// Query ALE mesh velocity boundary condition node lists and node lists at
-// which ALE moves boundaries
-// *****************************************************************************
-{
-  if (g_inputdeck.get< tag::ale, tag::ale >())
-    m_ale[ thisIndex ].ckLocal()->meshvelBnd( bface, bnode, triinpoel );
-}
-
-void
-Discretization::meshvelConv()
-// *****************************************************************************
-//! Assess and record mesh velocity linear solver convergence
-// *****************************************************************************
-{
-  auto smoother = g_inputdeck.get< tag::ale, tag::smoother >();
-
-  if (g_inputdeck.get< tag::ale, tag::ale >() &&
-      (smoother == ctr::MeshVelocitySmootherType::LAPLACE or
-       smoother == ctr::MeshVelocitySmootherType::HELMHOLTZ))
-  {
-    m_meshvel_converged &= m_ale[ thisIndex ].ckLocal()->converged();
-  }
-}
-
-void
-Discretization::transferCallback( std::vector< CkCallback >& cb )
-// *****************************************************************************
-// Receive a list of callbacks from our own child solver
-//! \param[in] cb List of callbacks
-//! \details This is called by our child solver, either when it is coupled to
-//!    another solver or not.
-// *****************************************************************************
-{
-  // Store callback for when there is no transfer we are involved in
-  m_transfer_complete = cb.back();
-  cb.pop_back();
-
-  // Distribute callbacks
-  for (auto& t : m_transfer) {
-    // If we are a source of a transfer, send callback to the destination solver
-    if (m_meshid == t.src) {
-      Assert( !cb.empty(), "Insufficient number of src callbacks, meshid: " +
-                           std::to_string(m_meshid) );
-      m_disc[ t.dst ][ thisIndex ].comcb( m_meshid, cb.back() );
-      cb.pop_back();
-    // If we are a destination of a callback, store it
-    } else if (m_meshid == t.dst) {
-      Assert( !cb.empty(), "Insufficient number of dst callbacks, meshid: " +
-                           std::to_string(m_meshid) );
-      t.cb.push_back( cb.back() );
-      cb.pop_back();
-      //t.cbs.push_back( m_meshid );    // only for debugging
-    }
-  }
-  Assert( cb.empty(), "Not all callbacks have been processed" );
-
-  if (transferCallbacksComplete()) comfinal();
-}
-
-void
-Discretization::comcb( std::size_t srcmeshid, CkCallback c )
-// *****************************************************************************
-// Receive mesh transfer callbacks from source mesh/solver
-//! \param[in] srcmeshid Source mesh (solver) id
-//! \param[in] c Callback received
-// *****************************************************************************
-{
-  // Store received mesh transfer callback from source mesh/solver
-  for (auto& t : m_transfer)
-    if (srcmeshid == t.src && m_meshid == t.dst) {
-      t.cb.push_back( c );
-      //t.cbs.push_back( srcmeshid );   // only for debugging
-    }
-
-  if (transferCallbacksComplete()) comfinal();
-}
-
-bool
-Discretization::transferCallbacksComplete() const
-// *****************************************************************************
-// Determine if communication of mesh transfer callbacks is complete
-//! \return True if communication of mesh transfer callbacks have been
-//!   completed on this solver
-// *****************************************************************************
-{
-  bool c = true;
-
-  // Our callbacks are complete if all transfers we are involved in as a
-  // destination have exactly two callbacks.
-  for (const auto& t : m_transfer)
-    if (m_meshid == t.dst && t.cb.size() != 2)
-      c = false;
-
-  return c;
-}
-
-void
-Discretization::comfinal()
-// *****************************************************************************
-// Finish setting up communication maps and solution transfer callbacks
-// *****************************************************************************
-{
-//  std::cout << "m:" << m_meshid << ": transfer: ";
-//  for (const auto& t : m_transfer) {
-//    std::cout << t.src << "->" << t.dst << ' ';
-//    if (t.cb.size() > 0) {
-//      std::cout << "cb: ";
-//      for (auto m : t.cbs) std::cout << m << ' ';
-//    }
-//  }
-//  std::cout << '\n';
-
-  // Generate own subset of solver/mesh transfer list
-  for (const auto& t : m_transfer)
-    if (t.src == m_meshid || t.dst == m_meshid)
-      m_mytransfer.push_back( t );
-
-//  std::cout << "m:" << m_meshid << ": mytransfer: ";
-//  for (const auto& t : m_mytransfer) {
-//    std::cout << t.src << "->" << t.dst << ' ';
-//    if (t.cb.size() > 0) {
-//      std::cout << "cb: ";
-//      for (auto m : t.cbs) std::cout << m << ' ';
-//    }
-//  }
-//  std::cout << '\n';
-
-  // Signal the runtime system that the workers have been created
-  std::vector< std::size_t > meshdata{ /* initial */ 1, m_meshid };
-  contribute( meshdata, CkReduction::sum_ulong,
-    CkCallback(CkReductionTarget(Transporter,comfinal), m_transporter) );
-}
-
-void
-Discretization::transfer( [[maybe_unused]] const tk::Fields& u )
-// *****************************************************************************
-//  Start solution transfer (if coupled)
-//! \param[in] u Solution to transfer from/to
-// *****************************************************************************
-{
-  if (m_mytransfer.empty()) {   // skip transfer if not involved in coupling
-    m_transfer_complete.send();
-  } else {
-    // Pass source and destination meshes to mesh transfer lib (if coupled)
-    #ifdef HAS_EXAM2M
-    Assert( m_nsrc < m_mytransfer.size(), "Indexing out of mytransfer[src]" );
-    if (m_mytransfer[m_nsrc].src == m_meshid) {
-      exam2m::setSourceTets( thisProxy, thisIndex, &m_inpoel, &m_coord, u );
-      ++m_nsrc;
-      //std::cout << m_meshid << " src\n";
-    } else {
-      m_nsrc = 0;
-    }
-    Assert( m_ndst < m_mytransfer.size(), "Indexing out of mytransfer[dst]" );
-    if (m_mytransfer[m_ndst].dst == m_meshid) {
-      exam2m::setDestPoints( thisProxy, thisIndex, &m_coord, u,
-                             m_mytransfer[m_ndst].cb );
-      ++m_ndst;
-      //std::cout << m_meshid << " dst\n";
-    } else {
-      m_ndst = 0;
-    }
-    #else
-    m_transfer_complete.send();
-    #endif
-  }
 }
 
 std::vector< std::size_t >
@@ -483,7 +227,6 @@ Discretization::resizePostAMR(
 
   // Update mesh volume container size
   m_vol.resize( m_gid.size(), 0.0 );
-  if (!m_voln.empty()) m_voln.resize( m_gid.size(), 0.0 );
 
   // Regenerate chare-boundary node ids map
   m_bid = genBid();
@@ -1215,9 +958,6 @@ Discretization::status()
     if (m_refined) print << 'h';
     if (not (m_it % lbfreq) && not finished()) print << 'l';
     if (not benchmark && (not (m_it % rsfreq) || finished())) print << 'r';
-
-    if (not m_meshvel_converged) print << 'a';
-    m_meshvel_converged = true; // get ready for next time step
 
     print << std::endl;
   }

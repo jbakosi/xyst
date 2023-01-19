@@ -19,8 +19,6 @@
 #include "DerivedData.hpp"
 #include "Reorder.hpp"
 #include "MeshReader.hpp"
-#include "CGPDE.hpp"
-#include "Inciter/Options/Scheme.hpp"
 #include "UnsMesh.hpp"
 #include "ContainerUtil.hpp"
 #include "Callback.hpp"
@@ -28,7 +26,6 @@
 namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
-extern std::vector< CGPDE > g_cgpde;
 
 } // inciter::
 
@@ -44,7 +41,8 @@ Partitioner::Partitioner(
   const CProxy_Refiner& refiner,
   const CProxy_Sorter& sorter,
   const tk::CProxy_MeshWriter& meshwriter,
-  const std::vector< Scheme >& scheme,
+  const CProxy_Discretization& discretization,
+  const CProxy_AirCG& aircg,
   const std::map< int, std::vector< std::size_t > >& bface,
   const std::map< int, std::vector< std::size_t > >& faces,
   const std::map< int, std::vector< std::size_t > >& bnode ) :
@@ -56,7 +54,8 @@ Partitioner::Partitioner(
   m_refiner( refiner ),
   m_sorter( sorter ),
   m_meshwriter( meshwriter ),
-  m_scheme( scheme ),
+  m_discretization( discretization ),
+  m_aircg( aircg ),
   m_ginpoel(),
   m_coord(),
   m_inpoel(),
@@ -82,7 +81,8 @@ Partitioner::Partitioner(
 //! \param[in] refiner Mesh refiner proxy
 //! \param[in] sorter Mesh reordering (sorter) proxy
 //! \param[in] meshwriter Mesh writer proxy
-//! \param[in] scheme Discretization scheme
+//! \param[in] discretization Discretization base
+//! \param[in] aircg Discretization scheme
 //! \param[in] bface File-internal elem ids of side sets (whole mesh)
 //! \param[in] faces Elem-relative face ids of side sets (whole mesh)
 //! \param[in] bnode Node lists of side sets (whole mesh)
@@ -154,7 +154,7 @@ Partitioner::partition( int nchare )
   std::iota( begin(gelemid), end(gelemid), 0 );
 
   m_nchare = nchare;
-  const auto alg = g_inputdeck.get< tag::selected, tag::partitioner >();
+  const auto alg = g_inputdeck.get< tag::discr, tag::partitioner >();
   const auto che = tk::zoltan::geomPartMesh( alg,
                                              centroids( m_inpoel, m_coord ),
                                              gelemid,
@@ -285,7 +285,8 @@ Partitioner::refine()
                                m_host,
                                m_sorter,
                                m_meshwriter,
-                               m_scheme,
+                               m_discretization,
+                               m_aircg,
                                m_cbr,
                                m_cbs,
                                tk::cref_find(m_chinpoel,cid),

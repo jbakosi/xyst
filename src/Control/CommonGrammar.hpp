@@ -84,7 +84,6 @@ namespace grm {
     NOSOLVE,            //!< Dependent variable to solve for has not been spec'd
     NOSUCHDEPVAR,       //!< Dependent variable has not been previously selected
     NOSUCHCOMPONENT,    //!< No such scalar component
-    NOSUCHOUTVAR,       //!< Output variable label not acceptable
     POSITIVECOMPONENT,  //!< Scalar component must be positive
     NOTALPHA,           //!< Variable must be alphanumeric
     NOTERMS,            //!< Statistic need a variable
@@ -118,7 +117,6 @@ namespace grm {
     ENERGY_UNFINISHED,  //!< Nonlinear energy growth problem config unfinished
     RT_UNFINISHED,      //!< Reyleigh-Taylor unstable configuration unfinished
     BC_EMPTY,           //!< Empty boundary condition block
-    SYSFCTVAR,          //!< System-FCT variable index incorrect
     BGICMISSING,        //!< Background IC unspecified
     BGMATIDMISSING,     //!< Background material id unspecified
     BOXMATIDMISSING,    //!< Box material id unspecified
@@ -184,9 +182,6 @@ namespace grm {
       "which the number of components are not configurable with the 'ncomp' "
       "keyword, instead their ncomp is assumed known, e.g., for compflow ncomp "
       "= 5." },
-    { MsgKey::NOSUCHOUTVAR, "Scalar component label is not acceptable as a "
-      "request for an output variable. Did you mean it as upper case (as a "
-      "request for an instantaneous) quantity?" },
     { MsgKey::POSITIVECOMPONENT, "Scalar component must be positive." },
     { MsgKey::NOTALPHA, "Variable not alphanumeric." },
     { MsgKey::HEIGHTSPIKES, "The sum of all spike heights given in the "
@@ -326,8 +321,6 @@ namespace grm {
       "above."},
     { MsgKey::BC_EMPTY, "Error in the preceding block. Empty boundary "
       "condition specifications, e.g., 'sideset end', are not allowed." },
-    { MsgKey::SYSFCTVAR, "Error in the system-FCT variable definition block. "
-      "The block must list integers between 1 and 5 both inclusive." },
     { MsgKey::BGMATIDMISSING, "Error in the preceding block. "
       "The block must contain background material id." },
     { MsgKey::BOXMATIDMISSING, "Error in the preceding block. "
@@ -1400,15 +1393,6 @@ namespace grm {
            readkw< typename keyword::pegtl_string >,
            scan< pegtl::sor< kw_type, msg< ERROR, MsgKey::MISSING > >,
                  insert > > {};
-
-  //! \brief Process 'keyword' and if matches, parse following token (expecting
-  //!   pegtl::alpha and call zero or more actions on it
-  template< class keyword, class... actions >
-  struct process_alpha :
-         pegtl::if_must<
-           readkw< typename keyword::pegtl_string >,
-           scan< pegtl::sor< pegtl::alpha, msg< ERROR, MsgKey::MISSING > >,
-                 actions... > > {};
 
   //! \brief Process command line 'keyword' and call its 'insert' action if
   //!   matches 'kw_type'

@@ -18,18 +18,13 @@
 mainmodule inciter {
 
   extern module partitioner;
-  extern module conjugategradients;
-  extern module ale;
-  extern module diagcg;
-  extern module alecg;
-  extern module charestatecollector;
+  extern module aircg;
   extern module lbswitch;
   #ifdef HAS_EXAM2M
   extern module controller;
   #endif
 
   readonly CProxy_Main mainProxy;
-  readonly tk::CProxy_ChareStateCollector stateProxy;
   readonly tk::CProxy_LBSwitch LBSwitchProxy;
   readonly bool g_trace;
 
@@ -38,7 +33,6 @@ mainmodule inciter {
     // Order important: must be the same as in Main/Inciter.C
     readonly ctr::InputDeck g_inputdeck_defaults;
     readonly ctr::InputDeck g_inputdeck;
-    readonly std::vector< CGPDE > g_cgpde;
 
   } // inciter::
 

@@ -27,16 +27,13 @@
 #include "Inciter/Components.hpp"
 
 namespace inciter {
-
 namespace ctr {
 
 //! Member data for tagged tuple
 using InputDeckMembers = brigand::list<
     tag::cmd,           CmdLine
   , tag::title,         kw::title::info::expect::type
-  , tag::selected,      selects
   , tag::amr,           amr
-  , tag::ale,           ale
   , tag::discr,         discretization
   , tag::prec,          precision
   , tag::flformat,      floatformat
@@ -44,7 +41,6 @@ using InputDeckMembers = brigand::list<
   , tag::sys,           std::map< tk::ctr::ncomp_t, tk::ctr::ncomp_t >
   , tag::output,        output_parameters
   , tag::param,         parameters
-  , tag::couple,        couple
   , tag::diag,          diagnostics
   , tag::error,         std::vector< std::string >
   , tag::history,       history
@@ -128,7 +124,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::location
                                  , kw::orientation
                                  , kw::reference
-                                 , kw::couple
                                  , kw::material
                                  , kw::id
                                  , kw::eos
@@ -149,27 +144,12 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::pde_alpha
                                  , kw::pde_beta
                                  , kw::pde_p0
-                                 , kw::ctau
                                  , kw::cfl
-                                 , kw::dvcfl
                                  , kw::vortmult
                                  , kw::mj
                                  , kw::elem
                                  , kw::node
                                  , kw::depvar
-                                 , kw::outvar
-                                 , kw::outvar_density
-                                 , kw::outvar_xmomentum
-                                 , kw::outvar_ymomentum
-                                 , kw::outvar_zmomentum
-                                 , kw::outvar_specific_total_energy
-                                 , kw::outvar_volumetric_total_energy
-                                 , kw::outvar_xvelocity
-                                 , kw::outvar_yvelocity
-                                 , kw::outvar_zvelocity
-                                 , kw::outvar_pressure
-                                 , kw::outvar_material_indicator
-                                 , kw::outvar_analytic
                                  , kw::nl_energy_growth
                                  , kw::pde_betax
                                  , kw::pde_betay
@@ -185,29 +165,12 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::error
                                  , kw::l2
                                  , kw::linf
-                                 , kw::fct
-                                 , kw::fctclip
-                                 , kw::fcteps
-                                 , kw::sysfct
-                                 , kw::sysfctvar
                                  , kw::pelocal_reorder
                                  , kw::operator_reorder
                                  , kw::steady_state
                                  , kw::residual
                                  , kw::rescomp
                                  , kw::amr
-                                 , kw::ale
-                                 , kw::smoother
-                                 , kw::laplace
-                                 , kw::helmholtz
-                                 , kw::meshvelocity
-                                 , kw::meshvel_maxit
-                                 , kw::meshvel_tolerance
-                                 , kw::mesh_motion
-                                 , kw::meshforce
-                                 , kw::none
-                                 , kw::sine
-                                 , kw::fluid
                                  , kw::amr_t0ref
                                  , kw::amr_dtref
                                  , kw::amr_dtref_uniform
@@ -231,9 +194,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::amr_yplus
                                  , kw::amr_zminus
                                  , kw::amr_zplus
-                                 , kw::scheme
-                                 , kw::diagcg
-                                 , kw::alecg
                                  , kw::bc_sym
                                  , kw::bc_inlet
                                  , kw::bc_outlet
@@ -271,20 +231,11 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
       get< tag::discr, tag::t0 >() = 0.0;
       get< tag::discr, tag::dt >() = 0.0;
       get< tag::discr, tag::cfl >() = 0.0;
-      get< tag::discr, tag::fct >() = true;
-      get< tag::discr, tag::fctclip >() = false;
-      get< tag::discr, tag::ctau >() = 1.0;
-      get< tag::discr, tag::fcteps >() =
-        std::numeric_limits< tk::real >::epsilon();
       get< tag::discr, tag::pelocal_reorder >() = false;
       get< tag::discr, tag::operator_reorder >() = false;
       get< tag::discr, tag::steady_state >() = false;
       get< tag::discr, tag::residual >() = 1.0e-8;
       get< tag::discr, tag::rescomp >() = 1;
-      get< tag::discr, tag::scheme >() = SchemeType::DiagCG;
-      get< tag::discr, tag::ndof >() = 1;
-      // Default field output file type
-      get< tag::selected, tag::filetype >() = tk::ctr::FieldFileType::EXODUSII;
       // Default AMR settings
       get< tag::amr, tag::amr >() = false;
       get< tag::amr, tag::t0ref >() = false;
@@ -303,13 +254,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
       get< tag::amr, tag::yplus >() = -rmax;
       get< tag::amr, tag::zminus >() = rmax;
       get< tag::amr, tag::zplus >() = -rmax;
-      // Default ALE settings
-      get< tag::ale, tag::ale >() = false;
-      get< tag::ale, tag::smoother >() = MeshVelocitySmootherType::NONE;
-      get< tag::ale, tag::dvcfl >() = 0.0;
-      get< tag::ale, tag::vortmult >() = 0.0;
-      get< tag::ale, tag::maxit >() = 5;
-      get< tag::ale, tag::tolerance >() = 1.0e-2;
       // Default txt floating-point output precision in digits
       get< tag::prec, tag::diag >() = std::cout.precision();
       get< tag::prec, tag::history >() = std::cout.precision();
@@ -352,45 +296,19 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
       return ids;
     }
 
-    //! Extract field output variable names the user wants to save
-    //! \return Unique set of field output variable names user wants
-    //! \note This returns an ordered set so the order of the variable names
-    //!   are alphabetical and unique.
-    std::set< OutVar > outvars() const {
-      std::set< OutVar > vars;
-      for (const auto& v : get< tag::cmd, tag::io, tag::outvar >()) {
-        vars.insert( v );
-      }
-      return vars;
-    }
-
-    //! Extract field output variable names and aliases the user configured
-    //! \return Map of field output variable names and alias for all
-    //!    output variables the user configured
-    std::map< std::string, std::string > outvar_aliases() const {
-      std::map< std::string, std::string > aliases;
-      for (const auto& v : get< tag::cmd, tag::io, tag::outvar >())
-         if (!v.alias.empty()) {
-           std::stringstream s;
-           s << v;
-           aliases[ s.str() ] = v.alias;
-         }
-      return aliases;
-    }
-
     //! Extract list of mesh filenames (each assigned to a solver)
     std::vector< std::string > mesh() const {
-      using PDETypes = parameters::Keys;
+      //using PDETypes = parameters::Keys;
       std::vector< std::string > meshes;
-      brigand::for_each< PDETypes >( Meshes( *this, meshes ) );
+      //brigand::for_each< PDETypes >( Meshes( *this, meshes ) );
       return meshes;
     }
 
     //! Extract list of dependent variables (each configuring a solver)
     std::vector< char > depvar() const {
-      using PDETypes = parameters::Keys;
+      //using PDETypes = parameters::Keys;
       std::vector< char > depvar;
-      brigand::for_each< PDETypes >( Depvar( *this, depvar ) );
+      //brigand::for_each< PDETypes >( Depvar( *this, depvar ) );
       return depvar;
     }
 

@@ -14,7 +14,6 @@
 
 module refiner {
 
-  include "Scheme.hpp";
   include "AMR/AMR_types.hpp";
 
   extern module sorter;
@@ -27,7 +26,8 @@ module refiner {
                      const CProxy_Transporter& transporter,
                      const CProxy_Sorter& sorter,
                      const tk::CProxy_MeshWriter& meshwriter,
-                     const std::vector< Scheme >& scheme,
+                     const CProxy_Discretization& discretization,
+                     const CProxy_AirCG& aircg,
                      const tk::RefinerCallback& cbr,
                      const tk::SorterCallback& cbs,
                      const std::vector< std::size_t >& ginpoel,

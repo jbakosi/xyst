@@ -119,67 +119,6 @@ namespace grm {
   };
 
   //! Rule used to trigger action
-  template< class eq > struct check_transport : pegtl::success {};
-  //! \brief Set defaults and do error checking on the transport equation block
-  //! \details This is error checking that only the transport equation block
-  //!   must satisfy. Besides error checking we also set defaults here as
-  //!   this block is called when parsing of a transport...end block has
-  //!   just finished.
-  template< class eq >
-  struct action< check_transport< eq > > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      using inciter::deck::neq;
-      using tag::param;
-
-      // Error out if no dependent variable has been selected
-      auto& depvar = stack.template get< param, eq, tag::depvar >();
-      if (depvar.empty() || depvar.size() != neq.get< eq >())
-        Message< Stack, ERROR, MsgKey::NODEPVAR >( stack, in );
-
-      // If no number of components has been selected, default to 1
-      auto& ncomp = stack.template get< tag::component, eq >();
-      if (ncomp.empty() || ncomp.size() != neq.get< eq >())
-        ncomp.push_back( 1 );
-
-      // If physics type is not given, default to 'advection'
-      auto& physics = stack.template get< param, eq, tag::physics >();
-      if (physics.empty() || physics.size() != neq.get< eq >())
-        physics.push_back( inciter::ctr::PhysicsType::ADVECTION );
-
-      // If physics type is advection-diffusion, check for correct number of
-      // advection velocity, shear, and diffusion coefficients
-      if (physics.back() == inciter::ctr::PhysicsType::ADVDIFF) {
-        auto& u0 = stack.template get< param, eq, tag::u0 >();
-        if (not u0.empty() && u0.back().size() != ncomp.back()) {
-          Message< Stack, ERROR, MsgKey::WRONGSIZE >( stack, in );
-        }
-        auto& diff = stack.template get< param, eq, tag::diffusivity >();
-        if (not diff.empty() && diff.back().empty()) {
-          Message< Stack, ERROR, MsgKey::WRONGSIZE >( stack, in );
-        }
-        auto& lambda = stack.template get< param, eq, tag::lambda >();
-        if (not lambda.empty() && lambda.back().size() != 2*ncomp.back()) {
-          Message< Stack, ERROR, MsgKey::WRONGSIZE >( stack, in );
-        }
-        auto& source = stack.template get< param, eq, tag::source >();
-        if (not source.empty() && source.back().size() % 5 != 0) {
-          Message< Stack, ERROR, MsgKey::WRONGSIZE >( stack, in );
-        }
-      }
-      // If problem type is not given, error out
-      auto& problem = stack.template get< param, eq, tag::problem >();
-      if (problem.empty() || problem.size() != neq.get< eq >())
-        Message< Stack, ERROR, MsgKey::NOPROBLEM >( stack, in );
-      // Error check Dirichlet boundary condition block for all transport eq
-      // configurations
-      const auto& bc = stack.template get< param, eq, tag::bc, tag::bcdir >();
-      for (const auto& s : bc)
-        if (s.empty()) Message< Stack, ERROR, MsgKey::BC_EMPTY >( stack, in );
-    }
-  };
-
-  //! Rule used to trigger action
   template< class eq > struct check_compflow : pegtl::success {};
   //! \brief Set defaults and do error checking on the compressible flow
   //!   equation block
@@ -199,83 +138,13 @@ namespace grm {
       if (depvar.empty() || depvar.size() != neq.get< eq >())
         Message< Stack, ERROR, MsgKey::NODEPVAR >( stack, in );
 
-      // If physics type is not given, default to 'euler'
-      auto& physics = stack.template get< param, eq, tag::physics >();
-      if (physics.empty() || physics.size() != neq.get< eq >()) {
-        physics.push_back( inciter::ctr::PhysicsType::EULER );
-      }
-
       // Set number of components to 5 (mass, 3 x mom, energy)
       stack.template get< tag::component, eq >().push_back( 5 );
-
-      // Set default to sysfct (on/off) if not specified
-      auto& sysfct = stack.template get< param, eq, tag::sysfct >();
-      if (sysfct.empty() || sysfct.size() != neq.get< eq >())
-        sysfct.push_back( 1 );
-
-      // Verify that sysfctvar variables are within bounds (if specified) and
-      // defaults if not
-      auto& sysfctvar = stack.template get< param, eq, tag::sysfctvar >();
-      // If sysfctvar is not specified, use all variables for system FCT
-      if (sysfctvar.empty() || sysfctvar.back().empty()) {
-        sysfctvar.push_back( {0,1,2,3,4} );
-      } else {  // if specified, do error checking on variables
-        auto& vars = sysfctvar.back();
-        if (vars.size() > 5) {
-          Message< Stack, ERROR, MsgKey::SYSFCTVAR >( stack, in );
-        }
-        for (const auto& i : vars) {
-          if (i > 4) Message< Stack, ERROR, MsgKey::SYSFCTVAR >( stack, in );
-        }
-      }
 
       // If problem type is not given, default to 'user_defined'
       auto& problem = stack.template get< param, eq, tag::problem >();
       if (problem.empty() || problem.size() != neq.get< eq >())
         problem.push_back( inciter::ctr::ProblemType::USER_DEFINED );
-      else if (problem.back() == inciter::ctr::ProblemType::VORTICAL_FLOW) {
-        const auto& alpha = stack.template get< param, eq, tag::alpha >();
-        const auto& beta = stack.template get< param, eq, tag::beta >();
-        const auto& p0 = stack.template get< param, eq, tag::p0 >();
-        if ( alpha.size() != problem.size() ||
-             beta.size() != problem.size() ||
-             p0.size() != problem.size() )
-          Message< Stack, ERROR, MsgKey::VORTICAL_UNFINISHED >( stack, in );
-      }
-      else if (problem.back() == inciter::ctr::ProblemType::NL_ENERGY_GROWTH) {
-        const auto& alpha = stack.template get< param, eq, tag::alpha >();
-        const auto& betax = stack.template get< param, eq, tag::betax >();
-        const auto& betay = stack.template get< param, eq, tag::betay >();
-        const auto& betaz = stack.template get< param, eq, tag::betaz >();
-        const auto& kappa = stack.template get< param, eq, tag::kappa >();
-        const auto& r0 = stack.template get< param, eq, tag::r0 >();
-        const auto& ce = stack.template get< param, eq, tag::ce >();
-        if ( alpha.size() != problem.size() ||
-             betax.size() != problem.size() ||
-             betay.size() != problem.size() ||
-             betaz.size() != problem.size() ||
-             kappa.size() != problem.size() ||
-             r0.size() != problem.size() ||
-             ce.size() != problem.size() )
-          Message< Stack, ERROR, MsgKey::ENERGY_UNFINISHED >( stack, in);
-      }
-      else if (problem.back() == inciter::ctr::ProblemType::RAYLEIGH_TAYLOR) {
-        const auto& alpha = stack.template get< param, eq, tag::alpha >();
-        const auto& betax = stack.template get< param, eq, tag::betax >();
-        const auto& betay = stack.template get< param, eq, tag::betay >();
-        const auto& betaz = stack.template get< param, eq, tag::betaz >();
-        const auto& kappa = stack.template get< param, eq, tag::kappa >();
-        const auto& p0 = stack.template get< param, eq, tag::p0 >();
-        const auto& r0 = stack.template get< param, eq, tag::r0 >();
-        if ( alpha.size() != problem.size() ||
-             betax.size() != problem.size() ||
-             betay.size() != problem.size() ||
-             betaz.size() != problem.size() ||
-             kappa.size() != problem.size() ||
-             p0.size() != problem.size() ||
-             r0.size() != problem.size() )
-          Message< Stack, ERROR, MsgKey::RT_UNFINISHED >( stack, in);
-      }
 
       // Error check on user-defined problem type
       auto& ic = stack.template get< param, eq, tag::ic >();
@@ -371,6 +240,17 @@ namespace grm {
             Message< Stack, ERROR, MsgKey::INCOMPLETEUSERFN>( stack, in );
         }
       }
+
+      // If no number of components has been selected, default to 1
+      auto& ncomp = stack.template get< tag::component, eq >();
+      if (ncomp.empty() || ncomp.size() != neq.get< eq >())
+        ncomp.push_back( 1 );
+
+      // Error check Dirichlet boundary condition block for all transport eq
+      // configurations
+      const auto& bc = stack.template get< param, eq, tag::bc, tag::bcdir >();
+      for (const auto& s : bc)
+        if (s.empty()) Message< Stack, ERROR, MsgKey::BC_EMPTY >( stack, in );
     }
   };
 
@@ -529,61 +409,11 @@ namespace grm {
       if (nmesh > 0 && nmesh != depvars.size())
         Message< Stack, ERROR, MsgKey::MULTIMESH >( stack, in );
 
-      // Remove duplicate transfer steps
-      tk::unique( stack.template get< tag::couple, tag::transfer >() );
-
       // Now that the inciter ... end block is finished, assign mesh ids to
       // solvers configured
       std::size_t meshid = 0;
       brigand::for_each< PDETypes >( assign_meshid< Stack >( stack, meshid ) );
       Assert( meshid == nmesh, "Not all meshes configured have mesh ids" );
-    }
-  };
-
-  //! Rule used to trigger action
-  struct check_ale : pegtl::success {};
-  //! \brief Do error checking on the inciter block
-  template<> struct action< check_ale > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      using inciter::g_inputdeck_defaults;
-
-     // Trigger error if steady state + ALE are both enabled
-      auto steady = stack.template get< tag::discr, tag::steady_state >();
-      auto ale = stack.template get< tag::ale, tag::ale >();
-      if (steady && ale) {
-        Message< Stack, ERROR, MsgKey::STEADYALE >( stack, in );
-      }
-
-      // Set a sensible default for dvCFL if ALE is enabled and if dvcfl not set
-      auto& dvcfl = stack.template get< tag::ale, tag::dvcfl >();
-      auto dvcfl_default = g_inputdeck_defaults.get< tag::ale, tag::dvcfl >();
-      auto eps = std::numeric_limits< tk::real >::epsilon();
-      if (ale && std::abs(dvcfl - dvcfl_default) < eps) dvcfl = 0.01;
-
-      // Set a default of zeros for the mesh force ALE parameters
-      auto& meshforce = stack.template get< tag::ale, tag::meshforce >();
-      if (ale && meshforce.size() != 4) meshforce = { 0, 0, 0, 0 };
-
-      // Set a default for the ALE mesh motion dimensions
-      auto& mesh_motion = stack.template get< tag::ale, tag::mesh_motion >();
-      if (ale && mesh_motion.empty()) mesh_motion = { 0, 1, 2 };
-
-      // Error out if mesh motion dimensions are wrong
-      if (ale && (mesh_motion.size() > 3 ||
-                  std::any_of( begin(mesh_motion), end(mesh_motion),
-                     [](auto d){return d > 2;} )) )
-      {
-        Message< Stack, ERROR, MsgKey::WRONGMESHMOTION >( stack, in );
-      }
-
-      // Error checking on user-defined function for ALE's moving sides
-      const auto& move = stack.template get< tag::ale, tag::move >();
-      for (const auto& s : move) {
-        const auto& f = s.template get< tag::fn >();
-        if (f.empty() or f.size() % 4 != 0)
-          Message< Stack, ERROR, MsgKey::INCOMPLETEUSERFN>( stack, in );
-      }
     }
   };
 
@@ -707,174 +537,6 @@ namespace grm {
     }
   };
 
-  //! Rule used to trigger action
-  struct push_depvar : pegtl::success {};
-  //! Add matched outvar based on depvar into vector of outvars
-  //! \details Push outvar based on depvar: use first char of matched token as
-  //! OutVar::var, OutVar::name = "" by default. OutVar::name being empty will
-  //! be used to differentiate a depvar-based outvar from a human-readable
-  //! outvar. Depvar-based outvars can directly access solution arrays using
-  //! their field. Human-readable outvars need a mechanism (a function) to read
-  //! and compute their variables from solution arrays. The 'getvar' function,
-  //! used to compute a physics variable from the numerical solution is assigned
-  //! after initial migration and thus not assigned here (during parsing).
-  template<>
-  struct action< push_depvar > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      using inciter::ctr::OutVar;
-      auto& vars = stack.template get< tag::cmd, tag::io, tag::outvar >();
-      vars.emplace_back( OutVar( in.string()[0], field ) );
-      field = 0;        // reset field
-    }
-  };
-
-  //! Function object for adding a human-readable output variable
-  //! \details Since human-readable outvars do not necessarily have any
-  //! reference to the depvar of their system they refer to, nor which system
-  //! they refer to, we configure them for all of the systems they are preceded
-  //! by. If there is only a single system of the type the outvar is configured,
-  //! we simply look up the depvar and use that as OutVar::var. If there are
-  //! multiple systems configured upstream to which the outvar could refer to,
-  //! we configure an outvar for all systems configured, and postfix the
-  //! human-readable OutVar::name with '_' + depvar. Hence this function object
-  //! so the code below can be invoked for all equation types.
-  template< typename Stack >
-  struct AddOutVarHuman {
-    Stack& stack;
-    const std::string& in_string;
-    explicit AddOutVarHuman( Stack& s, const std::string& ins )
-      : stack(s), in_string(ins) {}
-    template< typename Eq > void operator()( brigand::type_<Eq> ) {
-      using inciter::ctr::OutVar;
-      const auto& depvar = stack.template get< tag::param, Eq, tag::depvar >();
-      auto& vars = stack.template get< tag::cmd, tag::io, tag::outvar >();
-      if (depvar.size() == 1)
-        vars.emplace_back( OutVar( depvar[0], 0, in_string ) );
-      else
-        for (auto d : depvar)
-          vars.emplace_back( OutVar( d, 0, in_string + '_' + d ) );
-    }
-  };
-
-  //! Rule used to trigger action
-  struct push_humanvar : pegtl::success {};
-  //! Add matched outvar based on depvar into vector of vector of outvars
-  //! \details Push outvar based on human readable string for which
-  //! OutVar::name = matched token. OutVar::name being not empty will be used to
-  //! differentiate a depvar-based outvar from a human-readable outvar.
-  //! Depvar-based outvars can directly access solution arrays using their
-  //! field. Human-readable outvars need a mechanism (a function) to read and
-  //! compute their variables from solution arrays. The 'getvar' function, used
-  //! to compute a physics variable from the numerical solution is assigned
-  //! after initial migration and thus not assigned here (during parsing).
-  template<>
-  struct action< push_humanvar > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      brigand::for_each< inciter::ctr::parameters::Keys >
-                       ( AddOutVarHuman< Stack >( stack, in.string() ) );
-    }
-  };
-
-  //! Rule used to trigger action
-  struct set_outvar_alias : pegtl::success {};
-  //! Set alias of last pushed output variable
-  template<>
-  struct action< set_outvar_alias > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      // Set alias of last pushed outvar:
-      auto& vars = stack.template get< tag::cmd, tag::io, tag::outvar >();
-      if (!vars.empty()) vars.back().alias = in.string();
-    }
-  };
-
-  //! Function object for error checking outvar bounds for each equation type
-  template< typename Stack >
-  struct OutVarBounds {
-    const Stack& stack;
-    bool& inbounds;
-    explicit OutVarBounds( const Stack& s, bool& i )
-      : stack(s), inbounds(i) { inbounds = false; }
-    template< typename U > void operator()( brigand::type_<U> ) {
-      const auto& depvar = stack.template get< tag::param, U, tag::depvar >();
-      const auto& ncomp = stack.template get< tag::component, U >();
-      Assert( depvar.size() == ncomp.size(), "Size mismatch" );
-      // called after matching each outvar, so only check the last one
-      auto& vars = stack.template get< tag::cmd, tag::io, tag::outvar >();
-      const auto& last_outvar = vars.back();
-      const auto& v = static_cast<char>( std::tolower(last_outvar.var) );
-      for (std::size_t e=0; e<depvar.size(); ++e)
-        if (v == depvar[e] && last_outvar.field < ncomp[e]) inbounds = true;
-    }
-  };
-
-  //! Rule used to trigger action
-  struct check_outvar : pegtl::success {};
-  //! Bounds checking for output variables at the end of a var ... end block
-  template<>
-  struct action< check_outvar > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      bool inbounds;
-      brigand::for_each< inciter::ctr::parameters::Keys >
-                       ( OutVarBounds< Stack >( stack, inbounds ) );
-      if (!inbounds)
-        Message< Stack, ERROR, MsgKey::NOSUCHCOMPONENT >( stack, in );
-    }
-  };
-
-  //! Rule used to trigger action
-  struct match_outvar : pegtl::success {};
-  //! Match output variable based on depvar
-  template<>
-  struct action< match_outvar > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      // convert matched string to char
-      auto var = stack.template convert< char >( in.string() );
-      // find matched variable in set of selected ones
-      if (depvars.find(var) != end(depvars))
-        action< push_depvar >::apply( in, stack );
-      else  // error out if matched var is not selected
-        Message< Stack, ERROR, MsgKey::NOSUCHOUTVAR >( stack, in );
-    }
-  };
-
-  // Store mesh/solver id as a source of a transfer
-  template< typename Stack > struct store_transfer_src {
-    store_transfer_src( Stack& stack, std::size_t i ) {
-      stack.template get< tag::couple, tag::transfer >().emplace_back( i, 0 );
-    }
-  };
-
-  // Store mesh/solver id as a destination of a transfer
-  template< typename Stack > struct store_transfer_dst {
-    store_transfer_dst( Stack& stack, std::size_t i ) {
-      stack.template get< tag::couple, tag::transfer >().back().dst = i;
-    }
-  };
-
-  //! Rule used to trigger action
-  template< template< class > class StoreTransfer >
-  struct push_transfer : pegtl::success {};
-  //! Add matched value as a source or destination of solution transfer
-  //! \tparam StoreTransfer Type of action to invoke: source or destination
-  template< template< class > class StoreTransfer >
-  struct action< push_transfer< StoreTransfer > > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      // Extract dependent variables for solvers configured
-      auto depvar = stack.depvar();
-      // Store index of parsed depvar of transfer being configured
-      auto c = in.string()[0];
-      for (std::size_t i=0; i<depvar.size(); ++i)
-        if (depvar[i] == c)
-          StoreTransfer< Stack >( stack, i );
-    }
-  };
-
 } // ::grm
 } // ::tk
 
@@ -886,15 +548,6 @@ namespace deck {
   using namespace tao;
 
   // Inciter's InputDeck grammar
-
-  //! scan and store_back equation keyword and option
-  template< typename keyword, class eq >
-  struct scan_eq :
-         tk::grm::scan< typename keyword::pegtl_string,
-                        tk::grm::store_back_option< use,
-                                                    ctr::PDE,
-                                                    tag::selected,
-                                                    tag::pde > > {};
 
   //! Error checks after an equation...end block has been parsed
   template< class eq, template< class > class eqchecker >
@@ -917,16 +570,6 @@ namespace deck {
            tk::grm::discrparam< use, kw::cfl, tag::cfl >,
            tk::grm::discrparam< use, kw::residual, tag::residual >,
            tk::grm::discrparam< use, kw::rescomp, tag::rescomp >,
-           tk::grm::process< use< kw::fcteps >,
-                             tk::grm::Store< tag::discr, tag::fcteps > >,
-           tk::grm::process< use< kw::fctclip >,
-                             tk::grm::Store< tag::discr, tag::fctclip >,
-                             pegtl::alpha >,
-           tk::grm::process< use< kw::fct >,
-                             tk::grm::Store< tag::discr, tag::fct >,
-                             pegtl::alpha >,
-           tk::grm::process< use< kw::ctau >,
-                             tk::grm::Store< tag::discr, tag::ctau > >,
            tk::grm::process< use< kw::pelocal_reorder >,
                              tk::grm::Store< tag::discr, tag::pelocal_reorder >,
                              pegtl::alpha >,
@@ -937,12 +580,7 @@ namespace deck {
                              tk::grm::Store< tag::discr, tag::steady_state >,
                              pegtl::alpha >,
            tk::grm::interval_iter< use< kw::ttyi >,
-                                   tag::output, tag::iter, tag::tty >,
-           tk::grm::process_alpha< use< kw::scheme >,
-                                   tk::grm::store_inciter_option<
-                                     inciter::ctr::Scheme,
-                                     tag::discr,
-                                     tag::scheme > >
+                                   tag::output, tag::iter, tag::tty >
          > {};
 
   //! PDE parameter vector
@@ -1233,21 +871,37 @@ namespace deck {
                pegtl::alpha >
            > > {};
 
-  //! transport equation for scalars
-  struct transport :
+  //! flow + transport
+  struct compflow :
          pegtl::if_must<
-           scan_eq< use< kw::transport >, tag::transport >,
+           tk::grm::readkw< use< kw::compflow >::pegtl_string >,
+           tk::grm::start_vector< tag::param, tag::compflow, tag::ic, tag::box >,
+           tk::grm::start_vector< tag::param, tag::compflow, tag::bctimedep >,
            tk::grm::block< use< kw::end >,
-                           tk::grm::policy< use,
-                                            use< kw::physics >,
-                                            ctr::Physics,
-                                            tag::transport,
-                                            tag::physics >,
-                           tk::grm::policy< use,
-                                            use< kw::problem >,
-                                            ctr::Problem,
-                                            tag::transport,
-                                            tag::problem >,
+                           tk::grm::depvar< use,
+                                            tag::compflow,
+                                            tag::depvar >,
+                           mesh< tag::compflow >,
+                           ic< tag::compflow >,
+                           material_properties< tag::compflow >,
+                           parameter< tag::compflow, kw::pde_alpha,
+                                      tag::alpha >,
+                           parameter< tag::compflow, kw::pde_p0,
+                                      tag::p0 >,
+                           parameter< tag::compflow, kw::pde_betax,
+                                      tag::betax >,
+                           parameter< tag::compflow, kw::pde_betay,
+                                      tag::betay >,
+                           parameter< tag::compflow, kw::pde_betaz,
+                                      tag::betaz >,
+                           parameter< tag::compflow, kw::pde_beta,
+                                      tag::beta >,
+                           parameter< tag::compflow, kw::pde_r0,
+                                      tag::r0 >,
+                           parameter< tag::compflow, kw::pde_ce,
+                                      tag::ce >,
+                           parameter< tag::compflow, kw::pde_kappa,
+                                      tag::kappa >,
                            tk::grm::depvar< use,
                                             tag::transport,
                                             tag::depvar >,
@@ -1269,57 +923,7 @@ namespace deck {
                            bc< kw::bc_dirichlet, tag::transport, tag::bcdir >,
                            bc< kw::bc_sym, tag::transport, tag::bcsym >,
                            bc< kw::bc_inlet, tag::transport, tag::bcinlet >,
-                           bc< kw::bc_outlet, tag::transport, tag::bcoutlet >
-           >,
-         check_errors< tag::transport, tk::grm::check_transport > > {};
-
-  //! compressible flow
-  struct compflow :
-         pegtl::if_must<
-           scan_eq< use< kw::compflow >, tag::compflow >,
-           tk::grm::start_vector< tag::param, tag::compflow, tag::ic, tag::box >,
-           tk::grm::start_vector< tag::param, tag::compflow, tag::bctimedep >,
-           tk::grm::block< use< kw::end >,
-                           tk::grm::policy< use,
-                                            use< kw::physics >,
-                                            ctr::Physics,
-                                            tag::compflow,
-                                            tag::physics >,
-                           tk::grm::policy< use,
-                                            use< kw::problem >,
-                                            ctr::Problem,
-                                            tag::compflow,
-                                            tag::problem >,
-                           tk::grm::depvar< use,
-                                            tag::compflow,
-                                            tag::depvar >,
-                           mesh< tag::compflow >,
-                           ic< tag::compflow >,
-                           material_properties< tag::compflow >,
-                           pde_parameter_vector< kw::sysfctvar,
-                                                 tag::compflow,
-                                                 tag::sysfctvar >,
-                           parameter_bool< tag::compflow,
-                                           kw::sysfct,
-                                           tag::sysfct >,
-                           parameter< tag::compflow, kw::pde_alpha,
-                                      tag::alpha >,
-                           parameter< tag::compflow, kw::pde_p0,
-                                      tag::p0 >,
-                           parameter< tag::compflow, kw::pde_betax,
-                                      tag::betax >,
-                           parameter< tag::compflow, kw::pde_betay,
-                                      tag::betay >,
-                           parameter< tag::compflow, kw::pde_betaz,
-                                      tag::betaz >,
-                           parameter< tag::compflow, kw::pde_beta,
-                                      tag::beta >,
-                           parameter< tag::compflow, kw::pde_r0,
-                                      tag::r0 >,
-                           parameter< tag::compflow, kw::pde_ce,
-                                      tag::ce >,
-                           parameter< tag::compflow, kw::pde_kappa,
-                                      tag::kappa >,
+                           bc< kw::bc_outlet, tag::transport, tag::bcoutlet >,
                            bc< kw::bc_dirichlet, tag::compflow, tag::bcdir >,
                            bc< kw::bc_sym, tag::compflow, tag::bcsym >,
                            bc_spec< tag::compflow, tag::stag, kw::bc_stag >,
@@ -1344,13 +948,8 @@ namespace deck {
                              use< kw::algorithm >,
                              tk::grm::store_inciter_option<
                                tk::ctr::PartitioningAlgorithm,
-                               tag::selected,
-                               tag::partitioner >,
+                               tag::discr, tag::partitioner >,
                              pegtl::alpha > > > {};
-
-  //! equation types
-  struct equations :
-         pegtl::sor< transport, compflow > {};
 
   //! refinement variable(s) (refvar) ... end block
   struct refvars :
@@ -1414,146 +1013,12 @@ namespace deck {
                          >,
            tk::grm::check_amr_errors > {};
 
-
-  //! Arbitrary-Lagrangian-Eulerian (ALE) move...end block
-  struct moving_sides :
-         pegtl::if_must<
-           tk::grm::readkw< use< kw::move >::pegtl_string >,
-           tk::grm::start_vector< tag::ale, tag::move >,
-           tk::grm::block< use< kw::end >,
-             tk::grm::process<
-                use< kw::fntype >,
-                tk::grm::back_store_option< tag::fntype,
-                                            use,
-                                            tk::ctr::UserTable,
-                                            tag::ale, tag::move >,
-                pegtl::alpha >,
-             user_fn< tag::fn, tk::grm::Back_store_back, tag::ale, tag::move >,
-             pegtl::if_must< tk::grm::vector< use< kw::sideset >,
-               tk::grm::Back_store_back< tag::sideset, tag::ale, tag::move >,
-               use< kw::end > > > > > {};
-
-  //! Arbitrary-Lagrangian-Eulerian (ALE) ale...end block
-  struct ale :
-         pegtl::if_must<
-           tk::grm::readkw< use< kw::ale >::pegtl_string >,
-           // enable ALE if ale ...end block encountered
-           tk::grm::enable< tag::ale >,
-           tk::grm::block< use< kw::end >,
-              tk::grm::control< use< kw::dvcfl >,
-                                pegtl::digit,
-                                tk::grm::Store,
-                                tag::ale, tag::dvcfl >,
-              tk::grm::control< use< kw::vortmult >,
-                                pegtl::digit,
-                                tk::grm::Store,
-                                tag::ale, tag::vortmult >,
-              tk::grm::control< use< kw::meshvel_maxit >,
-                                pegtl::digit,
-                                tk::grm::Store,
-                                tag::ale, tag::maxit >,
-              tk::grm::control< use< kw::meshvel_tolerance >,
-                                pegtl::digit,
-                                tk::grm::Store,
-                                tag::ale, tag::tolerance >,
-              moving_sides,
-              tk::grm::process<
-                use< kw::meshvelocity >,
-                tk::grm::store_inciter_option< ctr::MeshVelocity,
-                                               tag::ale, tag::meshvelocity >,
-                pegtl::alpha >,
-              tk::grm::process<
-                use< kw::smoother >,
-                tk::grm::store_inciter_option< ctr::MeshVelocitySmoother,
-                                               tag::ale, tag::smoother >,
-                pegtl::alpha >,
-              pegtl::if_must< tk::grm::dimensions< use< kw::mesh_motion >,
-                              tk::grm::Store_back< tag::ale, tag::mesh_motion >,
-                              use< kw::end > > >,
-              pegtl::if_must< tk::grm::vector< use< kw::meshforce >,
-                              tk::grm::Store_back< tag::ale, tag::meshforce >,
-                              use< kw::end > > >,
-              pegtl::if_must<
-                tk::grm::readkw< use< kw::bc_dirichlet >::pegtl_string >,
-                tk::grm::block< use< kw::end >,
-                  pegtl::if_must< tk::grm::vector< use< kw::sideset >,
-                                  tk::grm::Store_back< tag::ale, tag::bcdir >,
-                                  use< kw::end > > > > >,
-              pegtl::if_must<
-                tk::grm::readkw< use< kw::bc_sym >::pegtl_string >,
-                tk::grm::block< use< kw::end >,
-                  pegtl::if_must< tk::grm::vector< use< kw::sideset >,
-                                  tk::grm::Store_back< tag::ale, tag::bcsym >,
-                                  use< kw::end > > > > > >,
-              tk::grm::check_ale > {};
-
-  //! \brief Match a depvar, defined upstream of control file, coupling a
-  //!   solver and store
-  template< template< class > class action >
-  struct coupled_solver :
-         tk::grm::scan_until<
-            pegtl::lower,
-            tk::grm::match_depvar< tk::grm::push_transfer< action > > > {};
-
-  //! Couple ... end block (used to configure solver coupling)
-  struct couple :
-         pegtl::if_must<
-           tk::grm::readkw< use< kw::couple >::pegtl_string >,
-           tk::grm::block< use< kw::end >,
-             pegtl::seq<
-               coupled_solver< tk::grm::store_transfer_src >,
-               pegtl::one<'>'>,
-               coupled_solver< tk::grm::store_transfer_dst > > > > {};
-
-  //! Match output variable alias
-  struct outvar_alias :
-         tk::grm::quoted< tk::grm::set_outvar_alias > {};
-
-  //! Match an output variable in a human readable form: var must be a keyword
-  template< class var >
-  struct outvar_human :
-         tk::grm::exact_scan< use< var >, tk::grm::push_humanvar > {};
-
-  //! Match an output variable based on depvar defined upstream of input file
-  struct outvar_depvar :
-           tk::grm::scan< tk::grm::fieldvar< pegtl::upper >,
-             tk::grm::match_outvar, tk::grm::check_outvar > {};
-
-  //! outvar ... end block
-  struct outvar_block :
-         pegtl::if_must<
-           tk::grm::readkw< use< kw::outvar >::pegtl_string >,
-           tk::grm::block<
-             use< kw::end >
-           , outvar_depvar
-           , outvar_alias
-           , outvar_human< kw::outvar_density >
-           , outvar_human< kw::outvar_xmomentum >
-           , outvar_human< kw::outvar_ymomentum >
-           , outvar_human< kw::outvar_zmomentum >
-           , outvar_human< kw::outvar_specific_total_energy >
-           , outvar_human< kw::outvar_volumetric_total_energy >
-           , outvar_human< kw::outvar_xvelocity >
-           , outvar_human< kw::outvar_yvelocity >
-           , outvar_human< kw::outvar_zvelocity >
-           , outvar_human< kw::outvar_pressure >
-           , outvar_human< kw::outvar_material_indicator >
-           , outvar_human< kw::outvar_analytic >
-           > > {};
-
   //! field_output ... end block
   struct field_output :
          pegtl::if_must<
            tk::grm::readkw< use< kw::field_output >::pegtl_string >,
            tk::grm::block<
              use< kw::end >,
-             outvar_block,
-             tk::grm::process< use< kw::filetype >,
-                               tk::grm::store_inciter_option<
-                                 tk::ctr::FieldFile,
-                                 tag::selected,
-                                 tag::filetype >,
-                               pegtl::alpha >,
              tk::grm::interval_iter< use< kw::interval_iter >,
                                      tag::output, tag::iter, tag::field >,
              tk::grm::interval_time< use< kw::interval_time >,
@@ -1577,7 +1042,6 @@ namespace deck {
            tk::grm::readkw< use< kw::history_output >::pegtl_string >,
            tk::grm::block<
              use< kw::end >,
-             outvar_block,
              tk::grm::interval_iter< use< kw::interval_iter >,
                tag::output, tag::iter, tag::history >,
              tk::grm::interval_time< use< kw::interval_time >,
@@ -1611,11 +1075,9 @@ namespace deck {
              pegtl::seq< tk::grm::block<
                            use< kw::end >,
                            discretization,
-                           equations,
+                           compflow,
                            amr,
-                           ale,
                            partitioning,
-                           couple,
                            field_output,
                            history_output,
                            tk::grm::diagnostics<

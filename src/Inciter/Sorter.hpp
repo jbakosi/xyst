@@ -25,7 +25,6 @@
 #include "Callback.hpp"
 #include "UnsMesh.hpp"
 #include "UnsMesh.hpp"
-#include "Scheme.hpp"
 #include "CommMap.hpp"
 
 #include "NoWarning/transporter.decl.h"
@@ -65,7 +64,8 @@ class Sorter : public CBase_Sorter {
                      const CProxy_Transporter& transporter,
                      const tk::CProxy_MeshWriter& meshwriter,
                      const tk::SorterCallback& cbs,
-                     const std::vector< Scheme >& scheme,
+                     const CProxy_Discretization& discretization,
+                     const CProxy_AirCG& aircg,
                      CkCallback reorderRefiner,
                      const std::vector< std::size_t >& ginpoel,
                      const tk::UnsMesh::CoordMap& coordmap,
@@ -138,7 +138,8 @@ class Sorter : public CBase_Sorter {
       p | m_host;
       p | m_meshwriter;
       p | m_cbs;
-      p | m_scheme;
+      p | m_discretization;
+      p | m_aircg;
       p | m_reorderRefiner;
       p | m_ginpoel;
       p | m_coordmap;
@@ -178,8 +179,10 @@ class Sorter : public CBase_Sorter {
     tk::CProxy_MeshWriter m_meshwriter;
     //! Charm++ callbacks associated to compile-time tags for sorter
     tk::SorterCallback m_cbs;
-    //! Discretization schemes (one per mesh)
-    std::vector< Scheme > m_scheme;
+    //! Discretization base proxy
+    CProxy_Discretization m_discretization;
+    //! Discretization scheme proxy
+    CProxy_AirCG m_aircg;
     //! Callback to use to send reordered mesh to Refiner
     CkCallback m_reorderRefiner;
     //! Tetrtahedron element connectivity of our chunk of the mesh (global ids)

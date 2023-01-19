@@ -14,39 +14,27 @@
     parsing).
 */
 // *****************************************************************************
-#ifndef IncitierTypes_h
-#define IncitierTypes_h
+
+#pragma once
 
 #include "Tags.hpp"
+#include "TaggedTuple.hpp"
 #include "Base/Types.hpp"
-#include "Inciter/Options/PDE.hpp"
 #include "Inciter/Options/Problem.hpp"
-#include "Inciter/Options/Scheme.hpp"
 #include "Inciter/Options/Initiate.hpp"
 #include "Inciter/Options/AMRInitial.hpp"
 #include "Inciter/Options/AMRError.hpp"
-#include "Inciter/Options/MeshVelocity.hpp"
-#include "Inciter/Options/MeshVelocitySmoother.hpp"
 #include "Options/PartitioningAlgorithm.hpp"
 #include "Options/TxtFloatFormat.hpp"
 #include "Options/FieldFile.hpp"
 #include "Options/Error.hpp"
 #include "Options/UserTable.hpp"
 #include "PUPUtil.hpp"
-#include "OutVar.hpp"
-#include "Transfer.hpp"
 
 namespace inciter {
 namespace ctr {
 
 using namespace tao;
-
-//! Storage of selected options
-using selects = tk::TaggedTuple< brigand::list<
-    tag::pde,         std::vector< ctr::PDEType >        //!< Partial diff eqs
-  , tag::partitioner, tk::ctr::PartitioningAlgorithmType //!< Mesh partitioner
-  , tag::filetype,    tk::ctr::FieldFileType       //!< Field output file type
-> >;
 
 //! Adaptive-mesh refinement options
 using amr = tk::TaggedTuple< brigand::list<
@@ -96,34 +84,6 @@ using time_dependent_bc = tk::TaggedTuple< brigand::list<
   ,  tag::fn,      std::vector< tk::real >
 > >;
 
-//! ALE mesh motion options
-using ale = tk::TaggedTuple< brigand::list<
-  //! ALE on/off
-    tag::ale,           bool
-  //! Restrict mesh velocity dimensions (useful for d<3 dimensional problems)
-  , tag::mesh_motion,   std::vector< kw::mesh_motion::info::expect::type >
-  //! dvCFL (CFL mesh volume change) coefficient for ALE
-  , tag::dvcfl,         kw::dvcfl::info::expect::type
-  //!< Multiplier for vorticity in mesh velocity smoother
-  , tag::vortmult,      kw::vortmult::info::expect::type
-  //! Mesh velocity smoother linear solver max number of iterations
-  , tag::maxit,         kw::meshvel_maxit::info::expect::type
-  //! Mesh velocity smoother linear solver tolerance
-  , tag::tolerance,     kw::meshvel_tolerance::info::expect::type
-  //! Mesh velocity option
-  , tag::meshvelocity,  MeshVelocityType
-  //! Mesh velocity smoother option
-  , tag::smoother    ,  MeshVelocitySmootherType
-    //! Mesh velocity Dirichlet BC sidesets
-  , tag::bcdir,         std::vector< kw::sideset::info::expect::type >
-    //! Mesh velocity symmetry BC sidesets
-  , tag::bcsym,         std::vector< kw::sideset::info::expect::type >
-    //! Mesh force parameters
-  , tag::meshforce,     std::vector< kw::meshforce::info::expect::type >
-    //! List of side sets to move with a user-defined function
-  , tag::move,          std::vector< moving_sides >
-> >;
-
 //! Discretization parameters storage
 using discretization = tk::TaggedTuple< brigand::list<
     tag::nstep,  kw::nstep::info::expect::type  //!< Number of time steps
@@ -136,12 +96,7 @@ using discretization = tk::TaggedTuple< brigand::list<
   , tag::steady_state, bool                     //!< March to steady state
   , tag::residual, kw::residual::info::expect::type //!< Convergence residual
   , tag::rescomp, kw::rescomp::info::expect::type //!< Convergence residual comp
-  , tag::fct,    bool                           //!< FCT on/off
-  , tag::fctclip,bool                           //!< FCT clipping limiter on/off
-  , tag::fcteps, kw::fcteps::info::expect::type //!< FCT small number
-  , tag::ctau,   kw::ctau::info::expect::type   //!< FCT mass diffisivity
-  , tag::scheme, inciter::ctr::SchemeType       //!< Spatial discretization type
-  , tag::ndof,   std::size_t                    //!< Number of solution DOFs
+  , tag::partitioner, tk::ctr::PartitioningAlgorithmType //!< Mesh partitioner
 > >;
 
 //! ASCII output floating-point precision in digits
@@ -226,7 +181,6 @@ using ios = tk::TaggedTuple< brigand::list<
     //! Diagnostics filename
   , tag::diag,      kw::diagnostics_cmd::info::expect::type
   , tag::particles, std::string                     //!< Particles filename
-  , tag::outvar,    std::vector< OutVar >           //!< Output variables
   , tag::restart,   kw::restart::info::expect::type //!< Restart dirname
 > >;
 
@@ -292,11 +246,6 @@ using bc = tk::TaggedTuple< brigand::list<
                               kw::sideset::info::expect::type > >
 > >;
 
-//! Solver coupling
-using couple = tk::TaggedTuple< brigand::list<
-    tag::transfer,  std::vector< Transfer >     //!< List of mesh transfers
-> >;
-
 //! Mesh assignment and configuration
 using mesh = tk::TaggedTuple< brigand::list<
     tag::id,          std::vector< std::size_t >
@@ -338,7 +287,6 @@ using SpongeParameters = tk::TaggedTuple< brigand::list<
 using TransportPDEParameters = tk::TaggedTuple< brigand::list<
     tag::depvar,        std::vector< char >
   , tag::mesh,          mesh
-  , tag::physics,       std::vector< PhysicsType >
   , tag::problem,       std::vector< ProblemType >
   , tag::diffusivity,   std::vector< std::vector<
                           kw::pde_diffusivity::info::expect::type > >
@@ -357,7 +305,6 @@ using TransportPDEParameters = tk::TaggedTuple< brigand::list<
 using CompFlowPDEParameters = tk::TaggedTuple< brigand::list<
     tag::depvar,        std::vector< char >
   , tag::mesh,          mesh
-  , tag::physics,       std::vector< PhysicsType >
   , tag::problem,       std::vector< ProblemType >
   , tag::farfield_pressure, std::vector< kw::pressure::info::expect::type >
   , tag::farfield_density,  std::vector< kw::density::info::expect::type >
@@ -371,11 +318,6 @@ using CompFlowPDEParameters = tk::TaggedTuple< brigand::list<
   , tag::stag,          StagnationParameters
   //! Skip boundary condition configuration storage
   , tag::skip,          SkipParameters
-  //! System FCT character
-  , tag::sysfct,        std::vector< int >
-  //! Indices of system-FCT scalar components considered as a system
-  , tag::sysfctvar,     std::vector<
-                          std::vector< kw::sysfctvar::info::expect::type > >
     //! Parameter vector (for specific, e.g., verification problems)
   , tag::alpha,         std::vector< kw::pde_alpha::info::expect::type >
     //! Parameter vector (for specific, e.g., verification problems)
@@ -419,5 +361,3 @@ using Location = pegtl::position;
 
 } // ctr::
 } // inciter::
-
-#endif // IncitierTypes_h

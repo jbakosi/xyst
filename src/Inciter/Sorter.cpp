@@ -31,7 +31,8 @@ Sorter::Sorter( std::size_t meshid,
                 const CProxy_Transporter& transporter,
                 const tk::CProxy_MeshWriter& meshwriter,
                 const tk::SorterCallback& cbs,
-                const std::vector< Scheme >& scheme,
+                const CProxy_Discretization& discretization,
+                const CProxy_AirCG& aircg,
                 CkCallback reorderRefiner,
                 const std::vector< std::size_t >& ginpoel,
                 const tk::UnsMesh::CoordMap& coordmap,
@@ -44,7 +45,8 @@ Sorter::Sorter( std::size_t meshid,
   m_host( transporter ),
   m_meshwriter( meshwriter ),
   m_cbs( cbs ),
-  m_scheme( scheme ),
+  m_discretization( discretization ),
+  m_aircg( aircg ),
   m_reorderRefiner( reorderRefiner ),
   m_ginpoel( ginpoel ),
   m_coordmap( coordmap ),
@@ -74,7 +76,6 @@ Sorter::Sorter( std::size_t meshid,
 //! \param[in] transporter Transporter (host) Charm++ proxy
 //! \param[in] meshwriter Mesh writer Charm++ proxy
 //! \param[in] cbs Charm++ callbacks for Sorter
-//! \param[in] scheme Discretization schemes (one per mesh)
 //! \param[in] reorderRefiner Callback to use to send reordered mesh to Refiner
 //! \param[in] ginpoel Mesh connectivity (this chare) using global node IDs
 //! \param[in] coordmap Mesh node coordinates (this chare) for global node IDs
@@ -122,8 +123,6 @@ Sorter::setup( std::size_t npoin )
   std::array< std::size_t, 2 > chunksize{{
      npoin / N, std::numeric_limits< std::size_t >::max() / N }};
 
-  const auto scheme = g_inputdeck.get< tag::discr, tag::scheme >();
-
   // Find chare-boundary nodes and edges of our mesh chunk. This algorithm
   // collects the global mesh node ids and edges on the chare boundary. A node
   // is on a chare boundary if it belongs to a face of a tetrahedron that has
@@ -151,10 +150,8 @@ Sorter::setup( std::size_t npoin )
           Assert( bin < N, "Will index out of number of chares" );
           auto& b = chbnd[ static_cast< int >( bin ) ];
           b.get< tag::node >().insert( g );
-          if (scheme == ctr::SchemeType::ALECG) {
-            auto h = m_ginpoel[ mark + tk::lpofa[ f ][ tk::lpoet[n][1] ] ];
-            b.get< tag::edge >().insert( { std::min(g,h), std::max(g,h) } );
-          }
+          auto h = m_ginpoel[ mark + tk::lpofa[ f ][ tk::lpoet[n][1] ] ];
+          b.get< tag::edge >().insert( { std::min(g,h), std::max(g,h) } );
         }
   }
 
@@ -563,16 +560,10 @@ Sorter::createDiscWorkers()
 //!   operate on.
 // *****************************************************************************
 {
-  std::vector< CProxy_Discretization > disc;
-  for (auto& d : m_scheme) disc.push_back( d.disc() );
-
   // Create worker array element using Charm++ dynamic chare array element
-  // insertion: last arg: PE chare is created on. See also Charm++ manual, Sec.
-  // "Dynamic Insertion".
+  // insertion.
 
-  m_scheme[m_meshid].disc()[ thisIndex ].insert( m_meshid, disc,
-    m_scheme[m_meshid].fct(), m_scheme[m_meshid].ale(),
-    m_scheme[m_meshid].conjugategradients(), m_host,
+  m_discretization[ thisIndex ].insert( m_meshid, m_host,
     m_meshwriter, m_coordmap, m_el, m_msum, m_nchare );
 
   contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
@@ -586,15 +577,13 @@ Sorter::createWorkers()
 // *****************************************************************************
 {
   // Make sure (bound) base is already created and accessible
-  Assert( m_scheme[m_meshid].disc()[thisIndex].ckLocal() != nullptr,
+  Assert( m_discretization[ thisIndex ].ckLocal() != nullptr,
           "About to pass nullptr" );
 
   // Create worker array element using Charm++ dynamic chare array element
-  // insertion: 1st arg: chare id, other args: Discretization's child ctor args.
-  // See also Charm++ manual, Sec. "Dynamic Insertion".
+  // insertion.
 
-  m_scheme[m_meshid].insert( thisIndex, m_scheme[m_meshid].disc(), m_bface,
-                             m_bnode, m_triinpoel );
+  m_aircg[ thisIndex ].insert( m_discretization, m_bface, m_bnode, m_triinpoel );
 
   if ( g_inputdeck.get< tag::cmd, tag::feedback >() ) m_host.chcreated();
 

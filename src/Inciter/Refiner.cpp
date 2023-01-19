@@ -19,19 +19,18 @@
 #include "AMR/mesh_adapter.hpp"
 #include "AMR/Error.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
-#include "CGPDE.hpp"
 #include "DerivedData.hpp"
 #include "UnsMesh.hpp"
 #include "Centering.hpp"
 #include "Around.hpp"
 #include "Sorter.hpp"
 #include "Discretization.hpp"
+#include "Operators.hpp"
 
 namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
 extern ctr::InputDeck g_inputdeck_defaults;
-extern std::vector< CGPDE > g_cgpde;
 
 } // inciter::
 
@@ -41,7 +40,8 @@ Refiner::Refiner( std::size_t meshid,
                   const CProxy_Transporter& transporter,
                   const CProxy_Sorter& sorter,
                   const tk::CProxy_MeshWriter& meshwriter,
-                  const std::vector< Scheme >& scheme,
+                  const CProxy_Discretization& discretization,
+                  const CProxy_AirCG& aircg,
                   const tk::RefinerCallback& cbr,
                   const tk::SorterCallback& cbs,
                   const std::vector< std::size_t >& ginpoel,
@@ -55,7 +55,8 @@ Refiner::Refiner( std::size_t meshid,
   m_host( transporter ),
   m_sorter( sorter ),
   m_meshwriter( meshwriter ),
-  m_scheme( scheme ),
+  m_disc( discretization ),
+  m_aircg( aircg ),
   m_cbr( cbr ),
   m_cbs( cbs ),
   m_ginpoel( ginpoel ),
@@ -107,7 +108,8 @@ Refiner::Refiner( std::size_t meshid,
 //! \param[in] transporter Transporter (host) proxy
 //! \param[in] sorter Mesh reordering (sorter) proxy
 //! \param[in] meshwriter Mesh writer proxy
-//! \param[in] scheme Discretization schemes (one per mesh)
+//! \param[in] discretization Discretization base proxy
+//! \param[in] aircg Discretization scheme proxy
 //! \param[in] cbr Charm++ callbacks for Refiner
 //! \param[in] cbs Charm++ callbacks for Sorter
 //! \param[in] ginpoel Mesh connectivity (this chare) using global node IDs
@@ -200,11 +202,11 @@ Refiner::sendProxy()
 // *****************************************************************************
 {
   // Make sure (bound) Discretization chare is already created and accessible
-  Assert( m_scheme[m_meshid].disc()[thisIndex].ckLocal() != nullptr,
+  Assert( m_disc[ thisIndex ].ckLocal() != nullptr,
           "About to dereference nullptr" );
 
   // Pass Refiner Charm++ chare proxy to fellow (bound) Discretization object
-  m_scheme[m_meshid].disc()[thisIndex].ckLocal()->setRefiner( thisProxy );
+  m_disc[ thisIndex ].ckLocal()->setRefiner( thisProxy );
 }
 
 void
@@ -957,17 +959,13 @@ Refiner::writeMesh( const std::string& basefilename,
 
   auto t0 = g_inputdeck.get< tag::discr, tag::t0 >();
 
-  // list of nodes/elements at which box ICs are defined
-  std::vector< std::unordered_set< std::size_t > > inbox;
-  tk::real V = 1.0;
-
   // Augment element field names with solution variable names + field ids
   nodefieldnames.insert( end(nodefieldnames),
                          begin(solfieldnames), end(solfieldnames) );
 
   // Evaluate initial conditions on current mesh at t0
   tk::Fields u( m_coord[0].size(), nprop );
-  for (auto& eq : g_cgpde) eq.initialize( m_coord, u, t0, V, inbox );
+  initialize( m_coord, u, t0 );
 
   // Extract all scalar components from solution for output to file
   for (std::size_t i=0; i<nprop; ++i)
@@ -1072,7 +1070,7 @@ Refiner::next()
   } else if (m_mode == RefMode::DTREF) {
 
     // Send new mesh, solution, and communication data back to PDE worker
-    m_scheme[m_meshid].ckLocal< Scheme::resizePostAMR >( thisIndex,  m_ginpoel,
+    m_aircg[ thisIndex ].ckLocal()->resizePostAMR( m_ginpoel,
       m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes, m_amrNodeMap,
       m_nodeCommMap, m_bface, m_bnode, m_triinpoel );
 
@@ -1095,11 +1093,7 @@ Refiner::next()
 
   } else if (m_mode == RefMode::OUTDEREF) {
 
-    // Send field output mesh to PDE worker
-    m_scheme[m_meshid].ckLocal< Scheme::extractFieldOutput >( thisIndex,
-      m_outref_ginpoel, m_outref_el, m_outref_coord, m_outref_addedNodes,
-      m_outref_addedTets, m_outref_nodeCommMap, m_outref_bface, m_outref_bnode,
-      m_outref_triinpoel, m_writeCallback );
+    //  TODO remove this
 
   } else Throw( "RefMode not implemented" );
 }
@@ -1115,7 +1109,8 @@ Refiner::endt0ref()
 // *****************************************************************************
 {
   // create sorter Charm++ chare array elements using dynamic insertion
-  m_sorter[ thisIndex ].insert( m_meshid, m_host, m_meshwriter, m_cbs, m_scheme,
+  m_sorter[ thisIndex ].insert( m_meshid, m_host, m_meshwriter, m_cbs,
+    m_disc, m_aircg,
     CkCallback(CkIndex_Refiner::reorder(), thisProxy[thisIndex]), m_ginpoel,
     m_coordmap, m_el, m_bface, m_triinpoel, m_bnode, m_nchare );
 
@@ -1251,7 +1246,7 @@ Refiner::solution( std::size_t npoin,
   } else if (m_mode == RefMode::DTREF) {
 
     // Query current solution
-    u = m_scheme[m_meshid].ckLocal< Scheme::solution >( thisIndex );
+    u = m_aircg[ thisIndex ].ckLocal()->solution();
  
   } else if (m_mode == RefMode::OUTREF) {
 
@@ -1452,12 +1447,8 @@ Refiner::nodeinit( std::size_t /*npoin*/,
 
   // Evaluate ICs
 
-  // list of nodes/elements at which box ICs are defined
-  std::vector< std::unordered_set< std::size_t > > inbox;
-  tk::real V = 1.0;
-
   // Evaluate ICs for all scalar components integrated
-  for (auto& eq : g_cgpde) eq.initialize( m_coord, u, t0, V, inbox );
+  initialize( m_coord, u, t0 );
 
   Assert( u.nunk() == m_coord[0].size(), "Size mismatch" );
   Assert( u.nprop() == nprop, "Size mismatch" );
@@ -1489,8 +1480,7 @@ Refiner::updateMesh()
   if ( m_mode == RefMode::DTREF ||
        m_mode == RefMode::OUTREF ||
        m_mode == RefMode::OUTDEREF ) {
-    m_nodeCommMap =
-      m_scheme[m_meshid].disc()[thisIndex].ckLocal()->NodeCommMap();
+    m_nodeCommMap = m_disc[ thisIndex ].ckLocal()->NodeCommMap();
   }
 
   // Update mesh and solution after refinement
@@ -2048,7 +2038,6 @@ Refiner::bndIntegral()
   }
 
   s.push_back( -1.0 );  // negative: no call-back after reduction
-  s.push_back( static_cast< tk::real >( m_meshid ) );
 
   // Send contribution to host summing partial surface integrals
   contribute( s, CkReduction::sum_double, m_cbr.get< tag::bndint >() );

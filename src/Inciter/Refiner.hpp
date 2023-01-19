@@ -30,9 +30,7 @@
 #include "Callback.hpp"
 #include "UnsMesh.hpp"
 #include "Base/Fields.hpp"
-#include "Scheme.hpp"
-#include "DiagCG.hpp"
-#include "ALECG.hpp"
+#include "AirCG.hpp"
 #include "CommMap.hpp"
 
 #include "NoWarning/transporter.decl.h"
@@ -72,7 +70,8 @@ class Refiner : public CBase_Refiner {
                       const CProxy_Transporter& transporter,
                       const CProxy_Sorter& sorter,
                       const tk::CProxy_MeshWriter& meshwriter,
-                      const std::vector< Scheme >& scheme,
+                      const CProxy_Discretization& discretization,
+                      const CProxy_AirCG& aircg,
                       const tk::RefinerCallback& cbr,
                       const tk::SorterCallback& cbs,
                       const std::vector< std::size_t >& ginpoel,
@@ -163,7 +162,8 @@ class Refiner : public CBase_Refiner {
       p | m_host;
       p | m_sorter;
       p | m_meshwriter;
-      p | m_scheme;
+      p | m_disc;
+      p | m_aircg;
       p | m_cbr;
       p | m_cbs;
       p | m_ginpoel;
@@ -234,8 +234,10 @@ class Refiner : public CBase_Refiner {
     CProxy_Sorter m_sorter;
     //! Mesh writer proxy
     tk::CProxy_MeshWriter m_meshwriter;
-    //! Discretization schemes (one per mesh)
-    std::vector< Scheme > m_scheme;
+    //! Discretization base proxy
+    CProxy_Discretization m_disc;
+    //! Discretization scheme proxy
+    CProxy_AirCG m_aircg;
     //! Charm++ callbacks associated to compile-time tags for refiner
     tk::RefinerCallback m_cbr;
     //! Charm++ callbacks associated to compile-time tags for sorter

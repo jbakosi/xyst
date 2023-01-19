@@ -9,15 +9,9 @@ add_library(Inciter
             Discretization.cpp
             Refiner.cpp
             Sorter.cpp
-            DiagCG.cpp
-            ALECG.cpp
-            ALE.cpp
-            FluxCorrector.cpp
-            DistFCT.cpp
+            AirCG.cpp
             DiagReducer.cpp
-            NodeDiagnostics.cpp
-            FieldOutput.cpp
-            NodeBC.cpp)
+            NodeDiagnostics.cpp)
 
 target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
@@ -29,8 +23,7 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../LoadBalance
                            ${PROJECT_SOURCE_DIR}/../Statistics
                            ${PROJECT_SOURCE_DIR}/../Inciter
-                           ${PROJECT_SOURCE_DIR}/../PDE
-                           ${PROJECT_SOURCE_DIR}/../LinearSolver
+                           ${PROJECT_SOURCE_DIR}/../Physics
                            ${SEACASExodus_INCLUDE_DIRS}
                            ${NETCDF_INCLUDES}
                            ${BRIGAND_INCLUDE_DIRS}
@@ -38,7 +31,6 @@ target_include_directories(Inciter PUBLIC
                            ${PEGTL_INCLUDE_DIRS}
                            ${HIGHWAYHASH_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Inciter
-                           ${PROJECT_BINARY_DIR}/../LinearSolver
                            ${PROJECT_BINARY_DIR}/../Base
                            ${PROJECT_BINARY_DIR}/../IO
                            ${PROJECT_BINARY_DIR}/../Mesh
@@ -69,22 +61,12 @@ addCharmModule( "partitioner" "Inciter" )
 addCharmModule( "discretization" "Inciter" )
 addCharmModule( "refiner" "Inciter" )
 addCharmModule( "sorter" "Inciter" )
-addCharmModule( "diagcg" "Inciter" )
-addCharmModule( "alecg" "Inciter" )
-addCharmModule( "distfct" "Inciter" )
-addCharmModule( "ale" "Inciter" )
+addCharmModule( "aircg" "Inciter" )
 
 # Add extra dependency of Inciter on inciterCharmModule. This is required as
 # Inciter refers to the main Charm++ proxy defined in the Charm++ module
 # inciter (in Main/Inciter.cpp).
 add_dependencies( "Inciter" "inciterCharmModule" )
-
-## Add extra dependency of Transporter charm module on charm modules implementing
-## advanced array element placement using maps. This is required since
-## Transporter charm module depends on and uses advanced array element placement
-## maps.
-#add_dependencies( "transporterCharmModule" "linearmapCharmModule" )
-#add_dependencies( "transporterCharmModule" "unsmeshmapCharmModule" )
 
 # Add extra dependency of Transporter charm module on Partitioner charm module.
 # This is required so that partitioner.decl.h and partitioner.def.h are

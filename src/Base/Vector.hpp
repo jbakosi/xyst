@@ -22,16 +22,6 @@
 
 namespace tk {
 
-//! Flip sign of vector components
-//! \param[in] v Vector whose components to multiply by -1.0
-inline void
-flip( std::array< real, 3 >& v )
-{
-  v[0] = -v[0];
-  v[1] = -v[1];
-  v[2] = -v[2];
-}
-
 //! Compute the cross-product of two vectors
 //! \param[in] v1x x coordinate of the 1st vector
 //! \param[in] v1y y coordinate of the 1st vector
@@ -231,6 +221,103 @@ rotateZ( const std::array< real, 3 >& v, real angle )
         {{ 0.0,         0.0,        1.0 }} }};
 
   return {{ dot(R[0],v), dot(R[1],v), dot(R[2],v) }};
+}
+
+//! Compute the unit normal vector of a triangle
+//! \param[in] x1 x coordinate of the 1st vertex of the triangle
+//! \param[in] x2 x coordinate of the 2nd vertex of the triangle
+//! \param[in] x3 x coordinate of the 3rd vertex of the triangle
+//! \param[in] y1 y coordinate of the 1st vertex of the triangle
+//! \param[in] y2 y coordinate of the 2nd vertex of the triangle
+//! \param[in] y3 y coordinate of the 3rd vertex of the triangle
+//! \param[in] z1 z coordinate of the 1st vertex of the triangle
+//! \param[in] z2 z coordinate of the 2nd vertex of the triangle
+//! \param[in] z3 z coordinate of the 3rd vertex of the triangle
+//! \param[out] nx x coordinate of the unit normal
+//! \param[out] ny y coordinate of the unit normal
+//! \param[out] nz z coordinate of the unit normal
+#pragma omp declare simd
+inline void
+normal( real x1, real x2, real x3,
+        real y1, real y2, real y3,
+        real z1, real z2, real z3,
+        real& nx, real& ny, real& nz )
+{
+  real ax = x2 - x1;
+  real ay = y2 - y1;
+  real az = z2 - z1;
+
+  real bx = x3 - x1;
+  real by = y3 - y1;
+  real bz = z3 - z1;
+
+  real n1 =   ay*bz - az*by;
+  real n2 = -(ax*bz - az*bx);
+  real n3 =   ax*by - ay*bx;
+
+  auto farea = std::sqrt( n1*n1 + n2*n2 + n3*n3 );
+
+  nx = n1/farea;
+  ny = n2/farea;
+  nz = n3/farea;
+}
+
+//! Compute the are of a triangle
+//! \param[in] x1 x coordinate of the 1st vertex of the triangle
+//! \param[in] x2 x coordinate of the 2nd vertex of the triangle
+//! \param[in] x3 x coordinate of the 3rd vertex of the triangle
+//! \param[in] y1 y coordinate of the 1st vertex of the triangle
+//! \param[in] y2 y coordinate of the 2nd vertex of the triangle
+//! \param[in] y3 y coordinate of the 3rd vertex of the triangle
+//! \param[in] z1 z coordinate of the 1st vertex of the triangle
+//! \param[in] z2 z coordinate of the 2nd vertex of the triangle
+//! \param[in] z3 z coordinate of the 3rd vertex of the triangle
+//! \return Area of the triangle
+#pragma omp declare simd
+inline real
+area( real x1, real x2, real x3,
+      real y1, real y2, real y3,
+      real z1, real z2, real z3 )
+{
+  auto sidea = sqrt( (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) + (z2-z1)*(z2-z1) );
+  auto sideb = sqrt( (x3-x2)*(x3-x2) + (y3-y2)*(y3-y2) + (z3-z2)*(z3-z2) );
+  auto sidec = sqrt( (x1-x3)*(x1-x3) + (y1-y3)*(y1-y3) + (z1-z3)*(z1-z3) );
+
+  auto semip = 0.5 * (sidea + sideb + sidec);
+
+  return sqrt( semip * (semip-sidea) * (semip-sideb) * (semip-sidec) );
+}
+
+inline std::array< real, 3 >
+normal( const std::array< real, 3 >& x,
+        const std::array< real, 3 >& y,
+        const std::array< real, 3 >& z )
+// *****************************************************************************
+//! Compute the unit normal vector of a triangle
+//! \param[in] x x-coordinates of the three vertices of the triangle
+//! \param[in] y y-coordinates of the three vertices of the triangle
+//! \param[in] z z-coordinates of the three vertices of the triangle
+//! \return Unit normal
+// *****************************************************************************
+{
+  real nx, ny, nz;
+  normal( x[0],x[1],x[2], y[0],y[1],y[2], z[0],z[1],z[2], nx, ny, nz );
+  return { std::move(nx), std::move(ny), std::move(nz) };
+}
+
+inline real
+area( const std::array< real, 3 >& x,
+      const std::array< real, 3 >& y,
+      const std::array< real, 3 >& z )
+// *****************************************************************************
+//! Compute the are of a triangle
+//! \param[in] x x-coordinates of the three vertices of the triangle
+//! \param[in] y y-coordinates of the three vertices of the triangle
+//! \param[in] z z-coordinates of the three vertices of the triangle
+//! \return Area
+// *****************************************************************************
+{
+  return area( x[0],x[1],x[2], y[0],y[1],y[2], z[0],z[1],z[2] );
 }
 
 //! \brief Compute the determinant of the Jacobian of a coordinate

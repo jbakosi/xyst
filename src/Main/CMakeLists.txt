@@ -75,16 +75,11 @@ add_executable(${UNITTEST_EXECUTABLE}
                ../../tests/unit/Control/TestStringParser.cpp
                ../../tests/unit/Control/TestSystemComponents.cpp
                ../../tests/unit/Control/TestToggle.cpp
-               ../../tests/unit/Inciter/TestScheme.cpp
                ../../tests/unit/Inciter/AMR/TestError.cpp
                ../../tests/unit/IO/TestExodusIIMeshReader.cpp
                ../../tests/unit/IO/TestMesh.cpp
                ../../tests/unit/IO/TestMeshReader.cpp
-               ../../tests/unit/LoadBalance/TestLinearMap.cpp
                ../../tests/unit/LoadBalance/TestLoadDistributor.cpp
-               ../../tests/unit/LoadBalance/TestUnsMeshMap.cpp
-               ../../tests/unit/LinearSolver/TestCSR.cpp
-               ../../tests/unit/LinearSolver/TestConjugateGradients.cpp
                ../../tests/unit/Mesh/TestAround.cpp
                ../../tests/unit/Mesh/TestDerivedData.cpp
                ../../tests/unit/Mesh/TestDerivedData_MPISingle.cpp
@@ -112,8 +107,6 @@ target_link_libraries(${UNITTEST_EXECUTABLE}
                       MeshRefinement
                       UnitTest
                       UnitTestControl
-                      LoadBalance
-                      LinearSolver
                       Mesh
                       MeshDetect
                       NativeMeshIO
@@ -146,14 +139,8 @@ config_executable(${INCITER_EXECUTABLE})
 
 target_link_libraries(${INCITER_EXECUTABLE}
                       InciterControl
-                      PDE
                       Inciter
-                      TransportProblem
-                      CGTransportPhysics
-                      CompFlowProblem
-                      CGCompFlowPhysics
                       MeshRefinement
-                      LoadBalance
                       ZoltanInterOp
                       Base
                       Config
@@ -163,8 +150,8 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       ExodusIIMeshIO
                       MeshDetect
                       Mesh
+                      Physics
                       Statistics
-                      LinearSolver
                       ${EXAM2M_LIBRARIES}
                       ${SEACASExodus_LIBRARIES}
                       ${Zoltan2_LIBRARIES}

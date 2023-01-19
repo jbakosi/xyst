@@ -38,7 +38,6 @@ module tutsuite {
   // 
   // See also the Charm++ manual on more information on template chares.
   extern module mpirunner;
-  extern module ghosts;
 
   // TUTSuite spawns chares defined in the modules defined below as extern. If
   // this is not included, Charm++ generates bad code and valgrind detects
@@ -46,11 +45,6 @@ module tutsuite {
   extern module migrated_base;
   extern module charmchild;
   extern module charmtimer;
-  extern module linearmap;
-  extern module unsmeshmap;
-  extern module testarray;
-  extern module conjugategradients;
-  extern module cgreceiver;
 
   namespace unittest {
 

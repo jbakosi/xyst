@@ -17,17 +17,17 @@
 #include "UnsMesh.hpp"
 #include "Table.hpp"
 
-namespace inciter {
-
-//! Determine nodes that lie inside the user-defined IC box
-void
-ICBoxNodes( const tk::UnsMesh::Coords& coord,
-            std::vector< std::unordered_set< std::size_t > >& inbox );
+namespace physics {
 
 //! Query user config and assign function to set initial conditions
 std::function< std::vector< tk::real >
              ( tk::real, tk::real, tk::real, tk::real ) >
 IC();
+
+//! Query user config and assign function to query analytic solutions
+std::function< std::vector< tk::real >
+             ( tk::real, tk::real, tk::real, tk::real ) >
+SOL();
 
 //! Initalize the compressible flow equations, prepare for time integration
 void
@@ -35,91 +35,62 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
             tk::Fields& U,
             tk::real t );
 
-//! Compute nodal gradients of primitive variables along chare-boundary
+//! Compute nodal gradients of primitive variables in all points
 void
-bndgrad( const std::array< std::vector< tk::real >, 3 >& coord,
-         const std::vector< std::size_t >& inpoel,
-         const std::vector< std::size_t >& bndel,
-         const std::vector< std::size_t >& gid,
-         const std::unordered_map< std::size_t, std::size_t >& bid,
-         const tk::Fields& U,
-         tk::Fields& G );
+grad( const std::vector< std::size_t >& dedge,
+      const std::vector< tk::real >& deint,
+      const std::vector< std::size_t >& bpoin,
+      const std::vector< tk::real >& bpint,
+      const std::vector< std::size_t >& bedge,
+      const std::vector< tk::real >& beint,
+      const tk::Fields& U,
+      tk::Fields& G );
 
 //! Compute right hand side
 void
-rhs( tk::real t,
-     const std::array< std::vector< tk::real >, 3 >& coord,
-     const std::vector< std::size_t >& inpoel,
-     const std::vector< std::size_t >& triinpoel,
-     const std::vector< std::size_t >& gid,
-     const std::unordered_map< std::size_t, std::size_t >& bid,
-     const std::unordered_map< std::size_t, std::size_t >& lid,
-     const std::vector< tk::real >& dfn,
-     const std::pair< std::vector< std::size_t >,
-                      std::vector< std::size_t > >& esup,
-     const std::pair< std::vector< std::size_t >,
-                      std::vector< std::size_t > >& psup,
-     const std::vector< int >& symbctri,
-     const std::unordered_set< std::size_t >& spongenodes,
-     const std::vector< tk::real >& vol,
-     const std::vector< std::size_t >& edgenode,
-     const std::vector< std::size_t >& edgeid,
-     const std::vector< tk::real >& tp,
-     const tk::Fields& bG,
+rhs( const std::vector< std::size_t >& dedge,
+     const std::vector< tk::real >& deint,
+     const std::vector< std::size_t >& bpoin,
+     const std::vector< tk::real >& bpint,
+     const std::vector< std::size_t >& bedge,
+     const std::vector< tk::real >& beint,
+     const std::vector< std::uint8_t >& bpsym,
+     const std::vector< std::uint8_t >& besym,
+     const tk::UnsMesh::Coords& coord,
+     const tk::Fields& G,
      const tk::Fields& U,
+     const std::vector< tk::real >& v,
+     tk::real t,
+     const std::vector< tk::real >& tp,
      tk::Fields& R );
 
-//! Compute the minimum time step size (for unsteady time stepping)
+//! Compute minimum time step size
 tk::real
-dt( const std::array< std::vector< tk::real >, 3 >& coord,
-    const std::vector< std::size_t >& inpoel,
-    tk::real t,
-    const tk::Fields& U );
+dt( const std::vector< tk::real >& vol, const tk::Fields& U );
 
-//! Compute a time step size for each mesh node (for steady time stepping)
+//! Compute time step size for each mesh node (for steady time stepping)
 void
-dt( uint64_t,
-    const std::vector< tk::real >& vol,
+dt( const std::vector< tk::real >& vol,
     const tk::Fields& U,
     std::vector< tk::real >& dtp );
 
-//! Query Dirichlet boundary condition value on a given side set
-std::map< std::size_t, std::vector< std::pair< bool, tk::real > > >
-dirbc( tk::real t,
-       tk::real deltat,
-       const std::vector< tk::real >& tp,
-       const std::vector< tk::real >& dtp,
-       const std::pair< const int, std::vector< std::size_t > >& ss,
-       const std::array< std::vector< tk::real >, 3 >& coord );
+//! Set Dirichlet boundary conditions
+void
+dirbc( tk::Fields& U,
+       tk::real t,
+       const std::array< std::vector< tk::real >, 3 >& coord,
+       const std::vector< std::size_t >& dirbcnodes );
 
-//! Set symmetry boundary conditions at nodes
+//! Set symmetry boundary conditions
 void
 symbc( tk::Fields& U,
-       const std::array< std::vector< tk::real >, 3 >& coord,
-       const std::unordered_map< int,
-         std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& bnorm,
-       const std::unordered_set< std::size_t >& nodes );
+       const std::vector< std::size_t >& symbcnodes,
+       const std::vector< tk::real >& symbcnorms );
 
-//! Set farfield boundary conditions at nodes
+//! Set farfield boundary conditions
 void
-farfieldbc(
-  tk::Fields& U,
-  const std::array< std::vector< tk::real >, 3 >& coord,
-  const std::unordered_map< int,
-    std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& bnorm,
-  const std::unordered_set< std::size_t >& nodes );
-
-//! Apply sponge conditions at sponge nodes
-void
-sponge( tk::Fields& U,
-        const std::array< std::vector< tk::real >, 3 >& coord,
-        const std::unordered_set< std::size_t >& nodes );
-
-//! Apply user defined time dependent BCs
-void
-timedepbc( tk::real t,
-  tk::Fields& U,
-  const std::vector< std::unordered_set< std::size_t > >& nodes,
-  const std::vector< tk::Table<5> >& timedepfn );
+farbc( tk::Fields& U,
+       const std::vector< std::size_t >& farbcnodes,
+       const std::vector< tk::real >& farbcnorms );
 
 } // physics::

@@ -87,12 +87,6 @@ class Discretization : public CBase_Discretization {
     //! Configure Charm++ reduction types
     static void registerReducers();
 
-    //! Query the mesh velocity
-    const tk::Fields& meshvel() const;
-
-    //! Assess and record mesh velocity linear solver convergence
-    void meshvelConv();
-
     //! Resize mesh data structures after mesh refinement
     void resizePostAMR(
       const tk::UnsMesh::Chunk& chunk,
@@ -130,8 +124,6 @@ class Discretization : public CBase_Discretization {
     const tk::UnsMesh::Coords& Coord() const { return m_coord; }
     //! Coordinates accessor as reference
     tk::UnsMesh::Coords& Coord() { return m_coord; }
-    //! Coordinates at time n accessor as const-ref
-    const tk::UnsMesh::Coords& Coordn() const { return m_coordn; }
 
     //! Global ids accessors as const-ref
     const std::vector< std::size_t >& Gid() const { return m_gid; }
@@ -163,9 +155,6 @@ class Discretization : public CBase_Discretization {
     //! Query 'initial' flag
     //! \return True during setup, false durign time stepping
     bool Initial() const { return m_initial; }
-
-    //! Update coordinates at time n
-    void UpdateCoordn() { m_coordn = m_coord; }
 
     //! History points data accessor as const-ref
     const std::vector< HistData >& Hist() const { return m_histdata; }
@@ -377,7 +366,6 @@ class Discretization : public CBase_Discretization {
         m_lid = std::get< 2 >( m_el );
       }
       p | m_coord;
-      p | m_coordn;
       p | m_nodeCommMap;
       p | m_edgeCommMap;
       p | m_meshvol;
@@ -392,8 +380,6 @@ class Discretization : public CBase_Discretization {
       p( reinterpret_cast<char*>(&m_prevstatus), sizeof(Clock::time_point) );
       p | m_nrestart;
       p | m_histdata;
-      p | m_meshvel;
-      p | m_meshvel_converged;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -462,8 +448,6 @@ class Discretization : public CBase_Discretization {
     std::unordered_map< std::size_t, std::size_t >& m_lid = std::get<2>( m_el );
     //! Mesh point coordinates
     tk::UnsMesh::Coords m_coord;
-    //! Mesh coordinates at the time n for ALE
-    tk::UnsMesh::Coords m_coordn;
     //! \brief Global mesh node IDs bordering the mesh chunk held by fellow
     //!   Discretization chares associated to their chare IDs
     tk::NodeCommMap m_nodeCommMap;
@@ -506,11 +490,6 @@ class Discretization : public CBase_Discretization {
     int m_nrestart;
     //! Data at history point locations
     std::vector< HistData > m_histdata;
-    //! Mesh velocity if ALE is not enabled
-    tk::Fields m_meshvel;
-    //! \brief True if all stages of the time step converged the mesh velocity
-    //!   linear solve in ALE
-    bool m_meshvel_converged;
 
     //! Generate chare-boundary node id map
     std::unordered_map< std::size_t, std::size_t > genBid();

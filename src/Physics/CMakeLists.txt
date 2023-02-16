@@ -10,6 +10,7 @@ target_include_directories(Physics PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_BINARY_DIR}/../Main
+                           ${Boost_INCLUDE_DIRS}
                            ${HIGHWAYHASH_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
 )

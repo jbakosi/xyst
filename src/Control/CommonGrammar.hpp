@@ -1605,15 +1605,6 @@ namespace grm {
          pegtl::if_must< readkw< typename use< kw::title >::pegtl_string >,
                          quoted< Set< tag::title > > > {};
 
-  //! Match and set policy parameter
-  template< template< class > class use, typename keyword,
-            typename option, typename p, typename... tags >
-  struct policy :
-         process<
-           keyword,
-           store_back_option< use, option, tag::param, p, tags... >,
-           pegtl::alpha > {};
-
   //! Match and set a PDF option
   template< class keyword, class store >
   struct pdf_option :

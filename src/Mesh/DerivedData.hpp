@@ -38,7 +38,7 @@ const std::array< UnsMesh::Face, 4 >
 
 //! Const array defining the node ordering convention for tetrahedron edges
 const std::array< UnsMesh::Edge, 6 >
-  lpoed{{ {{0,1}}, {{1,2}}, {{0,2}}, {{0,3}}, {{1,3}}, {{2,3}} }};
+  lpoed{{ {{0,1}}, {{1,2}}, {{2,0}}, {{0,3}}, {{1,3}}, {{2,3}} }};
 
 //! Const array defining the node ordering convention for triangle edges
 const std::array< UnsMesh::Edge, 3 > lpoet{{ {{0,1}}, {{1,2}}, {{2,0}} }};
@@ -151,14 +151,8 @@ genBelemTet( std::size_t nbfac,
               const std::pair< std::vector< std::size_t >,
                                std::vector< std::size_t > >& esup );
 
-//! Generate derived data structure, face geometry
-Fields
-genGeoFaceTri( std::size_t nipfac,
-               const std::vector< std::size_t >& inpofa,
-               const UnsMesh::Coords& coord );
-
 //! Compute geometry of the face given by three vertices
-Fields
+std::array< tk::real, 7 >
 geoFaceTri( const std::array< real, 3 >& x,
             const std::array< real, 3 >& y,
             const std::array< real, 3 >& z );
@@ -188,16 +182,6 @@ intet( const std::array< std::vector< real >, 3 >& coord,
        const std::vector< real >& p,
        std::size_t e,
        std::array< real, 4 >& N );
-
-//! Compute boundary point normals
-std::unordered_map< int,
-  std::unordered_map< std::size_t, std::array< tk::real, 4 > > >
-bnorm( const std::map< int, std::vector< std::size_t > >& bface,
-       const std::vector< std::size_t >& triinpoel,
-       const std::array< std::vector< tk::real >, 3 >& coord,
-       const std::vector< std::size_t >& gid,
-       const std::unordered_map< int,
-         std::unordered_set< std::size_t > >& bcnodes );
 
 //! Compute curl of a vector field at nodes of unstructured tetrahedra mesh
 tk::UnsMesh::Coords

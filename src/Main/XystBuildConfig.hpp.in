@@ -22,7 +22,6 @@
 
 // Optional TPLs
 #cmakedefine HAS_BACKWARD
-#cmakedefine HAS_EXAM2M
 
 // Backward-cpp config
 #cmakedefine01 BACKWARD_HAS_UNWIND

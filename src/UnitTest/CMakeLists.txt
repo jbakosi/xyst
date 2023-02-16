@@ -19,6 +19,7 @@ target_include_directories(UnitTest PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../PDE
+                           ${Boost_INCLUDE_DIRS}
                            ${TUT_INCLUDE_DIRS}
                            ${HIGHWAYHASH_INCLUDE_DIRS}
                            ${BRIGAND_INCLUDE_DIRS}

@@ -34,6 +34,7 @@ target_include_directories(Init PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Control
+                           ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${BRIGAND_INCLUDE_DIRS}
@@ -118,7 +119,7 @@ target_link_libraries(${UNITTEST_EXECUTABLE}
                       ${MKL_INTERFACE_LIBRARY}
                       ${MKL_SEQUENTIAL_LAYER_LIBRARY}
                       ${HDF5_C_LIBRARIES}
-                      Backward::Backward
+                      ${BACKWARD_LIBRARIES}
 )
 
 # Add custom dependencies for UnitTest's main Charm++ module
@@ -152,11 +153,10 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       Mesh
                       Physics
                       Statistics
-                      ${EXAM2M_LIBRARIES}
                       ${SEACASExodus_LIBRARIES}
                       ${Zoltan2_LIBRARIES}
                       ${LAPACKE_LIBRARIES}
-                      Backward::Backward
+                      ${BACKWARD_LIBRARIES}
 )
 
 # Add custom dependencies for Inciter's main Charm++ module
@@ -190,7 +190,7 @@ target_link_libraries(${MESHCONV_EXECUTABLE}
                       ${PUGIXML_LIBRARIES}
                       ${SEACASExodus_LIBRARIES}
                       ${HDF5_C_LIBRARIES}
-                      Backward::Backward
+                      ${BACKWARD_LIBRARIES}
 )
 
 # Add custom dependencies for MeshConv's main Charm++ module

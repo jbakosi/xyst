@@ -23,6 +23,7 @@
 #include "Keywords.hpp"
 #include "ContainerUtil.hpp"
 #include "Centering.hpp"
+#include "Inciter/Options/Problem.hpp"
 
 namespace inciter {
 
@@ -102,19 +103,6 @@ namespace grm {
         else    // reference was not given, but orientation was, error out
           Message< Stack, ERROR, MsgKey::ORI_NOMESHREF >( stack, in );
       }
-
-      // Ensure the number of depvars and the number of mesh references equal
-      const auto& depvar = stack.template get< tag::param, eq, tag::depvar >();
-      Assert( depvar.size() == mesh_ref.size(), "Mesh ref size mismatch" );
-
-      // Ensure mesh ref var is not the same as the current depvar and is
-      // defined upstream in input file (by another solver)
-      if ( mesh_ref.back() != '-' &&
-           (mesh_ref.back() == depvar.back() ||
-            depvars.find(mesh_ref.back()) == end(depvars)) )
-      {
-        Message< Stack, ERROR, MsgKey::DEPVAR_AS_MESHREF >( stack, in );
-      }
     }
   };
 
@@ -141,105 +129,32 @@ namespace grm {
       // Set number of components to 5 (mass, 3 x mom, energy)
       stack.template get< tag::component, eq >().push_back( 5 );
 
-      // If problem type is not given, default to 'user_defined'
-      auto& problem = stack.template get< param, eq, tag::problem >();
-      if (problem.empty() || problem.size() != neq.get< eq >())
-        problem.push_back( inciter::ctr::ProblemType::USER_DEFINED );
+      // Error check Dirichlet boundary condition block for all transport eq
+      // configurations
+      const auto& bc = stack.template get< param, eq, tag::bc, tag::bcdir >();
+      for (const auto& s : bc)
+        if (s.empty()) Message< Stack, ERROR, MsgKey::BC_EMPTY >( stack, in );
+    }
+  };
 
-      // Error check on user-defined problem type
-      auto& ic = stack.template get< param, eq, tag::ic >();
-      auto& bgdensityic = ic.template get< tag::density >();
-      auto& bgvelocityic = ic.template get< tag::velocity >();
-      auto& bgpressureic = ic.template get< tag::pressure >();
-      auto& bgenergyic = ic.template get< tag::energy >();
-      auto& bgtemperatureic = ic.template get< tag::temperature >();
-      if (problem.back() == inciter::ctr::ProblemType::USER_DEFINED) {
-        // must have defined background ICs for user-defined ICs
-        auto n = neq.get< eq >();
-        if ( bgdensityic.size() != n || bgvelocityic.size() != n ||
-             ( bgpressureic.size() != n && bgenergyic.size() != n &&
-               bgtemperatureic.size() != n ) )
-        {
-          Message< Stack, ERROR, MsgKey::BGICMISSING >( stack, in );
-        }
+  //! Rule used to trigger action
+  template< class eq > struct check_transport : pegtl::success {};
+  //! \brief Set defaults and do error checking on the transport equation block
+  //! \details This is error checking that only the transport equation block
+  //!   must satisfy. Besides error checking we also set defaults here as
+  //!   this block is called when parsing of a transport...end block has
+  //!   just finished.
+  template< class eq >
+  struct action< check_transport< eq > > {
+    template< typename Input, typename Stack >
+    static void apply( const Input& in, Stack& stack ) {
+      using inciter::deck::neq;
+      using tag::param;
 
-        // Error check Dirichlet boundary condition block for all compflow
-        // configurations
-        const auto& bc = stack.template get< param, eq, tag::bc, tag::bcdir >();
-        for (const auto& s : bc)
-          if (s.empty()) Message< Stack, ERROR, MsgKey::BC_EMPTY >( stack, in );
-
-        // Error check stagnation BC block
-        const auto& stag = stack.template get<tag::param, eq, tag::stag>();
-        const auto& spoint = stag.template get< tag::point >();
-        const auto& sradius = stag.template get< tag::radius >();
-        if ( (!spoint.empty() && !spoint.back().empty() &&
-              !sradius.empty() && !sradius.back().empty() &&
-              spoint.back().size() != 3*sradius.back().size())
-         || (!sradius.empty() && !sradius.back().empty() &&
-              !spoint.empty() && !spoint.back().empty() &&
-              spoint.back().size() != 3*sradius.back().size())
-         || (!spoint.empty() && !spoint.back().empty() &&
-              (sradius.empty() || (!sradius.empty() && sradius.back().empty())))
-         || (!sradius.empty() && !sradius.back().empty() &&
-              (spoint.empty() || (!spoint.empty() && spoint.back().empty()))) )
-        {
-          Message< Stack, ERROR, MsgKey::STAGBCWRONG >( stack, in );
-        }
-
-        // Error check skip BC block
-        const auto& skip = stack.template get<tag::param, eq, tag::skip>();
-        const auto& kpoint = skip.template get< tag::point >();
-        const auto& kradius = skip.template get< tag::radius >();
-        if ( (!kpoint.empty() && !kpoint.back().empty() &&
-              !kradius.empty() && !kradius.back().empty() &&
-              kpoint.back().size() != 3*kradius.back().size())
-          || (!kradius.empty() && !kradius.back().empty() &&
-              !kpoint.empty() && !kpoint.back().empty() &&
-              kpoint.back().size() != 3*kradius.back().size())
-          || (!kpoint.empty() && !kpoint.back().empty() &&
-              (kradius.empty() || (!kradius.empty() && kradius.back().empty())))
-          || (!kradius.empty() && !kradius.back().empty() &&
-              (kpoint.empty() || (!kpoint.empty() && kpoint.back().empty()))) )
-        {
-          Message< Stack, ERROR, MsgKey::SKIPBCWRONG >( stack, in );
-        }
-
-        // Error check sponge BC parameter vectors for symmetry BC block
-        const auto& sponge =
-          stack.template get< tag::param, eq, tag::sponge >();
-        const auto& ss = sponge.template get< tag::sideset >();
-
-        const auto& spvel = sponge.template get< tag::velocity >();
-        if ( !spvel.empty() && !spvel.back().empty()) {
-          if (spvel.back().size() != ss.back().size())
-            Message< Stack, ERROR, MsgKey::SPONGEBCWRONG >( stack, in );
-          for (const auto& s : spvel.back())
-            if ( s < 0.0 || s > 1.0 )
-              Message< Stack, ERROR, MsgKey::SPONGEBCWRONG >( stack, in );
-        }
-
-        const auto& sppre = sponge.template get< tag::velocity >();
-        if ( !sppre.empty() && !sppre.back().empty()) {
-          if (sppre.back().size() != ss.back().size())
-            Message< Stack, ERROR, MsgKey::SPONGEBCWRONG >( stack, in );
-          for (const auto& s : sppre.back())
-            if ( s < 0.0 || s > 1.0 )
-              Message< Stack, ERROR, MsgKey::SPONGEBCWRONG >( stack, in );
-        }
-
-        // Error check user defined time dependent BC for this system
-        const auto& tdepbc =
-          stack.template get< tag::param, eq, tag::bctimedep >().back();
-        // multiple time dependent BCs can be specified on different side sets
-        for (const auto& bndry : tdepbc) {
-          const auto& s = bndry.template get< tag::sideset >();
-          if (s.empty()) Message< Stack, ERROR, MsgKey::BC_EMPTY >( stack, in );
-          const auto& f = bndry.template get< tag::fn >();
-          if (f.empty() or f.size() % 6 != 0)
-            Message< Stack, ERROR, MsgKey::INCOMPLETEUSERFN>( stack, in );
-        }
-      }
+      // Error out if no dependent variable has been selected
+      auto& depvar = stack.template get< param, eq, tag::depvar >();
+      if (depvar.empty() || depvar.size() != neq.get< eq >())
+        Message< Stack, ERROR, MsgKey::NODEPVAR >( stack, in );
 
       // If no number of components has been selected, default to 1
       auto& ncomp = stack.template get< tag::component, eq >();
@@ -573,9 +488,6 @@ namespace deck {
            tk::grm::process< use< kw::pelocal_reorder >,
                              tk::grm::Store< tag::discr, tag::pelocal_reorder >,
                              pegtl::alpha >,
-           tk::grm::process< use< kw::operator_reorder >,
-                             tk::grm::Store< tag::discr, tag::operator_reorder >,
-                             pegtl::alpha >,
            tk::grm::process< use< kw::steady_state >,
                              tk::grm::Store< tag::discr, tag::steady_state >,
                              pegtl::alpha >,
@@ -871,7 +783,7 @@ namespace deck {
                pegtl::alpha >
            > > {};
 
-  //! flow + transport
+  //! flow
   struct compflow :
          pegtl::if_must<
            tk::grm::readkw< use< kw::compflow >::pegtl_string >,
@@ -902,28 +814,6 @@ namespace deck {
                                       tag::ce >,
                            parameter< tag::compflow, kw::pde_kappa,
                                       tag::kappa >,
-                           tk::grm::depvar< use,
-                                            tag::transport,
-                                            tag::depvar >,
-                           mesh< tag::transport >,
-                           tk::grm::component< use< kw::ncomp >,
-                                               tag::transport >,
-                           pde_parameter_vector< kw::pde_diffusivity,
-                                                 tag::transport,
-                                                 tag::diffusivity >,
-                           pde_parameter_vector< kw::pde_lambda,
-                                                 tag::transport,
-                                                 tag::lambda >,
-                           pde_parameter_vector< kw::pde_source,
-                                                 tag::transport,
-                                                 tag::source >,
-                           pde_parameter_vector< kw::pde_u0,
-                                                 tag::transport,
-                                                 tag::u0 >,
-                           bc< kw::bc_dirichlet, tag::transport, tag::bcdir >,
-                           bc< kw::bc_sym, tag::transport, tag::bcsym >,
-                           bc< kw::bc_inlet, tag::transport, tag::bcinlet >,
-                           bc< kw::bc_outlet, tag::transport, tag::bcoutlet >,
                            bc< kw::bc_dirichlet, tag::compflow, tag::bcdir >,
                            bc< kw::bc_sym, tag::compflow, tag::bcsym >,
                            bc_spec< tag::compflow, tag::stag, kw::bc_stag >,
@@ -938,6 +828,34 @@ namespace deck {
                            timedep_bc< tag::compflow >
                            >,
            check_errors< tag::compflow, tk::grm::check_compflow > > {};
+
+  //! scalar transport
+  struct transport :
+         pegtl::if_must<
+           tk::grm::readkw< use< kw::transport >::pegtl_string >,
+           tk::grm::block< use< kw::end >,
+                           tk::grm::depvar< use,
+                                            tag::transport,
+                                            tag::depvar >,
+                           mesh< tag::transport >,
+                           tk::grm::component< use< kw::ncomp >,
+                                               tag::transport >,
+                           pde_parameter_vector< kw::pde_diffusivity,
+                                                 tag::transport,
+                                                 tag::diffusivity >,
+                           pde_parameter_vector< kw::pde_lambda,
+                                                 tag::transport,
+                                                 tag::lambda >,
+                           pde_parameter_vector< kw::pde_u0,
+                                                 tag::transport,
+                                                 tag::u0 >,
+                           pde_parameter_vector< kw::pde_source,
+                                                 tag::transport,
+                                                 tag::source >,
+                           bc< kw::bc_dirichlet, tag::transport, tag::bcdir >,
+                           bc< kw::bc_sym, tag::transport, tag::bcsym >
+                         >,
+           check_errors< tag::transport, tk::grm::check_transport > > {};
 
   //! partitioning ... end block
   struct partitioning :
@@ -1076,6 +994,12 @@ namespace deck {
                            use< kw::end >,
                            discretization,
                            compflow,
+                           transport,
+                           tk::grm::process<
+                             use< kw::problem >,
+                             tk::grm::store_inciter_option<
+                               ctr::Problem, tag::problem >,
+                             pegtl::alpha >,
                            amr,
                            partitioning,
                            field_output,

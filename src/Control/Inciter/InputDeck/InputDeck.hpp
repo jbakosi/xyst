@@ -25,6 +25,7 @@
 
 #include "Inciter/CmdLine/CmdLine.hpp"
 #include "Inciter/Components.hpp"
+#include "Inciter/Options/Problem.hpp"
 
 namespace inciter {
 namespace ctr {
@@ -35,6 +36,7 @@ using InputDeckMembers = brigand::list<
   , tag::title,         kw::title::info::expect::type
   , tag::amr,           amr
   , tag::discr,         discretization
+  , tag::problem,       ProblemType
   , tag::prec,          precision
   , tag::flformat,      floatformat
   , tag::component,     ncomps
@@ -166,7 +168,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::l2
                                  , kw::linf
                                  , kw::pelocal_reorder
-                                 , kw::operator_reorder
                                  , kw::steady_state
                                  , kw::residual
                                  , kw::rescomp
@@ -232,7 +233,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
       get< tag::discr, tag::dt >() = 0.0;
       get< tag::discr, tag::cfl >() = 0.0;
       get< tag::discr, tag::pelocal_reorder >() = false;
-      get< tag::discr, tag::operator_reorder >() = false;
       get< tag::discr, tag::steady_state >() = false;
       get< tag::discr, tag::residual >() = 1.0e-8;
       get< tag::discr, tag::rescomp >() = 1;

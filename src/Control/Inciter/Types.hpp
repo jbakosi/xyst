@@ -92,7 +92,6 @@ using discretization = tk::TaggedTuple< brigand::list<
   , tag::dt,     kw::dt::info::expect::type     //!< Size of time step
   , tag::cfl,    kw::cfl::info::expect::type    //!< CFL coefficient
   , tag::pelocal_reorder, bool                  //!< PE-locality reordering
-  , tag::operator_reorder, bool                 //!< Operator-access reordering
   , tag::steady_state, bool                     //!< March to steady state
   , tag::residual, kw::residual::info::expect::type //!< Convergence residual
   , tag::rescomp, kw::rescomp::info::expect::type //!< Convergence residual comp
@@ -287,7 +286,6 @@ using SpongeParameters = tk::TaggedTuple< brigand::list<
 using TransportPDEParameters = tk::TaggedTuple< brigand::list<
     tag::depvar,        std::vector< char >
   , tag::mesh,          mesh
-  , tag::problem,       std::vector< ProblemType >
   , tag::diffusivity,   std::vector< std::vector<
                           kw::pde_diffusivity::info::expect::type > >
   , tag::lambda,        std::vector< std::vector<
@@ -305,7 +303,6 @@ using TransportPDEParameters = tk::TaggedTuple< brigand::list<
 using CompFlowPDEParameters = tk::TaggedTuple< brigand::list<
     tag::depvar,        std::vector< char >
   , tag::mesh,          mesh
-  , tag::problem,       std::vector< ProblemType >
   , tag::farfield_pressure, std::vector< kw::pressure::info::expect::type >
   , tag::farfield_density,  std::vector< kw::density::info::expect::type >
   , tag::farfield_velocity, std::vector< std::vector<

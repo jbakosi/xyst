@@ -45,24 +45,14 @@ NodeDiagnostics::registerReducers()
 }
 
 bool
-NodeDiagnostics::compute(
-  Discretization& d,
-  const tk::Fields& u,
-  const tk::Fields& un,
-  const std::unordered_map< int,
-          std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& bnorm,
-  const std::unordered_set< std::size_t >& symbcnodes,
-  const std::unordered_set< std::size_t >& farfieldbcnodes ) const
+NodeDiagnostics::compute( Discretization& d,
+                          const tk::Fields& u,
+                          const tk::Fields& un ) const
 // *****************************************************************************
 //  Compute diagnostics, e.g., residuals, norms of errors, etc.
 //! \param[in] d Discretization proxy to read from
 //! \param[in] u Current solution vector
 //! \param[in] un Previous solution vector
-//! \param[in] bnorm Face normals in boundary points, key local node id,
-//!   first 3 reals of value: unit normal, outer key: side set id
-//! \param[in] symbcnodes Unique set of node ids at which to set symmetry BCs
-//! \param[in] farfieldbcnodes Unique set of node ids at which to set farfield
-//!   BCs
 //! \return True if diagnostics have been computed
 //! \details Diagnostics are defined as some norm, e.g., L2 norm, of a quantity,
 //!   computed in mesh nodes, A, as ||A||_2 = sqrt[ sum_i(A_i)^2 V_i ],
@@ -81,53 +71,45 @@ NodeDiagnostics::compute(
 
   if ( !((d.It()+1) % diagfreq) ) {     // if remainder, don't dump
 
+    auto ncomp = u.nprop();
+
     // Diagnostics vector (of vectors) during aggregation. See
     // Inciter/Diagnostics.h.
     std::vector< std::vector< tk::real > >
-      diag( NUMDIAG, std::vector< tk::real >( u.nprop(), 0.0 ) );
+      diag( NUMDIAG, std::vector< tk::real >( ncomp, 0.0 ) );
 
-    const auto& coord = d.Coord();
-    const auto& x = coord[0];
-    const auto& y = coord[1];
-    const auto& z = coord[2];
     const auto& v = d.V();  // nodal volumes without contributions from others
 
-    // Evaluate analytic solution (if exist, if not, IC)
-    auto an = u;
-    auto ic = IC();
-    for (std::size_t i=0; i<an.nunk(); ++i) {
-      auto s = ic( x[i], y[i], z[i], d.T()+d.Dt() );
-      std::size_t offset = 0;
-      for (std::size_t c=0; c<s.size(); ++c) an(i,c,offset) = s[c];
-    }
+    // query function to evaluate analytic solution (if defined)
+    auto sol = physics::SOL();
 
-    // Apply symmetry BCs on analytic solution (if exist, if not, IC)
-    symbc( an, coord, bnorm, symbcnodes );
-    // Apply farfield BCs on analytic solution (if exist, if not, IC)
-    farfieldbc( an, coord, bnorm, farfieldbcnodes );
+    // Evaluate analytic solution (if defined)
+    auto an = u;
+    if (sol) {
+      const auto& coord = d.Coord();
+      const auto& x = coord[0];
+      const auto& y = coord[1];
+      const auto& z = coord[2];
+      for (std::size_t i=0; i<u.nunk(); ++i) {
+        auto s = sol( x[i], y[i], z[i], d.T()+d.Dt() );
+        for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
+      }
+    }
 
     // Put in norms sweeping our mesh chunk
     for (std::size_t i=0; i<u.nunk(); ++i) {
-      std::size_t offset = 0;
       // Compute sum for L2 norm of the numerical solution
-      for (std::size_t c=0; c<5; ++c)
-        diag[L2SOL][offset+c] += u(i,c,offset) * u(i,c,offset) * v[i];
-      // Compute sum for L2 norm of the numerical-analytic solution
-      for (std::size_t c=0; c<5; ++c)
-        diag[L2ERR][offset+c] += (u(i,c,offset)-an(i,c,offset)) *
-                          (u(i,c,offset)-an(i,c,offset)) * v[i];
+      for (std::size_t c=0; c<ncomp; ++c)
+        diag[L2SOL][c] += u(i,c,0) * u(i,c,0) * v[i];
       // Compute sum for L2 norm of the residual
-      for (std::size_t c=0; c<5; ++c)
-        diag[L2RES][offset+c] += (u(i,c,offset)-un(i,c,offset)) *
-                          (u(i,c,offset)-un(i,c,offset)) * v[i];
-      // Compute max for Linf norm of the numerical-analytic solution
-      for (std::size_t c=0; c<5; ++c) {
-        auto err = std::abs( u(i,c,offset) - an(i,c,offset) );
-        if (err > diag[LINFERR][offset+c]) diag[LINFERR][offset+c] = err;
-      }
-      // Compute sum of the total energy over the entire domain (only the first
+      for (std::size_t c=0; c<ncomp; ++c)
+        diag[L2RES][c] += (u(i,c,0)-un(i,c,0)) * (u(i,c,0)-un(i,c,0)) * v[i];
+      // Compute sum for the total energy over the entire domain (only the first
       // entry is used)
-      diag[TOTALSOL][0] += u(i,u.nprop()-1,0) * v[i];
+      diag[TOTALSOL][0] += u(i,ncomp-1,0) * v[i];
+      // Compute sum for L2 norm of the numerical-analytic solution
+      for (std::size_t c=0; c<ncomp; ++c)
+        diag[L2ERR][c] += (u(i,c,0)-an(i,c,0)) * (u(i,c,0)-an(i,c,0)) * v[i];
     }
 
     // Append diagnostics vector with metadata on the current time step

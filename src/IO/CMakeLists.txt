@@ -35,6 +35,7 @@ add_library(NativeMeshIO
             ASCMeshReader.cpp
             UGRIDMeshReader.cpp
             RDGFLOMeshReader.cpp
+            MeditMeshReader.cpp
             GmshMeshWriter.cpp
             NetgenMeshWriter.cpp
 )
@@ -44,6 +45,7 @@ target_include_directories(NativeMeshIO PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../Control
+                           ${Boost_INCLUDE_DIRS}
                            ${SEACASExodus_INCLUDE_DIRS}
                            ${NETCDF_INCLUDES}
                            ${TPL_INCLUDE_DIR}

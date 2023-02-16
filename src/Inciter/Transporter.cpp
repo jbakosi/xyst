@@ -39,6 +39,7 @@
 #include "DiagWriter.hpp"
 #include "Callback.hpp"
 #include "CartesianProduct.hpp"
+#include "Operators.hpp"
 
 #include "NoWarning/inciter.decl.h"
 #include "NoWarning/partitioner.decl.h"
@@ -647,13 +648,12 @@ void
 Transporter::resized( std::size_t meshid )
 // *****************************************************************************
 // Reduction target: all worker chares have resized their own mesh data after
-// AMR or ALE
 //! \param[in] meshid Mesh id
 //! \note Only used for nodal schemes
 // *****************************************************************************
 {
   m_discretization[ meshid ].vol();
-  m_aircg[ meshid ].norm();
+  m_aircg[ meshid ].integrals();
 }
 
 void
@@ -744,28 +744,28 @@ Transporter::diagHeader()
 
   // Collect variables names for integral/diagnostics output
   std::vector< std::string > var{ "r", "ru", "rv", "rw", "re" };
+  const auto& nt = g_inputdeck.get< tag::component >().get< tag::transport >();
+  if (!nt.empty())
+    for (std::size_t c=0; c<nt[0]; ++c)
+      var.push_back( "c" + std::to_string(c) );
 
   const tk::ctr::Error opt;
   auto nv = var.size();
   std::vector< std::string > d;
 
-  // Add 'L2(var)' for all variables as those are always computed
-  const auto& l2name = opt.name( tk::ctr::ErrorType::L2 );
-  for (std::size_t i=0; i<nv; ++i) d.push_back( l2name + '(' + var[i] + ')' );
+  // Add 'L2(var)' for all variables
+  for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(" + var[i] + ')' );
 
-  // Query user-requested diagnostics and augment diagnostics file header by
-  // 'err(var)', where 'err' is the error type  configured, and var is the
-  // variable computed, for all variables and all error types configured.
-  const auto& err = g_inputdeck.get< tag::diag, tag::error >();
-  for (const auto& e : err) {
-    const auto& errname = opt.name( e );
-    for (std::size_t i=0; i<nv; ++i)
-      d.push_back( errname + '(' + var[i] + "-IC)" );
-  }
-
-  // Augment diagnostics variables by L2-norm of the residual and total energy
+  // Add L2-norm of the residuals
   for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(d" + var[i] + ')' );
+
+  // Add total energy
   d.push_back( "mE" );
+
+  // Augment diagnostics variables by L2-norm of the error (if computed)
+  if (physics::SOL()) {
+    for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(err:" + var[i] + ')' );
+  }
 
   // Write diagnostics header
   dw.header( d );
@@ -777,7 +777,6 @@ Transporter::comfinal( std::size_t summeshid )
 // Reduction target indicating that communication maps have been setup
 //! \param[in] summeshid Mesh id (summed accross the distributed mesh)
 // *****************************************************************************
-// [Discretization-specific communication maps]
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
 
@@ -792,7 +791,6 @@ Transporter::comfinal( std::size_t summeshid )
     print.diag( "Load balancing on (if enabled in Charm++)" );
   }
 }
-// [Discretization-specific communication maps]
 
 void
 Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
@@ -810,7 +808,7 @@ Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
 
   if (initial > 0.0)   // during initialization
     m_discretization[ meshid ].stat( v );
-  else                  // during ALE or AMR
+  else                  // during AMR
     m_aircg[ meshid ].resized();
 }
 
@@ -1024,28 +1022,11 @@ Transporter::diagnostics( CkReductionMsg* msg )
   // Allocate storage for those diagnostics that are always computed
   std::vector< tk::real > diag( ncomp, 0.0 );
 
-  // Finish computing diagnostics
+  // Finish computing the L2 norm of conserved variables
   for (std::size_t i=0; i<d[L2SOL].size(); ++i)
     diag[i] = sqrt( d[L2SOL][i] / m_meshvol[meshid] );
-  
-  // Query user-requested error types to output
-  const auto& error = g_inputdeck.get< tag::diag, tag::error >();
-
-  decltype(ncomp) n = 0;
-  for (const auto& e : error) {
-    n += ncomp;
-    if (e == tk::ctr::ErrorType::L2) {
-     // Finish computing the L2 norm of the numerical - analytical solution
-     for (std::size_t i=0; i<d[L2ERR].size(); ++i)
-       diag.push_back( sqrt( d[L2ERR][i] / m_meshvol[meshid] ) );
-    } else if (e == tk::ctr::ErrorType::LINF) {
-      // Finish computing the Linf norm of the numerical - analytical solution
-      for (std::size_t i=0; i<d[LINFERR].size(); ++i)
-        diag.push_back( d[LINFERR][i] );
-    }
-  }
-
-  // Finish computing the L2 norm of the residual and append
+ 
+  // Finish computing the L2 norm of the residuals of conserverd variables
   std::vector< tk::real > l2res( d[L2RES].size(), 0.0 );
   for (std::size_t i=0; i<d[L2RES].size(); ++i) {
     l2res[i] = std::sqrt( d[L2RES][i] / m_meshvol[meshid] );
@@ -1055,6 +1036,12 @@ Transporter::diagnostics( CkReductionMsg* msg )
   // Append total energy
   diag.push_back( d[TOTALSOL][0] );
 
+  // Finish computing the L2 norm of the numerical - analytical solution
+  if (physics::SOL()) {
+    for (std::size_t i=0; i<d[L2ERR].size(); ++i)
+      diag.push_back( std::sqrt( d[L2ERR][i] / m_meshvol[meshid] ) );
+  }
+ 
   // Append diagnostics file at selected times
   auto filename = g_inputdeck.get< tag::cmd, tag::io, tag::diag >();
   if (m_nelem.size() > 1) filename += '.' + id;
@@ -1098,7 +1085,6 @@ Transporter::checkpoint( std::size_t finished, std::size_t meshid )
 
   if (++m_nchk == m_nelem.size()) { // all worker arrays have checkpointed
     m_nchk = 0;
-    #ifndef HAS_EXAM2M
     if (not g_inputdeck.get< tag::cmd, tag::benchmark >()) {
       const auto& restart = g_inputdeck.get< tag::cmd, tag::io, tag::restart >();
       CkCallback res( CkIndex_Transporter::resume(), thisProxy );
@@ -1106,10 +1092,6 @@ Transporter::checkpoint( std::size_t finished, std::size_t meshid )
     } else {
       resume();
     }
-    #else
-      printer() << ">>> WARNING: Checkpointing with ExaM2M not yet implemented\n";
-      resume();
-    #endif
   }
 }
 

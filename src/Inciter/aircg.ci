@@ -40,18 +40,14 @@ module aircg {
       entry void start();
       entry void refine( const std::vector< tk::real >& l2ref );
       entry [reductiontarget] void advance( tk::real newdt );
-      entry void comdfnorm(
-              const std::unordered_map< tk::UnsMesh::Edge,
-              std::array< tk::real, 3 >,
-              tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> >& dfnorm );
       entry void comnorm( const std::unordered_map< int,
-       std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& innorm );
-      entry void comChBndGrad( const std::vector< std::size_t >& gid,
-                               const std::vector< std::vector< tk::real > >& G );
-      entry void comrhs( const std::vector< std::size_t >& gid,
-                         const std::vector< std::vector< tk::real > >& R );
+        std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& inbnd );
+      entry void comgrad( const std::unordered_map< std::size_t,
+                                  std::vector< tk::real > >& ingrad );
+      entry void comrhs( const std::unordered_map< std::size_t,
+                                 std::vector< tk::real > >& inrhs );
       entry void resized();
-      entry void norm();
+      entry void integrals();
       entry void step();
       entry void next();
       entry void stage();
@@ -62,9 +58,8 @@ module aircg {
       // charm++/manual.html, Sec. "Structured Control Flow: Structured Dagger".
 
       //! [DAG]
-      entry void wait4norm() {
-        when ownnorm_complete(), comnorm_complete(),
-             owndfnorm_complete(), comdfnorm_complete() serial "norm" { mergenorm(); } }
+      entry void wait4int() {
+        when ownnorm_complete(), comnorm_complete() serial "int" { merge(); } }
 
       entry void wait4grad() {
         when owngrad_complete(), comgrad_complete() serial "grad" { rhs(); } }
@@ -73,17 +68,16 @@ module aircg {
         when ownrhs_complete(), comrhs_complete() serial "rhs" { solve(); } }
 
       entry void wait4stage() {
-        when norm_complete(), resize_complete() serial "stage" { stage(); } }
+        when integrals_complete(), resize_complete()
+        serial "stage" { stage(); } }
 
       entry void ownnorm_complete();
       entry void comnorm_complete();
-      entry void owndfnorm_complete();
-      entry void comdfnorm_complete();
-      entry void ownrhs_complete();
-      entry void comrhs_complete();
       entry void owngrad_complete();
       entry void comgrad_complete();
-      entry void norm_complete();
+      entry void ownrhs_complete();
+      entry void comrhs_complete();
+      entry void integrals_complete();
       entry void resize_complete();
       //! [DAG]
     }

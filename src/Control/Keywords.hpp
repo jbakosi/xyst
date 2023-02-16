@@ -1855,24 +1855,6 @@ struct pelocal_reorder_info {
 using pelocal_reorder =
   keyword< pelocal_reorder_info, TAOCPP_PEGTL_STRING("pelocal_reorder") >;
 
-struct operator_reorder_info {
-  static std::string name() { return "operator_reorder"; }
-  static std::string shortDescription() { return "Operator-access reorder"; }
-  static std::string longDescription() { return
-    R"(This keyword is used in inciter as a keyword in the inciter...end block
-    as "operator_reorder on" (or off) to do (or not do) a local mesh node
-    reordering based on the PDE operator access pattern. This reordering is
-    optional.)";
-  }
-  struct expect {
-    using type = bool;
-    static std::string choices() { return "true | false"; }
-    static std::string description() { return "string"; }
-  };
-};
-using operator_reorder =
-  keyword< operator_reorder_info, TAOCPP_PEGTL_STRING("operator_reorder") >;
-
 struct steady_state_info {
   static std::string name() { return "steady_state"; }
   static std::string shortDescription() { return "March to steady state"; }
@@ -2109,7 +2091,8 @@ struct nl_energy_growth_info {
   };
 };
 using nl_energy_growth =
-  keyword< nl_energy_growth_info, TAOCPP_PEGTL_STRING("nl_energy_growth") >;
+  keyword< nl_energy_growth_info,
+           TAOCPP_PEGTL_STRING("nonlinear_energy_growth") >;
 
 struct rayleigh_taylor_info {
   using code = Code< R >;
@@ -2169,7 +2152,7 @@ struct sod_shocktube_info {
   };
 };
 using sod_shocktube =
-  keyword< sod_shocktube_info, TAOCPP_PEGTL_STRING("sod_shocktube") >;
+  keyword< sod_shocktube_info, TAOCPP_PEGTL_STRING("sod") >;
 
 struct sod_rotated_shocktube_info {
   using code = Code< O >;
@@ -2192,8 +2175,7 @@ struct sod_rotated_shocktube_info {
   };
 };
 using rotated_sod_shocktube =
-  keyword< sod_rotated_shocktube_info,
-           TAOCPP_PEGTL_STRING("rotated_sod_shocktube") >;
+  keyword< sod_rotated_shocktube_info, TAOCPP_PEGTL_STRING("rotated_sod") >;
 
 struct sedov_blastwave_info {
   using code = Code< B >;

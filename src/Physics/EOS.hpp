@@ -16,6 +16,10 @@ namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
 
+} // ::inciter
+
+namespace physics {
+
 //! \brief Calculate density from the material pressure and temperature using
 //!   the stiffened-gas equation of state
 //! \param[in] pr Material pressure
@@ -23,24 +27,32 @@ extern ctr::InputDeck g_inputdeck;
 //! \return Material density calculated using the stiffened-gas EOS
 inline tk::real
 eos_density( tk::real pr, tk::real temp ) {
+  using inciter::g_inputdeck;
   auto g = g_inputdeck.get< tag::param, tag::compflow, tag::gamma >()[0][0];
   auto cv = g_inputdeck.get< tag::param, tag::compflow, tag::cv >()[0][0];
   return pr / ((g-1.0) * cv * temp);
 }
 
-//! \brief Calculate pressure from the material density, momentum and total
-//!   energy using the stiffened-gas equation of state
-//! \param[in] rho Material density
-//! \param[in] u X-velocity
-//! \param[in] v Y-velocity
-//! \param[in] w Z-velocity
-//! \param[in] rhoE Material total energy
-//! \return Material pressure calculated using the stiffened-gas EOS
+//! Compute pressure
+//! \param[in] r Density
+//! \param[in] e Specific internal energy
+//! \return Pressure computed from the ideal gas equation of state
 inline tk::real
-eos_pressure( tk::real rho, tk::real u, tk::real v, tk::real w, tk::real rhoE )
-{
+eos_pressure( tk::real r, tk::real e ) {
+  using inciter::g_inputdeck;
   auto g = g_inputdeck.get< tag::param, tag::compflow, tag::gamma >()[0][0];
-  return (rhoE - 0.5 * rho * (u*u + v*v + w*w)) * (g-1.0);
+  return r * e * (g-1.0);
+}
+
+//! Compute pressure
+//! \param[in] r Density
+//! \param[in] re Specific total energy
+//! \return Pressure computed from the ideal gas equation of state
+inline tk::real
+eos_pressure( tk::real r, tk::real u, tk::real v, tk::real w, tk::real re ) {
+  using inciter::g_inputdeck;
+  auto g = g_inputdeck.get< tag::param, tag::compflow, tag::gamma >()[0][0];
+  return (re - 0.5 * r * (u*u + v*v + w*w)) * (g-1.0);
 }
 
 //! Calculate speed of sound from the material density and material pressure
@@ -49,6 +61,7 @@ eos_pressure( tk::real rho, tk::real u, tk::real v, tk::real w, tk::real rhoE )
 //! \return Material speed of sound using the stiffened-gas EOS
 inline tk::real
 eos_soundspeed( tk::real rho, tk::real pr ) {
+  using inciter::g_inputdeck;
   auto g = g_inputdeck.get< tag::param, tag::compflow, tag::gamma >()[0][0];
   return std::sqrt( g * pr / rho );
 }
@@ -64,8 +77,9 @@ eos_soundspeed( tk::real rho, tk::real pr ) {
 inline tk::real
 eos_totalenergy( tk::real rho, tk::real u, tk::real v, tk::real w, tk::real pr )
 {
+  using inciter::g_inputdeck;
   auto g = g_inputdeck.get< tag::param, tag::compflow, tag::gamma >()[0][0];
   return pr / (g-1.0) + 0.5 * rho * (u*u + v*v + w*w);
 }
 
-} //inciter::
+} // physics::

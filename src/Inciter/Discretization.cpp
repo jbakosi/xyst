@@ -23,10 +23,6 @@
 #include "Around.hpp"
 #include "XystBuildConfig.hpp"
 
-#ifdef HAS_EXAM2M
-  #include "Controller.hpp"
-#endif
-
 namespace inciter {
 
 static CkReduction::reducerType PDFMerger;
@@ -66,7 +62,6 @@ Discretization::Discretization(
   m_meshwriter( meshwriter ),
   m_el( el ),     // fills m_inpoel, m_gid, m_lid
   m_coord( setCoord( coordmap ) ),
-  m_coordn( m_coord ),
   m_nodeCommMap(),
   m_edgeCommMap(),
   m_meshvol( 0.0 ),
@@ -146,24 +141,6 @@ Discretization::Discretization(
 
 }
 
-const tk::Fields&
-Discretization::meshvel() const
-// *****************************************************************************
-//! Query the mesh velocity
-//! \return Mesh velocity
-// *****************************************************************************
-{
-  return m_meshvel;
-}
-
-void
-Discretization::meshvelConv()
-// *****************************************************************************
-//! Assess and record mesh velocity linear solver convergence
-// *****************************************************************************
-{
-}
-
 std::unordered_map< std::size_t, std::size_t >
 Discretization::genBid()
 // *****************************************************************************
@@ -185,8 +162,8 @@ std::vector< std::size_t >
 Discretization::bndel() const
 // *****************************************************************************
 // Find elements along our mesh chunk boundary
-//! \return List of local element ids that have at least a single node
-//!   contributing to a chare boundary
+//! \return List of { element id, local node id } to contribute at chare
+//!   boundaries
 // *****************************************************************************
 {
   // Lambda to find out if a mesh node is shared with another chare
@@ -197,12 +174,25 @@ Discretization::bndel() const
   };
 
   // Find elements along our mesh chunk boundary
-  std::vector< std::size_t > e;
+  std::vector< std::size_t > chbndel;
   for (std::size_t n=0; n<m_inpoel.size(); ++n)
-    if (shared( m_gid[ m_inpoel[n] ] )) e.push_back( n/4 );
-  tk::unique( e );
+    if (shared( m_gid[ m_inpoel[n] ] )) chbndel.push_back( n/4 );
+  tk::unique( chbndel );
 
-  return e;
+  // generate { element id, local node id } pairs for chare boundaries
+  std::vector< std::size_t > en;
+
+  for (auto e : chbndel) {
+    for (std::size_t a=0; a<4; ++a) {
+      auto i = m_bid.find( m_gid[ m_inpoel[e*4+a] ] );
+      if (i != end(m_bid)) {            // if boundary element node contributes
+        en.push_back( e );              // store element id
+        en.push_back( i->second );      // store local node id to contribute to
+      }
+    }
+  }
+
+  return en;
 }
 
 void

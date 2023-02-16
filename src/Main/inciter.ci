@@ -19,12 +19,11 @@ mainmodule inciter {
 
   extern module partitioner;
   extern module aircg;
+  extern module charestatecollector;
   extern module lbswitch;
-  #ifdef HAS_EXAM2M
-  extern module controller;
-  #endif
 
   readonly CProxy_Main mainProxy;
+  readonly tk::CProxy_ChareStateCollector stateProxy;
   readonly tk::CProxy_LBSwitch LBSwitchProxy;
   readonly bool g_trace;
 

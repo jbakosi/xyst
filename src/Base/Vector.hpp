@@ -95,6 +95,20 @@ crossdiv( const std::array< real, 3 >& v1,
 }
 
 //! Compute the dot-product of two vectors
+//! \param[in] v1x x coordinate of 1st vector
+//! \param[in] v1y y coordinate of 1st vector
+//! \param[in] v1z z coordinate of 1st vector
+//! \param[in] v2x x coordinate of 2nd vector
+//! \param[in] v2y y coordinate of 2nd vector
+//! \param[in] v2z z coordinate of 2ndt vector
+//! \return Dot-product
+inline real
+dot( real v1x, real v1y, real v1z, real v2x, real v2y, real v2z )
+{
+  return v1x*v2x + v1y*v2y + v1z*v2z;
+}
+
+//! Compute the dot-product of two vectors
 //! \param[in] v1 1st vector
 //! \param[in] v2 2nd vector
 //! \return Dot-product

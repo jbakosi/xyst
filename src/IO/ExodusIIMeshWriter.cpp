@@ -475,7 +475,7 @@ ExodusIIMeshWriter::writeNodeScalars(
   const std::vector< std::vector< std::vector< tk::real > > >& var ) const
 // *****************************************************************************
 //  Write multiple node scalar fields to ExodusII file at multiple time steps
-//! \param[in] var Vector of nodal variables to read to: inner vector: nodes,
+//! \param[in] var Vector of nodal variables to write: inner vector: nodes,
 //!   middle vector: (physics) variable, outer vector: time step
 // *****************************************************************************
 {

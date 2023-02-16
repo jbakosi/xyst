@@ -24,6 +24,7 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Statistics
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PROJECT_SOURCE_DIR}/../Physics
+                           ${Boost_INCLUDE_DIRS}
                            ${SEACASExodus_INCLUDE_DIRS}
                            ${NETCDF_INCLUDES}
                            ${BRIGAND_INCLUDE_DIRS}

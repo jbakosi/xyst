@@ -58,6 +58,8 @@ detectInput( const std::string& filename )
     return MeshReaderType::UGRID;
   } else if ( s.find(" npo") != std::string::npos ) {
     return MeshReaderType::RDGFLO;
+  } else if ( s.find("Mes") != std::string::npos ) {
+    return MeshReaderType::MEDIT;
   } else {
     try {
       // cppcheck-suppress ignoredReturnValue

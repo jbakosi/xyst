@@ -48,39 +48,25 @@ AirCG::AirCG( const CProxy_Discretization& disc,
               const std::map< int, std::vector< std::size_t > >& bnode,
               const std::vector< std::size_t >& triinpoel ) :
   m_disc( disc ),
-  m_ngrad( 0 ),
   m_nrhs( 0 ),
-  m_nbnorm( 0 ),
-  m_ndfnorm( 0 ),
+  m_nnorm( 0 ),
+  m_nbpint( 0 ),
+  m_nbeint( 0 ),
+  m_ndeint( 0 ),
+  m_ngrad( 0 ),
+  m_ncomp( 5 +
+     (g_inputdeck.get<tag::component>().get<tag::transport>().empty() ? 0 :
+      g_inputdeck.get<tag::component>().get<tag::transport>()[0] ) ),
+  //m_ncomp( 5 ),
   m_bnode( bnode ),
   m_bface( bface ),
-  m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
+  m_triinpoel( triinpoel ),//tk::remap( triinpoel, Disc()->Lid() ) ),
   m_bndel( Disc()->bndel() ),
-  m_dfnorm(),
-  m_dfnormc(),
-  m_dfn(),
-  m_esup( tk::genEsup( Disc()->Inpoel(), 4 ) ),
-  m_psup( tk::genPsup( Disc()->Inpoel(), 4, m_esup ) ),
-  m_u( Disc()->Gid().size(), 5 ),
+  m_u( Disc()->Gid().size(), m_ncomp ),
   m_un( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
-  m_rhsc(),
-  m_chBndGrad( Disc()->Bid().size(), m_u.nprop()*3 ),
-  m_chBndGradc(),
-  m_diag(),
-  m_bnorm(),
-  m_bnormc(),
-  m_dirbc(),
-  m_symbcnodes(),
-  m_farfieldbcnodes(),
-  m_symbctri(),
-  m_spongenodes(),
-  m_timedepbcnodes(),
-  m_timedepbcFn(),
+  m_grad( m_u.nunk(), m_u.nprop()*3 ),
   m_stage( 0 ),
-  m_boxnodes(),
-  m_edgenode(),
-  m_edgeid(),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_inputdeck.get< tag::discr, tag::t0 >() ),
   m_finished( 0 )
@@ -97,37 +83,8 @@ AirCG::AirCG( const CProxy_Discretization& disc,
 
   auto d = Disc();
 
-  // Perform optional operator-access-pattern mesh node reordering
-  if (g_inputdeck.get< tag::discr, tag::operator_reorder >()) {
-
-    // Create new local ids based on access pattern of PDE operators
-    std::unordered_map< std::size_t, std::size_t > map;
-    std::size_t n = 0;
-
-    for (std::size_t p=0; p<m_u.nunk(); ++p) {  // for each point p
-      if (map.find(p) == end(map)) map[p] = n++;
-      for (auto q : tk::Around(m_psup,p)) {     // for each edge p-q
-        if (map.find(q) == end(map)) map[q] = n++;
-      }
-    }
-
-    Assert( map.size() == d->Gid().size(), "Map size mismatch" );
-
-    // Remap data in bound Discretization object
-    d->remap( map );
-    // Recompute elements surrounding points
-    m_esup = tk::genEsup( d->Inpoel(), 4 );
-    // Recompute points surrounding points
-    m_psup = tk::genPsup( d->Inpoel(), 4, m_esup );
-    // Remap boundary triangle face connectivity
-    tk::remap( m_triinpoel, map );
-  }
-
-  // Query/update boundary-conditions-related data structures
-  queryBnd();
-
-  // Activate SDAG wait for initially computing normals
-  thisProxy[ thisIndex ].wait4norm();
+  // Activate SDAG wait for initially computing integrals
+  thisProxy[ thisIndex ].wait4int();
 
   // Signal the runtime system that the workers have been created
   auto meshid = d->MeshId();
@@ -136,232 +93,179 @@ AirCG::AirCG( const CProxy_Discretization& disc,
 }
 //! [Constructor]
 
-std::unordered_map< std::size_t, std::vector< std::pair< bool, tk::real > > >
-AirCG::match( [[maybe_unused]] tk::ctr::ncomp_t nprop,
-              tk::real t,
-              tk::real dt,
-              const std::vector< tk::real >& tp,
-              const std::vector< tk::real >& dtp,
-              const tk::UnsMesh::Coords& coord,
-              const std::unordered_map< std::size_t, std::size_t >& lid,
-              const std::map< int, std::vector< std::size_t > >& bnode )
-// *****************************************************************************
-//  Match user-specified boundary conditions at nodes for side sets
-//! \param[in] nprop Number of scalar components in all PDE systems solved
-//! \param[in] t Physical time at which to query boundary conditions
-//! \param[in] dt Time step size (for querying BC increments in time)
-//! \param[in] tp Physical time for each mesh node
-//! \param[in] dtp Time step size for each mesh node
-//! \param[in] coord Mesh node coordinates
-//! \param[in] lid Local node IDs associated to local node IDs
-//! \param[in] bnode Map storing global mesh node IDs mapped to side set ids
-//! \return Vector of pairs of bool and boundary condition value associated to
-//!   local mesh node IDs at which the user has set Dirichlet boundary
-//!   conditions for all systems of PDEs integrated. The bool indicates whether
-//!   the BC is set at the node for that component: if true, the real value is
-//!   the increment (from t to dt) in (or the value of) the BC specified for a
-//!   component.
-//! \details Boundary conditions (BC), mathematically speaking, are applied on
-//!   finite surfaces. These finite surfaces are given by element sets (i.e., a
-//!   list of elements). This function queries Dirichlet boundary condition
-//!   values from all PDEs in the multiple systems of PDEs integrated at the
-//!   node lists associated to side set IDs, given by bnode. Each
-//!   PDE system returns a BC data structure. Note that the BC mesh nodes that
-//!   this function results in (stored in dirbc) only contains those nodes that
-//!   are supplied via bnode. i.e., in parallel only a part of the mesh is
-//!   worked on.
-// *****************************************************************************
-{
-  // Vector of pairs of bool and boundary condition value associated to mesh
-  // node IDs at which the user has set Dirichlet BCs for all PDEs integrated.
-  std::unordered_map< std::size_t,
-    std::vector< std::pair< bool, tk::real > > > dirbc;
-
-  // Details for the algorithm below: PDE::dirbc() returns a new map that
-  // associates a vector of pairs associated to local node IDs. (The pair is a
-  // pair of bool and real value, the former is the fact that the BC is to be
-  // set while the latter is the value if it is to be set). The length of this
-  // NodeBC vector, returning from each system of PDEs equals to the number of
-  // scalar components the given PDE integrates. Here we contatenate this map
-  // for all PDEs being integrated. If there are multiple BCs set at a mesh node
-  // (dirbc::key), either because (1) in the same PDE system the user prescribed
-  // BCs on side sets that share nodes or (2) because more than a single PDE
-  // system assigns BCs to a given node (on different variables), the NodeBC
-  // vector must be correctly stored. "Correctly" here means that the size of
-  // the NodeBC vectors must all be the same and equal to the sum of all scalar
-  // components integrated by all PDE systems integrated. Example: single-phase
-  // compressible flow (density, momentum, energy = 5) + transported scalars of
-  // 10 variables -> NodeBC vector length = 15. Note that in case (1) above a
-  // new node encountered must "overwrite" the already existing space for the
-  // NodeBC vector. "Overwrite" here means that it should keep the existing BCs
-  // and add the new ones yielding the union the two prescription for BCs but in
-  // the same space that already exist in the NodeBC vector. In case (2),
-  // however, the NodeBC pairs must go to the location in the vector assigned to
-  // the given PDE system, i.e., using the above example BCs for the 10 (or
-  // less) scalars should go in the positions starting at 5, leaving the first 5
-  // false, indicating no BCs for the flow variables.
-  //
-  // When a particular node belongs to two or more side sets with different BCs,
-  // there is an ambiguity as to which of the multiple BCs should be applied to
-  // the node. This issue is described in case (1) above. In the current
-  // implementation, every side set applies the BC to the common node in
-  // question, successively overwriting the BC applied by the previous side set.
-  // Effectively, the BC corresponding to the last side set ID is applied to the
-  // common node. Since bnode is an ordered map, the side set with a larger
-  // id wins if a node belongs to multiple side sets.
-
-  // Lambda to convert global to local node ids of a list of nodes
-  auto local = [ &lid ]( const std::vector< std::size_t >& gnodes ){
-    std::vector< std::size_t > lnodes( gnodes.size() );
-    for (std::size_t i=0; i<gnodes.size(); ++i)
-      lnodes[i] = tk::cref_find( lid, gnodes[i] );
-    return lnodes;
-  };
-
-  // Query Dirichlet BCs for all PDEs integrated and assign to nodes
-  for (const auto& s : bnode) { // for all side sets passed in
-    auto l = local(s.second);   // generate local node ids on side set
-    // query Dirichlet BCs at nodes of this side set
-    auto eqbc = inciter::dirbc( t, dt, tp, dtp, {s.first,l}, coord );
-    std::size_t offset = 0;
-    for (const auto& [node,bcval] : eqbc) {
-      auto& nodebc = dirbc[node];
-      nodebc.clear(); // multiple BCs at a node: last one wins
-      for (std::size_t c=0; c<nprop; ++c) nodebc.push_back( {false,0.0} );
-      for (std::size_t c=0; c<5; ++c) nodebc[offset+c] = bcval[c];
-    }
-  }
-
-  // Verify the size of each NodeBC vectors. They must have the same lengths and
-  // equal to the total number of scalar components for all systems of PDEs
-  // integrated.
-  Assert( std::all_of( begin(dirbc), end(dirbc),
-            [ nprop ]( const auto& n ){ return n.second.size() == nprop; } ),
-          "Size of NodeBC vector incorrect" );
-
-  return dirbc;
-}
-
 void
-AirCG::queryBnd()
+AirCG::integrals()
 // *****************************************************************************
-// Query/update boundary-conditions-related data structures
+// Start (re-)computing domain and boundary integrals
 // *****************************************************************************
 {
   auto d = Disc();
 
-  // Query and match user-specified Dirichlet boundary conditions to side sets
-  const auto steady = g_inputdeck.get< tag::discr, tag::steady_state >();
-  if (steady) for (auto& deltat : m_dtp) deltat *= rkcoef[m_stage];
-  m_dirbc = match( m_u.nprop(), d->T(), rkcoef[m_stage] * d->Dt(),
-                   m_tp, m_dtp, d->Coord(), d->Lid(), m_bnode );
-  if (steady) for (auto& deltat : m_dtp) deltat /= rkcoef[m_stage];
-
-  // Prepare unique set of symmetry BC nodes
+  // Query BC nodes associated to side sets
+  auto dir = d->bcnodes< tag::bc, tag::bcdir >( m_bface, m_triinpoel );
   auto sym = d->bcnodes< tag::bc, tag::bcsym >( m_bface, m_triinpoel );
-  for (const auto& [s,nodes] : sym)
-    m_symbcnodes.insert( begin(nodes), end(nodes) );
-
-  // Prepare unique set of farfield BC nodes
   auto far = d->bcnodes< tag::bc, tag::bcfarfield >( m_bface, m_triinpoel );
-  for (const auto& [s,nodes] : far)
-    m_farfieldbcnodes.insert( begin(nodes), end(nodes) );
+
+  // Compile unique set of BC nodes
+  std::set< std::size_t > dirbcnodeset;
+  for (const auto& [s,n] : dir) dirbcnodeset.insert( begin(n), end(n) );
+  std::set< std::size_t > symbcnodeset;
+  for (const auto& [s,n] : sym) symbcnodeset.insert( begin(n), end(n) );
+  std::set< std::size_t > farbcnodeset;
+  for (const auto& [s,n] : far) farbcnodeset.insert( begin(n), end(n) );
 
   // If farfield BC is set on a node, will not also set symmetry BC
-  for (auto fn : m_farfieldbcnodes) m_symbcnodes.erase(fn);
+  for (auto i : farbcnodeset) symbcnodeset.erase(i);
 
-  // Prepare boundary nodes contiguously accessible from a triangle-face loop
-  m_symbctri.resize( m_triinpoel.size()/3, 0 );
-  for (std::size_t e=0; e<m_triinpoel.size()/3; ++e)
-    if (m_symbcnodes.find(m_triinpoel[e*3+0]) != end(m_symbcnodes))
-      m_symbctri[e] = 1;
+  // Store unqie set of BC nodes with local node ids
+  const auto& lid = d->Lid();
 
-  // Prepare unique set of sponge nodes
-  auto sponge = d->bcnodes< tag::sponge, tag::sideset >( m_bface, m_triinpoel );
-  for (const auto& [s,nodes] : sponge)
-    m_spongenodes.insert( begin(nodes), end(nodes) );
+  std::size_t j = 0;
+  m_dirbcnodes.resize( dirbcnodeset.size() );
+  for (auto i : dirbcnodeset) m_dirbcnodes[j++] = tk::cref_find(lid,i);
+  std::sort( begin(m_dirbcnodes), end(m_dirbcnodes) );
 
-  // Prepare unique set of time dependent BC nodes
-  const auto& timedep =
-    g_inputdeck.template get< tag::param, tag::compflow, tag::bctimedep >();
-  if (!timedep.empty()) {
-    m_timedepbcnodes.resize(timedep[0].size());
-    m_timedepbcFn.resize(timedep[0].size());
-    std::size_t ib=0;
-    for (const auto& bndry : timedep[0]) {
-      std::unordered_set< std::size_t > nodes;
-      for (const auto& s : bndry.template get< tag::sideset >()) {
-        auto k = m_bnode.find( std::stoi(s) );
-        if (k != end(m_bnode)) {
-          for (auto g : k->second) {      // global node ids on side set
-            nodes.insert( tk::cref_find(d->Lid(),g) );
-          }
+  for (auto i : symbcnodeset) m_symbcnodeset.insert( tk::cref_find(lid,i) );
+  for (auto i : farbcnodeset) m_farbcnodeset.insert( tk::cref_find(lid,i) );
+
+  // Collect boundary nodes associated to side sets
+  std::unordered_map< int, std::unordered_set< std::size_t > > bnodes;
+  for (const auto& [s,n] : dir) bnodes[s].insert( begin(n), end(n) );
+  for (const auto& [s,n] : sym) bnodes[s].insert( begin(n), end(n) );
+  for (const auto& [s,n] : far) bnodes[s].insert( begin(n), end(n) );
+
+  // Compute local contributions to boundary normals and integrals
+  bndint( bnodes );
+  // Compute local contributions to domain edge integrals
+  domint();
+
+  // Send boundary point normal contributions to neighbor chares
+  if (d->NodeCommMap().empty()) {
+    comnorm_complete();
+  } else {
+    for (const auto& [c,nodes] : d->NodeCommMap()) {
+      decltype(m_bnorm) exp;
+      for (auto i : nodes) {
+        for (const auto& [s,b] : m_bnorm) {
+          auto k = b.find(i);
+          if (k != end(b)) exp[s][i] = k->second;
         }
       }
-      m_timedepbcnodes[ib].insert( begin(nodes), end(nodes) );
-
-      // Store user defined discrete function in time. This is done in the same
-      // loop as the BC nodes, so that the indices for the two vectors
-      // m_timedepbcnodes and m_timedepbcFn are consistent with each other
-      auto fn = bndry.template get< tag::fn >();
-      for (std::size_t ir=0; ir<fn.size()/6; ++ir) {
-        m_timedepbcFn[ib].push_back({{ fn[ir*6+0], fn[ir*6+1], fn[ir*6+2],
-          fn[ir*6+3], fn[ir*6+4], fn[ir*6+5] }});
-      }
-      ++ib;
+      thisProxy[c].comnorm( exp );
     }
   }
-
-  Assert(m_timedepbcFn.size() == m_timedepbcnodes.size(), "Incorrect number of "
-    "time dependent functions.");
+  ownnorm_complete();
 }
 
 void
-AirCG::norm()
+AirCG::bndint( const std::unordered_map< int,
+                       std::unordered_set< std::size_t > >& bnodes )
 // *****************************************************************************
-// Start (re-)computing boundary point-, and dual-face normals
+//! Compute local contributions to boundary normals and integrals
+//! \param[in] bnodes Local node ids associated to side set ids
 // *****************************************************************************
 {
   auto d = Disc();
+  const auto& coord = d->Coord();
+  const auto& gid = d->Gid();
+  const auto& lid = d->Lid();
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
 
-  // Query nodes at which symmetry BCs are specified
-  auto bn = d->bcnodes< tag::bc, tag::bcsym >( m_bface, m_triinpoel );
+  // Lambda to compute the inverse distance squared between boundary face
+  // centroid and boundary point. Here p is the global node id and c is the
+  // the boundary face centroid.
+  auto invdistsq = [&]( const std::array< tk::real, 3 >& c, std::size_t p ){
+    return 1.0 / ( (c[0] - x[p]) * (c[0] - x[p]) +
+                   (c[1] - y[p]) * (c[1] - y[p]) +
+                   (c[2] - z[p]) * (c[2] - z[p]) );
+  };
 
-  // Query nodes at which farfield BCs are specified
-  auto far = d->bcnodes< tag::bc, tag::bcfarfield >( m_bface, m_triinpoel );
-  // Merge BC data where boundary-point normals are required
-  for (const auto& [s,n] : far) bn[s].insert( begin(n), end(n) );
+  tk::destroy( m_bnorm );
+  tk::destroy( m_bndpoinint );
+  tk::destroy( m_bndedgeint );
 
-  // Compute boundary point normals
-  bnorm( bn );
+  // Compute boundary point normals and boundary point-, and edge-integrals on
+  // all side sets. The boundary point normals are computed by summing
+  // inverse-distance-weighted boundary face (triangle) normals to boundary
+  // points. Note that these are only partial sums at shared boundary points and
+  // edges in parallel.
 
-  // Compute dual-face normals associated to edges
-  dfnorm();
+   for (const auto& [ setid, faceids ] : m_bface) { // for all side sets
+     for (auto f : faceids) { // for all side set triangles
+ 
+       const std::array< std::size_t, 3 >
+         N{ tk::cref_find( lid, m_triinpoel[f*3+0] ),
+            tk::cref_find( lid, m_triinpoel[f*3+1] ),
+            tk::cref_find( lid, m_triinpoel[f*3+2] ) };
+       const std::array< tk::real, 3 >
+         ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
+         ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
+       auto n = tk::cross( ba, ca );
+       auto A = tk::length( n );
+       n[0] = n[0] / A;
+       n[1] = n[1] / A;
+       n[2] = n[2] / A;
+       A /= 2.0;
+       const std::array< tk::real, 3 > centroid{
+         (x[N[0]] + x[N[1]] + x[N[2]]) / 3.0,
+         (y[N[0]] + y[N[1]] + y[N[2]]) / 3.0,
+         (z[N[0]] + z[N[1]] + z[N[2]]) / 3.0 };
+
+       for (std::size_t j=0; j<3; ++j) { // for all 3 nodes of a bnd triangle
+         for (const auto& [ss,nodes] : bnodes) {  // for all bnd nodes
+           if (setid == ss) {  // only contribute to side set we operate on
+             auto p = N[j];
+             auto i = nodes.find( gid[p] );
+             if (i != end(nodes)) {      // only if user set bc on node
+               tk::real r = invdistsq( centroid, p );
+               auto& v = m_bnorm[ss];    // associate side set id
+               auto& bpn = v[gid[p]];    // associate global node id of bnd point
+               bpn[0] += r * n[0];       // inv.dist.sq-weighted normal
+               bpn[1] += r * n[1];
+               bpn[2] += r * n[2];
+               bpn[3] += r;              // inv.dist.sq of node from centroid
+               auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
+               b[0] += n[0] * A / 3.0;        // bnd-point integral
+               b[1] += n[1] * A / 3.0;
+               b[2] += n[2] * A / 3.0;
+               auto q = N[ tk::lpoet[j][1] ]; // the other node of bnd edge
+               tk::UnsMesh::Edge ed{ gid[p], gid[q] };
+               tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
+               if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
+               auto& e = m_bndedgeint[ ed ];
+               e[0] += sig * n[0] * A / 12.0; // bnd-edge integral
+               e[1] += sig * n[1] * A / 12.0;
+               e[2] += sig * n[1] * A / 12.0;
+             }
+           }
+         }
+       }
+
+    }
+  }
 }
 
-std::array< tk::real, 3 >
-AirCG::edfnorm( const tk::UnsMesh::Edge& edge,
-                const std::unordered_map< tk::UnsMesh::Edge,
-                        std::vector< std::size_t >,
-                        tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> >& esued )
-const
+void
+AirCG::domint()
 // *****************************************************************************
-//  Compute normal of dual-mesh associated to edge
-//! \param[in] edge Edge whose dual-face normal to compute given by local ids
-//! \param[in] esued Elements surrounding edges
-//! \return Dual-face normal for edge
+//! Compute local contributions to domain edge integrals
 // *****************************************************************************
 {
   auto d = Disc();
+
+  const auto& gid = d->Gid();
   const auto& inpoel = d->Inpoel();
+
   const auto& coord = d->Coord();
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
 
-  std::array< tk::real, 3 > n{ 0.0, 0.0, 0.0 };
+  tk::destroy( m_domedgeint );
 
-  for (auto e : tk::cref_find(esued,edge)) {
+  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
     // access node IDs
     const std::array< std::size_t, 4 >
       N{ inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
@@ -379,135 +283,39 @@ const
     grad[3] = tk::crossdiv( ba, ca, J );
     for (std::size_t i=0; i<3; ++i)
       grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
-    // sum normal contributions
-    // The constant 1/48: Eq (12) from Waltz et al. Computers & fluids (92) 2014
-    // The result of the integral of shape function N on a tet is V/4.
-    // This can be written as J/(6*4). Eq (12) has a 1/2 multiplier.
-    // This leads to J/48.
     auto J48 = J/48.0;
-    for (const auto& [a,b] : tk::lpoed) {
-      auto s = tk::orient( {N[a],N[b]}, edge );
+    for (const auto& [p,q] : tk::lpoed) {
+      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+      tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
+      if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
+      auto& n = m_domedgeint[ ed ];
       for (std::size_t j=0; j<3; ++j)
-        n[j] += J48 * s * (grad[a][j] - grad[b][j]);
+        n[j] += J48 * sig * (grad[p][j] - grad[q][j]);
     }
-  }
-
-  return n;
-}
-
-void
-AirCG::dfnorm()
-// *****************************************************************************
-// Compute dual-face normals associated to edges
-// *****************************************************************************
-{
-  auto d = Disc();
-  const auto& inpoel = d->Inpoel();
-  const auto& gid = d->Gid();
-
-  // compute derived data structures
-  auto esued = tk::genEsued( inpoel, 4, m_esup );
-
-  // Compute dual-face normals for domain edges
-  for (std::size_t p=0; p<gid.size(); ++p)    // for each point p
-    for (auto q : tk::Around(m_psup,p))       // for each edge p-q
-      if (gid[p] < gid[q])
-        m_dfnorm[{gid[p],gid[q]}] = edfnorm( {p,q}, esued );
-
-  // Send our dual-face normal contributions to neighbor chares
-  if (d->EdgeCommMap().empty())
-    comdfnorm_complete();
-  else {
-    for (const auto& [c,edges] : d->EdgeCommMap()) {
-      decltype(m_dfnorm) exp;
-      for (const auto& e : edges) exp[e] = tk::cref_find(m_dfnorm,e);
-      thisProxy[c].comdfnorm( exp );
-    }
-  }
-
-  owndfnorm_complete();
-}
-
-void
-AirCG::comdfnorm( const std::unordered_map< tk::UnsMesh::Edge,
-                    std::array< tk::real, 3 >,
-                    tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> >& dfnorm )
-// *****************************************************************************
-// Receive contributions to dual-face normals on chare-boundaries
-//! \param[in] dfnorm Incoming partial sums of dual-face normals associated to
-//!   chare-boundary edges
-// *****************************************************************************
-{
-  // Buffer up inccoming contributions to dual-face normals
-  for (const auto& [e,n] : dfnorm) {
-    auto& dfn = m_dfnormc[e];
-    dfn[0] += n[0];
-    dfn[1] += n[1];
-    dfn[2] += n[2];
-  }
-
-  if (++m_ndfnorm == Disc()->EdgeCommMap().size()) {
-    m_ndfnorm = 0;
-    comdfnorm_complete();
   }
 }
 
 void
-AirCG::bnorm( const std::unordered_map< int,
-                std::unordered_set< std::size_t > >& bcnodes )
+AirCG::comnorm( const decltype(m_bnorm)& inbnd )
 // *****************************************************************************
-//  Compute boundary point normals
-//! \param[in] bcnodes Local node ids associated to side set ids at which BCs
-//!    are set that require normals
-//*****************************************************************************
-{
-  auto d = Disc();
-
-  m_bnorm = tk::bnorm( m_bface, m_triinpoel, d->Coord(), d->Gid(), bcnodes );
-
-  // Send our nodal normal contributions to neighbor chares
-  if (d->NodeCommMap().empty())
-    comnorm_complete();
-  else
-    for (const auto& [ neighborchare, sharednodes ] : d->NodeCommMap()) {
-      std::unordered_map< int,
-        std::unordered_map< std::size_t, std::array< tk::real, 4 > > > exp;
-      for (auto i : sharednodes) {
-        for (const auto& [s,norms] : m_bnorm) {
-          auto j = norms.find(i);
-          if (j != end(norms)) exp[s][i] = j->second;
-        }
-      }
-      thisProxy[ neighborchare ].comnorm( exp );
-    }
-
-  ownnorm_complete();
-}
-
-void
-AirCG::comnorm( const std::unordered_map< int,
-  std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& innorm )
-// *****************************************************************************
-// Receive boundary point normals on chare-boundaries
-//! \param[in] innorm Incoming partial sums of boundary point normal
-//!   contributions to normals (first 3 components), inverse distance squared
-//!   (4th component), associated to side set ids
+// Receive contributions to boundary point normals on chare-boundaries
+//! \param[in] inbnd Incoming partial sums of boundary point normals
 // *****************************************************************************
 {
-  // Buffer up incoming boundary-point normal vector contributions
-  for (const auto& [s,norms] : innorm) {
-    auto& bnorms = m_bnormc[s];
-    for (const auto& [p,n] : norms) {
-      auto& bnorm = bnorms[p];
-      bnorm[0] += n[0];
-      bnorm[1] += n[1];
-      bnorm[2] += n[2];
-      bnorm[3] += n[3];
+  // Buffer up incoming boundary point normal vector contributions
+  for (const auto& [s,b] : inbnd) {
+    auto& bndnorm = m_bnormc[s];
+    for (const auto& [p,n] : b) {
+      auto& norm = bndnorm[p];
+      norm[0] += n[0];
+      norm[1] += n[1];
+      norm[2] += n[2];
+      norm[3] += n[3];
     }
   }
 
-  if (++m_nbnorm == Disc()->NodeCommMap().size()) {
-    m_nbnorm = 0;
+  if (++m_nnorm == Disc()->NodeCommMap().size()) {
+    m_nnorm = 0;
     comnorm_complete();
   }
 }
@@ -548,8 +356,8 @@ AirCG::setup()
 {
   auto d = Disc();
 
-  // Determine nodes inside user-defined IC box
-  ICBoxNodes( d->Coord(), m_boxnodes );
+  // Set initial conditions
+  physics::initialize( d->Coord(), m_u, d->T() );
 
   // Compute volume of user-defined box IC
   d->boxvol( m_boxnodes );
@@ -557,12 +365,8 @@ AirCG::setup()
   // Query time history field output labels from all PDEs integrated
   const auto& hist_points = g_inputdeck.get< tag::history, tag::point >();
   if (!hist_points.empty()) {
-    std::vector< std::string > histnames;
-    //for (const auto& eq : g_cgpde) {
-    //  auto n = eq.histNames();
-    //  histnames.insert( end(histnames), begin(n), end(n) );
-    //}
-    d->histheader( std::move(histnames) );
+    d->histheader( { "density", "xvelocity", "yvelocity", "zvelocity",
+                     "energy", "pressure" } );
   }
 }
 //! [setup]
@@ -574,16 +378,11 @@ AirCG::box( tk::real v )
 //! \param[in] v Total volume within user-specified box
 // *****************************************************************************
 {
-  auto d = Disc();
-
   // Store user-defined box IC volume
-  d->Boxvol() = v;
+  Disc()->Boxvol() = v;
 
-  // Set initial conditions for all PDEs
-  initialize( d->Coord(), m_u, d->T() );
-
-  // Compute boundary point-, and dual-face normals
-  norm();
+  // Compute edge integrals
+  integrals();
 }
 
 //! [start]
@@ -606,37 +405,18 @@ AirCG::start()
 
 //! [Merge normals and continue]
 void
-AirCG::mergenorm()
+AirCG::merge()
 // *****************************************************************************
-// The own and communication portion of the left-hand side is complete
-// *****************************************************************************
-{
-  // Combine own and communicated contributions of normals
-  normfinal();
-
-  if (Disc()->Initial()) {
-    // Output initial conditions to file
-    writeFields( CkCallback(CkIndex_AirCG::start(), thisProxy[thisIndex]) );
-  } else {
-    norm_complete();
-  }
-}
-//! [Merge normals and continue]
-
-void
-AirCG::normfinal()
-// *****************************************************************************
-//  Finish computing dual-face and boundary point normals
+// Combine own and communicated portions of the integrals
 // *****************************************************************************
 {
-  auto d = Disc();
-  const auto& lid = d->Lid();
+  const auto& lid = Disc()->Lid();
 
   // Combine own and communicated contributions to boundary point normals
-  for (const auto& [s,norms] : m_bnormc) {
-    auto& bnorms = m_bnorm[s];
-    for (const auto& [p,n] : norms) {
-      auto& norm = bnorms[p];
+  for (const auto& [s,b] : m_bnormc) {
+    auto& bndnorm = m_bnorm[s];
+    for (const auto& [g,n] : b) {
+      auto& norm = bndnorm[g];
       norm[0] += n[0];
       norm[1] += n[1];
       norm[2] += n[2];
@@ -645,9 +425,9 @@ AirCG::normfinal()
   }
   tk::destroy( m_bnormc );
 
-  // Divide summed point normals by the sum of inverse distance squared
-  for (auto& [s,norms] : m_bnorm)
-    for (auto& [p,n] : norms) {
+  // Divide summed point normals by the sum of the inverse distance squared
+  for (auto& [s,b] : m_bnorm) {
+    for (auto& [g,n] : b) {
       n[0] /= n[3];
       n[1] /= n[3];
       n[2] /= n[3];
@@ -655,86 +435,116 @@ AirCG::normfinal()
               1.0e+3*std::numeric_limits< tk::real >::epsilon(),
               "Non-unit normal" );
     }
+  }
 
   // Replace global->local ids associated to boundary point normals
-  decltype(m_bnorm) bnorm;
-  for (auto& [s,norms] : m_bnorm) {
-    auto& bnorms = bnorm[s];
-    for (auto&& [g,n] : norms)
-      bnorms[ tk::cref_find(lid,g) ] = std::move(n);
-  }
-  m_bnorm = std::move(bnorm);
-
-  // Count contributions to chare-boundary edges
-  std::unordered_map< tk::UnsMesh::Edge, std::size_t,
-    tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > edge_node_count;
-  for (const auto& [c,edges] : d->EdgeCommMap())
-    for (const auto& e : edges)
-      ++edge_node_count[e];
-
-  // Combine and weigh communicated contributions to dual-face normals
-  for (auto& [e,n] : m_dfnormc) {
-    const auto& dfn = tk::cref_find( m_dfnorm, e );
-    n[0] += dfn[0];
-    n[1] += dfn[1];
-    n[2] += dfn[2];
-    auto count = static_cast< tk::real >( tk::cref_find( edge_node_count, e ) );
-    auto factor = 1.0/(count + 1.0);
-    for (auto & x : n) x *= factor;
-  }
-
-  // Generate list of unique edges
-  tk::UnsMesh::EdgeSet uedge;
-  for (std::size_t p=0; p<m_u.nunk(); ++p)
-    for (auto q : tk::Around(m_psup,p))
-      uedge.insert( {p,q} );
-
-  // Flatten edge list
-  m_edgenode.resize( uedge.size() * 2 );
-  std::size_t f = 0;
-  const auto& gid = d->Gid();
-  for (auto&& [p,q] : uedge) {
-    if (gid[p] > gid[q]) {
-      m_edgenode[f+0] = std::move(q);
-      m_edgenode[f+1] = std::move(p);
-    } else {
-      m_edgenode[f+0] = std::move(p);
-      m_edgenode[f+1] = std::move(q);
+  decltype(m_bnorm) loc;
+  for (auto& [s,b] : m_bnorm) {
+    auto& bnd = loc[s];
+    for (auto&& [g,n] : b) {
+      bnd[ tk::cref_find(lid,g) ] = std::move(n);
     }
-    f += 2;
   }
-  tk::destroy(uedge);
+  m_bnorm = std::move(loc);
 
-  // Convert dual-face normals to streamable (and vectorizable) data structure
-  m_dfn.resize( m_edgenode.size() * 3 );      // 2 vectors per access
-  std::unordered_map< tk::UnsMesh::Edge, std::size_t,
-                      tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > eid;
-  for (std::size_t e=0; e<m_edgenode.size()/2; ++e) {
-    auto p = m_edgenode[e*2+0];
-    auto q = m_edgenode[e*2+1];
-    eid[{p,q}] = e;
-    std::array< std::size_t, 2 > g{ gid[p], gid[q] };
-    auto n = tk::cref_find( m_dfnorm, g );
-    // figure out if this is an edge on the parallel boundary
-    auto nit = m_dfnormc.find( g );
-    auto m = ( nit != m_dfnormc.end() ) ? nit->second : n;
-    m_dfn[e*6+0] = n[0];
-    m_dfn[e*6+1] = n[1];
-    m_dfn[e*6+2] = n[2];
-    m_dfn[e*6+3] = m[0];
-    m_dfn[e*6+4] = m[1];
-    m_dfn[e*6+5] = m[2];
+  // Convert boundary point integrals into streamable data structures
+  m_bpoin.resize( m_bndpoinint.size() );
+  m_bpint.resize( m_bndpoinint.size() * 3 );
+  m_bpsym.resize( m_bndpoinint.size() );
+  std::size_t i = 0;
+  for (const auto& [g,b] : m_bndpoinint) {
+    m_bpoin[i] = tk::cref_find( lid, g );
+    m_bpsym[i] = static_cast< std::uint8_t >(m_symbcnodeset.count(m_bpoin[i]));
+    m_bpint[i*3+0] = b[0];
+    m_bpint[i*3+1] = b[1];
+    m_bpint[i*3+2] = b[2];
+    ++i;
   }
+  tk::destroy( m_bndpoinint );
 
-  tk::destroy( m_dfnorm );
-  tk::destroy( m_dfnormc );
+  // Convert boundary edge integrals into streamable data structures
+  m_bedge.resize( m_bndedgeint.size() * 2 );
+  m_beint.resize( m_bndedgeint.size() * 3 );
+  m_besym.resize( m_bndedgeint.size() * 2 );
+  std::size_t j = 0;
+  for (const auto& [ed,b] : m_bndedgeint) {
+    auto p = tk::cref_find( lid, ed[0] );
+    auto q = tk::cref_find( lid, ed[1] );
+    m_bedge[j*2+0] = p;
+    m_bedge[j*2+1] = q;
+    m_besym[j*2+0] = static_cast< std::uint8_t >( m_symbcnodeset.count(p) );
+    m_besym[j*2+1] = static_cast< std::uint8_t >( m_symbcnodeset.count(q) );
+    m_beint[j*3+0] = b[0];
+    m_beint[j*3+1] = b[1];
+    m_beint[j*3+2] = b[2];
+    ++j;
+  }
+  tk::destroy( m_bndedgeint );
 
-  // Flatten edge id data structure
-  m_edgeid.resize( m_psup.first.size() );
-  for (std::size_t p=0,k=0; p<m_u.nunk(); ++p)
-    for (auto q : tk::Around(m_psup,p))
-      m_edgeid[k++] = tk::cref_find( eid, {p,q} );
+  // Convert domain edge integrals into streamable data structures
+  m_dedge.resize( m_domedgeint.size() * 2 );
+  m_deint.resize( m_domedgeint.size() * 3 );
+  std::size_t k = 0;
+  for (const auto& [ed,d] : m_domedgeint) {
+    auto p = tk::cref_find( lid, ed[0] );
+    auto q = tk::cref_find( lid, ed[1] );
+    m_dedge[k*2+0] = p;
+    m_dedge[k*2+1] = q;
+    m_deint[k*3+0] = d[0];
+    m_deint[k*3+1] = d[1];
+    m_deint[k*3+2] = d[2];
+    ++k;
+  }
+  tk::destroy( m_domedgeint );
+
+  // Convert symmetry BC data to streamable data structures
+  const auto& sbc =
+    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::bcsym >();
+  for (auto p : m_symbcnodeset) {
+    for (const auto& s : sbc[0]) {
+      auto m = m_bnorm.find(std::stoi(s));
+      if (m != end(m_bnorm)) {
+        auto r = m->second.find(p);
+        if (r != end(m->second)) {
+          m_symbcnodes.push_back( p );
+          m_symbcnorms.push_back( r->second[0] );
+          m_symbcnorms.push_back( r->second[1] );
+          m_symbcnorms.push_back( r->second[2] );
+        }
+      }
+    }
+  }
+  tk::destroy( m_symbcnodeset );
+
+  // Convert farfield BC data to streamable data structures
+  const auto& fbc =
+    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::bcfarfield >();
+  for (auto p : m_farbcnodeset) {
+    for (const auto& s : fbc[0]) {
+      auto n = m_bnorm.find(std::stoi(s));
+      if (n != end(m_bnorm)) {
+        auto a = n->second.find(p);
+        if (a != end(n->second)) {
+          m_farbcnodes.push_back( p );
+          m_farbcnorms.push_back( a->second[0] );
+          m_farbcnorms.push_back( a->second[1] );
+          m_farbcnorms.push_back( a->second[2] );
+        }
+      }
+    }
+  }
+  tk::destroy( m_farbcnodeset );
+
+  if (Disc()->Initial()) {
+    // Enforce boundary conditions on initial conditions
+    BC();
+    // Output initial conditions to file
+    writeFields( CkCallback(CkIndex_AirCG::start(), thisProxy[thisIndex]) );
+  } else {
+    //integrals_complete();
+  }
 }
+//! [Merge normals and continue]
 
 void
 AirCG::BC()
@@ -750,25 +560,17 @@ AirCG::BC()
 // *****************************************************************************
 {
   auto d = Disc();
-
-  // Apply Dirichlet BCs
-  for (const auto& [b,bc] : m_dirbc)
-    for (ncomp_t c=0; c<m_u.nprop(); ++c)
-      if (bc[c].first) m_u(b,c,0) = bc[c].second;
-
   const auto& coord = d->Coord();
 
+  // Apply Dirichlet BCs
+  auto t = d->T() + rkcoef[m_stage] * d->Dt();
+  physics::dirbc( m_u, t, coord, m_dirbcnodes );
+
   // Apply symmetry BCs
-  symbc( m_u, coord, m_bnorm, m_symbcnodes );
+  physics::symbc( m_u, m_symbcnodes, m_symbcnorms );
 
   // Apply farfield BCs
-  farfieldbc( m_u, coord, m_bnorm, m_farfieldbcnodes );
-
-  // Apply sponge conditions
-  sponge( m_u, coord, m_spongenodes );
-
-  // Apply user defined time dependent BCs
-  timedepbc( d->T(), m_u, m_timedepbcnodes, m_timedepbcFn );
+  physics::farbc( m_u, m_farbcnodes, m_farbcnorms );
 }
 
 void
@@ -805,7 +607,7 @@ AirCG::dt()
     if (g_inputdeck.get< tag::discr, tag::steady_state >()) {
 
       // compute new dt for each mesh point
-      inciter::dt( d->It(), d->Vol(), m_u, m_dtp );
+      physics::dt( d->Vol(), m_u, m_dtp );
 
       // find the smallest dt of all nodes on this chare
       mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
@@ -813,7 +615,7 @@ AirCG::dt()
     } else {    // compute new dt for this chare
 
       // find the smallest dt of all equations on this chare
-      mindt = inciter::dt( d->Coord(), d->Inpoel(), d->T(), m_u );
+      mindt = physics::dt( d->Vol(), m_u );
 
     }
     //! [Find the minimum dt across all PDEs integrated]
@@ -824,7 +626,6 @@ AirCG::dt()
   // Actiavate SDAG waits for next time step stage
   thisProxy[ thisIndex ].wait4grad();
   thisProxy[ thisIndex ].wait4rhs();
-  thisProxy[ thisIndex ].wait4stage();
 
   // Contribute to minimum dt across all chares and advance to next step
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
@@ -839,62 +640,57 @@ AirCG::advance( tk::real newdt )
 //! \param[in] newdt The smallest dt across the whole problem
 // *****************************************************************************
 {
-  auto d = Disc();
-
   // Set new time step size
-  if (m_stage == 0) d->setdt( newdt );
+  if (m_stage == 0) Disc()->setdt( newdt );
 
-  // Compute gradients for next time step
-  chBndGrad();
+  // Compute gradients for next time step stage
+  grad();
 }
 
 void
-AirCG::chBndGrad()
+AirCG::grad()
 // *****************************************************************************
-// Compute nodal gradients at chare-boundary nodes. Gradients at internal nodes
-// are calculated locally as needed and are not stored.
+// Compute gradients for next time step
 // *****************************************************************************
 {
   auto d = Disc();
+  const auto& lid = d->Lid();
 
-  // Compute own portion of gradients for all equations
-  bndgrad( d->Coord(), d->Inpoel(), m_bndel, d->Gid(), d->Bid(), m_u,
-           m_chBndGrad );
+  physics::grad( m_dedge, m_deint, m_bpoin, m_bpint, m_bedge, m_beint, m_u,
+                 m_grad );
 
-  // Communicate gradients to other chares on chare-boundary
-  if (d->NodeCommMap().empty())        // in serial we are done
+  // Send gradient contributions to neighbor chares
+  if (d->NodeCommMap().empty()) {
     comgrad_complete();
-  else // send gradients contributions to chare-boundary nodes to fellow chares
+  } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
-      std::vector< std::vector< tk::real > > g( n.size() );
-      std::size_t j = 0;
-      for (auto i : n) g[ j++ ] = m_chBndGrad[ tk::cref_find(d->Bid(),i) ];
-      thisProxy[c].comChBndGrad( std::vector<std::size_t>(begin(n),end(n)), g );
+      decltype(m_gradc) exp;
+      for (auto g : n) exp[g] = m_grad[ tk::cref_find(lid,g) ];
+      thisProxy[c].comgrad( exp );
     }
+  }
 
   owngrad_complete();
 }
 
 void
-AirCG::comChBndGrad( const std::vector< std::size_t >& gid,
-                     const std::vector< std::vector< tk::real > >& G )
+AirCG::comgrad(
+  const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
 // *****************************************************************************
-//  Receive contributions to nodal gradients on chare-boundaries
-//! \param[in] gid Global mesh node IDs at which we receive grad contributions
-//! \param[in] G Partial contributions of gradients to chare-boundary nodes
-//! \details This function receives contributions to m_chBndGrad, which stores
-//!   nodal gradients at mesh chare-boundary nodes. While m_chBndGrad stores
-//!   own contributions, m_chBndGradc collects the neighbor chare
-//!   contributions during communication. This way work on m_chBndGrad and
-//!   m_chBndGradc is overlapped. The two are combined in rhs().
+//  Receive contributions to node gradients on chare-boundaries
+//! \param[in] ingrad Partial contributions to chare-boundary nodes. Key: 
+//!   global mesh node IDs, value: contributions for all scalar components.
+//! \param[in] inrhs Partial contributions of gradients at chare-boundary nodes
+//! \details This function receives contributions to m_grad, which stores the
+//!   gradients at mesh nodes. While m_grad stores own contributions, m_gradc
+//!   collects the neighbor chare contributions during communication. This way
+//!   work on m_grad and m_gradc is overlapped. The two are combined in rhs().
 // *****************************************************************************
 {
-  Assert( G.size() == gid.size(), "Size mismatch" );
-
   using tk::operator+=;
+  for (const auto& [g,r] : ingrad) m_gradc[g] += r;
 
-  for (std::size_t i=0; i<gid.size(); ++i) m_chBndGradc[ gid[i] ] += G[i];
-
+  // When we have heard from all chares we communicate with, this chare is done
   if (++m_ngrad == Disc()->NodeCommMap().size()) {
     m_ngrad = 0;
     comgrad_complete();
@@ -908,55 +704,57 @@ AirCG::rhs()
 // *****************************************************************************
 {
   auto d = Disc();
+  const auto& lid = d->Lid();
 
-  // Combine own and communicated contributions to nodal gradients
-  for (const auto& [gid,g] : m_chBndGradc) {
-    auto bid = tk::cref_find( d->Bid(), gid );
-    for (ncomp_t c=0; c<m_chBndGrad.nprop(); ++c)
-      m_chBndGrad(bid,c,0) += g[c];
+  // Combine own and communicated contributions to gradients
+  for (const auto& [g,r] : m_gradc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c,0) += r[c];
   }
+  tk::destroy(m_gradc);
 
-  // clear gradients receive buffer
-  tk::destroy(m_chBndGradc);
+  // divide weak result in gradients by nodal volume
+  const auto& vol = d->Vol();
+  for (std::size_t p=0; p<m_grad.nunk(); ++p)
+    for (std::size_t c=0; c<m_grad.nprop(); ++c)
+      m_grad(p,c,0) /= vol[p];
 
   const auto steady = g_inputdeck.get< tag::discr, tag::steady_state >();
 
   // Compute own portion of right-hand side for all equations
   auto prev_rkcoef = m_stage == 0 ? 0.0 : rkcoef[m_stage-1];
-  if (steady)
+
+  if (steady) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
-  inciter::rhs( d->T() + prev_rkcoef * d->Dt(), d->Coord(), d->Inpoel(),
-       m_triinpoel, d->Gid(), d->Bid(), d->Lid(), m_dfn, m_esup, m_psup,
-       m_symbctri, m_spongenodes, d->Vol(), m_edgenode, m_edgeid, m_tp,
-       m_chBndGrad, m_u, m_rhs );
+  }
 
-  if (steady)
+  physics::rhs( m_dedge, m_deint, m_bpoin, m_bpint, m_bedge, m_beint, m_bpsym,
+    m_besym, d->Coord(), m_grad, m_u, d->V(), d->T(), m_tp, m_rhs );
+
+  if (steady) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= prev_rkcoef * m_dtp[p];
-
-  // Query/update boundary-conditions-related data structures from user input
-  queryBnd();
+  }
 
   // Communicate rhs to other chares on chare-boundary
-  if (d->NodeCommMap().empty())        // in serial we are done
+  if (d->NodeCommMap().empty()) {
     comrhs_complete();
-  else // send contributions of rhs to chare-boundary nodes to fellow chares
+  } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
-      std::vector< std::vector< tk::real > > r( n.size() );
-      std::size_t j = 0;
-      for (auto i : n) r[ j++ ] = m_rhs[ tk::cref_find(d->Lid(),i) ];
-      thisProxy[c].comrhs( std::vector<std::size_t>(begin(n),end(n)), r );
+      decltype(m_rhsc) exp;
+      for (auto g : n) exp[g] = m_rhs[ tk::cref_find(lid,g) ];
+      thisProxy[c].comrhs( exp );
     }
-
+  }
   ownrhs_complete();
 }
 
 void
-AirCG::comrhs( const std::vector< std::size_t >& gid,
-               const std::vector< std::vector< tk::real > >& R )
+AirCG::comrhs(
+  const std::unordered_map< std::size_t, std::vector< tk::real > >& inrhs )
 // *****************************************************************************
 //  Receive contributions to right-hand side vector on chare-boundaries
-//! \param[in] gid Global mesh node IDs at which we receive RHS contributions
-//! \param[in] R Partial contributions of RHS to chare-boundary nodes
+//! \param[in] inrhs Partial contributions of RHS to chare-boundary nodes. Key: 
+//!   global mesh node IDs, value: contributions for all scalar components.
 //! \details This function receives contributions to m_rhs, which stores the
 //!   right hand side vector at mesh nodes. While m_rhs stores own
 //!   contributions, m_rhsc collects the neighbor chare contributions during
@@ -964,11 +762,8 @@ AirCG::comrhs( const std::vector< std::size_t >& gid,
 //!   are combined in solve().
 // *****************************************************************************
 {
-  Assert( R.size() == gid.size(), "Size mismatch" );
-
   using tk::operator+=;
-
-  for (std::size_t i=0; i<gid.size(); ++i) m_rhsc[ gid[i] ] += R[i];
+  for (const auto& [g,r] : inrhs) m_rhsc[g] += r;
 
   // When we have heard from all chares we communicate with, this chare is done
   if (++m_nrhs == Disc()->NodeCommMap().size()) {
@@ -984,15 +779,20 @@ AirCG::solve()
 // *****************************************************************************
 {
   auto d = Disc();
+  const auto lid = d->Lid();
 
   // Combine own and communicated contributions to rhs
-  for (const auto& b : m_rhsc) {
-    auto lid = tk::cref_find( d->Lid(), b.first );
-    for (ncomp_t c=0; c<m_rhs.nprop(); ++c) m_rhs(lid,c,0) += b.second[c];
+  for (const auto& [g,r] : m_rhsc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
   }
-
-  // clear receive buffer
   tk::destroy(m_rhsc);
+
+  // divide weak result in rhs by nodal volume
+  const auto& vol = d->Vol();
+  for (std::size_t p=0; p<m_rhs.nunk(); ++p)
+    for (std::size_t c=0; c<m_rhs.nprop(); ++c)
+      m_rhs(p,c,0) /= vol[p];
 
   // Update state at time n
   if (m_stage == 0) m_un = m_u;
@@ -1001,44 +801,45 @@ AirCG::solve()
   if (g_inputdeck.get< tag::discr, tag::steady_state >()) {
 
     // Advance solution, converging to steady state
-    for (std::size_t i=0; i<m_u.nunk(); ++i)
-      for (ncomp_t c=0; c<m_u.nprop(); ++c)
-        m_u(i,c,0) = m_un(i,c,0) + rkcoef[m_stage] * m_dtp[i] * m_rhs(i,c,0);
+    for (std::size_t i=0; i<m_u.nunk(); ++i) {
+      for (ncomp_t c=0; c<m_u.nprop(); ++c) {
+        m_u(i,c,0) = m_un(i,c,0) - rkcoef[m_stage] * m_dtp[i] * m_rhs(i,c,0);
+      }
+    }
 
   } else {
 
     // Advance unsteady solution
-    const auto& V = d->Vol();
-    auto adt = rkcoef[m_stage] * d->Dt();
-    for (std::size_t i=0; i<m_u.nunk(); ++i)
-      for (ncomp_t c=0; c<5; ++c)
-        m_u(i,c,0) = m_un(i,c,0) + adt * m_rhs(i,c,0) / V[i];
+    m_u = m_un - rkcoef[m_stage] * d->Dt() * m_rhs;
 
   }
 
   // Enforce boundary conditions
   BC();
 
-  if (m_stage < 2) {
+  // Activate SDAG wait for next time step stage
+  thisProxy[ thisIndex ].wait4grad();
+  thisProxy[ thisIndex ].wait4rhs();
 
-    // Activate SDAG wait for next time step stage
-    thisProxy[ thisIndex ].wait4grad();
-    thisProxy[ thisIndex ].wait4rhs();
+  if (m_stage < 2) {
 
     // start next time step stage
     stage();
 
   } else {
 
+    // Activate SDAG waits for finishing a this time step stage
+    thisProxy[ thisIndex ].wait4stage();
     // Compute diagnostics, e.g., residuals
-    auto diag_computed = m_diag.compute( *d, m_u, m_un, m_bnorm,
-                                         m_symbcnodes, m_farfieldbcnodes );
+    auto diag_computed = m_diag.compute( *d, m_u, m_un );
     // Increase number of iterations and physical time
     d->next();
     // Advance physical time for local time stepping
-    if (g_inputdeck.get< tag::discr, tag::steady_state >())
-      for (std::size_t i=0; i<m_u.nunk(); ++i) m_tp[i] += m_dtp[i];
-    // Continue to mesh refinement (if configured)
+    if (g_inputdeck.get< tag::discr, tag::steady_state >()) {
+      using tk::operator+=;
+      m_tp += m_dtp;
+    }
+    // Continue to mesh refinement
     if (!diag_computed) refine( std::vector< tk::real >( m_u.nprop(), 1.0 ) );
 
   }
@@ -1055,11 +856,10 @@ AirCG::refine( const std::vector< tk::real >& l2res )
 {
   auto d = Disc();
 
-  const auto steady = g_inputdeck.get< tag::discr, tag::steady_state >();
-  const auto residual = g_inputdeck.get< tag::discr, tag::residual >();
-  const auto rc = g_inputdeck.get< tag::discr, tag::rescomp >() - 1;
+  if (g_inputdeck.get< tag::discr, tag::steady_state >()) {
 
-  if (steady) {
+    const auto residual = g_inputdeck.get< tag::discr, tag::residual >();
+    const auto rc = g_inputdeck.get< tag::discr, tag::rescomp >() - 1;
 
     // this is the last time step if max time of max number of time steps
     // reached or the residual has reached its convergence criterion
@@ -1075,9 +875,6 @@ AirCG::refine( const std::vector< tk::real >& l2res )
   auto dtref = g_inputdeck.get< tag::amr, tag::dtref >();
   auto dtfreq = g_inputdeck.get< tag::amr, tag::dtfreq >();
 
-  // Activate SDAG waits for re-computing the normals
-  thisProxy[ thisIndex ].wait4norm();
-
   // if t>0 refinement enabled and we hit the frequency
   if (dtref && !(d->It() % dtfreq)) {   // refine
 
@@ -1085,10 +882,13 @@ AirCG::refine( const std::vector< tk::real >& l2res )
     d->Ref()->dtref( m_bface, m_bnode, m_triinpoel );
     d->refined() = 1;
 
+    // Activate SDAG waits for re-computing the integrals
+    thisProxy[ thisIndex ].wait4int();
+
   } else {      // do not refine
 
     d->refined() = 0;
-    norm_complete();
+    integrals_complete();
     resized();
 
   }
@@ -1142,10 +942,8 @@ AirCG::resizePostAMR(
   m_u.resize( npoin );
   m_un.resize( npoin );
   m_rhs.resize( npoin );
-  m_chBndGrad.resize( d->Bid().size() );
-  tk::destroy(m_psup);
-  m_esup = tk::genEsup( d->Inpoel(), 4 );
-  m_psup = tk::genPsup( d->Inpoel(), 4, m_esup );
+  m_grad.resize( npoin );
+  m_bndel = d->bndel();
 
   // Update solution on new mesh
   for (const auto& n : addedNodes)
@@ -1159,7 +957,7 @@ AirCG::resizePostAMR(
   // Update physical-boundary node-, face-, and element lists
   m_bnode = bnode;
   m_bface = bface;
-  m_triinpoel = tk::remap( triinpoel, d->Lid() );
+  m_triinpoel = triinpoel;
 
   auto meshid = d->MeshId();
   contribute( sizeof(std::size_t), &meshid, CkReduction::nop,
@@ -1176,91 +974,91 @@ AirCG::resized()
   resize_complete();
 }
 
-//! [stage]
 void
-AirCG::stage()
-// *****************************************************************************
-// Evaluate whether to continue with next time step stage
-// *****************************************************************************
-{
-  // Increment Runge-Kutta stage counter
-  ++m_stage;
-
-  // if not all Runge-Kutta stages complete, continue to next time stage,
-  // otherwise output field data to file(s)
-  if (m_stage < 3) chBndGrad(); else out();
-}
-//! [stage]
-
-void
-AirCG::writeFields( CkCallback c )
+AirCG::writeFields( CkCallback cb )
 // *****************************************************************************
 // Output mesh-based fields to file
-//! \param[in] c Function to continue with after the write
+//! \param[in] cb Function to continue with after the write
 // *****************************************************************************
 {
   if (g_inputdeck.get< tag::cmd, tag::benchmark >()) {
 
-    c.send();
+    cb.send();
 
   } else {
 
     auto d = Disc();
-    const auto& coord = d->Coord();
+    auto ncomp = m_u.nprop();
 
-    std::vector< std::string > nodefieldnames{ "r", "u", "v", "w", "E", "p" };
+    // Field output
+
+    std::vector< std::string > nodefieldnames
+      {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
 
     using tk::operator/=;
     auto r = m_u.extract( 0, 0 );
     auto u = m_u.extract( 1, 0 );  u /= r;
     auto v = m_u.extract( 2, 0 );  v /= r;
     auto w = m_u.extract( 3, 0 );  w /= r;
-    auto E = m_u.extract( 4, 0 );
-    auto p = r;
-    for (std::size_t i=0; i<m_u.nunk(); ++i)
-      p[i] = eos_pressure( r[i], u[i], v[i], w[i], E[i] );
-    E /= r;
+    auto e = m_u.extract( 4, 0 );  e /= r;
+    std::vector< tk::real > p( m_u.nunk() );
+    for (std::size_t i=0; i<p.size(); ++i) {
+      auto ei = e[i] - 0.5*(u[i]*u[i] + v[i]*v[i] + w[i]*w[i]);
+      p[i] = physics::eos_pressure( r[i], ei );
+    }
 
     std::vector< std::vector< tk::real > > nodefields{
-      std::move(r), std::move(u), std::move(v), std::move(w), std::move(E),
+      std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
       std::move(p) };
 
-    ////! Lambda to put in a field for output if not empty
-    //auto add_node_field = [&]( const auto& name, const auto& field ){
-    //  if (not field.empty()) {
-    //    nodefieldnames.push_back( name );
-    //    nodefields.push_back( field );
-    //  }
-    //};
-
-    //// Collect field output names for analytical solutions
-    //for (const auto& eq : g_cgpde) analyticFieldNames( eq, nodefieldnames );
-
-    //// Collect field output from analytical solutions (if exist)
-    //for (const auto& eq : g_cgpde)
-    //  analyticFieldOutput( eq, coord[0], coord[1],
-    //                       coord[2], d->T(), nodefields );
-
-    //// Query and collect block and surface field names from PDEs integrated
-    std::vector< std::string > nodesurfnames;
-    //for (const auto& eq : g_cgpde) {
-    //  auto s = eq.surfNames();
-    //  nodesurfnames.insert( end(nodesurfnames), begin(s), end(s) );
-    //}
-
-    //// Collect node block and surface field solution
-    std::vector< std::vector< tk::real > > nodesurfs;
-    //for (const auto& eq : g_cgpde) {
-    //  auto s = eq.surfOutput( tk::bfacenodes(m_bface,m_triinpoel), m_u );
-    //  nodesurfs.insert( end(nodesurfs), begin(s), end(s) );
-    //}
+    for (std::size_t c=0; c<ncomp-5; ++c) {
+      nodefieldnames.push_back( "c" + std::to_string(c) );
+      nodefields.push_back( m_u.extract( 5+c, 0 ) );
+    }
 
     Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 
+    // Surface output
+
+    std::vector< std::string > nodesurfnames
+      {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
+
+    for (std::size_t c=1; c<ncomp-5; ++c) {
+      nodesurfnames.push_back( "c" + std::to_string(c) );
+    }
+
+    std::vector< std::vector< tk::real > > nodesurfs;
+
+    const auto& lid = d->Lid();
+    auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
+    for (auto sideset : g_inputdeck.outsets()) {
+      auto b = bnode.find(sideset);
+      if (b == end(bnode)) continue;
+      const auto& nodes = b->second;
+      auto i = nodesurfs.size();
+      nodesurfs.insert( end(nodesurfs), ncomp + 1,
+                        std::vector< tk::real >( nodes.size() ) );
+      std::size_t j = 0;
+      for (auto n : nodes) {
+        const auto s = m_u[ tk::cref_find(lid,n) ];
+        nodesurfs[i+0][j] = s[0];
+        nodesurfs[i+1][j] = s[1]/s[0];
+        nodesurfs[i+2][j] = s[2]/s[0];
+        nodesurfs[i+3][j] = s[3]/s[0];
+        nodesurfs[i+4][j] = s[4]/s[0];
+        auto ei = s[4]/s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
+        nodesurfs[i+5][j] = physics::eos_pressure( s[0], ei );
+        for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+1+c][j] = s[5+c];
+        ++j;
+      } 
+    }   
+
     // Send mesh and fields data (solution dump) for output to file
-    d->write( d->Inpoel(), coord, m_bface, tk::remap(m_bnode,d->Lid()),
-              m_triinpoel, {}, nodefieldnames, nodesurfnames, {}, nodefields,
-              nodesurfs, c );
+    auto triinpoel = m_triinpoel;
+    tk::remap( triinpoel, lid );
+    d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,lid),
+              triinpoel, {}, nodefieldnames,
+              nodesurfnames, {}, nodefields, nodesurfs, cb );
 
   }
 }
@@ -1273,21 +1071,52 @@ AirCG::out()
 {
   auto d = Disc();
 
-  // Output time history
+  // Time history
+
   if (d->histiter() or d->histtime() or d->histrange()) {
-    std::vector< std::vector< tk::real > > hist;
-    //for (const auto& eq : g_cgpde) {
-    //  auto h = eq.histOutput( d->Hist(), d->Inpoel(), m_u );
-    //  hist.insert( end(hist), begin(h), end(h) );
-    //}
+
+    const auto& inpoel = d->Inpoel();
+    std::vector< std::vector< tk::real > > hist( d->Hist().size() );
+    std::size_t j = 0;
+    for (const auto& p : d->Hist()) {
+      auto e = p.get< tag::elem >();        // host element id
+      const auto& n = p.get< tag::fn >();   // shapefunctions evaluated at point
+      hist[j].resize( 6, 0.0 );
+      for (std::size_t i=0; i<4; ++i) {
+        const auto u = m_u[ inpoel[e*4+i] ];
+        hist[j][0] += n[i] * u[0];
+        hist[j][1] += n[i] * u[1]/u[0];
+        hist[j][2] += n[i] * u[2]/u[0];
+        hist[j][3] += n[i] * u[3]/u[0];
+        hist[j][4] += n[i] * u[4]/u[0];
+        auto ei = u[4]/u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3])/u[0]/u[0];
+        hist[j][5] += n[i] * physics::eos_pressure( u[0], ei );
+      }
+      ++j;
+    }
     d->history( std::move(hist) );
+
   }
 
-  // Output field data
+  // Field data
   if (d->fielditer() or d->fieldtime() or d->fieldrange() or m_finished)
     writeFields( CkCallback(CkIndex_AirCG::step(), thisProxy[thisIndex]) );
   else
     step();
+}
+
+void
+AirCG::stage()
+// *****************************************************************************
+// Evaluate whether to continue with next time step stage
+// *****************************************************************************
+{
+  // Increment Runge-Kutta stage counter
+  ++m_stage;
+
+  // If not all Runge-Kutta stages complete, continue to next time stage,
+  // otherwise output field data to file(s)
+  if (m_stage < 3) grad(); else out();
 }
 
 void

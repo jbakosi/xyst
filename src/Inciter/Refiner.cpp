@@ -965,7 +965,7 @@ Refiner::writeMesh( const std::string& basefilename,
 
   // Evaluate initial conditions on current mesh at t0
   tk::Fields u( m_coord[0].size(), nprop );
-  initialize( m_coord, u, t0 );
+  physics::initialize( m_coord, u, t0 );
 
   // Extract all scalar components from solution for output to file
   for (std::size_t i=0; i<nprop; ++i)
@@ -1448,7 +1448,7 @@ Refiner::nodeinit( std::size_t /*npoin*/,
   // Evaluate ICs
 
   // Evaluate ICs for all scalar components integrated
-  initialize( m_coord, u, t0 );
+  physics::initialize( m_coord, u, t0 );
 
   Assert( u.nunk() == m_coord[0].size(), "Size mismatch" );
   Assert( u.nprop() == nprop, "Size mismatch" );
@@ -2031,9 +2031,9 @@ Refiner::bndIntegral()
                                      {{y[A], y[B], y[C]}},
                                      {{z[A], z[B], z[C]}} );
       // Sum up face area * face unit-normal
-      s[0] += geoface(0,0,0) * geoface(0,1,0);
-      s[1] += geoface(0,0,0) * geoface(0,2,0);
-      s[2] += geoface(0,0,0) * geoface(0,3,0);
+      s[0] += geoface[0] * geoface[1];
+      s[1] += geoface[0] * geoface[2];
+      s[2] += geoface[0] * geoface[3];
     }
   }
 

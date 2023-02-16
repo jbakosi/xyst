@@ -112,29 +112,20 @@ class AirCG : public CBase_AirCG {
     //! Advance equations to next time step
     void advance( tk::real newdt );
 
-    //! Start (re-)computing boundare point-, and dual-face normals
-    void norm();
+    //! Start (re-)computing domain and boundary integrals
+    void integrals();
 
-    //! Receive contributions to duual-face normals on chare boundaries
-    void comdfnorm(
-      const std::unordered_map< tk::UnsMesh::Edge,
-              std::array< tk::real, 3 >,
-              tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> >& dfnorm );
-
-    //! Receive boundary point normals on chare-boundaries
+    //! Receive contributions to boundary point normals on chare-boundaries
     void comnorm( const std::unordered_map< int,
-      std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& innorm );
+      std::unordered_map< std::size_t, std::array<tk::real,4> > >& inbnd );
 
-    //! Receive contributions to gradients on chare-boundaries
-    void comChBndGrad( const std::vector< std::size_t >& gid,
-                       const std::vector< std::vector< tk::real > >& G );
+    //! Receive contributions to node gradients on chare-boundaries
+    void comgrad( const std::unordered_map< std::size_t,
+                          std::vector< tk::real > >& ingrad );
 
     //! Receive contributions to right-hand side vector on chare-boundaries
-    void comrhs( const std::vector< std::size_t >& gid,
-                 const std::vector< std::vector< tk::real > >& R );
-
-    //! Update solution at the end of time step
-    void update( const tk::Fields& a );
+    void comrhs( const std::unordered_map< std::size_t,
+                         std::vector< tk::real > >& inrhs );
 
     //! Optionally refine/derefine mesh
     void refine( const std::vector< tk::real >& l2res );
@@ -191,39 +182,52 @@ class AirCG : public CBase_AirCG {
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
     void pup( PUP::er &p ) override {
       p | m_disc;
-      p | m_ngrad;
       p | m_nrhs;
-      p | m_nbnorm;
-      p | m_ndfnorm;
+      p | m_nnorm;
+      p | m_nbpint;
+      p | m_nbeint;
+      p | m_ndeint;
+      p | m_ngrad;
+      p | m_ncomp;
       p | m_bnode;
       p | m_bface;
       p | m_triinpoel;
       p | m_bndel;
-      p | m_dfnorm;
-      p | m_dfnormc;
-      p | m_dfn;
-      p | m_esup;
-      p | m_psup;
+      p | m_bpoinid;
+      p | m_bpoinin;
       p | m_u;
       p | m_un;
       p | m_rhs;
       p | m_rhsc;
-      p | m_chBndGrad;
-      p | m_chBndGradc;
       p | m_diag;
       p | m_bnorm;
       p | m_bnormc;
-      p | m_dirbc;
+      p | m_bndpoinint;
+      p | m_bndpoinintc;
+      p | m_bndedgeint;
+      p | m_bndedgeintc;
+      p | m_domedgeint;
+      p | m_domedgeintc;
+      p | m_bpoin;
+      p | m_bpint;
+      p | m_bedge;
+      p | m_beint;
+      p | m_dedge;
+      p | m_deint;
+      p | m_bpsym;
+      p | m_besym;
+      p | m_grad;
+      p | m_gradc;
+      p | m_dirbcnodes;
+      p | m_symbcnodeset;
       p | m_symbcnodes;
-      p | m_farfieldbcnodes;
-      p | m_symbctri;
-      p | m_spongenodes;
-      p | m_timedepbcnodes;
-      p | m_timedepbcFn;
+      p | m_symbcnorms;
+      p | m_farbcnodeset;
+      p | m_farbcnodes;
+      p | m_farbcnorms;
       p | m_stage;
       p | m_boxnodes;
       p | m_edgenode;
-      p | m_edgeid;
       p | m_dtp;
       p | m_tp;
       p | m_finished;
@@ -239,14 +243,20 @@ class AirCG : public CBase_AirCG {
 
     //! Discretization proxy
     CProxy_Discretization m_disc;
-    //! Counter for nodal gradients updated
-    std::size_t m_ngrad;
     //! Counter for right-hand side vector nodes updated
     std::size_t m_nrhs;
     //! Counter for receiving boundary point normals
-    std::size_t m_nbnorm;
-    //! Counter for receiving dual-face normals on chare-boundary edges
-    std::size_t m_ndfnorm;
+    std::size_t m_nnorm;
+    //! Counter for receiving boundary point integrals
+    std::size_t m_nbpint;
+    //! Counter for receiving boundary edge integrals
+    std::size_t m_nbeint;
+    //! Counter for receiving domain edge integrals
+    std::size_t m_ndeint;
+    //! Counter for receiving gradients
+    std::size_t m_ngrad;
+    //! Number of scalar components (flow:5 + transported scalars)
+    std::size_t m_ncomp;
     //! Boundary node lists mapped to side set ids used in the input file
     std::map< int, std::vector< std::size_t > > m_bnode;
     //! Boundary face lists mapped to side set ids used in the input file
@@ -255,18 +265,10 @@ class AirCG : public CBase_AirCG {
     std::vector< std::size_t > m_triinpoel;
     //! Elements along mesh boundary
     std::vector< std::size_t > m_bndel;
-    //! Dual-face normals along edges
-    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
-                        tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_dfnorm;
-    //! Receive buffer for dual-face normals along chare-boundary edges
-    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
-                     tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_dfnormc;
-    //! Streamable dual-face normals
-    std::vector< tk::real > m_dfn;
-    //! Elements surrounding points
-    std::pair< std::vector< std::size_t >, std::vector< std::size_t > > m_esup;
-    //! Points surrounding points
-    std::pair< std::vector< std::size_t >, std::vector< std::size_t > > m_psup;
+    //! Streamable boundary point local ids
+    std::vector< std::size_t > m_bpoinid;
+    //! Streamable boundary point integrals
+    std::vector< tk::real > m_bpoinin;
     //! Unknown/solution vector at mesh nodes
     tk::Fields m_u;
     //! Unknown/solution vector at mesh nodes at previous time
@@ -277,57 +279,79 @@ class AirCG : public CBase_AirCG {
     //! \details Key: global node id, value: rhs for all scalar components per
     //!   node.
     std::unordered_map< std::size_t, std::vector< tk::real > > m_rhsc;
-    //! Nodal gradients at chare-boundary nodes
-    tk::Fields m_chBndGrad;
-    //! Receive buffer for communication of the nodal gradients
-    //! \details Key: chare id, value: gradients for all scalar components per
-    //!   node
-    std::unordered_map< std::size_t, std::vector< tk::real > > m_chBndGradc;
     //! Diagnostics object
     NodeDiagnostics m_diag;
-    //! Face normals in boundary points associated to side sets
-    //! \details Key: local node id, value: unit normal and inverse distance
-    //!   square between face centroids and points, outer key: side set id
+    //! Boundary point normals
+    //! \details Outer key: side set id. Inner key: global node id of boundary
+    //!   point, value: weighted normals and inverse distance square.
     std::unordered_map< int,
-      std::unordered_map< std::size_t, std::array< tk::real, 4 > > > m_bnorm;
-    //! \brief Receive buffer for communication of the boundary point normals
-    //!   associated to side sets
-    //! \details Key: global node id, value: normals (first 3 components),
-    //!   inverse distance squared (4th component), outer key, side set id
-    std::unordered_map< int,
-      std::unordered_map< std::size_t, std::array< tk::real, 4 > > > m_bnormc;
-    //! Boundary conditions evaluated and assigned to local mesh node IDs
-    //! \details Vector of pairs of bool and boundary condition value associated
-    //!   to local mesh node IDs at which the user has set Dirichlet boundary
-    //!   conditions for all PDEs integrated. The bool indicates whether the BC
-    //!   is set at the node for that component the if true, the real value is
-    //!   the increment (from t to dt) in the BC specified for a component.
-    std::unordered_map< std::size_t,
-      std::vector< std::pair< bool, tk::real > > > m_dirbc;
-    //! Unique set of nodes at which symmetry BCs are set
-    std::unordered_set< std::size_t > m_symbcnodes;
-    //! Unique set of nodes at which farfield BCs are set
-    std::unordered_set< std::size_t > m_farfieldbcnodes;
-    //! Vector with 1 at symmetry BC boundary triangles
-    std::vector< int > m_symbctri;
-    //! Unique set of nodes at which sponge parameters are set
-    std::unordered_set< std::size_t > m_spongenodes;
-    //! \brief Unique set of nodes at which time dependent BCs are set
-    //    for each time dependent BC
-    std::vector< std::unordered_set< std::size_t > > m_timedepbcnodes;
-    //! \brief User defined discrete function of time used in the time dependent
-    //    BCs associated with (index in vector) the number of distinct time
-    //    dependent BCs specified. This index is the same as the index in
-    //    m_timedepbcnodes.
-    std::vector< tk::Table<5> > m_timedepbcFn;
+      std::unordered_map< std::size_t, std::array<tk::real,4> > > m_bnorm;
+    //! Boundary point normals receive buffer
+    //! \details Outer key: side set id. Inner key: global node id of boundary
+    //!   point, value: weighted normals and inverse distance square.
+    decltype(m_bnorm) m_bnormc;
+    //! Boundary point integrals
+    //! \details Key: global node id of boundary point, value: boundary point
+    //!   integral contributions.
+    std::unordered_map< std::size_t, std::array<tk::real,3> > m_bndpoinint;
+    //! Boundary point integrals receive buffer
+    //! \details Key: global node id of boundary point, value: boundary point
+    //!   integral contributions.
+    decltype(m_bndpoinint) m_bndpoinintc;
+    //! Boundary edge integrals
+    //! \details Key: boundary edge-end points with global node ids, value:
+    //!   boundary edge integral contributions.
+    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
+                        tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_bndedgeint;
+    //! Boundary edge integrals receive buffer
+    //! \details Key: boundary edge-end points with global node ids, value:
+    //!   boundary edge integral contributions.
+    decltype(m_bndedgeint) m_bndedgeintc;
+    //! Domain edge integrals
+    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
+      tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_domedgeint;
+    //! Receive buffer for domain edge integrals along chare-boundary edges
+    decltype(m_domedgeint) m_domedgeintc;
+    //! Streamable boundary point local ids
+    std::vector< std::size_t > m_bpoin;
+    //! Streamable boundary point integrals
+    std::vector< tk::real > m_bpint;
+    //! Streamable boundary edges with local ids
+    std::vector< std::size_t > m_bedge;
+    //! Streamable boundary edge integrals
+    std::vector< tk::real > m_beint;
+    //! Streamable domain edge end points with local ids
+    std::vector< std::size_t > m_dedge;
+    //! Streamable domain edge integrals
+    std::vector< tk::real > m_deint;
+    //! Streamable boundary point symmetry BC flags
+    std::vector< std::uint8_t > m_bpsym;
+    //! Streamable boundary edge symmetry BC flags
+    std::vector< std::uint8_t > m_besym;
+    //! Gradients in mesh nodes
+    tk::Fields m_grad;
+    //! Gradients receive buffer
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_gradc;
+    //! Streamable nodes at which Dirichlet BCs are set
+    std::vector< std::size_t > m_dirbcnodes;
+    //! Unique set of ordered nodes at which symmetry BCs are set
+    std::set< std::size_t > m_symbcnodeset;
+    //! Streamable nodes at which symmetry BCs are set
+    std::vector< std::size_t > m_symbcnodes;
+    //! Streamable normals at nodes at which symmetry BCs are set
+    std::vector< tk::real > m_symbcnorms;
+    //! Unique set of ordered nodes at which farfield BCs are set
+    std::set< std::size_t > m_farbcnodeset;
+    //! Streamable nodes at which farfield BCs are set
+    std::vector< std::size_t > m_farbcnodes;
+    //! Streamable normals at nodes at which farfield BCs are set
+    std::vector< tk::real > m_farbcnorms;
     //! Runge-Kutta stage counter
     std::size_t m_stage;
     //! Mesh node ids at which user-defined box ICs are defined (multiple boxes)
     std::vector< std::unordered_set< std::size_t > > m_boxnodes;
     //! Local node IDs of edges
     std::vector< std::size_t > m_edgenode;
-    //! Edge ids in the order of access
-    std::vector< std::size_t > m_edgeid;
     //! Time step size for each mesh node
     std::vector< tk::real > m_dtp;
     //! Physical time for each mesh node
@@ -341,39 +365,24 @@ class AirCG : public CBase_AirCG {
       return m_disc[ thisIndex ].ckLocal();
     }
 
-    //! Compute normal of dual-mesh associated to edge
-    std::array< tk::real, 3 >
-    edfnorm( const tk::UnsMesh::Edge& edge,
-             const std::unordered_map< tk::UnsMesh::Edge,
-                     std::vector< std::size_t >,
-                     tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> >& esued ) const;
+    //! Compute local contributions to domain edge integrals
+    void domint();
 
     //! Compute chare-boundary edges
     void bndEdges();
 
-    //! Compute dual-face normals associated to edges
-    void dfnorm();
-
     //! Compute boundary point normals
-    void
-    bnorm( const std::unordered_map< int,
-             std::unordered_set< std::size_t > >& bcnodes );
-
-    //! \brief Finish computing dual-face and boundary point normals and apply
-    //!   boundary conditions on the initial conditions
-    void normfinal();
+    void bndint( const std::unordered_map< int,
+                         std::unordered_set< std::size_t > >& bcnodes );
 
     //! Output mesh and particle fields to files
     void out();
 
     //! Output mesh-based fields to file
-    void writeFields( CkCallback c );
+    void writeFields( CkCallback cb );
 
-    //! Combine own and communicated contributions to normals
-    void mergenorm();
-
-    //! Compute gradients
-    void chBndGrad();
+    //! Combine own and communicated portions of the integrals
+    void merge();
 
     //! Compute righ-hand side vector of transport equations
     void rhs();
@@ -387,21 +396,11 @@ class AirCG : public CBase_AirCG {
     //! Evaluate whether to save checkpoint/restart
     void evalRestart();
 
-    //! Query/update boundary-conditions-related data structures
-    void queryBnd();
-
     //! Apply boundary conditions
     void BC();
 
-    std::unordered_map< std::size_t, std::vector< std::pair< bool, tk::real > > >
-    match( tk::ctr::ncomp_t nprop,
-           tk::real t,
-           tk::real dt,
-           const std::vector< tk::real >& tp,
-           const std::vector< tk::real >& dtp,
-           const tk::UnsMesh::Coords& coord,
-           const std::unordered_map< std::size_t, std::size_t >& lid,
-           const std::map< int, std::vector< std::size_t > >& bnode );
+    //! Compute gradients for next time step
+    void grad();
 };
 
 } // inciter::

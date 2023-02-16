@@ -18,6 +18,10 @@ namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
 
+} // inciter::
+
+namespace physics {
+
 namespace userdef {
 static std::vector< tk::real >
 ic( tk::real, tk::real, tk::real, tk::real )
@@ -26,40 +30,55 @@ ic( tk::real, tk::real, tk::real, tk::real )
 //! \return Values of conserved variables
 // *****************************************************************************
 {
-  std::vector< tk::real > u( 5, 0.0 );
+  using inciter::g_inputdeck;
 
-  // Set background ICs
   const auto& ic = g_inputdeck.get< tag::param, tag::compflow, tag::ic >();
+
   const auto& bgrhoic = ic.get< tag::density >();
   const auto& bgvelic = ic.get< tag::velocity >();
+
+  ErrChk( bgrhoic.size() == 1 && bgrhoic.back().size() == 1,
+          "Need a background density as IC" );
+  ErrChk( bgvelic.size() == 1 && bgvelic.back().size() == 3,
+          "Need three velocity components as background IC" );
+
+  std::vector< tk::real > u( 5, 0.0 );
+
+  u[0] = bgrhoic[0][0];
+  u[1] = u[0] * bgvelic[0][0];
+  u[2] = u[0] * bgvelic[0][1];
+  u[3] = u[0] * bgvelic[0][2];
+
   const auto& bgpreic = ic.get< tag::pressure >();
   const auto& bgenic = ic.get< tag::energy >();
   const auto& bgtempic = ic.get< tag::temperature >();
 
-  Assert( bgrhoic.size() > 0, "No background density IC" );
-  Assert( bgvelic.size() > 0, "No background velocity IC" );
-
-  u[0] = bgrhoic.at(0).at(0);
-  u[1] = u[0] * bgvelic.at(0).at(0);
-  u[2] = u[0] * bgvelic.at(0).at(1);
-  u[3] = u[0] * bgvelic.at(0).at(2);
-
   if (bgpreic.size() > 0 && !bgpreic[0].empty()) {
+
     u[4] = eos_totalenergy( u[0], u[1]/u[0], u[2]/u[0], u[3]/u[0],
-                            bgpreic.at(0).at(0) );
+                            bgpreic[0][0] );
+
   } else if (bgenic.size() > 0 && !bgenic[0].empty()) {
+
     u[4] = u[0] * bgenic[0][0];
+
   } else if (bgtempic.size() > 0 && !bgtempic[0].empty()) {
+
     auto c_v = g_inputdeck.get< tag::param, tag::compflow, tag::cv >()[0][0];
     u[4] = u[0] * bgtempic[0][0] * c_v;
-  } else Throw( "IC background energy cannot be computed. User must specify "
-                "one of background pressure, energy, or velocity." );
 
-  ErrChk( u[0] > 0.0, "Density zero" );
+  } else {
+
+    Throw( "IC background energy cannot be computed. User must specify "
+           "one of background pressure, energy, or velocity." );
+
+  }
+
+  ErrChk( u[0] > 0.0, "Density IC zero" );
 
   return u;
 }
-} // ::userdef
+} // userdef::
 
 namespace nonlinear_energy_growth {
 
@@ -73,6 +92,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
 //! \return Values of conserved variables
 // *****************************************************************************
 {
+  using inciter::g_inputdeck;
   using tag::param; using tag::compflow; using tag::param; using std::cos;
 
   // manufactured solution parameters
@@ -102,7 +122,8 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
 
 static void
 src( tk::real x, tk::real y, tk::real z, tk::real t,
-     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re )
+     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re,
+     tk::real& )
 // *****************************************************************************
 //! Compute and return source term for nonlinear energy growth
 //! \param[in] x X coordinate where to evaluate the source
@@ -116,6 +137,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real t,
 //! \param[in,out] re Specific total energy source
 // *****************************************************************************
 {
+  using inciter::g_inputdeck;
   using tag::param; using tag::compflow;
   using std::sin; using std::cos; using std::pow;
 
@@ -163,7 +185,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real t,
   re = rho*dedt + ie*drdt;
 }
 
-} // ::nonlinear_energy_growth
+} // nonlinear_energy_growth::
 
 namespace rayleigh_taylor {
 
@@ -177,6 +199,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
 //! \return Values of conserved variables
 // *****************************************************************************
 {
+  using inciter::g_inputdeck;
   using tag::param; using tag::compflow; using std::sin; using std::cos;
 
   // manufactured solution parameters
@@ -205,7 +228,8 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
 
 static void
 src( tk::real x, tk::real y, tk::real z, tk::real t,
-     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re )
+     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re,
+     tk::real& )
 // *****************************************************************************
 //! Compute and return source term for a Rayleigh-Taylor flow
 //! \param[in] x X coordinate where to evaluate the source
@@ -219,6 +243,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real t,
 //! \param[in,out] re Specific total energy source
 // *****************************************************************************
 {
+  using inciter::g_inputdeck;
   using tag::param; using tag::compflow; using std::sin; using std::cos;
 
   // manufactured solution parameters
@@ -280,7 +305,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real t,
        + u*dpdx[0]+v*dpdx[1]+w*dpdx[2];
 }
 
-} // ::rayleigh_taylor
+} // rayleigh_taylor::
 
 namespace sedov {
 static std::vector< tk::real >
@@ -293,6 +318,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real )
 //! \return Values of conserved variables
 // *****************************************************************************
 {
+  using inciter::g_inputdeck;
   using std::abs;
 
   // pressure
@@ -315,7 +341,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real )
   return { r, r*u, r*v, r*w, rE };
 
 }
-} // ::sedov
+} // sedov::
 
 namespace sod {
 static std::vector< tk::real >
@@ -333,27 +359,25 @@ ic( tk::real x, tk::real, tk::real, tk::real )
     r = 1.0;
     // pressure
     p = 1.0;
-    // velocity
-    u = 0.0;
-    v = 0.0;
-    w = 0.0;
   }
   else {
     // density
     r = 0.125;
     // pressure
     p = 0.1;
-    // velocity
-    u = 0.0;
-    v = 0.0;
-    w = 0.0;
   }
+
+  // velocity
+  u = 0.0;
+  v = 0.0;
+  w = 0.0;
+
   // total specific energy
   rE = eos_totalenergy( r, u, v, w, p );
 
   return { r, r*u, r*v, r*w, rE };
 }
-} // ::sod
+} // sod::
 
 namespace taylor_green {
 
@@ -382,7 +406,8 @@ ic( tk::real x, tk::real y, tk::real, tk::real )
 
 static void
 src( tk::real x, tk::real y, tk::real, tk::real,
-     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re )
+     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re,
+     tk::real& )
 // *****************************************************************************
 //! Compute and return source term for a the Taylor-Green vortex
 //! \param[in] x X coordinate where to evaluate the source
@@ -401,7 +426,7 @@ src( tk::real x, tk::real y, tk::real, tk::real,
                     - cos(3.0*M_PI*y)*cos(M_PI*x) );
 }
 
-} // ::taylor_green
+} // taylor_green::
 
 namespace vortical_flow {
 
@@ -415,6 +440,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real )
 //! \return Values of conserved variables
 // *****************************************************************************
 {
+  using inciter::g_inputdeck;
   using tag::param; using tag::compflow;
 
   // manufactured solution parameters
@@ -428,14 +454,15 @@ ic( tk::real x, tk::real y, tk::real z, tk::real )
   tk::real rv = b*x + a*y;
   tk::real rw = -2.0*a*z;
   // total specific energy
-  tk::real rE = (ru*ru+rv*rv+rw*rw)/2.0 + (p0-2.0*a*a*z*z)/(g-1.0);
+  tk::real rE = (ru*ru + rv*rv + rw*rw)/2.0 + (p0 - 2.0*a*a*z*z) / (g - 1.0);
 
   return { 1.0, ru, rv, rw, rE };
 }
 
 static void
 src( tk::real x, tk::real y, tk::real z, tk::real,
-     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re )
+     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re,
+     tk::real& )
 // *****************************************************************************
 //! Compute and return source term for vortical flow
 //! \param[in] x X coordinate where to evaluate the source
@@ -448,6 +475,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real,
 //! \param[in,out] re Specific total energy source
 // *****************************************************************************
 {
+  using inciter::g_inputdeck;
   using tag::param; using tag::compflow;
 
   // manufactured solution parameters
@@ -468,6 +496,47 @@ src( tk::real x, tk::real y, tk::real z, tk::real,
   re = (ru*s[1] + rv*s[2])/s[0] + 8.0*a*a*a*z*z/(g-1.0);
 }
 
-} // ::vortical_flow
+} // vortical_flow::
 
-} // ::inciter
+namespace point_source {
+
+static void
+src( tk::real x, tk::real y, tk::real z, tk::real t,
+     tk::real&, tk::real&, tk::real&, tk::real&, tk::real&, tk::real& sc )
+// *****************************************************************************
+//! Compute and return source term for vortical flow
+//! \param[in] x X coordinate where to evaluate the source
+//! \param[in] y Y coordinate where to evaluate the source
+//! \param[in] z Z coordinate where to evaluate the source
+//! \param[in] t Time where to evaluate the source
+//! \param[in,out] sc Scalar source
+// *****************************************************************************
+{
+  using inciter::g_inputdeck;
+  using tag::transport;
+
+std::cout << "!";
+  const auto& ns = g_inputdeck.get< tag::param, transport, tag::source >();
+  if (ns.empty()) return;
+
+  const auto& nc = g_inputdeck.get< tag::component >().get< transport >();
+  if (nc.empty()) return;
+
+  const auto& src = ns[0];
+
+  ErrChk( src.size() % 5 == 0, "Source must contain n x 5 values" );
+
+  auto sx = src[0];
+  auto sy = src[1];
+  auto sz = src[2];
+  auto sr = src[3];
+  auto st = src[4];
+
+  if (t < st) return;
+
+  if (((sx-x)*(sx-x) + (sy-y)*(sy-y) + (sz-z)*(sz-z)) < sr*sr) sc = 1.0;
+}
+
+} // point_source::
+
+} // physics::

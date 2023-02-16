@@ -26,7 +26,7 @@ namespace ctr {
 //! Problem types
 enum class ProblemType : uint8_t { USER_DEFINED
                                  , SHEAR_DIFF
-                                 , POINT_SRC
+                                 , POINT_SOURCE
                                  , VORTICAL_FLOW
                                  , NONLINEAR_ENERGY_GROWTH
                                  , RAYLEIGH_TAYLOR
@@ -73,7 +73,7 @@ class Problem : public tk::Toggle< ProblemType > {
         //! Enums -> names
         { { ProblemType::USER_DEFINED, kw::user_defined::name() }
         , { ProblemType::SHEAR_DIFF, kw::shear_diff::name() }
-        , { ProblemType::POINT_SRC, kw::point_src::name() }
+        , { ProblemType::POINT_SOURCE, kw::point_src::name() }
         , { ProblemType::VORTICAL_FLOW, kw::vortical_flow::name() }
         , { ProblemType::NONLINEAR_ENERGY_GROWTH, kw::nl_energy_growth::name() }
         , { ProblemType::RAYLEIGH_TAYLOR, kw::rayleigh_taylor::name() }
@@ -90,7 +90,7 @@ class Problem : public tk::Toggle< ProblemType > {
         //! keywords -> Enums
         { { kw::user_defined::string(), ProblemType::USER_DEFINED }
         , { kw::shear_diff::string(), ProblemType::SHEAR_DIFF }
-        , { kw::point_src::string(), ProblemType::POINT_SRC }
+        , { kw::point_src::string(), ProblemType::POINT_SOURCE }
         , { kw::vortical_flow::string(), ProblemType::VORTICAL_FLOW }
         , { kw::nl_energy_growth::string(),
             ProblemType::NONLINEAR_ENERGY_GROWTH }
@@ -137,7 +137,7 @@ class Problem : public tk::Toggle< ProblemType > {
     std::map< ProblemType, std::string > policy {
         { ProblemType::USER_DEFINED, *kw::user_defined::code() }
       , { ProblemType::SHEAR_DIFF, *kw::shear_diff::code() }
-      , { ProblemType::POINT_SRC, *kw::point_src::code() }
+      , { ProblemType::POINT_SOURCE, *kw::point_src::code() }
       , { ProblemType::VORTICAL_FLOW, *kw::vortical_flow::code() }
       , { ProblemType::NONLINEAR_ENERGY_GROWTH, *kw::nl_energy_growth::code() }
       , { ProblemType::RAYLEIGH_TAYLOR, *kw::rayleigh_taylor::code() }      

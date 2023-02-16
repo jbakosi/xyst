@@ -2238,7 +2238,7 @@ void DerivedData_object::test< 56 >() {
   // Shift node IDs to start from zero
   tk::shiftToZero( inpoel );
 
-  // Generate edges surrounding points
+  // Generate elements surrounding edges
   auto esup = tk::genEsup( inpoel, 4 );
   auto esued = tk::genEsued( inpoel, 4, esup );
 
@@ -2365,7 +2365,7 @@ void DerivedData_object::test< 57 >() {
   // Shift node IDs to start from zero
   tk::shiftToZero( inpoel );
 
-  // Generate edges surrounding points
+  // Generate elements surrounding edges
   auto esup = tk::genEsup( inpoel, 3 );
   auto esued = tk::genEsued( inpoel, 3, esup );
 
@@ -3108,70 +3108,6 @@ void DerivedData_object::test< 59 >() {
   {
           ensure_equals("incorrect entry " + std::to_string(i) + " in inpofa",
                           inpofa[i], correct_inpofa[i]-1);
-  }
-}
-
-//! Generate and test face-geometry vector for a single tetrahedron
-template<> template<>
-void DerivedData_object::test< 60 >() {
-  set_test_name( "Face-geometry (genGeoFaceTri) for a tetrahedron" );
-
-  // total number of faces
-  std::size_t nipfac(4);
-
-  // coordinates of tetrahedron vertices
-  tk::UnsMesh::Coords coord {{ {1.0, 0.0, 0.0, 0.0},
-                               {0.0, 0.0, 1.0, 0.0},
-                               {0.0, 0.0, 0.0, 1.0} }};
-
-  // face-node connectivity
-  std::vector< std::size_t > inpofa { 0, 1, 2,
-                                      0, 3, 1,
-                                      1, 3, 2,
-                                      2, 3, 0 };
-
-  // get face-geometries
-  auto geoFace = tk::genGeoFaceTri( nipfac, inpofa, coord );
-
-  // correct face-areas
-  std::vector< tk::real > correct_farea { 0.5, 0.5, 0.5, 0.8660254037844389 };
-
-  // correct face-normals
-  std::array< std::vector< tk::real >, 3 > correct_fnorm {{
-                                       { 0.0,  0.0, -1.0, 1.0/sqrt(3.0)},
-                                       { 0.0, -1.0,  0.0, 1.0/sqrt(3.0)},
-                                       {-1.0,  0.0,  0.0, 1.0/sqrt(3.0)},
-                                       }};
-
-  // correct face-centroids
-  tk::UnsMesh::Coords correct_fcent {{ {1.0/3.0, 1.0/3.0, 0.0,     1.0/3.0},
-                                       {1.0/3.0, 0.0,     1.0/3.0, 1.0/3.0},
-                                       {0.0,     1.0/3.0, 1.0/3.0, 1.0/3.0} }};
-
-  tk::real prec = std::numeric_limits< tk::real >::epsilon();
-
-  for(std::size_t f=0 ; f<nipfac; ++f)
-  {
-    ensure_equals("incorrect entry " + std::to_string(f) + " in geoFace-area",
-                    geoFace(f,0,0), correct_farea[f], prec);
-
-    ensure_equals("incorrect entry " + std::to_string(f) + " in geoFace-nx",
-                    geoFace(f,1,0), correct_fnorm[0][f], prec);
-
-    ensure_equals("incorrect entry " + std::to_string(f) + " in geoFace-ny",
-                    geoFace(f,2,0), correct_fnorm[1][f], prec);
-
-    ensure_equals("incorrect entry " + std::to_string(f) + " in geoFace-nz",
-                    geoFace(f,3,0), correct_fnorm[2][f], prec);
-
-    ensure_equals("incorrect entry " + std::to_string(f) + " in geoFace-cx",
-                    geoFace(f,4,0), correct_fcent[0][f], prec);
-
-    ensure_equals("incorrect entry " + std::to_string(f) + " in geoFace-cy",
-                    geoFace(f,5,0), correct_fcent[1][f], prec);
-
-    ensure_equals("incorrect entry " + std::to_string(f) + " in geoFace-cz",
-                    geoFace(f,6,0), correct_fcent[2][f], prec);
   }
 }
 

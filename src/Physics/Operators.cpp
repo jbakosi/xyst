@@ -540,6 +540,8 @@ advdom( const tk::UnsMesh::Coords& coord,
     R(p,4,0) -= f;
     R(q,4,0) += f;
 
+    if (!ns) continue;
+
     // scalars at edge-end points
     std::vector< tk::real > uL( ns );
     std::vector< tk::real > uR( ns );
@@ -548,7 +550,7 @@ advdom( const tk::UnsMesh::Coords& coord,
       uR[c] = U(q,5+c,0);
     }
 
-    // compute MUSCL reconstruction in edge-end points for scalars
+    // MUSCL reconstruction in edge-end points for scalars
     //muscl( p, q, coord, G, uL, uR );
 
     // scalar dissipation
@@ -611,6 +613,8 @@ advbnd( const tk::UnsMesh::Coords& coord,
     R(p,2,0) += U(p,2,0)*vn + pr*ny;
     R(p,3,0) += U(p,3,0)*vn + pr*nz;
     R(p,4,0) += (U(p,4,0) + pr)*vn;
+
+    if (!ns) continue;
 
     for (std::size_t c=5; c<ncomp; ++c) {
       R(p,c,0) += U(p,c,0)*vn;
@@ -680,6 +684,8 @@ advbnd( const tk::UnsMesh::Coords& coord,
     f = (reL + pL)*vnL + (reR + pR)*vnR + fw*(reR - reL);
     R(p,4,0) -= f;
     R(q,4,0) += f;
+
+    if (!ns) continue;
 
     // scalars at edge-end points
     std::vector< tk::real > uL( ns );

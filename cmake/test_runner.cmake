@@ -371,9 +371,12 @@ else() # Test command ran successfully, attempt to do diffs
       # if failed.
       if (pass)
         message(STATUS "Binary diff found match for '${baseline}' in '${matching_result}'")
-      else()
-        string(REPLACE "\n" " " baseline_error_out "${baseline_error}")
-        message(FATAL_ERROR "Binary diff command failed: ${baseline_error_out}")
+      else()    # if test failed, rerun without -q and display verbose error
+        string(REPLACE "-q" "" bin_diff_command "${bin_diff_command}")
+        execute_process(COMMAND ${bin_diff_command} RESULT_VARIABLE ERR
+                        ERROR_VARIABLE ERROR_OUT OUTPUT_VARIABLE BINDIFF_OUT)
+        string(REPLACE "\n" "\n   " BINDIFF_OUT "${BINDIFF_OUT}")
+        message(FATAL_ERROR "\n   Binary diff command \n\n   ${bin_diff_command_string}\n\n   failed with output:\n   ${BINDIFF_OUT}")
       endif()
 
     endforeach(baseline)

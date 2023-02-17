@@ -6,22 +6,14 @@
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     AirCG for a PDE system with continuous Galerkin + ALE + RK
-  \details   AirCG advances a system of partial differential equations (PDEs)
-    using a continuous Galerkin (CG) finite element (FE) spatial discretization
-    (using linear shapefunctions on tetrahedron elements) combined with a
-    Runge-Kutta (RK) time stepping scheme in the arbitrary Eulerian-Lagrangian
-    reference frame.
+  \brief     AirCG: continuous Galerkin finite elements + Runge Kutta
+  \details   AirCG solves the compressible Euler or Navier-Stokes equations
+    coupled to a number of scalars usng a continuous Galerkin (CG) finite
+    element (FE) spatial discretization (using linear shapefunctions on
+    tetrahedron elements) combined with Runge-Kutta (RK) time stepping scheme.
 
     There are a potentially large number of AirCG Charm++ chares created by
-    Transporter. Each AirCG gets a chunk of the full load (part of the mesh)
-    and does the same: initializes and advances a number of PDE systems in time.
-
-    ALE time-stepping is performed in an unsplit fashion, as opposed to
-    Lagrange + remap. See also J. Waltz, N.R. Morgan, T.R. Canfield, M.R.J.
-    Charest, L.D. Risinger, J.G. Wohlbier, A three-dimensional finite element
-    arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured
-    grids, Computers & Fluids, 92: 172-187, 2014.
+    Transporter. Each AirCG gets a chunk of the full load (part of the mesh).
 
     The implementation uses the Charm++ runtime system and is fully
     asynchronous, overlapping computation and communication. The algorithm

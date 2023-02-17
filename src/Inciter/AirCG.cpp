@@ -6,11 +6,11 @@
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     AirCG for a PDE system with continuous Galerkin + ALE + RK
-  \details   AirCG advances a system of partial differential equations (PDEs)
-    using a continuous Galerkin (CG) finite element (FE) spatial discretization
-    (using linear shapefunctions on tetrahedron elements) combined with a
-    Runge-Kutta (RK) time stepping scheme..
+  \brief     AirCG: continuous Galerkin finite elements + Runge Kutta
+  \details   AirCG solves the compressible Euler or Navier-Stokes equations
+    coupled to a number of scalars usng a continuous Galerkin (CG) finite
+    element (FE) spatial discretization (using linear shapefunctions on
+    tetrahedron elements) combined with Runge-Kutta (RK) time stepping scheme.
 */
 // *****************************************************************************
 

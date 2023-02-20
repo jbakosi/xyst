@@ -57,11 +57,9 @@ AirCG::AirCG( const CProxy_Discretization& disc,
   m_ncomp( 5 +
      (g_inputdeck.get<tag::component>().get<tag::transport>().empty() ? 0 :
       g_inputdeck.get<tag::component>().get<tag::transport>()[0] ) ),
-  //m_ncomp( 5 ),
   m_bnode( bnode ),
   m_bface( bface ),
-  m_triinpoel( triinpoel ),//tk::remap( triinpoel, Disc()->Lid() ) ),
-  m_bndel( Disc()->bndel() ),
+  m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), m_ncomp ),
   m_un( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
@@ -82,6 +80,26 @@ AirCG::AirCG( const CProxy_Discretization& disc,
   usesAtSync = true;    // enable migration at AtSync
 
   auto d = Disc();
+
+  // Create new local ids based on mesh locality
+  std::unordered_map< std::size_t, std::size_t > map;
+  std::size_t n = 0;
+
+  auto psup = tk::genPsup( d->Inpoel(), 4, tk::genEsup( d->Inpoel(), 4 ) );
+  for (std::size_t p=0; p<m_u.nunk(); ++p) {  // for each point p
+    if (!map.count(p)) map[p] = n++;
+    for (auto q : tk::Around(psup,p)) {       // for each edge p-q
+      if (!map.count(q)) map[q] = n++;
+    }
+  }
+
+  Assert( map.size() == d->Gid().size(),
+          "Mesh-locality reorder map size mismatch" );
+
+  // Remap data in bound Discretization object
+  d->remap( map );
+  // Remap boundary triangle face connectivity
+  tk::remap( m_triinpoel, map );
 
   // Activate SDAG wait for initially computing integrals
   thisProxy[ thisIndex ].wait4int();
@@ -107,35 +125,18 @@ AirCG::integrals()
   auto far = d->bcnodes< tag::bc, tag::bcfarfield >( m_bface, m_triinpoel );
 
   // Compile unique set of BC nodes
-  std::set< std::size_t > dirbcnodeset;
-  for (const auto& [s,n] : dir) dirbcnodeset.insert( begin(n), end(n) );
-  std::set< std::size_t > symbcnodeset;
-  for (const auto& [s,n] : sym) symbcnodeset.insert( begin(n), end(n) );
-  std::set< std::size_t > farbcnodeset;
-  for (const auto& [s,n] : far) farbcnodeset.insert( begin(n), end(n) );
+  for (const auto& [s,n] : dir)
+    m_dirbcnodes.insert( end(m_dirbcnodes), begin(n), end(n) );
+  tk::unique( m_dirbcnodes );
+
+  for (const auto& [s,n] : sym) m_symbcnodeset.insert( begin(n), end(n) );
+  for (const auto& [s,n] : far) m_farbcnodeset.insert( begin(n), end(n) );
 
   // If farfield BC is set on a node, will not also set symmetry BC
-  for (auto i : farbcnodeset) symbcnodeset.erase(i);
-
-  // Store unqie set of BC nodes with local node ids
-  const auto& lid = d->Lid();
-
-  std::size_t j = 0;
-  m_dirbcnodes.resize( dirbcnodeset.size() );
-  for (auto i : dirbcnodeset) m_dirbcnodes[j++] = tk::cref_find(lid,i);
-  std::sort( begin(m_dirbcnodes), end(m_dirbcnodes) );
-
-  for (auto i : symbcnodeset) m_symbcnodeset.insert( tk::cref_find(lid,i) );
-  for (auto i : farbcnodeset) m_farbcnodeset.insert( tk::cref_find(lid,i) );
-
-  // Collect boundary nodes associated to side sets
-  std::unordered_map< int, std::unordered_set< std::size_t > > bnodes;
-  for (const auto& [s,n] : dir) bnodes[s].insert( begin(n), end(n) );
-  for (const auto& [s,n] : sym) bnodes[s].insert( begin(n), end(n) );
-  for (const auto& [s,n] : far) bnodes[s].insert( begin(n), end(n) );
+  for (auto i : m_farbcnodeset) m_symbcnodeset.erase(i);
 
   // Compute local contributions to boundary normals and integrals
-  bndint( bnodes );
+  bndint();
   // Compute local contributions to domain edge integrals
   domint();
 
@@ -158,17 +159,14 @@ AirCG::integrals()
 }
 
 void
-AirCG::bndint( const std::unordered_map< int,
-                       std::unordered_set< std::size_t > >& bnodes )
+AirCG::bndint()
 // *****************************************************************************
 //! Compute local contributions to boundary normals and integrals
-//! \param[in] bnodes Local node ids associated to side set ids
 // *****************************************************************************
 {
   auto d = Disc();
   const auto& coord = d->Coord();
   const auto& gid = d->Gid();
-  const auto& lid = d->Lid();
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
@@ -186,61 +184,52 @@ AirCG::bndint( const std::unordered_map< int,
   tk::destroy( m_bndpoinint );
   tk::destroy( m_bndedgeint );
 
-  // Compute boundary point normals and boundary point-, and edge-integrals on
-  // all side sets. The boundary point normals are computed by summing
-  // inverse-distance-weighted boundary face (triangle) normals to boundary
-  // points. Note that these are only partial sums at shared boundary points and
-  // edges in parallel.
+  // Compute boundary point normals and boundary point-, and edge-integrals.
+  // The boundary point normals are computed by summing
+  // inverse-distance-weighted boundary face normals to boundary points. Note
+  // that these are only partial sums at shared boundary points and edges in
+  // parallel.
 
    for (const auto& [ setid, faceids ] : m_bface) { // for all side sets
      for (auto f : faceids) { // for all side set triangles
  
        const std::array< std::size_t, 3 >
-         N{ tk::cref_find( lid, m_triinpoel[f*3+0] ),
-            tk::cref_find( lid, m_triinpoel[f*3+1] ),
-            tk::cref_find( lid, m_triinpoel[f*3+2] ) };
+         N{ m_triinpoel[f*3+0], m_triinpoel[f*3+1], m_triinpoel[f*3+2] };
        const std::array< tk::real, 3 >
          ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
          ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
        auto n = tk::cross( ba, ca );
        auto A = tk::length( n );
-       n[0] = n[0] / A;
-       n[1] = n[1] / A;
-       n[2] = n[2] / A;
+       n[0] /= A;
+       n[1] /= A;
+       n[2] /= A;
        A /= 2.0;
        const std::array< tk::real, 3 > centroid{
          (x[N[0]] + x[N[1]] + x[N[2]]) / 3.0,
          (y[N[0]] + y[N[1]] + y[N[2]]) / 3.0,
          (z[N[0]] + z[N[1]] + z[N[2]]) / 3.0 };
 
-       for (std::size_t j=0; j<3; ++j) { // for all 3 nodes of a bnd triangle
-         for (const auto& [ss,nodes] : bnodes) {  // for all bnd nodes
-           if (setid == ss) {  // only contribute to side set we operate on
-             auto p = N[j];
-             auto i = nodes.find( gid[p] );
-             if (i != end(nodes)) {      // only if user set bc on node
-               tk::real r = invdistsq( centroid, p );
-               auto& v = m_bnorm[ss];    // associate side set id
-               auto& bpn = v[gid[p]];    // associate global node id of bnd point
-               bpn[0] += r * n[0];       // inv.dist.sq-weighted normal
-               bpn[1] += r * n[1];
-               bpn[2] += r * n[2];
-               bpn[3] += r;              // inv.dist.sq of node from centroid
-               auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
-               b[0] += n[0] * A / 3.0;        // bnd-point integral
-               b[1] += n[1] * A / 3.0;
-               b[2] += n[2] * A / 3.0;
-               auto q = N[ tk::lpoet[j][1] ]; // the other node of bnd edge
-               tk::UnsMesh::Edge ed{ gid[p], gid[q] };
-               tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
-               if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
-               auto& e = m_bndedgeint[ ed ];
-               e[0] += sig * n[0] * A / 12.0; // bnd-edge integral
-               e[1] += sig * n[1] * A / 12.0;
-               e[2] += sig * n[1] * A / 12.0;
-             }
-           }
-         }
+       for (std::size_t j=0; j<3; ++j) {
+         auto p = N[j];
+         tk::real r = invdistsq( centroid, p );
+         auto& v = m_bnorm[setid];      // associate side set id
+         auto& bpn = v[gid[p]];         // associate global node id of bnd pnt
+         bpn[0] += r * n[0];            // inv.dist.sq-weighted normal
+         bpn[1] += r * n[1];
+         bpn[2] += r * n[2];
+         bpn[3] += r;                   // inv.dist.sq of node from centroid
+         auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
+         b[0] += n[0] * A / 3.0;        // bnd-point integral
+         b[1] += n[1] * A / 3.0;
+         b[2] += n[2] * A / 3.0;
+         auto q = N[ tk::lpoet[j][1] ]; // the other node of bnd edge
+         tk::UnsMesh::Edge ed{ gid[p], gid[q] };
+         tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
+         if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
+         auto& e = m_bndedgeint[ ed ];
+         e[0] += sig * n[0] * A / 12.0; // bnd-edge integral
+         e[1] += sig * n[1] * A / 12.0;
+         e[2] += sig * n[2] * A / 12.0;
        }
 
     }
@@ -449,8 +438,8 @@ AirCG::merge()
 
   // Convert boundary point integrals into streamable data structures
   m_bpoin.resize( m_bndpoinint.size() );
-  m_bpint.resize( m_bndpoinint.size() * 3 );
   m_bpsym.resize( m_bndpoinint.size() );
+  m_bpint.resize( m_bndpoinint.size() * 3 );
   std::size_t i = 0;
   for (const auto& [g,b] : m_bndpoinint) {
     m_bpoin[i] = tk::cref_find( lid, g );
@@ -464,8 +453,8 @@ AirCG::merge()
 
   // Convert boundary edge integrals into streamable data structures
   m_bedge.resize( m_bndedgeint.size() * 2 );
-  m_beint.resize( m_bndedgeint.size() * 3 );
   m_besym.resize( m_bndedgeint.size() * 2 );
+  m_beint.resize( m_bndedgeint.size() * 3 );
   std::size_t j = 0;
   for (const auto& [ed,b] : m_bndedgeint) {
     auto p = tk::cref_find( lid, ed[0] );
@@ -943,7 +932,6 @@ AirCG::resizePostAMR(
   m_un.resize( npoin );
   m_rhs.resize( npoin );
   m_grad.resize( npoin );
-  m_bndel = d->bndel();
 
   // Update solution on new mesh
   for (const auto& n : addedNodes)
@@ -1040,7 +1028,7 @@ AirCG::writeFields( CkCallback cb )
                         std::vector< tk::real >( nodes.size() ) );
       std::size_t j = 0;
       for (auto n : nodes) {
-        const auto s = m_u[ tk::cref_find(lid,n) ];
+        const auto s = m_u[n];
         nodesurfs[i+0][j] = s[0];
         nodesurfs[i+1][j] = s[1]/s[0];
         nodesurfs[i+2][j] = s[2]/s[0];
@@ -1054,11 +1042,9 @@ AirCG::writeFields( CkCallback cb )
     }   
 
     // Send mesh and fields data (solution dump) for output to file
-    auto triinpoel = m_triinpoel;
-    tk::remap( triinpoel, lid );
     d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,lid),
-              triinpoel, {}, nodefieldnames,
-              nodesurfnames, {}, nodefields, nodesurfs, cb );
+              m_triinpoel, {}, nodefieldnames, nodesurfnames, {}, nodefields,
+              nodesurfs, cb );
 
   }
 }

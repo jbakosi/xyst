@@ -494,7 +494,7 @@ advdom( const tk::UnsMesh::Coords& coord,
     auto reR = U(q,4,0) / rR - 0.5*(ruR*ruR + rvR*rvR + rwR*rwR);
 
     // MUSCL reconstruction in edge-end points for flow variables
-    //muscl( p, q, coord, G, rL, ruL, rvL, rwL, reL, rR, ruR, rvR, rwR, reR );
+    muscl( p, q, coord, G, rL, ruL, rvL, rwL, reL, rR, ruR, rvR, rwR, reR );
 
     // pressure
     auto pL = eos_pressure( rL, reL );
@@ -551,14 +551,14 @@ advdom( const tk::UnsMesh::Coords& coord,
     }
 
     // MUSCL reconstruction in edge-end points for scalars
-    //muscl( p, q, coord, G, uL, uR );
+    muscl( p, q, coord, G, uL, uR );
 
     // scalar dissipation
     auto sw = std::max( std::abs(vnL), std::abs(vnR) );
 
     // scalar fluxes
     for (std::size_t c=0; c<ns; ++c) {
-      auto s = uL[c]*vnL + uR[c]*vnR - sw*(uR[c] - uL[c]);
+      auto s = uL[c]*vnL + uR[c]*vnR + sw*(uR[c] - uL[c]);
       R(p,5+c,0) -= s;
       R(q,5+c,0) += s;
     }
@@ -566,29 +566,21 @@ advdom( const tk::UnsMesh::Coords& coord,
 }
 
 static void
-advbnd( const tk::UnsMesh::Coords& coord,
-        const std::vector< std::size_t >& bpoin,
+advbnd( const std::vector< std::size_t >& bpoin,
         const std::vector< tk::real >& bpint,
         const std::vector< std::size_t >& bedge,
         const std::vector< tk::real >& beint,
         const std::vector< std::uint8_t >& bpsym,
         const std::vector< std::uint8_t >& besym,
-        const tk::Fields& G,
         const tk::Fields& U,
         tk::Fields& R )
 // *****************************************************************************
 //! Compute boundary integrals for advection
-//! \param[in] coord Mesh node coordinates
 //! \param[in] triinpoel Boundary triangle face connecitivity with local ids
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
 {
-  // total number of components
-  auto ncomp = U.nprop();
-  // number of transported scalars
-  auto ns = U.nprop() - 5;
-
   // boundary point contributions
   for (std::size_t b=0; b<bpoin.size(); ++b) {
     auto p = bpoin[b];
@@ -598,8 +590,7 @@ advbnd( const tk::UnsMesh::Coords& coord,
     auto u = U(p,1,0) / r;
     auto v = U(p,2,0) / r;
     auto w = U(p,3,0) / r;
-    auto e = U(p,4,0) / r - 0.5*(u*u + v*v + w*w);
-    auto pr = eos_pressure( r, e );
+    auto pr = eos_pressure( r, u, v, w, U(p,4,0) );
 
     // boundary-normal velocity
     auto nx = bpint[b*3+0];
@@ -614,9 +605,8 @@ advbnd( const tk::UnsMesh::Coords& coord,
     R(p,3,0) += U(p,3,0)*vn + pr*nz;
     R(p,4,0) += (U(p,4,0) + pr)*vn;
 
-    if (!ns) continue;
-
-    for (std::size_t c=5; c<ncomp; ++c) {
+    // scalar fluxes
+    for (std::size_t c=5; c<U.nprop(); ++c) {
       R(p,c,0) += U(p,c,0)*vn;
     }
   }
@@ -626,84 +616,45 @@ advbnd( const tk::UnsMesh::Coords& coord,
     auto p = bedge[e*2+0];
     auto q = bedge[e*2+1];
 
-    // primitive variables at boundary-edge end-points
-    auto rL  = U(p,0,0);
-    auto ruL = U(p,1,0) / rL;
-    auto rvL = U(p,2,0) / rL;
-    auto rwL = U(p,3,0) / rL;
-    auto reL = U(p,4,0) / rL - 0.5*(ruL*ruL + rvL*rvL + rwL*rwL);
-    auto rR  = U(q,0,0);
-    auto ruR = U(q,1,0) / rR;
-    auto rvR = U(q,2,0) / rR;
-    auto rwR = U(q,3,0) / rR;
-    auto reR = U(q,4,0) / rR - 0.5*(ruR*ruR + rvR*rvR + rwR*rwR);
-
-    // MUSCL reconstruction in boundary-edge-end points for flow variables
-    //muscl( p, q, coord, G, rL, ruL, rvL, rwL, reL, rR, ruR, rvR, rwR, reR );
-
     // pressure
-    auto pL = eos_pressure( rL, reL );
-    auto pR = eos_pressure( rR, reR );
+    auto rL = U(p,0,0);
+    auto uL = U(p,1,0) / rL;
+    auto vL = U(p,2,0) / rL;
+    auto wL = U(p,3,0) / rL;
+    auto pL = eos_pressure( rL, uL, vL, wL, U(p,4,0) );
+    auto rR = U(q,0,0);
+    auto uR = U(q,1,0) / rR;
+    auto vR = U(q,2,0) / rR;
+    auto wR = U(q,3,0) / rR;
+    auto pR = eos_pressure( rR, uR, vR, wR, U(q,4,0) );
 
     // boundary-normal velocities in boundary-edge end-points
     auto nx = beint[e*3+0];
     auto ny = beint[e*3+1];
     auto nz = beint[e*3+2];
-    auto vnL = besym[e*2+0] ? 0.0 : (nx*ruL + ny*rvL + nz*rwL);
-    auto vnR = besym[e*2+1] ? 0.0 : (nx*ruR + ny*rvR + nz*rwR);
-
-    // back to conserved variables
-    reL = (reL + 0.5*(ruL*ruL + rvL*rvL + rwL*rwL)) * rL;
-    ruL *= rL;
-    rvL *= rL;
-    rwL *= rL;
-    reR = (reR + 0.5*(ruR*ruR + rvR*rvR + rwR*rwR)) * rR;
-    ruR *= rR;
-    rvR *= rR;
-    rwR *= rR;
-
-    // dissipation
-    auto len = tk::length( nx, ny, nz );
-    auto sl = std::abs(vnL) + eos_soundspeed(rL,pL)*len;
-    auto sr = std::abs(vnR) + eos_soundspeed(rR,pR)*len;
-    auto fw = std::max( sl, sr );
+    auto vnL = besym[e*2+0] ? 0.0 : (nx*uL + ny*vL + nz*wL);
+    auto vnR = besym[e*2+1] ? 0.0 : (nx*uR + ny*vR + nz*wR);
 
     // fluxes
-    auto f = rL*vnL + rR*vnR + fw*(rR - rL);
+    auto f = U(p,0,0)*vnL + U(q,0,0)*vnR;
     R(p,0,0) -= f;
     R(q,0,0) += f;
-    f = ruL*vnL + ruR*vnR + (pL + pR)*nx + fw*(ruR - ruL);
+    f = U(p,1,0)*vnL + U(q,1,0)*vnR + (pL+pR)*nx;
     R(p,1,0) -= f;
     R(q,1,0) += f;
-    f = rvL*vnL + rvR*vnR + (pL + pR)*ny + fw*(rvR - rvL);
+    f = U(p,2,0)*vnL + U(q,2,0)*vnR + (pL+pR)*ny;
     R(p,2,0) -= f;
     R(q,2,0) += f;
-    f = rwL*vnL + rwR*vnR + (pL + pR)*nz + fw*(rwR - rwL);
+    f = U(p,3,0)*vnL + U(q,3,0)*vnR + (pL+pR)*nz;
     R(p,3,0) -= f;
     R(q,3,0) += f;
-    f = (reL + pL)*vnL + (reR + pR)*vnR + fw*(reR - reL);
+    f = (U(p,4,0) + pL)*vnL + (U(q,4,0) + pR)*vnR;
     R(p,4,0) -= f;
     R(q,4,0) += f;
 
-    if (!ns) continue;
-
-    // scalars at edge-end points
-    std::vector< tk::real > uL( ns );
-    std::vector< tk::real > uR( ns );
-    for (std::size_t c=0; c<ns; ++c) {
-      uL[c] = U(p,5+c,0);
-      uR[c] = U(q,5+c,0);
-    }
-
-    // compute MUSCL reconstruction in boundary-edge-end points for scalars
-    //muscl( p, q, coord, G, uL, uR );
-
-    // scalar dissipation
-    auto sw = std::max( std::abs(vnL), std::abs(vnR) );
-
     // scalar fluxes
-    for (std::size_t c=5; c<ncomp; ++c) {
-      auto s = U(p,c,0)*vnL + U(q,c,0)*vnR + sw*(uR[c] - uL[c]);
+    for (std::size_t c=5; c<U.nprop(); ++c) {
+      auto s = U(p,c,0)*vnL + U(q,c,0)*vnR;
       R(p,c,0) -= s;
       R(q,c,0) += s;
     }
@@ -776,7 +727,7 @@ rhs( const std::vector< std::size_t >& dedge,
   advdom( coord, dedge, deint, G, U, R );
 
   // advection: boundary integrals
-  advbnd( coord, bpoin, bpint, bedge, beint, bpsym, besym, G, U, R );
+  advbnd( bpoin, bpint, bedge, beint, bpsym, besym, U, R );
 
   // source
   src( coord, v, t, tp, R );
@@ -898,14 +849,14 @@ symbc( tk::Fields& U,
   Assert( symbcnodes.size() == symbcnorms.size()*3, "Size mismaatch" );
 
   for (std::size_t i=0; i<symbcnodes.size(); ++i) {
-     auto p = symbcnodes[i];
-     auto nx = symbcnorms[i*3+0];
-     auto ny = symbcnorms[i*3+1];
-     auto nz = symbcnorms[i*3+2];
-     auto rvn = U(p,1,0)*nx + U(p,2,0)*ny + U(p,3,0)*nz;
-     U(p,1,0) -= rvn * nx;
-     U(p,2,0) -= rvn * ny;
-     U(p,3,0) -= rvn * nz;
+    auto p  = symbcnodes[i];
+    auto nx = symbcnorms[i*3+0];
+    auto ny = symbcnorms[i*3+1];
+    auto nz = symbcnorms[i*3+2];
+    auto rvn = U(p,1,0)*nx + U(p,2,0)*ny + U(p,3,0)*nz;
+    U(p,1,0) -= rvn * nx;
+    U(p,2,0) -= rvn * ny;
+    U(p,3,0) -= rvn * nz;
   }
 }
 
@@ -944,39 +895,41 @@ farbc( tk::Fields& U,
   tk::real fp = fpe[0];
 
   for (std::size_t i=0; i<farbcnodes.size(); ++i) {
-     auto p = farbcnodes[i];
-     auto nx = farbcnorms[i*3+0];
-     auto ny = farbcnorms[i*3+1];
-     auto nz = farbcnorms[i*3+2];
-     auto& r  = U(p,0,0);
-     auto& ru = U(p,1,0);
-     auto& rv = U(p,2,0);
-     auto& rw = U(p,3,0);
-     auto& re = U(p,4,0);
-     auto vn = (ru*nx + rv*ny + rw*nz)/r;
-     auto a = eos_soundspeed( r, eos_pressure( r, ru/r, rv/r, rw/r, re ) );
-     auto M = vn / a;
-     if (M <= -1.0) {
-       // supersonic inflow, all characteristics from outside
-       r  = fr;
-       ru = fr * fu;
-       rv = fr * fv;
-       rw = fr * fw;
-       re = eos_totalenergy( fr, fu, fv, fw, fp );
-     } else if (M > -1.0 && M < 0.0) {
-       // subsonic inflow: 1 outgoing and 4 incoming characteristics,
-       // pressure from inside, rest from outside
-       auto pr = eos_pressure( r, ru/r, rv/r, rw/r, re );
-       r  = fr;
-       ru = fr * fu;
-       rv = fr * fv;
-       rw = fr * fw;
-       re = eos_totalenergy( fr, fu, fv, fw, pr );
-     } else if (M >= 0.0 && M < 1.0) {
-       // subsonic outflow: 1 incoming and 4 outgoing characteristics,
-       // pressure from outside, rest from inside
-       re = eos_totalenergy( r, ru/r, rv/r, rw/r, fp );
-     }
+    auto p  = farbcnodes[i];
+    auto nx = farbcnorms[i*3+0];
+    auto ny = farbcnorms[i*3+1];
+    auto nz = farbcnorms[i*3+2];
+    auto& r  = U(p,0,0);
+    auto& ru = U(p,1,0);
+    auto& rv = U(p,2,0);
+    auto& rw = U(p,3,0);
+    auto& re = U(p,4,0);
+    //auto vn = (ru*nx + rv*ny + rw*nz)/r;
+    auto vn = fu*nx + fv*ny + fw*nz;
+    //auto a = eos_soundspeed( r, eos_pressure( r, ru/r, rv/r, rw/r, re ) );
+    auto a = eos_soundspeed( fr, fp );
+    auto M = vn / a;
+    if (M <= -1.0) {
+      // supersonic inflow, all characteristics from outside
+      r  = fr;
+      ru = fr * fu;
+      rv = fr * fv;
+      rw = fr * fw;
+      re = eos_totalenergy( fr, fu, fv, fw, fp );
+    } else if (M > -1.0 && M < 0.0) {
+      // subsonic inflow: 1 outgoing and 4 incoming characteristics,
+      // pressure from inside, rest from outside
+      auto pr = eos_pressure( r, ru/r, rv/r, rw/r, re );
+      r  = fr;
+      ru = fr * fu;
+      rv = fr * fv;
+      rw = fr * fw;
+      re = eos_totalenergy( fr, fu, fv, fw, pr );
+    } else if (M >= 0.0 && M < 1.0) {
+      // subsonic outflow: 1 incoming and 4 outgoing characteristics,
+      // pressure from outside, rest from inside
+      re = eos_totalenergy( r, ru/r, rv/r, rw/r, fp );
+    }
   }
 }
 

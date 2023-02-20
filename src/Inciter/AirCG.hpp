@@ -136,19 +136,6 @@ class AirCG : public CBase_AirCG {
       const std::map< int, std::vector< std::size_t > >& bnode,
       const std::vector< std::size_t >& triinpoel );
 
-    //! Extract field output to file
-    void extractFieldOutput(
-      const std::vector< std::size_t >& /* ginpoel */,
-      const tk::UnsMesh::Chunk& /*chunk*/,
-      const tk::UnsMesh::Coords& /*coord*/,
-      const std::unordered_map< std::size_t, tk::UnsMesh::Edge >& /* addedNodes */,
-      const std::unordered_map< std::size_t, std::size_t >& /*addedTets*/,
-      const tk::NodeCommMap& /*nodeCommMap*/,
-      const std::map< int, std::vector< std::size_t > >& /*bface*/,
-      const std::map< int, std::vector< std::size_t > >& /* bnode */,
-      const std::vector< std::size_t >& /*triinpoel*/,
-      CkCallback /*c*/ ) {}
-
     //! Const-ref access to current solution
     //! \return Const-ref to current solution
     const tk::Fields& solution() const { return m_u; }
@@ -184,7 +171,6 @@ class AirCG : public CBase_AirCG {
       p | m_bnode;
       p | m_bface;
       p | m_triinpoel;
-      p | m_bndel;
       p | m_bpoinid;
       p | m_bpoinin;
       p | m_u;
@@ -219,7 +205,6 @@ class AirCG : public CBase_AirCG {
       p | m_farbcnorms;
       p | m_stage;
       p | m_boxnodes;
-      p | m_edgenode;
       p | m_dtp;
       p | m_tp;
       p | m_finished;
@@ -255,8 +240,6 @@ class AirCG : public CBase_AirCG {
     std::map< int, std::vector< std::size_t > > m_bface;
     //! Boundary triangle face connecitivity where BCs are set by user
     std::vector< std::size_t > m_triinpoel;
-    //! Elements along mesh boundary
-    std::vector< std::size_t > m_bndel;
     //! Streamable boundary point local ids
     std::vector< std::size_t > m_bpoinid;
     //! Streamable boundary point integrals
@@ -342,8 +325,6 @@ class AirCG : public CBase_AirCG {
     std::size_t m_stage;
     //! Mesh node ids at which user-defined box ICs are defined (multiple boxes)
     std::vector< std::unordered_set< std::size_t > > m_boxnodes;
-    //! Local node IDs of edges
-    std::vector< std::size_t > m_edgenode;
     //! Time step size for each mesh node
     std::vector< tk::real > m_dtp;
     //! Physical time for each mesh node
@@ -364,8 +345,7 @@ class AirCG : public CBase_AirCG {
     void bndEdges();
 
     //! Compute boundary point normals
-    void bndint( const std::unordered_map< int,
-                         std::unordered_set< std::size_t > >& bcnodes );
+    void bndint();
 
     //! Output mesh and particle fields to files
     void out();

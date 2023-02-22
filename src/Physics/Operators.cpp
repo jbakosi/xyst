@@ -202,56 +202,45 @@ muscl( std::size_t p,
 
     // MUSCL extrapolation option 1:
     // ---------------------------------------------------------------------
-    // Uncomment the following 3 blocks of code if this version is required.
-    // this reconstruction is from the following paper:
-    // Waltz, J., Morgan, N. R., Canfield, T. R., Charest, M. R.,
-    // Risinger, L. D., & Wohlbier, J. G. (2014). A three-dimensional
-    // finite element arbitrary Lagrangian–Eulerian method for shock
-    // hydrodynamics on unstructured grids. Computers & Fluids, 92,
-    // 172-187.
+    // See Waltz, J., Morgan, N. R., Canfield, T. R., Charest, M. R., Risinger,
+    // L. D., & Wohlbier, J. G. (2014). A three-dimensional finite element
+    // arbitrary Lagrangian–Eulerian method for shock hydrodynamics on
+    // unstructured grids. Computers & Fluids, 92, 172-187.
 
-    // form limiters
-    //auto rcL = (delta2[c] + muscl_eps) / (delta1[c] + muscl_eps);
-    //auto rcR = (delta2[c] + muscl_eps) / (delta3[c] + muscl_eps);
-    //auto rLinv = (delta1[c] + muscl_eps) / (delta2[c] + muscl_eps);
-    //auto rRinv = (delta3[c] + muscl_eps) / (delta2[c] + muscl_eps);
-
-    //// van Leer limiter
-    //// any other symmetric limiter could be used instead too
-    //auto phiL = (std::abs(rcL) + rcL) / (std::abs(rcL) + 1.0);
-    //auto phiR = (std::abs(rcR) + rcR) / (std::abs(rcR) + 1.0);
-    //auto phi_L_inv = (std::abs(rLinv) + rLinv) / (std::abs(rLinv) + 1.0);
-    //auto phi_R_inv = (std::abs(rRinv) + rRinv) / (std::abs(rRinv) + 1.0);
-
-    //// update unknowns with reconstructed unknowns
-    //url[c] += 0.25*(delta1[c]*(1.0-muscl_const)*phiL +
-    //                delta2[c]*(1.0+muscl_const)*phi_L_inv);
-    //urr[c] -= 0.25*(delta3[c]*(1.0-muscl_const)*phiR +
-    //                delta2[c]*(1.0+muscl_const)*phi_R_inv);
+    // van Leer limiter
+    auto rcL = (delta2[c] + muscl_eps) / (delta1[c] + muscl_eps);
+    auto rcR = (delta2[c] + muscl_eps) / (delta3[c] + muscl_eps);
+    auto rLinv = (delta1[c] + muscl_eps) / (delta2[c] + muscl_eps);
+    auto rRinv = (delta3[c] + muscl_eps) / (delta2[c] + muscl_eps);
+    auto phiL = (std::abs(rcL) + rcL) / (std::abs(rcL) + 1.0);
+    auto phiR = (std::abs(rcR) + rcR) / (std::abs(rcR) + 1.0);
+    auto phi_L_inv = (std::abs(rLinv) + rLinv) / (std::abs(rLinv) + 1.0);
+    auto phi_R_inv = (std::abs(rRinv) + rRinv) / (std::abs(rRinv) + 1.0);
+    // update unknowns with reconstructed unknowns
+    url[c] += 0.25*(delta1[c]*(1.0-muscl_const)*phiL +
+                    delta2[c]*(1.0+muscl_const)*phi_L_inv);
+    urr[c] -= 0.25*(delta3[c]*(1.0-muscl_const)*phiR +
+                    delta2[c]*(1.0+muscl_const)*phi_R_inv);
 
     // MUSCL extrapolation option 2:
     // ---------------------------------------------------------------------
-    // The following 2 blocks of code.
-    // this reconstruction is from the following paper:
-    // Luo, H., Baum, J. D., & Lohner, R. (1994). Edge-based finite element
+    // See Luo, H., Baum, J. D., & Lohner, R. (1994). Edge-based finite element
     // scheme for the Euler equations. AIAA journal, 32(6), 1183-1190.
-    // Van Leer, B. (1974). Towards the ultimate conservative difference
+    // van Leer, B. (1974). Towards the ultimate conservative difference
     // scheme. II. Monotonicity and conservation combined in a second-order
     // scheme. Journal of computational physics, 14(4), 361-370.
+    // Derived from the flux limiter phi as: s = phi_inv - (1 - phi)
 
-    // Van Albada limiter
-    // the following form is derived from the flux limiter phi as:
-    // s = phi_inv - (1 - phi)
-    auto sL = std::max(0.0, (2.0*delta1[c]*delta2[c] + muscl_eps)
-      /(delta1[c]*delta1[c] + delta2[c]*delta2[c] + muscl_eps));
-    auto sR = std::max(0.0, (2.0*delta3[c]*delta2[c] + muscl_eps)
-      /(delta3[c]*delta3[c] + delta2[c]*delta2[c] + muscl_eps));
-
-    // update unknowns with reconstructed unknowns
-    url[c] += 0.25*sL*(delta1[c]*(1.0 - muscl_const*sL)
-                     + delta2[c]*(1.0 + muscl_const*sL));
-    urr[c] -= 0.25*sR*(delta3[c]*(1.0 - muscl_const*sR)
-                     + delta2[c]*(1.0 + muscl_const*sR));
+    // van Albada limiter
+    //auto sL = std::max(0.0, (2.0*delta1[c]*delta2[c] + muscl_eps)
+    //  /(delta1[c]*delta1[c] + delta2[c]*delta2[c] + muscl_eps));
+    //auto sR = std::max(0.0, (2.0*delta3[c]*delta2[c] + muscl_eps)
+    //  /(delta3[c]*delta3[c] + delta2[c]*delta2[c] + muscl_eps));
+    //// update unknowns with reconstructed unknowns
+    //url[c] += 0.25*sL*(delta1[c]*(1.0 - muscl_const*sL)
+    //                 + delta2[c]*(1.0 + muscl_const*sL));
+    //urr[c] -= 0.25*sR*(delta3[c]*(1.0 - muscl_const*sR)
+    //                 + delta2[c]*(1.0 + muscl_const*sR));
   }
 
   // force first order if the reconstructions for density or internal energy
@@ -315,17 +304,15 @@ muscl( std::size_t p,
     delta1[c] = 2.0 * tk::dot(g1,vw) - delta2[c];
     delta3[c] = 2.0 * tk::dot(g2,vw) - delta2[c];
 
-    // form limiters
+    // van Leer limiter
     auto rL = (delta2[c] + muscl_eps) / (delta1[c] + muscl_eps);
     auto rR = (delta2[c] + muscl_eps) / (delta3[c] + muscl_eps);
     auto rLinv = (delta1[c] + muscl_eps) / (delta2[c] + muscl_eps);
     auto rRinv = (delta3[c] + muscl_eps) / (delta2[c] + muscl_eps);
-
     auto phiL = (std::abs(rL) + rL) / (std::abs(rL) + 1.0);
     auto phiR = (std::abs(rR) + rR) / (std::abs(rR) + 1.0);
     auto phi_L_inv = (std::abs(rLinv) + rLinv) / (std::abs(rLinv) + 1.0);
     auto phi_R_inv = (std::abs(rRinv) + rRinv) / (std::abs(rRinv) + 1.0);
-
     // update unknowns with reconstructed unknowns
     uL[c] += 0.25*(delta1[c]*(1.0-muscl_const)*phiL +
                    delta2[c]*(1.0+muscl_const)*phi_L_inv);
@@ -566,12 +553,14 @@ advdom( const tk::UnsMesh::Coords& coord,
 }
 
 static void
-advbnd( const std::vector< std::size_t >& bpoin,
+advbnd( const tk::UnsMesh::Coords& coord,
+        const std::vector< std::size_t >& bpoin,
         const std::vector< tk::real >& bpint,
         const std::vector< std::size_t >& bedge,
         const std::vector< tk::real >& beint,
         const std::vector< std::uint8_t >& bpsym,
         const std::vector< std::uint8_t >& besym,
+        const tk::Fields& G,
         const tk::Fields& U,
         tk::Fields& R )
 // *****************************************************************************
@@ -581,6 +570,9 @@ advbnd( const std::vector< std::size_t >& bpoin,
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
 {
+  // number of transported scalars
+  auto ns = U.nprop() - 5;
+
   // boundary point contributions
   for (std::size_t b=0; b<bpoin.size(); ++b) {
     auto p = bpoin[b];
@@ -616,47 +608,86 @@ advbnd( const std::vector< std::size_t >& bpoin,
     auto p = bedge[e*2+0];
     auto q = bedge[e*2+1];
 
+    // primitive variables at boundary-edge end-points
+    auto rL  = U(p,0,0);
+    auto ruL = U(p,1,0) / rL;
+    auto rvL = U(p,2,0) / rL;
+    auto rwL = U(p,3,0) / rL;
+    auto reL = U(p,4,0) / rL - 0.5*(ruL*ruL + rvL*rvL + rwL*rwL);
+    auto rR  = U(q,0,0);
+    auto ruR = U(q,1,0) / rR;
+    auto rvR = U(q,2,0) / rR;
+    auto rwR = U(q,3,0) / rR;
+    auto reR = U(q,4,0) / rR - 0.5*(ruR*ruR + rvR*rvR + rwR*rwR);
+
+    // MUSCL reconstruction in boundary-edge-end points for flow variables
+    muscl( p, q, coord, G, rL, ruL, rvL, rwL, reL, rR, ruR, rvR, rwR, reR );
+
     // pressure
-    auto rL = U(p,0,0);
-    auto uL = U(p,1,0) / rL;
-    auto vL = U(p,2,0) / rL;
-    auto wL = U(p,3,0) / rL;
-    auto pL = eos_pressure( rL, uL, vL, wL, U(p,4,0) );
-    auto rR = U(q,0,0);
-    auto uR = U(q,1,0) / rR;
-    auto vR = U(q,2,0) / rR;
-    auto wR = U(q,3,0) / rR;
-    auto pR = eos_pressure( rR, uR, vR, wR, U(q,4,0) );
+    auto pL = eos_pressure( rL, reL );
+    auto pR = eos_pressure( rR, reR );
 
     // boundary-normal velocities in boundary-edge end-points
     auto nx = beint[e*3+0];
     auto ny = beint[e*3+1];
     auto nz = beint[e*3+2];
-    auto vnL = besym[e*2+0] ? 0.0 : (nx*uL + ny*vL + nz*wL);
-    auto vnR = besym[e*2+1] ? 0.0 : (nx*uR + ny*vR + nz*wR);
+    auto vnL = besym[e*2+0] ? 0.0 : (nx*ruL + ny*rvL + nz*rwL);
+    auto vnR = besym[e*2+1] ? 0.0 : (nx*ruR + ny*rvR + nz*rwR);
+
+    // back to conserved variables
+    reL = (reL + 0.5*(ruL*ruL + rvL*rvL + rwL*rwL)) * rL;
+    ruL *= rL;
+    rvL *= rL;
+    rwL *= rL;
+    reR = (reR + 0.5*(ruR*ruR + rvR*rvR + rwR*rwR)) * rR;
+    ruR *= rR;
+    rvR *= rR;
+    rwR *= rR;
+
+    // dissipation
+    auto len = tk::length( nx, ny, nz );
+    auto sl = std::abs(vnL) + eos_soundspeed(rL,pL)*len;
+    auto sr = std::abs(vnR) + eos_soundspeed(rR,pR)*len;
+    auto fw = std::max( sl, sr );
 
     // fluxes
-    auto f = U(p,0,0)*vnL + U(q,0,0)*vnR;
+    auto f = rL*vnL + rR*vnR + fw*(rR - rL);
     R(p,0,0) -= f;
     R(q,0,0) += f;
-    f = U(p,1,0)*vnL + U(q,1,0)*vnR + (pL+pR)*nx;
+    f = ruL*vnL + ruR*vnR + (pL + pR)*nx + fw*(ruR - ruL);
     R(p,1,0) -= f;
     R(q,1,0) += f;
-    f = U(p,2,0)*vnL + U(q,2,0)*vnR + (pL+pR)*ny;
+    f = rvL*vnL + rvR*vnR + (pL + pR)*ny + fw*(rvR - rvL);
     R(p,2,0) -= f;
     R(q,2,0) += f;
-    f = U(p,3,0)*vnL + U(q,3,0)*vnR + (pL+pR)*nz;
+    f = rwL*vnL + rwR*vnR + (pL + pR)*nz + fw*(rwR - rwL);
     R(p,3,0) -= f;
     R(q,3,0) += f;
-    f = (U(p,4,0) + pL)*vnL + (U(q,4,0) + pR)*vnR;
+    f = (reL + pL)*vnL + (reR + pR)*vnR + fw*(reR - reL);
     R(p,4,0) -= f;
     R(q,4,0) += f;
 
+    if (!ns) continue;
+
+    // scalars at edge-end points
+    std::vector< tk::real > uL( ns );
+    std::vector< tk::real > uR( ns );
+    for (std::size_t c=0; c<ns; ++c) {
+      uL[c] = U(p,5+c,0);
+      uR[c] = U(q,5+c,0);
+    }
+
+    // compute MUSCL reconstruction in boundary-edge-end points for scalars
+    muscl( p, q, coord, G, uL, uR );
+
+    // scalar dissipation
+    auto sw = std::max( std::abs(vnL), std::abs(vnR) );
+
     // scalar fluxes
-    for (std::size_t c=5; c<U.nprop(); ++c) {
-      auto s = U(p,c,0)*vnL + U(q,c,0)*vnR;
-      R(p,c,0) -= s;
-      R(q,c,0) += s;
+    for (std::size_t c=0; c<ns; ++c) {
+      auto s = uL[c]*vnL + uR[c]*vnR + sw*(uR[c] - uL[c]);
+      R(p,5+c,0) -= s;
+      R(q,5+c,0) += s;
     }
   }
 }
@@ -727,7 +758,7 @@ rhs( const std::vector< std::size_t >& dedge,
   advdom( coord, dedge, deint, G, U, R );
 
   // advection: boundary integrals
-  advbnd( bpoin, bpint, bedge, beint, bpsym, besym, U, R );
+  advbnd( coord, bpoin, bpint, bedge, beint, bpsym, besym, G, U, R );
 
   // source
   src( coord, v, t, tp, R );

@@ -107,7 +107,6 @@ find_package(Boost REQUIRED)
 find_package(TUT REQUIRED)
 find_package(PEGTL 2.0.0 REQUIRED)
 find_package(NumDiff REQUIRED)
-find_package(LAPACKE REQUIRED)
 
 find_package(Backward)
 if(Backward_FOUND)

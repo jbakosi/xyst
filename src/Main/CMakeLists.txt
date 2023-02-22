@@ -94,7 +94,6 @@ target_include_directories(${UNITTEST_EXECUTABLE} PUBLIC
                            ${PROJECT_SOURCE_DIR}/../LoadBalance
                            ${PROJECT_SOURCE_DIR}/../IO
                            ${TUT_INCLUDE_DIRS}
-                           ${LAPACKE_INCLUDE_DIRS}
                            ${RANDOM123_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../UnitTest
                            ${PROJECT_BINARY_DIR}/../IO)
@@ -155,7 +154,6 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       Statistics
                       ${SEACASExodus_LIBRARIES}
                       ${Zoltan2_LIBRARIES}
-                      ${LAPACKE_LIBRARIES}
                       ${BACKWARD_LIBRARIES}
 )
 

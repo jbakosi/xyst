@@ -80,12 +80,6 @@ executable.
   - Web: http://www.netlib.org/blas
   - License: @subpage blas_license_page
 
-\subsection lapack_license LAPACK for linear algebra
-  - Required
-  - Searched for and if not found, built by default
-  - Web: http://www.netlib.org/lapack
-  - License: @subpage lapack_license_page
-
 \subsection libstdcpp_license Libstdc++ for standard C++ containers and algorithms
   - Either libc++ or libstdc++ required
   - Must be present system-wide

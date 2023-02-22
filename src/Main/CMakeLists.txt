@@ -58,7 +58,6 @@ add_executable(${UNITTEST_EXECUTABLE}
                ../../tests/unit/Base/TestData.cpp
                ../../tests/unit/Base/TestException.cpp
                ../../tests/unit/Base/TestExceptionMPI.cpp
-               ../../tests/unit/Base/TestFactory.cpp
                ../../tests/unit/Base/TestFlip_map.cpp
                ../../tests/unit/Base/TestHas.cpp
                ../../tests/unit/Base/TestPrint.cpp

@@ -33,7 +33,6 @@ target_include_directories(UnitTest PUBLIC
                            ${PROJECT_BINARY_DIR}/../Inciter
                            ${PROJECT_BINARY_DIR}/../UnitTest)
 
-addCharmModule( "charmchild" "UnitTest" )
 addCharmModule( "charmtimer" "UnitTest" )
 addCharmModule( "migrated_base" "UnitTest" )
 addCharmModule( "quietcerr" "UnitTest" )

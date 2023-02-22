@@ -107,12 +107,6 @@ find_package(Boost REQUIRED)
 find_package(TUT REQUIRED)
 find_package(PEGTL 2.0.0 REQUIRED)
 find_package(NumDiff REQUIRED)
-
-find_package(Backward)
-if(Backward_FOUND)
-  set(HAS_BACKWARD true)  # will become compiler define
-endif()
-
 find_package(HighwayHash REQUIRED)
 find_package(Brigand REQUIRED)
 find_package(Pstreams REQUIRED)

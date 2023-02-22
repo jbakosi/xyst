@@ -98,17 +98,6 @@ executable.
   - Web: http://www.open-mpi.org
   - License: @subpage openmpi_license_page
 
-\subsection backwardcpp_license BackwardCpp for generating backtraces
-  - Optional
-  - Searched for and if not found, built by default
-  - Web: https://github.com/bombela/backward-cpp
-  - License: @subpage backwardcpp_license_page
-  - Possible dependencies of BackWardCpp and their licenses:
-       + [GNU/binuitls](http://www.gnu.org/software/binutils) (GPL)
-       + [elfutils](https://sourceware.org/elfutils/) (GPLv2+/LGPLv3+)
-       + [libdwarf](https://sourceforge.net/projects/libdwarf/) (BSD/LGPLv2/GPLv2)
-       + [libelf](http://www.mr511.de/software/english.html) (LGPL)
-
 \subsection highwayhash_license HighwayHash for generating hashes
   - Required
   - Searched for and if not found, built by default

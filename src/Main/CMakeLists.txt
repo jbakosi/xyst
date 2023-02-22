@@ -117,7 +117,6 @@ target_link_libraries(${UNITTEST_EXECUTABLE}
                       ${MKL_INTERFACE_LIBRARY}
                       ${MKL_SEQUENTIAL_LAYER_LIBRARY}
                       ${HDF5_C_LIBRARIES}
-                      ${BACKWARD_LIBRARIES}
 )
 
 # Add custom dependencies for UnitTest's main Charm++ module
@@ -153,7 +152,6 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       Statistics
                       ${SEACASExodus_LIBRARIES}
                       ${Zoltan2_LIBRARIES}
-                      ${BACKWARD_LIBRARIES}
 )
 
 # Add custom dependencies for Inciter's main Charm++ module
@@ -187,7 +185,6 @@ target_link_libraries(${MESHCONV_EXECUTABLE}
                       ${PUGIXML_LIBRARIES}
                       ${SEACASExodus_LIBRARIES}
                       ${HDF5_C_LIBRARIES}
-                      ${BACKWARD_LIBRARIES}
 )
 
 # Add custom dependencies for MeshConv's main Charm++ module

@@ -21,10 +21,6 @@
 #include "XystBuildConfig.hpp"
 #include "Exception.hpp"
 
-#ifdef HAS_BACKWARD
-  #include "NoWarning/backward.hpp"
-#endif
-
 extern bool g_trace;
 
 using tk::Exception;
@@ -192,15 +188,5 @@ Exception::handleException() noexcept
     fprintf( stderr, ">>>\n>>> ======= END OF CALL TRACE ========\n>>>\n" );
   }
 
-  #ifdef HAS_BACKWARD
-  if (g_trace) {
-    fprintf( stderr, ">>>\n>>> =========== STACK TRACE ==========\n>>>\n" );
-    using namespace backward;
-    StackTrace st; st.load_here(64);
-    Printer p; p.print( st, stderr );
-    fprintf( stderr, ">>>\n>>> ======= END OF STACK TRACE =======\n>>>\n" );
-  }
-  #endif
- 
   return tk::ErrCode::FAILURE;
 }

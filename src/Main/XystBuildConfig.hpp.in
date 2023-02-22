@@ -20,17 +20,6 @@
 #cmakedefine FIELD_DATA_LAYOUT_AS_FIELD_MAJOR
 #cmakedefine FIELD_DATA_LAYOUT_AS_EQUATION_MAJOR
 
-// Optional TPLs
-#cmakedefine HAS_BACKWARD
-
-// Backward-cpp config
-#cmakedefine01 BACKWARD_HAS_UNWIND
-#cmakedefine01 BACKWARD_HAS_BACKTRACE
-#cmakedefine01 BACKWARD_HAS_BACKTRACE_SYMBOL
-#cmakedefine01 BACKWARD_HAS_DW
-#cmakedefine01 BACKWARD_HAS_BFD
-#cmakedefine01 BACKWARD_HAS_DWARF
-
 // Exceptions write to std::cerr
 #cmakedefine EXCEPTIONS_WRITE_TO_CERR
 

@@ -111,7 +111,6 @@ find_package(HighwayHash REQUIRED)
 find_package(Brigand REQUIRED)
 find_package(Pstreams REQUIRED)
 find_package(TUT REQUIRED)
-find_package(Pugixml REQUIRED)
 
 set(HDF5_PREFER_PARALLEL true)
 if(NOT BUILD_SHARED_LIBS)

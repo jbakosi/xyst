@@ -50,8 +50,6 @@ detectInput( const std::string& filename )
   } else if ( s.find("CDF") != std::string::npos ||
               s.find("HDF") != std::string::npos ) {
     return MeshReaderType::EXODUSII;
-  } else if ( s.find("<?x") != std::string::npos ) {
-    return MeshReaderType::HYPER;
   } else if ( s.find("*nd") != std::string::npos ) {
     return MeshReaderType::ASC;
   } else if ( s.find("   ") != std::string::npos ) {

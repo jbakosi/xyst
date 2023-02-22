@@ -89,25 +89,6 @@ INSTALL(TARGETS ExodusIIMeshIO
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development
 )
 
-add_library(HyperMeshIO
-            HyperMeshReader.cpp)
-
-target_include_directories(HyperMeshIO PUBLIC
-                           ${PROJECT_SOURCE_DIR}/..
-                           ${PROJECT_SOURCE_DIR}/../Base
-                           ${PROJECT_SOURCE_DIR}/../Mesh
-                           ${TPL_INCLUDE_DIR}
-                           ${HIGHWAYHASH_INCLUDE_DIRS}
-                           ${PUGIXML_INCLUDE_DIRS})
-
-set_target_properties(HyperMeshIO PROPERTIES LIBRARY_OUTPUT_NAME
-                      xyst_hypermeshio)
-
-INSTALL(TARGETS HyperMeshIO
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development)
-
 add_library(MeshDetect
             MeshDetect.cpp)
 

@@ -21,7 +21,6 @@
 #include "GmshMeshReader.hpp"
 #include "NetgenMeshReader.hpp"
 #include "ExodusIIMeshReader.hpp"
-#include "HyperMeshReader.hpp"
 #include "UGRIDMeshReader.hpp"
 #include "RDGFLOMeshReader.hpp"
 #include "MeditMeshReader.hpp"
@@ -72,8 +71,6 @@ readUnsMesh( const tk::Print& print,
     RDGFLOMeshReader( filename ).readMesh( mesh );
   else if (meshtype == MeshReaderType::MEDIT)
     MeditMeshReader( filename ).readMesh( mesh );
-  else if (meshtype == MeshReaderType::HYPER)
-    HyperMeshReader( filename ).readMesh( mesh );
 
   timestamp =
     std::make_pair( "Read mesh from file '" + filename + '\'', t.dsec() );

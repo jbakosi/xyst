@@ -13,7 +13,6 @@
 
 #include <array>
 #include <istream>
-#include <iostream>     // NOT NEEDED
 #include <string>
 #include <vector>
 #include <cstddef>

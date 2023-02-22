@@ -110,8 +110,6 @@ target_link_libraries(${UNITTEST_EXECUTABLE}
                       MeshDetect
                       NativeMeshIO
                       ExodusIIMeshIO
-                      HyperMeshIO
-                      ${PUGIXML_LIBRARIES}
                       ${SEACASExodus_LIBRARIES}
                       ${MKL_CORE_LIBRARY}
                       ${MKL_INTERFACE_LIBRARY}
@@ -175,14 +173,12 @@ target_include_directories(${MESHCONV_EXECUTABLE} PUBLIC
 target_link_libraries(${MESHCONV_EXECUTABLE}
                       NativeMeshIO
                       ExodusIIMeshIO
-                      HyperMeshIO
                       MeshDetect
                       Mesh
                       MeshConvControl
                       Base
                       Config
                       Init
-                      ${PUGIXML_LIBRARIES}
                       ${SEACASExodus_LIBRARIES}
                       ${HDF5_C_LIBRARIES}
 )

@@ -3,7 +3,7 @@ project(Physics CXX)
 add_library(Physics
             BC.cpp
             Problems.cpp
-            Operators.cpp
+            Rusanov.cpp
 )
 
 target_include_directories(Physics PUBLIC

@@ -1,14 +1,12 @@
 // *****************************************************************************
 /*!
-  \file      src/Physics/Operators.cpp
+  \file      src/Physics/Rusanov.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Compressible single-material flow using continuous Galerkin
-  \details   Physics operators governing compressible single-material flow using
-             continuous Galerkin finite elements.
+  \brief     Rusanov, MUSCL, limiting for edge-based continuous Galerkin
 */
 // *****************************************************************************
 
@@ -17,7 +15,7 @@
 #include "Around.hpp"
 #include "DerivedData.hpp"
 #include "EOS.hpp"
-#include "Operators.hpp"
+#include "Rusanov.hpp"
 #include "Problems.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
 

@@ -18,7 +18,7 @@ module sorter {
   include "CommMap.hpp";
 
   extern module meshwriter;
-  extern module aircg;
+  extern module riecg;
 
   namespace inciter {
 
@@ -28,7 +28,7 @@ module sorter {
                     const tk::CProxy_MeshWriter& meshwriter,
                     const tk::SorterCallback& cbs,
                     const CProxy_Discretization& discretization,
-                    const CProxy_AirCG& aircg,
+                    const CProxy_RieCG& riecg,
                     CkCallback reorderRefiner,
                     const std::vector< std::size_t >& ginpoel,
                     const tk::UnsMesh::CoordMap& coordmap,

@@ -42,7 +42,7 @@ Partitioner::Partitioner(
   const CProxy_Sorter& sorter,
   const tk::CProxy_MeshWriter& meshwriter,
   const CProxy_Discretization& discretization,
-  const CProxy_AirCG& aircg,
+  const CProxy_RieCG& riecg,
   const std::map< int, std::vector< std::size_t > >& bface,
   const std::map< int, std::vector< std::size_t > >& faces,
   const std::map< int, std::vector< std::size_t > >& bnode ) :
@@ -55,7 +55,7 @@ Partitioner::Partitioner(
   m_sorter( sorter ),
   m_meshwriter( meshwriter ),
   m_discretization( discretization ),
-  m_aircg( aircg ),
+  m_riecg( riecg ),
   m_ginpoel(),
   m_coord(),
   m_inpoel(),
@@ -82,7 +82,7 @@ Partitioner::Partitioner(
 //! \param[in] sorter Mesh reordering (sorter) proxy
 //! \param[in] meshwriter Mesh writer proxy
 //! \param[in] discretization Discretization base
-//! \param[in] aircg Discretization scheme
+//! \param[in] riecg Discretization scheme
 //! \param[in] bface File-internal elem ids of side sets (whole mesh)
 //! \param[in] faces Elem-relative face ids of side sets (whole mesh)
 //! \param[in] bnode Node lists of side sets (whole mesh)
@@ -286,7 +286,7 @@ Partitioner::refine()
                                m_sorter,
                                m_meshwriter,
                                m_discretization,
-                               m_aircg,
+                               m_riecg,
                                m_cbr,
                                m_cbs,
                                tk::cref_find(m_chinpoel,cid),

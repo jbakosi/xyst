@@ -1,21 +1,17 @@
 // *****************************************************************************
 /*!
-  \file      src/Inciter/AirCG.cpp
+  \file      src/Inciter/RieCG.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     AirCG: continuous Galerkin finite elements + Runge Kutta
-  \details   AirCG solves the compressible Euler or Navier-Stokes equations
-    coupled to a number of scalars usng a continuous Galerkin (CG) finite
-    element (FE) spatial discretization (using linear shapefunctions on
-    tetrahedron elements) combined with Runge-Kutta (RK) time stepping scheme.
+  \brief     RieCG: Rusanov, MUSCL, Runge-Kutta, edge-based continuous Galerkin
 */
 // *****************************************************************************
 
 #include "XystBuildConfig.hpp"
-#include "AirCG.hpp"
+#include "RieCG.hpp"
 #include "Vector.hpp"
 #include "Reader.hpp"
 #include "ContainerUtil.hpp"
@@ -43,9 +39,9 @@ static const std::array< tk::real, 3 > rkcoef{{ 1.0/3.0, 1.0/2.0, 1.0 }};
 
 } // inciter::
 
-using inciter::AirCG;
+using inciter::RieCG;
 
-AirCG::AirCG( const CProxy_Discretization& disc,
+RieCG::RieCG( const CProxy_Discretization& disc,
               const std::map< int, std::vector< std::size_t > >& bface,
               const std::map< int, std::vector< std::size_t > >& bnode,
               const std::vector< std::size_t >& triinpoel ) :
@@ -114,7 +110,7 @@ AirCG::AirCG( const CProxy_Discretization& disc,
 //! [Constructor]
 
 void
-AirCG::integrals()
+RieCG::integrals()
 // *****************************************************************************
 // Start (re-)computing domain and boundary integrals
 // *****************************************************************************
@@ -161,7 +157,7 @@ AirCG::integrals()
 }
 
 void
-AirCG::bndint()
+RieCG::bndint()
 // *****************************************************************************
 //! Compute local contributions to boundary normals and integrals
 // *****************************************************************************
@@ -239,7 +235,7 @@ AirCG::bndint()
 }
 
 void
-AirCG::domint()
+RieCG::domint()
 // *****************************************************************************
 //! Compute local contributions to domain edge integrals
 // *****************************************************************************
@@ -287,7 +283,7 @@ AirCG::domint()
 }
 
 void
-AirCG::comnorm( const decltype(m_bnorm)& inbnd )
+RieCG::comnorm( const decltype(m_bnorm)& inbnd )
 // *****************************************************************************
 // Receive contributions to boundary point normals on chare-boundaries
 //! \param[in] inbnd Incoming partial sums of boundary point normals
@@ -312,7 +308,7 @@ AirCG::comnorm( const decltype(m_bnorm)& inbnd )
 }
 
 void
-AirCG::registerReducers()
+RieCG::registerReducers()
 // *****************************************************************************
 //  Configure Charm++ reduction types initiated from this chare array
 //! \details Since this is a [initnode] routine, the runtime system executes the
@@ -326,7 +322,7 @@ AirCG::registerReducers()
 }
 
 void
-AirCG::ResumeFromSync()
+RieCG::ResumeFromSync()
 // *****************************************************************************
 //  Return from migration
 //! \details This is called when load balancing (LB) completes. The presence of
@@ -340,7 +336,7 @@ AirCG::ResumeFromSync()
 
 //! [setup]
 void
-AirCG::setup()
+RieCG::setup()
 // *****************************************************************************
 // Start setup for solution
 // *****************************************************************************
@@ -363,7 +359,7 @@ AirCG::setup()
 //! [setup]
 
 void
-AirCG::box( tk::real v )
+RieCG::box( tk::real v )
 // *****************************************************************************
 // Receive total box IC volume and set conditions in box
 //! \param[in] v Total volume within user-specified box
@@ -378,7 +374,7 @@ AirCG::box( tk::real v )
 
 //! [start]
 void
-AirCG::start()
+RieCG::start()
 // *****************************************************************************
 // Start time stepping
 // *****************************************************************************
@@ -396,7 +392,7 @@ AirCG::start()
 
 //! [Merge normals and continue]
 void
-AirCG::merge()
+RieCG::merge()
 // *****************************************************************************
 // Combine own and communicated portions of the integrals
 // *****************************************************************************
@@ -530,7 +526,7 @@ AirCG::merge()
     // Enforce boundary conditions on initial conditions
     BC();
     // Output initial conditions to file
-    writeFields( CkCallback(CkIndex_AirCG::start(), thisProxy[thisIndex]) );
+    writeFields( CkCallback(CkIndex_RieCG::start(), thisProxy[thisIndex]) );
   } else {
     //integrals_complete();
   }
@@ -538,7 +534,7 @@ AirCG::merge()
 //! [Merge normals and continue]
 
 void
-AirCG::BC()
+RieCG::BC()
 // *****************************************************************************
 // Apply boundary conditions
 // \details The following BC enforcement changes the initial condition or
@@ -546,7 +542,7 @@ AirCG::BC()
 //!   imposition of the BCs. This is a matter of choice. Another alternative is
 //!   to only apply BCs when computing fluxes at boundary faces, thereby only
 //!   weakly enforcing the BCs. The former is conventionally used in continunous
-//!   Galerkin finite element methods (such as AirCG implements), whereas the
+//!   Galerkin finite element methods (such as RieCG implements), whereas the
 //!   latter, in finite volume methods.
 // *****************************************************************************
 {
@@ -565,7 +561,7 @@ AirCG::BC()
 }
 
 void
-AirCG::next()
+RieCG::next()
 // *****************************************************************************
 // Continue to next time step
 // *****************************************************************************
@@ -574,7 +570,7 @@ AirCG::next()
 }
 
 void
-AirCG::dt()
+RieCG::dt()
 // *****************************************************************************
 // Compute time step size
 // *****************************************************************************
@@ -620,12 +616,12 @@ AirCG::dt()
 
   // Contribute to minimum dt across all chares and advance to next step
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
-              CkCallback(CkReductionTarget(AirCG,advance), thisProxy) );
+              CkCallback(CkReductionTarget(RieCG,advance), thisProxy) );
   //! [Advance]
 }
 
 void
-AirCG::advance( tk::real newdt )
+RieCG::advance( tk::real newdt )
 // *****************************************************************************
 // Advance equations to next time step
 //! \param[in] newdt The smallest dt across the whole problem
@@ -639,7 +635,7 @@ AirCG::advance( tk::real newdt )
 }
 
 void
-AirCG::grad()
+RieCG::grad()
 // *****************************************************************************
 // Compute gradients for next time step
 // *****************************************************************************
@@ -665,7 +661,7 @@ AirCG::grad()
 }
 
 void
-AirCG::comgrad(
+RieCG::comgrad(
   const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
 // *****************************************************************************
 //  Receive contributions to node gradients on chare-boundaries
@@ -689,7 +685,7 @@ AirCG::comgrad(
 }
 
 void
-AirCG::rhs()
+RieCG::rhs()
 // *****************************************************************************
 // Compute right-hand side of transport equations
 // *****************************************************************************
@@ -740,7 +736,7 @@ AirCG::rhs()
 }
 
 void
-AirCG::comrhs(
+RieCG::comrhs(
   const std::unordered_map< std::size_t, std::vector< tk::real > >& inrhs )
 // *****************************************************************************
 //  Receive contributions to right-hand side vector on chare-boundaries
@@ -764,7 +760,7 @@ AirCG::comrhs(
 }
 
 void
-AirCG::solve()
+RieCG::solve()
 // *****************************************************************************
 //  Advance systems of equations
 // *****************************************************************************
@@ -838,7 +834,7 @@ AirCG::solve()
 
 //! [Refine]
 void
-AirCG::refine( const std::vector< tk::real >& l2res )
+RieCG::refine( const std::vector< tk::real >& l2res )
 // *****************************************************************************
 // Optionally refine/derefine mesh
 //! \param[in] l2res L2-norms of the residual for each scalar component
@@ -888,7 +884,7 @@ AirCG::refine( const std::vector< tk::real >& l2res )
 
 //! [Resize]
 void
-AirCG::resizePostAMR(
+RieCG::resizePostAMR(
   const std::vector< std::size_t >& /*ginpoel*/,
   const tk::UnsMesh::Chunk& chunk,
   const tk::UnsMesh::Coords& coord,
@@ -956,7 +952,7 @@ AirCG::resizePostAMR(
 //! [Resize]
 
 void
-AirCG::resized()
+RieCG::resized()
 // *****************************************************************************
 // Resizing data sutrctures after mesh refinement has been completed
 // *****************************************************************************
@@ -965,7 +961,7 @@ AirCG::resized()
 }
 
 void
-AirCG::writeFields( CkCallback cb )
+RieCG::writeFields( CkCallback cb )
 // *****************************************************************************
 // Output mesh-based fields to file
 //! \param[in] cb Function to continue with after the write
@@ -1052,7 +1048,7 @@ AirCG::writeFields( CkCallback cb )
 }
 
 void
-AirCG::out()
+RieCG::out()
 // *****************************************************************************
 // Output mesh field data
 // *****************************************************************************
@@ -1088,13 +1084,13 @@ AirCG::out()
 
   // Field data
   if (d->fielditer() or d->fieldtime() or d->fieldrange() or m_finished)
-    writeFields( CkCallback(CkIndex_AirCG::step(), thisProxy[thisIndex]) );
+    writeFields( CkCallback(CkIndex_RieCG::step(), thisProxy[thisIndex]) );
   else
     step();
 }
 
 void
-AirCG::stage()
+RieCG::stage()
 // *****************************************************************************
 // Evaluate whether to continue with next time step stage
 // *****************************************************************************
@@ -1108,7 +1104,7 @@ AirCG::stage()
 }
 
 void
-AirCG::evalLB( int nrestart )
+RieCG::evalLB( int nrestart )
 // *****************************************************************************
 // Evaluate whether to do load balancing
 //! \param[in] nrestart Number of times restarted
@@ -1137,7 +1133,7 @@ AirCG::evalLB( int nrestart )
 }
 
 void
-AirCG::evalRestart()
+RieCG::evalRestart()
 // *****************************************************************************
 // Evaluate whether to save checkpoint/restart
 // *****************************************************************************
@@ -1161,7 +1157,7 @@ AirCG::evalRestart()
 }
 
 void
-AirCG::step()
+RieCG::step()
 // *****************************************************************************
 // Evaluate whether to continue with next time step
 // *****************************************************************************
@@ -1186,4 +1182,4 @@ AirCG::step()
   }
 }
 
-#include "NoWarning/aircg.def.h"
+#include "NoWarning/riecg.def.h"

@@ -1,16 +1,15 @@
 // *****************************************************************************
 /*!
-  \file      src/NoWarning/aircg.def.h
+  \file      src/NoWarning/riecg.def.h
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Include aircg.def.h with turning off specific compiler warnings
+  \brief     Include riecg.def.h with turning off specific compiler warnings
 */
 // *****************************************************************************
-#ifndef nowarning_aircg_def_h
-#define nowarning_aircg_def_h
+#pragma once
 
 #include "Macro.hpp"
 
@@ -37,12 +36,10 @@
   #pragma GCC diagnostic ignored "-Wswitch-default"
 #endif
 
-#include "../Inciter/aircg.def.h"
+#include "../Inciter/riecg.def.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // nowarning_aircg_def_h

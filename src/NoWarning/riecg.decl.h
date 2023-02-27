@@ -1,16 +1,15 @@
 // *****************************************************************************
 /*!
-  \file      src/NoWarning/aircg.decl.h
+  \file      src/NoWarning/riecg.decl.h
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Include aircg.decl.h with turning off specific compiler warnings.
+  \brief     Include riecg.decl.h with turning off specific compiler warnings.
 */
 // *****************************************************************************
-#ifndef nowarning_aircg_decl_h
-#define nowarning_aircg_decl_h
+#pragma once
 
 #include "Macro.hpp"
 
@@ -28,12 +27,10 @@
   #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-#include "../Inciter/aircg.decl.h"
+#include "../Inciter/riecg.decl.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // nowarning_aircg_decl_h

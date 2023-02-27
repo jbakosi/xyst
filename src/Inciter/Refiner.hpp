@@ -30,7 +30,7 @@
 #include "Callback.hpp"
 #include "UnsMesh.hpp"
 #include "Base/Fields.hpp"
-#include "AirCG.hpp"
+#include "RieCG.hpp"
 #include "CommMap.hpp"
 
 #include "NoWarning/transporter.decl.h"
@@ -71,7 +71,7 @@ class Refiner : public CBase_Refiner {
                       const CProxy_Sorter& sorter,
                       const tk::CProxy_MeshWriter& meshwriter,
                       const CProxy_Discretization& discretization,
-                      const CProxy_AirCG& aircg,
+                      const CProxy_RieCG& riecg,
                       const tk::RefinerCallback& cbr,
                       const tk::SorterCallback& cbs,
                       const std::vector< std::size_t >& ginpoel,
@@ -163,7 +163,7 @@ class Refiner : public CBase_Refiner {
       p | m_sorter;
       p | m_meshwriter;
       p | m_disc;
-      p | m_aircg;
+      p | m_riecg;
       p | m_cbr;
       p | m_cbs;
       p | m_ginpoel;
@@ -237,7 +237,7 @@ class Refiner : public CBase_Refiner {
     //! Discretization base proxy
     CProxy_Discretization m_disc;
     //! Discretization scheme proxy
-    CProxy_AirCG m_aircg;
+    CProxy_RieCG m_riecg;
     //! Charm++ callbacks associated to compile-time tags for refiner
     tk::RefinerCallback m_cbr;
     //! Charm++ callbacks associated to compile-time tags for sorter

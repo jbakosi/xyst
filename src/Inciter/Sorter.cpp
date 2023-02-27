@@ -32,7 +32,7 @@ Sorter::Sorter( std::size_t meshid,
                 const tk::CProxy_MeshWriter& meshwriter,
                 const tk::SorterCallback& cbs,
                 const CProxy_Discretization& discretization,
-                const CProxy_AirCG& aircg,
+                const CProxy_RieCG& riecg,
                 CkCallback reorderRefiner,
                 const std::vector< std::size_t >& ginpoel,
                 const tk::UnsMesh::CoordMap& coordmap,
@@ -46,7 +46,7 @@ Sorter::Sorter( std::size_t meshid,
   m_meshwriter( meshwriter ),
   m_cbs( cbs ),
   m_discretization( discretization ),
-  m_aircg( aircg ),
+  m_riecg( riecg ),
   m_reorderRefiner( reorderRefiner ),
   m_ginpoel( ginpoel ),
   m_coordmap( coordmap ),
@@ -583,7 +583,7 @@ Sorter::createWorkers()
   // Create worker array element using Charm++ dynamic chare array element
   // insertion.
 
-  m_aircg[ thisIndex ].insert( m_discretization, m_bface, m_bnode, m_triinpoel );
+  m_riecg[ thisIndex ].insert( m_discretization, m_bface, m_bnode, m_triinpoel );
 
   if ( g_inputdeck.get< tag::cmd, tag::feedback >() ) m_host.chcreated();
 

@@ -65,7 +65,7 @@ class Sorter : public CBase_Sorter {
                      const tk::CProxy_MeshWriter& meshwriter,
                      const tk::SorterCallback& cbs,
                      const CProxy_Discretization& discretization,
-                     const CProxy_AirCG& aircg,
+                     const CProxy_RieCG& riecg,
                      CkCallback reorderRefiner,
                      const std::vector< std::size_t >& ginpoel,
                      const tk::UnsMesh::CoordMap& coordmap,
@@ -139,7 +139,7 @@ class Sorter : public CBase_Sorter {
       p | m_meshwriter;
       p | m_cbs;
       p | m_discretization;
-      p | m_aircg;
+      p | m_riecg;
       p | m_reorderRefiner;
       p | m_ginpoel;
       p | m_coordmap;
@@ -182,7 +182,7 @@ class Sorter : public CBase_Sorter {
     //! Discretization base proxy
     CProxy_Discretization m_discretization;
     //! Discretization scheme proxy
-    CProxy_AirCG m_aircg;
+    CProxy_RieCG m_riecg;
     //! Callback to use to send reordered mesh to Refiner
     CkCallback m_reorderRefiner;
     //! Tetrtahedron element connectivity of our chunk of the mesh (global ids)

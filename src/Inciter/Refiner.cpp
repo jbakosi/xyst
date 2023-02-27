@@ -41,7 +41,7 @@ Refiner::Refiner( std::size_t meshid,
                   const CProxy_Sorter& sorter,
                   const tk::CProxy_MeshWriter& meshwriter,
                   const CProxy_Discretization& discretization,
-                  const CProxy_AirCG& aircg,
+                  const CProxy_RieCG& riecg,
                   const tk::RefinerCallback& cbr,
                   const tk::SorterCallback& cbs,
                   const std::vector< std::size_t >& ginpoel,
@@ -56,7 +56,7 @@ Refiner::Refiner( std::size_t meshid,
   m_sorter( sorter ),
   m_meshwriter( meshwriter ),
   m_disc( discretization ),
-  m_aircg( aircg ),
+  m_riecg( riecg ),
   m_cbr( cbr ),
   m_cbs( cbs ),
   m_ginpoel( ginpoel ),
@@ -109,7 +109,7 @@ Refiner::Refiner( std::size_t meshid,
 //! \param[in] sorter Mesh reordering (sorter) proxy
 //! \param[in] meshwriter Mesh writer proxy
 //! \param[in] discretization Discretization base proxy
-//! \param[in] aircg Discretization scheme proxy
+//! \param[in] riecg Discretization scheme proxy
 //! \param[in] cbr Charm++ callbacks for Refiner
 //! \param[in] cbs Charm++ callbacks for Sorter
 //! \param[in] ginpoel Mesh connectivity (this chare) using global node IDs
@@ -1070,7 +1070,7 @@ Refiner::next()
   } else if (m_mode == RefMode::DTREF) {
 
     // Send new mesh, solution, and communication data back to PDE worker
-    m_aircg[ thisIndex ].ckLocal()->resizePostAMR( m_ginpoel,
+    m_riecg[ thisIndex ].ckLocal()->resizePostAMR( m_ginpoel,
       m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes, m_amrNodeMap,
       m_nodeCommMap, m_bface, m_bnode, m_triinpoel );
 
@@ -1110,7 +1110,7 @@ Refiner::endt0ref()
 {
   // create sorter Charm++ chare array elements using dynamic insertion
   m_sorter[ thisIndex ].insert( m_meshid, m_host, m_meshwriter, m_cbs,
-    m_disc, m_aircg,
+    m_disc, m_riecg,
     CkCallback(CkIndex_Refiner::reorder(), thisProxy[thisIndex]), m_ginpoel,
     m_coordmap, m_el, m_bface, m_triinpoel, m_bnode, m_nchare );
 
@@ -1246,7 +1246,7 @@ Refiner::solution( std::size_t npoin,
   } else if (m_mode == RefMode::DTREF) {
 
     // Query current solution
-    u = m_aircg[ thisIndex ].ckLocal()->solution();
+    u = m_riecg[ thisIndex ].ckLocal()->solution();
  
   } else if (m_mode == RefMode::OUTREF) {
 

@@ -18,7 +18,7 @@
 mainmodule inciter {
 
   extern module partitioner;
-  extern module aircg;
+  extern module riecg;
   extern module charestatecollector;
   extern module lbswitch;
 

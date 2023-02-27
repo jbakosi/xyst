@@ -219,7 +219,7 @@ class Transporter : public CBase_Transporter {
       p | m_noutrefit;
       p | m_noutderefit;
       p | m_discretization;
-      p | m_aircg;
+      p | m_riecg;
       p | m_partitioner;
       p | m_refiner;
       p | m_meshwriter;
@@ -272,7 +272,7 @@ class Transporter : public CBase_Transporter {
     //! Discretization proxies (one per mesh)
     std::vector< CProxy_Discretization > m_discretization;
     //! Discretization scheme proxies (one per mesh)
-    std::vector< CProxy_AirCG > m_aircg;
+    std::vector< CProxy_RieCG > m_riecg;
     //! Partitioner nodegroup proxies (one per mesh)
     std::vector< CProxy_Partitioner > m_partitioner;
     //! Mesh refiner array proxies (one per mesh)

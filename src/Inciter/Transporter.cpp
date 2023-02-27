@@ -71,7 +71,7 @@ Transporter::Transporter() :
   m_noutrefit( m_nchare.size(), 0 ),
   m_noutderefit( m_nchare.size(), 0 ),
   m_discretization(),
-  m_aircg(),
+  m_riecg(),
   m_partitioner(),
   m_refiner(),
   m_meshwriter(),
@@ -299,7 +299,7 @@ Transporter::createPartitioner()
     opt.bindTo( m_discretization.back() );
 
     // Create empty discretization scheme chare array (bound to discretization)
-    m_aircg.push_back( CProxy_Refiner::ckNew(opt) );
+    m_riecg.push_back( CProxy_Refiner::ckNew(opt) );
     // Create empty mesh refiner chare array (bound to discretization)
     m_refiner.push_back( CProxy_Refiner::ckNew(opt) );
     // Create empty mesh sorter Charm++ chare array (bound to discretization)
@@ -316,7 +316,7 @@ Transporter::createPartitioner()
     m_partitioner.push_back(
       CProxy_Partitioner::ckNew( meshid, filename, cbp, cbr, cbs,
         thisProxy, m_refiner.back(), m_sorter.back(), m_meshwriter.back(),
-        m_discretization.back(), m_aircg.back(), bface, faces, bnode ) );
+        m_discretization.back(), m_riecg.back(), bface, faces, bnode ) );
 
     ++meshid;
   }
@@ -653,7 +653,7 @@ Transporter::resized( std::size_t meshid )
 // *****************************************************************************
 {
   m_discretization[ meshid ].vol();
-  m_aircg[ meshid ].integrals();
+  m_riecg[ meshid ].integrals();
 }
 
 void
@@ -728,7 +728,7 @@ Transporter::workinserted( std::size_t meshid )
 //! \param[in] meshid Mesh id
 // *****************************************************************************
 {
-  m_aircg[ meshid ].doneInserting();
+  m_riecg[ meshid ].doneInserting();
 }
 
 void
@@ -791,7 +791,7 @@ Transporter::comfinal( std::size_t summeshid )
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
 
-  m_aircg[ meshid ].setup();
+  m_riecg[ meshid ].setup();
 
   // Turn on automatic load balancing
   if (++m_ncom == m_nelem.size()) { // all worker arrays have finished
@@ -820,7 +820,7 @@ Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
   if (initial > 0.0)   // during initialization
     m_discretization[ meshid ].stat( v );
   else                  // during AMR
-    m_aircg[ meshid ].resized();
+    m_riecg[ meshid ].resized();
 }
 
 void
@@ -972,7 +972,7 @@ Transporter::boxvol( tk::real v, tk::real summeshid )
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
   if (v > 0.0) printer().diag( "Box IC volume: " + std::to_string(v) );
-  m_aircg[ meshid ].box( v );
+  m_riecg[ meshid ].box( v );
 }
 
 void
@@ -1065,7 +1065,7 @@ Transporter::diagnostics( CkReductionMsg* msg )
   dw.diag( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
 
   // Continue time step
-  m_aircg[ meshid ].refine( l2res );
+  m_riecg[ meshid ].refine( l2res );
 }
 
 void
@@ -1081,7 +1081,7 @@ Transporter::resume()
     // increased nrestart in g_inputdeck, but only on PE 0, so broadcast.
     auto nrestart = g_inputdeck.get< tag::cmd, tag::io, tag::nrestart >();
     for (std::size_t i=0; i<m_nelem.size(); ++i)
-      m_aircg[ i ].evalLB( nrestart );
+      m_riecg[ i ].evalLB( nrestart );
   } else
     mainProxy.finalize();
 }

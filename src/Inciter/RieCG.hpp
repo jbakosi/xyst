@@ -1,23 +1,12 @@
 // *****************************************************************************
 /*!
-  \file      src/Inciter/AirCG.hpp
+  \file      src/Inciter/RieCG.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     AirCG: continuous Galerkin finite elements + Runge Kutta
-  \details   AirCG solves the compressible Euler or Navier-Stokes equations
-    coupled to a number of scalars usng a continuous Galerkin (CG) finite
-    element (FE) spatial discretization (using linear shapefunctions on
-    tetrahedron elements) combined with Runge-Kutta (RK) time stepping scheme.
-
-    There are a potentially large number of AirCG Charm++ chares created by
-    Transporter. Each AirCG gets a chunk of the full load (part of the mesh).
-
-    The implementation uses the Charm++ runtime system and is fully
-    asynchronous, overlapping computation and communication. The algorithm
-    utilizes the structured dagger (SDAG) Charm++ functionality.
+  \brief     RieCG: Rusanov, MUSCL, Runge-Kutta, edge-based continuous Galerkin
 */
 // *****************************************************************************
 
@@ -33,14 +22,14 @@
 #include "NodeDiagnostics.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
 
-#include "NoWarning/aircg.decl.h"
+#include "NoWarning/riecg.decl.h"
 
 namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
 
-//! AirCG Charm++ chare array used to advance PDEs in time with AirCG+RK
-class AirCG : public CBase_AirCG {
+//! RieCG Charm++ chare array used to advance PDEs in time with RieCG+RK
+class RieCG : public CBase_RieCG {
 
   public:
     #if defined(__clang__)
@@ -57,7 +46,7 @@ class AirCG : public CBase_AirCG {
     #endif
     // Include Charm++ SDAG code. See http://charm.cs.illinois.edu/manuals/html/
     // charm++/manual.html, Sec. "Structured Control Flow: Structured Dagger".
-    AirCG_SDAG_CODE
+    RieCG_SDAG_CODE
     #if defined(__clang__)
       #pragma clang diagnostic pop
     #elif defined(STRICT_GNUC)
@@ -67,7 +56,7 @@ class AirCG : public CBase_AirCG {
     #endif
 
     //! Constructor
-    explicit AirCG( const CProxy_Discretization& disc,
+    explicit RieCG( const CProxy_Discretization& disc,
                     const std::map< int, std::vector< std::size_t > >& bface,
                     const std::map< int, std::vector< std::size_t > >& bnode,
                     const std::vector< std::size_t >& triinpoel );
@@ -78,7 +67,7 @@ class AirCG : public CBase_AirCG {
     #endif
     //! Migrate constructor
     // cppcheck-suppress uninitMemberVar
-    explicit AirCG( CkMigrateMessage* msg ) : CBase_AirCG( msg ) {}
+    explicit RieCG( CkMigrateMessage* msg ) : CBase_RieCG( msg ) {}
     #if defined(__clang__)
       #pragma clang diagnostic pop
     #endif
@@ -211,8 +200,8 @@ class AirCG : public CBase_AirCG {
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    //! \param[in,out] i AirCG object reference
-    friend void operator|( PUP::er& p, AirCG& i ) { i.pup(p); }
+    //! \param[in,out] i RieCG object reference
+    friend void operator|( PUP::er& p, RieCG& i ) { i.pup(p); }
     //@}
 
   private:

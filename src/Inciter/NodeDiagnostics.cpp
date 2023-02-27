@@ -17,7 +17,7 @@
 #include "DiagReducer.hpp"
 #include "Discretization.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
-#include "Operators.hpp"
+#include "Problems.hpp"
 
 namespace inciter {
 
@@ -81,7 +81,7 @@ NodeDiagnostics::compute( Discretization& d,
     const auto& v = d.V();  // nodal volumes without contributions from others
 
     // query function to evaluate analytic solution (if defined)
-    auto sol = physics::SOL();
+    auto sol = problems::SOL();
 
     // Evaluate analytic solution (if defined)
     auto an = u;
@@ -92,6 +92,10 @@ NodeDiagnostics::compute( Discretization& d,
       const auto& z = coord[2];
       for (std::size_t i=0; i<u.nunk(); ++i) {
         auto s = sol( x[i], y[i], z[i], d.T()+d.Dt() );
+        s[1] /= s[0];
+        s[2] /= s[0];
+        s[3] /= s[0];
+        s[4] = s[4] / s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
         for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
       }
     }
@@ -108,8 +112,23 @@ NodeDiagnostics::compute( Discretization& d,
       // entry is used)
       diag[TOTALSOL][0] += u(i,ncomp-1,0) * v[i];
       // Compute sum for L2 norm of the numerical-analytic solution
-      for (std::size_t c=0; c<ncomp; ++c)
-        diag[L2ERR][c] += (u(i,c,0)-an(i,c,0)) * (u(i,c,0)-an(i,c,0)) * v[i];
+      if (sol) {
+        auto nu = u[i];
+        nu[1] /= nu[0];
+        nu[2] /= nu[0];
+        nu[3] /= nu[0];
+        nu[4] = nu[4] / nu[0] - 0.5*(nu[1]*nu[1] + nu[2]*nu[2] + nu[3]*nu[3]);
+        for (std::size_t c=0; c<5; ++c) {
+          auto du = nu[c] - an(i,c,0);
+          diag[L2ERR][c] += du * du * v[i];
+          diag[L1ERR][c] += std::abs( du ) * v[i];
+        }
+        for (std::size_t c=5; c<ncomp; ++c) {
+          auto du = u(i,c,0) - an(i,c,0);
+          diag[L2ERR][c] += du * du * v[i];
+          diag[L1ERR][c] += std::abs( du ) * v[i];
+        }
+      }
     }
 
     // Append diagnostics vector with metadata on the current time step

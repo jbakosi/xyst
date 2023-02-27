@@ -18,13 +18,14 @@
 namespace inciter {
 
 //! Number of entries in diagnostics vector (of vectors)
-const std::size_t NUMDIAG = 7;
+const std::size_t NUMDIAG = 8;
 
 //! Diagnostics labels
 enum Diag { L2SOL=0,    //!< L2 norm of numerical solution
             L2RES,      //!< L2 norm of the residual
             TOTALSOL,   //!< Sum of conserved solution over entire domain
             L2ERR,      //!< L2 norm of numerical-analytic solution
+            L1ERR,      //!< L1 norm of numerical-analytic solution
             ITER,       //!< Iteration count
             TIME,       //!< Physical time
             DT };       //!< Time step size

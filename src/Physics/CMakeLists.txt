@@ -1,6 +1,7 @@
 project(Physics CXX)
 
 add_library(Physics
+            Problems.cpp
             Operators.cpp
 )
 

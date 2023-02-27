@@ -19,22 +19,6 @@
 
 namespace physics {
 
-//! Query user config and assign function to set initial conditions
-std::function< std::vector< tk::real >
-             ( tk::real, tk::real, tk::real, tk::real ) >
-IC();
-
-//! Query user config and assign function to query analytic solutions
-std::function< std::vector< tk::real >
-             ( tk::real, tk::real, tk::real, tk::real ) >
-SOL();
-
-//! Initalize the compressible flow equations, prepare for time integration
-void
-initialize( const std::array< std::vector< tk::real >, 3 >& coord,
-            tk::Fields& U,
-            tk::real t );
-
 //! Compute nodal gradients of primitive variables in all points
 void
 grad( const std::vector< std::size_t >& dedge,

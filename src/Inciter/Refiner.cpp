@@ -25,7 +25,7 @@
 #include "Around.hpp"
 #include "Sorter.hpp"
 #include "Discretization.hpp"
-#include "Operators.hpp"
+#include "Problems.hpp"
 
 namespace inciter {
 
@@ -965,7 +965,7 @@ Refiner::writeMesh( const std::string& basefilename,
 
   // Evaluate initial conditions on current mesh at t0
   tk::Fields u( m_coord[0].size(), nprop );
-  physics::initialize( m_coord, u, t0 );
+  problems::initialize( m_coord, u, t0 );
 
   // Extract all scalar components from solution for output to file
   for (std::size_t i=0; i<nprop; ++i)
@@ -1448,7 +1448,7 @@ Refiner::nodeinit( std::size_t /*npoin*/,
   // Evaluate ICs
 
   // Evaluate ICs for all scalar components integrated
-  physics::initialize( m_coord, u, t0 );
+  problems::initialize( m_coord, u, t0 );
 
   Assert( u.nunk() == m_coord[0].size(), "Size mismatch" );
   Assert( u.nprop() == nprop, "Size mismatch" );

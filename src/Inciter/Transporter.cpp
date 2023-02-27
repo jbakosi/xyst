@@ -39,7 +39,7 @@
 #include "DiagWriter.hpp"
 #include "Callback.hpp"
 #include "CartesianProduct.hpp"
-#include "Operators.hpp"
+#include "Problems.hpp"
 
 #include "NoWarning/inciter.decl.h"
 #include "NoWarning/partitioner.decl.h"
@@ -762,9 +762,20 @@ Transporter::diagHeader()
   // Add total energy
   d.push_back( "mE" );
 
-  // Augment diagnostics variables by L2-norm of the error (if computed)
-  if (physics::SOL()) {
-    for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(err:" + var[i] + ')' );
+  // Augment diagnostics variables by error norms (if computed)
+  if (problems::SOL()) {
+    d.push_back( "L2(err:r)" );
+    d.push_back( "L2(err:u)" );
+    d.push_back( "L2(err:v)" );
+    d.push_back( "L2(err:w)" );
+    d.push_back( "L2(err:e)" );
+    for (std::size_t i=5; i<nv; ++i) d.push_back( "L2(err:" + var[i] + ')' );
+    d.push_back( "L1(err:r)" );
+    d.push_back( "L1(err:u)" );
+    d.push_back( "L1(err:v)" );
+    d.push_back( "L1(err:w)" );
+    d.push_back( "L1(err:e)" );
+    for (std::size_t i=5; i<nv; ++i) d.push_back( "L1(err:" + var[i] + ')' );
   }
 
   // Write diagnostics header
@@ -1036,10 +1047,12 @@ Transporter::diagnostics( CkReductionMsg* msg )
   // Append total energy
   diag.push_back( d[TOTALSOL][0] );
 
-  // Finish computing the L2 norm of the numerical - analytical solution
-  if (physics::SOL()) {
+  // Finish computing norms of the numerical - analytical solution
+  if (problems::SOL()) {
     for (std::size_t i=0; i<d[L2ERR].size(); ++i)
       diag.push_back( std::sqrt( d[L2ERR][i] / m_meshvol[meshid] ) );
+    for (std::size_t i=0; i<d[L1ERR].size(); ++i)
+      diag.push_back( d[L1ERR][i] / m_meshvol[meshid] );
   }
  
   // Append diagnostics file at selected times

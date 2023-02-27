@@ -29,6 +29,7 @@
 #include "Reorder.hpp"
 #include "Around.hpp"
 #include "Operators.hpp"
+#include "Problems.hpp"
 #include "EOS.hpp"
 
 namespace inciter {
@@ -346,7 +347,7 @@ AirCG::setup()
   auto d = Disc();
 
   // Set initial conditions
-  physics::initialize( d->Coord(), m_u, d->T() );
+  problems::initialize( d->Coord(), m_u, d->T() );
 
   // Compute volume of user-defined box IC
   d->boxvol( m_boxnodes );
@@ -992,7 +993,7 @@ AirCG::writeFields( CkCallback cb )
     std::vector< tk::real > p( m_u.nunk() );
     for (std::size_t i=0; i<p.size(); ++i) {
       auto ei = e[i] - 0.5*(u[i]*u[i] + v[i]*v[i] + w[i]*w[i]);
-      p[i] = physics::eos_pressure( r[i], ei );
+      p[i] = eos::pressure( r[i], ei );
     }
 
     std::vector< std::vector< tk::real > > nodefields{
@@ -1035,7 +1036,7 @@ AirCG::writeFields( CkCallback cb )
         nodesurfs[i+3][j] = s[3]/s[0];
         nodesurfs[i+4][j] = s[4]/s[0];
         auto ei = s[4]/s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
-        nodesurfs[i+5][j] = physics::eos_pressure( s[0], ei );
+        nodesurfs[i+5][j] = eos::pressure( s[0], ei );
         for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+1+c][j] = s[5+c];
         ++j;
       } 
@@ -1076,7 +1077,7 @@ AirCG::out()
         hist[j][3] += n[i] * u[3]/u[0];
         hist[j][4] += n[i] * u[4]/u[0];
         auto ei = u[4]/u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3])/u[0]/u[0];
-        hist[j][5] += n[i] * physics::eos_pressure( u[0], ei );
+        hist[j][5] += n[i] * eos::pressure( u[0], ei );
       }
       ++j;
     }

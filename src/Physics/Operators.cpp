@@ -32,124 +32,6 @@ namespace physics {
 static const tk::real muscl_eps = 1.0e-9;
 static const tk::real muscl_const = 1.0/3.0;
 
-std::function< std::vector< tk::real >
-             ( tk::real, tk::real, tk::real, tk::real ) >
-IC()
-// *****************************************************************************
-//  Query user config and assign function to set initial conditions
-//! \return The function to call to set initial conditions
-// *****************************************************************************
-{
-  using inciter::g_inputdeck;
-  using ProblemType = inciter::ctr::ProblemType;
-
-  auto problem = g_inputdeck.get< tag::problem >();
-
-  std::function< std::vector< tk::real >
-               ( tk::real, tk::real, tk::real, tk::real ) > ic;
-
-  if (problem == ProblemType::USER_DEFINED)
-    ic = userdef::ic;
-  else if (problem == ProblemType::NONLINEAR_ENERGY_GROWTH)
-    ic = nonlinear_energy_growth::ic;
-  else if (problem == ProblemType::RAYLEIGH_TAYLOR)
-    ic = rayleigh_taylor::ic;
-  else if (problem == ProblemType::SEDOV)
-    ic = sedov::ic;
-  else if (problem == ProblemType::SOD)
-    ic = sod::ic;
-  else if (problem == ProblemType::TAYLOR_GREEN)
-    ic = taylor_green::ic;
-  else if (problem == ProblemType::VORTICAL_FLOW)
-    ic = vortical_flow::ic;
-  else
-    Throw( "problem type ic not hooked up" );
-
-  return ic;
-}
-
-std::function< std::vector< tk::real >
-             ( tk::real, tk::real, tk::real, tk::real ) >
-SOL()
-// *****************************************************************************
-//  Query user config and assign function to query analytic solutions
-//! \return The function to call to query analytic solutions
-// *****************************************************************************
-{
-  using inciter::g_inputdeck;
-  using ProblemType = inciter::ctr::ProblemType;
-
-  auto problem = g_inputdeck.get< tag::problem >();
-
-  if (problem == ProblemType::USER_DEFINED ||
-      problem == ProblemType::SOD)
-    return {};
-  else
-    return IC();
-}
-
-void
-initialize( const std::array< std::vector< tk::real >, 3 >& coord,
-            tk::Fields& U,
-            tk::real t )
-// *****************************************************************************
-//  Initalize the compressible flow equations, prepare for time integration
-//! \param[in] coord Mesh node coordinates
-//! \param[in,out] U Array of unknowns
-//! \param[in] t Physical time
-// *****************************************************************************
-{
-  Assert( coord[0].size() == U.nunk(), "Size mismatch" );
-
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  auto ic = IC();
-
-  // Set initial conditions dependeing on problem configured
-  for (std::size_t i=0; i<x.size(); ++i) {
-    auto s = ic( x[i], y[i], z[i], t );
-    U(i,0,0) = s[0]; // rho
-    U(i,1,0) = s[1]; // rho * u
-    U(i,2,0) = s[2]; // rho * v
-    U(i,3,0) = s[3]; // rho * w
-    U(i,4,0) = s[4]; // rho * e, e: total = kinetic + internal
-  }
-}
-
-static
-std::function< void( tk::real, tk::real, tk::real, tk::real,
-  tk::real&, tk::real&, tk::real&, tk::real&, tk::real&, tk::real& ) >
-SRC()
-// *****************************************************************************
-//  Query user config and assign function to add a source term
-//! \return The function to call to evaluate a problem-sepcific source term
-// *****************************************************************************
-{
-  using inciter::g_inputdeck;
-  auto problem = g_inputdeck.get< tag::problem >();
-
-  std::function<
-    void( tk::real, tk::real, tk::real, tk::real,
-      tk::real&, tk::real&, tk::real&, tk::real&, tk::real&, tk::real& ) > src;
-
-  using ProblemType = inciter::ctr::ProblemType;
-
-  if (problem == ProblemType::NONLINEAR_ENERGY_GROWTH)
-    src = nonlinear_energy_growth::src;
-  else if (problem == ProblemType::RAYLEIGH_TAYLOR)
-    src = rayleigh_taylor::src;
-  else if (problem == ProblemType::TAYLOR_GREEN)
-    src = taylor_green::src;
-  else if (problem == ProblemType::VORTICAL_FLOW)
-    src = vortical_flow::src;
-  else if (problem == ProblemType::POINT_SOURCE)
-    src = point_source::src;
-
-  return src;
-}
-
 static void
 muscl( std::size_t p,
        std::size_t q,
@@ -484,8 +366,8 @@ advdom( const tk::UnsMesh::Coords& coord,
     muscl( p, q, coord, G, rL, ruL, rvL, rwL, reL, rR, ruR, rvR, rwR, reR );
 
     // pressure
-    auto pL = eos_pressure( rL, reL );
-    auto pR = eos_pressure( rR, reR );
+    auto pL = eos::pressure( rL, reL );
+    auto pR = eos::pressure( rR, reR );
 
     // dualface-normal velocities
     auto nx = deint[e*3+0];
@@ -506,8 +388,8 @@ advdom( const tk::UnsMesh::Coords& coord,
 
     // dissipation
     auto len = tk::length( nx, ny, nz );
-    auto sl = std::abs(vnL) + eos_soundspeed(rL,pL)*len;
-    auto sr = std::abs(vnR) + eos_soundspeed(rR,pR)*len;
+    auto sl = std::abs(vnL) + eos::soundspeed(rL,pL)*len;
+    auto sr = std::abs(vnR) + eos::soundspeed(rR,pR)*len;
     auto fw = std::max( sl, sr );
 
     // fluxes
@@ -582,7 +464,7 @@ advbnd( const tk::UnsMesh::Coords& coord,
     auto u = U(p,1,0) / r;
     auto v = U(p,2,0) / r;
     auto w = U(p,3,0) / r;
-    auto pr = eos_pressure( r, u, v, w, U(p,4,0) );
+    auto pr = eos::pressure( r, u, v, w, U(p,4,0) );
 
     // boundary-normal velocity
     auto nx = bpint[b*3+0];
@@ -624,8 +506,8 @@ advbnd( const tk::UnsMesh::Coords& coord,
     muscl( p, q, coord, G, rL, ruL, rvL, rwL, reL, rR, ruR, rvR, rwR, reR );
 
     // pressure
-    auto pL = eos_pressure( rL, reL );
-    auto pR = eos_pressure( rR, reR );
+    auto pL = eos::pressure( rL, reL );
+    auto pR = eos::pressure( rR, reR );
 
     // boundary-normal velocities in boundary-edge end-points
     auto nx = beint[e*3+0];
@@ -646,8 +528,8 @@ advbnd( const tk::UnsMesh::Coords& coord,
 
     // dissipation
     auto len = tk::length( nx, ny, nz );
-    auto sl = std::abs(vnL) + eos_soundspeed(rL,pL)*len;
-    auto sr = std::abs(vnR) + eos_soundspeed(rR,pR)*len;
+    auto sl = std::abs(vnL) + eos::soundspeed(rL,pL)*len;
+    auto sr = std::abs(vnR) + eos::soundspeed(rR,pR)*len;
     auto fw = std::max( sl, sr );
 
     // fluxes
@@ -708,7 +590,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 {
   using inciter::g_inputdeck;
 
-  auto src = SRC();
+  auto src = problems::SRC();
   if (!src) return;
 
   const auto& x = coord[0];
@@ -783,8 +665,8 @@ dt( const std::vector< tk::real >& vol, const tk::Fields& U )
     auto w  = U(p,3,0) / r;
     auto re = U(p,4,0);
     auto vel = tk::length( u, v, w );
-    auto pr = eos_pressure( r, u, v, w, re );
-    auto c = eos_soundspeed( r, pr );
+    auto pr = eos::pressure( r, u, v, w, re );
+    auto c = eos::soundspeed( r, pr );
     auto L = std::cbrt( vol[p] );
     auto euler_dt = L / std::max( vel+c, 1.0e-8 );
     mindt = std::min( mindt, euler_dt );
@@ -815,10 +697,10 @@ dt( const std::vector< tk::real >& vol,
     const auto u = U[i];
     // compute pressure
     auto ie = u[4]/u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3])/u[0]/u[0];
-    auto p = eos_pressure( u[0], ie );
-    //auto p = eos_pressure( u[0], u[1]/u[0], u[2]/u[0], u[3]/u[0], u[4] );
+    auto p = eos::pressure( u[0], ie );
+    //auto p = eos::pressure( u[0], u[1]/u[0], u[2]/u[0], u[3]/u[0], u[4] );
     if (p < 0) p = 0.0;
-    auto c = eos_soundspeed( u[0], p );
+    auto c = eos::soundspeed( u[0], p );
     // characteristic velocity
     auto v = std::sqrt((u[1]*u[1] + u[2]*u[2] + u[3]*u[3])/u[0]/u[0]) + c;
     // compute dt for node
@@ -848,7 +730,7 @@ dirbc( tk::Fields& U,
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
-  auto ic = IC();
+  auto ic = problems::IC();
 
   for (auto p : dirbcnodes) {
     auto s = ic( x[p], y[p], z[p], t );
@@ -937,8 +819,8 @@ farbc( tk::Fields& U,
     auto& re = U(p,4,0);
     //auto vn = (ru*nx + rv*ny + rw*nz)/r;
     auto vn = fu*nx + fv*ny + fw*nz;
-    //auto a = eos_soundspeed( r, eos_pressure( r, ru/r, rv/r, rw/r, re ) );
-    auto a = eos_soundspeed( fr, fp );
+    //auto a = eos::soundspeed( r, eos::pressure( r, ru/r, rv/r, rw/r, re ) );
+    auto a = eos::soundspeed( fr, fp );
     auto M = vn / a;
     if (M <= -1.0) {
       // supersonic inflow, all characteristics from outside
@@ -946,20 +828,20 @@ farbc( tk::Fields& U,
       ru = fr * fu;
       rv = fr * fv;
       rw = fr * fw;
-      re = eos_totalenergy( fr, fu, fv, fw, fp );
+      re = eos::totalenergy( fr, fu, fv, fw, fp );
     } else if (M > -1.0 && M < 0.0) {
       // subsonic inflow: 1 outgoing and 4 incoming characteristics,
       // pressure from inside, rest from outside
-      auto pr = eos_pressure( r, ru/r, rv/r, rw/r, re );
+      auto pr = eos::pressure( r, ru/r, rv/r, rw/r, re );
       r  = fr;
       ru = fr * fu;
       rv = fr * fv;
       rw = fr * fw;
-      re = eos_totalenergy( fr, fu, fv, fw, pr );
+      re = eos::totalenergy( fr, fu, fv, fw, pr );
     } else if (M >= 0.0 && M < 1.0) {
       // subsonic outflow: 1 incoming and 4 outgoing characteristics,
       // pressure from outside, rest from inside
-      re = eos_totalenergy( r, ru/r, rv/r, rw/r, fp );
+      re = eos::totalenergy( r, ru/r, rv/r, rw/r, fp );
     }
   }
 }

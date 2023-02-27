@@ -31,6 +31,7 @@
 #include "Operators.hpp"
 #include "Problems.hpp"
 #include "EOS.hpp"
+#include "BC.hpp"
 
 namespace inciter {
 

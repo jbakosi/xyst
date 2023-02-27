@@ -58,23 +58,4 @@ dt( const std::vector< tk::real >& vol,
     const tk::Fields& U,
     std::vector< tk::real >& dtp );
 
-//! Set Dirichlet boundary conditions
-void
-dirbc( tk::Fields& U,
-       tk::real t,
-       const std::array< std::vector< tk::real >, 3 >& coord,
-       const std::vector< std::size_t >& dirbcnodes );
-
-//! Set symmetry boundary conditions
-void
-symbc( tk::Fields& U,
-       const std::vector< std::size_t >& symbcnodes,
-       const std::vector< tk::real >& symbcnorms );
-
-//! Set farfield boundary conditions
-void
-farbc( tk::Fields& U,
-       const std::vector< std::size_t >& farbcnodes,
-       const std::vector< tk::real >& farbcnorms );
-
 } // physics::

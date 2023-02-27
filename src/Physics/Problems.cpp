@@ -591,7 +591,8 @@ SOL()
   auto problem = g_inputdeck.get< tag::problem >();
 
   if (problem == ProblemType::USER_DEFINED ||
-      problem == ProblemType::SOD)
+      problem == ProblemType::SOD ||
+      problem == ProblemType::SEDOV)
     return {};
   else
     return IC();

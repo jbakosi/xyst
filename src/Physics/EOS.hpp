@@ -20,19 +20,6 @@ extern ctr::InputDeck g_inputdeck;
 
 namespace eos {
 
-//! \brief Calculate density from the material pressure and temperature using
-//!   the stiffened-gas equation of state
-//! \param[in] pr Material pressure
-//! \param[in] temp Material temperature
-//! \return Material density calculated using the stiffened-gas EOS
-inline tk::real
-density( tk::real pr, tk::real temp ) {
-  using inciter::g_inputdeck;
-  auto g = g_inputdeck.get< tag::param, tag::compflow, tag::gamma >()[0][0];
-  auto cv = g_inputdeck.get< tag::param, tag::compflow, tag::cv >()[0][0];
-  return pr / ((g-1.0) * cv * temp);
-}
-
 //! Compute pressure
 //! \param[in] r Density
 //! \param[in] e Specific internal energy
@@ -75,8 +62,7 @@ soundspeed( tk::real rho, tk::real pr ) {
 //! \param[in] pr Material pressure
 //! \return Material specific total energy using the stiffened-gas EOS
 inline tk::real
-totalenergy( tk::real rho, tk::real u, tk::real v, tk::real w, tk::real pr )
-{
+totalenergy( tk::real rho, tk::real u, tk::real v, tk::real w, tk::real pr ) {
   using inciter::g_inputdeck;
   auto g = g_inputdeck.get< tag::param, tag::compflow, tag::gamma >()[0][0];
   return pr / (g-1.0) + 0.5 * rho * (u*u + v*v + w*w);

@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(compflow_euler_taylor_green ${INCITER_EXECUTABLE}
+add_regression_test(compflow_euler_taylor_green_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES taylor_green.q unitcube_1k.exo
                     ARGS -c taylor_green.q -i unitcube_1k.exo -v
@@ -12,12 +12,12 @@ add_regression_test(compflow_euler_taylor_green ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     TEXT_BASELINE diag.std
                     TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF taylor_green_diag.ndiff.cfg
-                    LABELS diagcg)
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS riecg)
 
 # Parallel + no virtualization
 
-add_regression_test(compflow_euler_taylor_green ${INCITER_EXECUTABLE}
+add_regression_test(compflow_euler_taylor_green_riecg ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES taylor_green.q unitcube_1k.exo
                     ARGS -c taylor_green.q -i unitcube_1k.exo -v
@@ -33,12 +33,12 @@ add_regression_test(compflow_euler_taylor_green ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     TEXT_BASELINE diag.std
                     TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF taylor_green_diag.ndiff.cfg
-                    LABELS diagcg)
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS riecg)
 
 # Parallel + virtualization
 
-add_regression_test(compflow_euler_taylor_green_u0.5 ${INCITER_EXECUTABLE}
+add_regression_test(compflow_euler_taylor_green_riecg_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES taylor_green.q unitcube_1k.exo
                     ARGS -c taylor_green.q -i unitcube_1k.exo -v -u 0.5
@@ -62,5 +62,5 @@ add_regression_test(compflow_euler_taylor_green_u0.5 ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     TEXT_BASELINE diag.std
                     TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF taylor_green_diag.ndiff.cfg
-                    LABELS diagcg)
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS riecg)

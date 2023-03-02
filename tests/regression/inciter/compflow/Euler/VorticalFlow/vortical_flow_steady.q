@@ -6,13 +6,17 @@ title "Euler equations computing vortical flow"
 
 inciter
 
-  term 1.0
+  nstep 10
   ttyi 10
   cfl 0.8
 
   partitioning
    algorithm mj
   end
+
+  steady_state true
+  residual 1.0e-8
+  rescomp 1
 
   problem vortical_flow
 

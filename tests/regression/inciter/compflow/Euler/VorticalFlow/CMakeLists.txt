@@ -12,7 +12,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     TEXT_BASELINE diag.std
                     TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF vortical_flow_diag.ndiff.cfg
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
 add_regression_test(compflow_euler_vorticalflow_riecg_steady
@@ -25,7 +25,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_steady
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     TEXT_BASELINE diag_steady.std
                     TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF vortical_flow_diag.ndiff.cfg
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
 # Parallel + no virtualization
@@ -47,7 +47,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_steady
                     BIN_DIFF_PROG_ARGS -m
                     TEXT_BASELINE diag_steady.std
                     TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF vortical_flow_diag.ndiff.cfg
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
 # Parallel + virtualization
@@ -76,7 +76,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_u0.5 ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     TEXT_BASELINE diag.std
                     TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF vortical_flow_diag.ndiff.cfg
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
 # Parallel + virtualization + migration
@@ -167,5 +167,5 @@ add_regression_test(compflow_euler_vorticalflow_riecg_u0.9_migr
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     TEXT_BASELINE diag.std
                     TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF vortical_flow_diag.ndiff.cfg
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg migration)

@@ -1,6 +1,6 @@
 [![status-badge](https://ci.codeberg.org/api/badges/xyst/xyst/status.svg)](https://ci.codeberg.org/xyst/xyst)
 
-_Xyst_ is a Navier-Stokes solver for complex domains.
+_Xyst_ is a flow solver for complex domains.
 
 Using the [Charm++](http://charmplusplus.org/) runtime system, it employs
 _asynchronous_ (or non-blocking) parallel programming and decomposes

@@ -5,7 +5,7 @@
 <img src="images/Eo_circle_deep-orange_letter-x.svg"/>
 @m_enddiv
 
-Xyst is a Navier-Stokes solver for complex domains.
+Xyst is a flow solver for complex domains.
 
 Using the [Charm++](http://charmplusplus.org/) runtime system, it employs
 _asynchronous_ (or non-blocking) parallel programming and decomposes
@@ -19,13 +19,13 @@ simulation distributed across many computers.
 
 Xyst consists of the following tools:
 
-@ref inciter_main --- __Navier-Stokes solver for complex domains__
+@ref inciter_main --- __Flow solver for complex domains__
 
-_Inciter_ is a fully asynchronous distributed-memory-parallel fluid solver
-for complex engineering geometries. We are working on a compressible-flow
-solver using continuous Galerkin finite element methods and
-solution-adaptive mesh-refinement, enabling dynamically concentrating
-compute resources to regions with interesting physics.
+_Inciter_ is a fully asynchronous distributed-memory-parallel fluid solver for
+complex engineering geometries. We are working on a compressible-flow solver
+using continuous Galerkin finite element methods and solution-adaptive
+mesh-refinement, enabling dynamically concentrating compute resources to
+regions with interesting physics.
 
 @ref meshconv_main --- __Tetrahedron-mesh converter__
 
@@ -35,9 +35,9 @@ meshes from and to various formats.
 @ref unittest_main --- __Test suite for synchronous and asynchronous
 functions__
 
-_UnitTest_ is an asynchronous distributed-memory-parallel test harness,
-capable of testing serial, synchronous (e.g., MPI) parallel, and
-asynchronous parallel (e.g., Charm++) functions.
+_UnitTest_ is an asynchronous distributed-memory-parallel test harness, capable
+of testing serial, synchronous (e.g., MPI) parallel, and asynchronous parallel
+(e.g., Charm++) functions.
 
 @section mainpage_build Build
 

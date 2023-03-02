@@ -7,56 +7,38 @@ title "Euler equations computing the stationary Rayleigh-Taylor MMS problem"
 inciter
 
   nstep 10
-  #term 1.0
-  ttyi 1       # TTY output interval
+  ttyi 1
   cfl 0.5
 
   partitioning
     algorithm mj
   end
 
+  problem rayleigh_taylor
   compflow
-
     depvar c
-    physics euler
-    problem rayleigh_taylor
     alpha 1.0
     betax 1.0
     betay 1.0
     betaz 1.0
     p0 1.0
     r0 1.0
-    kappa 0.0
-    sysfct false
-
+    kappa 0.0   # kappa = 0 -> stationary
     material
-      gamma 1.66666666666667 end # =5/3 ratio of specific heats
+      gamma 1.66666666666667 end
     end
-
     bc_dirichlet
       sideset 1 2 3 4 5 6 end
     end
-
   end
 
   field_output
     interval 1
-    var
-      analytic
-      density "density_numerical"
-      x-velocity "x-velocity_numerical"
-      y-velocity "y-velocity_numerical"
-      z-velocity "z-velocity_numerical"
-      specific_total_energy "specific_total_energy_numerical"
-      pressure "pressure_numerical"
-    end
   end
 
   diagnostics
     interval  1
-    format    scientific
-    error l2
-    #error linf
+    format scientific
   end
 
 end

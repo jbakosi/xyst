@@ -44,8 +44,9 @@ add_subdirectory(meshconv/exo_output)
 
 # Inciter regression tests
 message(STATUS "Adding regression tests for ${INCITER_EXECUTABLE}")
+add_subdirectory(inciter/asynclogic)
 add_subdirectory(inciter/compflow/Euler/VorticalFlow)
-add_subdirectory(inciter/compflow/Euler/NLEnergyGrowth)
+add_subdirectory(inciter/compflow/Euler/NonlinearEnergyGrowth)
 add_subdirectory(inciter/compflow/Euler/TaylorGreen)
 add_subdirectory(inciter/compflow/Euler/RayleighTaylor)
 

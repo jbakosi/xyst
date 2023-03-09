@@ -10,4 +10,4 @@ computation, communication, input, and output. Then the runtime system
 _dynamically_ and _automatically_ homogenizes computational load across the
 simulation distributed across many computers.
 
-More details at [xyst.cc](https://xyst.cc) or [doc/pages/mainpage.dox](doc/pages/mainpage.dox).
+More details at [xyst.cc](https://xyst.cc).

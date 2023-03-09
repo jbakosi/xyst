@@ -163,9 +163,14 @@ class RieCG : public CBase_RieCG {
       p | m_bpoinid;
       p | m_bpoinin;
       p | m_u;
-      p | m_un;
-      p | m_rhs;
+      // do not pup these, will recompute after migration anyway
+      if (p.isUnpacking()) {
+        m_un.resize( m_u.nunk(), m_u.nprop() );
+        m_rhs.resize( m_u.nunk(), m_u.nprop() );
+        m_grad.resize( m_u.nunk(), m_u.nprop()*3 );
+      }
       p | m_rhsc;
+      p | m_gradc;
       p | m_diag;
       p | m_bnorm;
       p | m_bnormc;
@@ -183,8 +188,6 @@ class RieCG : public CBase_RieCG {
       p | m_deint;
       p | m_bpsym;
       p | m_besym;
-      p | m_grad;
-      p | m_gradc;
       p | m_dirbcnodes;
       p | m_symbcnodeset;
       p | m_symbcnodes;

@@ -75,7 +75,7 @@ symbc( tk::Fields& U,
     g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::bcsym >();
   if (sbc.empty()) return;
 
-  Assert( symbcnodes.size() == symbcnorms.size()*3, "Size mismaatch" );
+  Assert( symbcnodes.size()*3 == symbcnorms.size(), "Size mismaatch" );
 
   for (std::size_t i=0; i<symbcnodes.size(); ++i) {
     auto p  = symbcnodes[i];

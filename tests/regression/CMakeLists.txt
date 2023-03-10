@@ -50,6 +50,7 @@ add_subdirectory(inciter/compflow/Euler/VorticalFlow)
 add_subdirectory(inciter/compflow/Euler/NonlinearEnergyGrowth)
 add_subdirectory(inciter/compflow/Euler/TaylorGreen)
 add_subdirectory(inciter/compflow/Euler/RayleighTaylor)
+add_subdirectory(inciter/compflow/Euler/Sod)
 
 #add_subdirectory(inciter/transport/SlotCyl/fct)
 #add_subdirectory(inciter/transport/SlotCyl/cfl)

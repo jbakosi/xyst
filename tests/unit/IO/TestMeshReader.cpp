@@ -115,23 +115,23 @@ struct MeshReader_common {
     mr.readSidesetFaces( bface, faceid );
     // Test if the number of boundary face element ids is correct
     ensure_equals( "number of boundary face elements incorrect",
-                   tk::sumvalsize(bface), 2398UL );
+                   tk::sumvalsize(bface), 408UL );
     // Test if the number of side set sides is correct
     ensure_equals( "number of side set sides incorrect",
-                   tk::sumvalsize(faceid), 2398UL );
+                   tk::sumvalsize(faceid), 408UL );
 
     // Read face connectivity
     std::vector< std::size_t > triinpoel;
     mr.readFaces( triinpoel );
     // Test if the number of faces is correct
     ensure_equals( "number of faces in triangle connectivity incorrect",
-                   triinpoel.size()/3, 2398UL );
+                   triinpoel.size()/3, 408UL );
 
     // Read node lists associated to side sets
     auto bnode = mr.readSidesetNodes();
     // Test if the number of nodes is correct
     ensure_equals( "number of nodes of sidesets incorrect",
-                   tk::sumvalsize(bnode), 1365UL );
+                   tk::sumvalsize(bnode), 270UL );
   }
 };
 
@@ -152,10 +152,11 @@ void MeshReader_object::test< 1 >() {
   set_test_name( "ctor dispatching to ExodusII reader" );
 
   //! Mesh reader configured for ExodusIIMesReader for a simple mesh w/o faces
-  tk::MeshReader er( tk::regression_dir() + "/meshconv/gmsh_output/box_24.exo" );
+  tk::MeshReader
+    er( tk::regression_dir() + "/meshconv/gmsh_output/box_24.exo" );
   //! Mesh reader configured for ExodusIIMesReader for mesh w/ faces
-  tk::MeshReader erf( tk::regression_dir() +
-         "/inciter/transport/GaussHump/unitsquare_01_3.6k.exo" );
+  tk::MeshReader
+    erf( tk::regression_dir() + "/inciter/asynclogic/unitcube_1k.exo" );
 
   // Verify the output of mesh reader dispatching to ExodusII reader using two
   // different meshes, one with only tets, one with faces/sidesets.
@@ -169,10 +170,11 @@ void MeshReader_object::test< 2 >() {
   set_test_name( "copy ctor dispatching to ExodusII reader" );
 
   //! Mesh reader configured for ExodusIIMesReader for a simple mesh w/o faces
-  tk::MeshReader er( tk::regression_dir() + "/meshconv/gmsh_output/box_24.exo" );
+  tk::MeshReader
+    er( tk::regression_dir() + "/meshconv/gmsh_output/box_24.exo" );
   //! Mesh reader configured for ExodusIIMesReader for mesh w/ faces
-  tk::MeshReader erf( tk::regression_dir() +
-         "/inciter/transport/GaussHump/unitsquare_01_3.6k.exo" );
+  tk::MeshReader
+    erf( tk::regression_dir() + "/inciter/asynclogic/unitcube_1k.exo" );
 
   std::vector< tk::MeshReader > v;
 
@@ -197,10 +199,11 @@ void MeshReader_object::test< 3 >() {
   set_test_name( "move ctor dispatching to ExodusII reader" );
 
   //! Mesh reader configured for ExodusIIMesReader for a simple mesh w/o faces
-  tk::MeshReader er( tk::regression_dir() + "/meshconv/gmsh_output/box_24.exo" );
+  tk::MeshReader
+    er( tk::regression_dir() + "/meshconv/gmsh_output/box_24.exo" );
   //! Mesh reader configured for ExodusIIMesReader for mesh w/ faces
-  tk::MeshReader erf( tk::regression_dir() +
-         "/inciter/transport/GaussHump/unitsquare_01_3.6k.exo" );
+  tk::MeshReader
+    erf( tk::regression_dir() + "/inciter/asynclogic/unitcube_1k.exo" );
 
   std::vector< tk::MeshReader > v;
 
@@ -223,10 +226,11 @@ void MeshReader_object::test< 4 >() {
   set_test_name( "copy assignment dispatching to ExoII reader" );
 
   //! Mesh reader configured for ExodusIIMesReader for a simple mesh w/o faces
-  tk::MeshReader er( tk::regression_dir() + "/meshconv/gmsh_output/box_24.exo" );
+  tk::MeshReader
+    er( tk::regression_dir() + "/meshconv/gmsh_output/box_24.exo" );
   //! Mesh reader configured for ExodusIIMesReader for mesh w/ faces
-  tk::MeshReader erf( tk::regression_dir() +
-         "/inciter/transport/GaussHump/unitsquare_01_3.6k.exo" );
+  tk::MeshReader
+    erf( tk::regression_dir() + "/inciter/asynclogic/unitcube_1k.exo" );
 
   // Invoke constructor
   tk::MeshReader q( er );
@@ -253,10 +257,11 @@ void MeshReader_object::test< 5 >() {
   set_test_name( "move assignment dispatching to ExoII reader" );
 
   //! Mesh reader configured for ExodusIIMesReader for a simple mesh w/o faces
-  tk::MeshReader er( tk::regression_dir() + "/meshconv/gmsh_output/box_24.exo" );
+  tk::MeshReader
+    er( tk::regression_dir() + "/meshconv/gmsh_output/box_24.exo" );
   //! Mesh reader configured for ExodusIIMesReader for mesh w/ faces
-  tk::MeshReader erf( tk::regression_dir() +
-         "/inciter/transport/GaussHump/unitsquare_01_3.6k.exo" );
+  tk::MeshReader
+    erf( tk::regression_dir() + "/inciter/asynclogic/unitcube_1k.exo" );
 
   // Invoke move assignment
   auto c = er;

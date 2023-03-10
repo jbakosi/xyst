@@ -51,8 +51,8 @@ foreach(scheme riecg)
         # respectively. See also add_regresion_test.cmake for more details on
         # how to set NUMPES and PPN in SMP mode (npes must be a multiple of
         # ppn).
-        set(npes 4 6 6)# 8 8)
-        set(ppns 2 3 2)# 4 2)
+        set(npes 4 6 6 8 8)
+        set(ppns 2 3 2 4 2)
         math(EXPR i "0")
         foreach(n ${npes})
           list(GET ppns ${i} p)

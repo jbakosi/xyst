@@ -3,28 +3,34 @@
 
 __Navier-Stokes solver for engineering flows__
 
-Inciter is a fully asynchronous distributed-memory-parallel fluid solver for
-complex 3D engineering geometries. Computational domains of arbitrary shapes
-are discretized into tetrahedron elements and decomposed into small chunks
-assigned to different CPUs. The number of chunks may be more than the number of
-CPUs allowing _overdecomposition_, which is useful for effective automatic load
-balancing across large computers. The solution along partition boundaries, that
-exists on multiple processing elements, is made consistent with _asynchronous_
-communication which enables overlapping parallel computation, communication,
-input, and output (I/O).
+Inciter is a distributed-memory-parallel fluid solver for complex 3D
+engineering geometries. The software implementation facilitates effective use
+of any multi-CPU computer from a laptop to the largest distributed-memory
+machines, combining data-, and task-parallelism on top of the
+[Charm++](http://charmplusplus.org) runtime system. Charm++'s execution model
+is asynchronous by default, allowing arbitrary overlap of computation and
+communication. Built-in automatic load balancing enables redistribution of
+arbitrarily heterogeneous computational load based on real-time CPU load
+measurement at negligible cost. The runtime system also features automatic
+checkpointing, fault tolerance, resilience against hardware failure, and
+supports power-, and energy-aware computation.
+
+Computational domains of arbitrary shapes are discretized into tetrahedron
+elements and decomposed into small chunks assigned to different CPUs. The
+number of chunks may be more than the number of CPUs, allowing
+_overdecomposition_, useful for effective cache utilization and automatic load
+balancing. The solution along partition boundaries, that exists on multiple
+processing elements, is made consistent with _asynchronous_ communication which
+hides latencies by enabling overlapping of computation and communication.
 
 Inciter can solve the Euler equations, modeling ideal single-material
-compressible flow, using continuous Galerkin finite element methods, enabling
-dynamically concentrating compute resources to regions with interesting
-physics. Current development continues towards productizing the solver, i.e.,
-increase robustness, user-friendliness, and add practicality features.
-
-Inciter currently has the following different fluid dynamics algorithms:
-
-1. `RieCG`, a node-centered continuous Galerkin finite element method,
-   featuring approximate Riemann solvers and MUSCL reconstruction on cell-edges,
-   combined with Runge-Kutta time stepping, see @ref inciter_riecg for a
-   high-level description and @ref papers for more details.
+compressible flow. The numerical method is a continuous Galerkin finite element
+method storing solution values at nodes of the computational mesh. The
+edge-based implementation of the finite element operators help reduce indirect
+addressing and increase performance. On each edge an approximate Riemann solver
+is invoked with MUSCL reconstruction and slope limiting. This is combined with
+Runge-Kutta time stepping, see @ref inciter_riecg for a high-level description
+of the numerical method and @ref papers for more details.
 
 @section inciter_pages Related pages
 - @ref inciter_riecg "RieCG hydrodynamics"

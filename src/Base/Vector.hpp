@@ -48,8 +48,7 @@ cross( real v1x, real v1y, real v1z,
 //! \param[in] v2 2nd vector
 //! \return Cross-product
 inline std::array< real, 3 >
-cross( const std::array< real, 3 >& v1, const std::array< real, 3 >& v2 )
-{
+cross( const std::array< real, 3 >& v1, const std::array< real, 3 >& v2 ) {
   real rx, ry, rz;
   cross( v1[0], v1[1], v1[2], v2[0], v2[1], v2[2], rx, ry, rz );
   return { std::move(rx), std::move(ry), std::move(rz) };
@@ -103,8 +102,7 @@ crossdiv( const std::array< real, 3 >& v1,
 //! \param[in] v2z z coordinate of 2ndt vector
 //! \return Dot-product
 inline real
-dot( real v1x, real v1y, real v1z, real v2x, real v2y, real v2z )
-{
+dot( real v1x, real v1y, real v1z, real v2x, real v2y, real v2z ) {
   return v1x*v2x + v1y*v2y + v1z*v2z;
 }
 
@@ -113,8 +111,7 @@ dot( real v1x, real v1y, real v1z, real v2x, real v2y, real v2z )
 //! \param[in] v2 2nd vector
 //! \return Dot-product
 inline real
-dot( const std::array< real, 3 >& v1, const std::array< real, 3 >& v2 )
-{
+dot( const std::array< real, 3 >& v1, const std::array< real, 3 >& v2 ) {
   return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
 }
 
@@ -125,8 +122,7 @@ dot( const std::array< real, 3 >& v1, const std::array< real, 3 >& v2 )
 //! \return length
 #pragma omp declare simd
 inline real
-length( real x, real y, real z )
-{
+length( real x, real y, real z ) {
   return std::sqrt( x*x + y*y + z*z );
 }
 
@@ -134,16 +130,14 @@ length( real x, real y, real z )
 //! \param[in] v vector
 //! \return length
 inline real
-length( const std::array< real, 3 >& v )
-{
+length( const std::array< real, 3 >& v ) {
   return std::sqrt( dot(v,v) );
 }
 
 //! Scale vector to unit length
 //! \param[in,out] v Vector to normalize
 inline void
-unit( std::array< real, 3 >& v ) noexcept(ndebug)
-{
+unit( std::array< real, 3 >& v ) noexcept(ndebug) {
   auto len = length( v );
   Assert( len > std::numeric_limits< tk::real >::epsilon(), "div by zero" );
   v[0] /= len;
@@ -250,8 +244,9 @@ rotateZ( const std::array< real, 3 >& v, real angle )
 //! \param[out] nx x coordinate of the unit normal
 //! \param[out] ny y coordinate of the unit normal
 //! \param[out] nz z coordinate of the unit normal
+//! \return Triangle area
 #pragma omp declare simd
-inline void
+inline real
 normal( real x1, real x2, real x3,
         real y1, real y2, real y3,
         real z1, real z2, real z3,
@@ -274,168 +269,8 @@ normal( real x1, real x2, real x3,
   nx = n1/farea;
   ny = n2/farea;
   nz = n3/farea;
-}
 
-//! Compute the are of a triangle
-//! \param[in] x1 x coordinate of the 1st vertex of the triangle
-//! \param[in] x2 x coordinate of the 2nd vertex of the triangle
-//! \param[in] x3 x coordinate of the 3rd vertex of the triangle
-//! \param[in] y1 y coordinate of the 1st vertex of the triangle
-//! \param[in] y2 y coordinate of the 2nd vertex of the triangle
-//! \param[in] y3 y coordinate of the 3rd vertex of the triangle
-//! \param[in] z1 z coordinate of the 1st vertex of the triangle
-//! \param[in] z2 z coordinate of the 2nd vertex of the triangle
-//! \param[in] z3 z coordinate of the 3rd vertex of the triangle
-//! \return Area of the triangle
-#pragma omp declare simd
-inline real
-area( real x1, real x2, real x3,
-      real y1, real y2, real y3,
-      real z1, real z2, real z3 )
-{
-  auto sidea = sqrt( (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) + (z2-z1)*(z2-z1) );
-  auto sideb = sqrt( (x3-x2)*(x3-x2) + (y3-y2)*(y3-y2) + (z3-z2)*(z3-z2) );
-  auto sidec = sqrt( (x1-x3)*(x1-x3) + (y1-y3)*(y1-y3) + (z1-z3)*(z1-z3) );
-
-  auto semip = 0.5 * (sidea + sideb + sidec);
-
-  return sqrt( semip * (semip-sidea) * (semip-sideb) * (semip-sidec) );
-}
-
-inline std::array< real, 3 >
-normal( const std::array< real, 3 >& x,
-        const std::array< real, 3 >& y,
-        const std::array< real, 3 >& z )
-// *****************************************************************************
-//! Compute the unit normal vector of a triangle
-//! \param[in] x x-coordinates of the three vertices of the triangle
-//! \param[in] y y-coordinates of the three vertices of the triangle
-//! \param[in] z z-coordinates of the three vertices of the triangle
-//! \return Unit normal
-// *****************************************************************************
-{
-  real nx, ny, nz;
-  normal( x[0],x[1],x[2], y[0],y[1],y[2], z[0],z[1],z[2], nx, ny, nz );
-  return { std::move(nx), std::move(ny), std::move(nz) };
-}
-
-inline real
-area( const std::array< real, 3 >& x,
-      const std::array< real, 3 >& y,
-      const std::array< real, 3 >& z )
-// *****************************************************************************
-//! Compute the are of a triangle
-//! \param[in] x x-coordinates of the three vertices of the triangle
-//! \param[in] y y-coordinates of the three vertices of the triangle
-//! \param[in] z z-coordinates of the three vertices of the triangle
-//! \return Area
-// *****************************************************************************
-{
-  return area( x[0],x[1],x[2], y[0],y[1],y[2], z[0],z[1],z[2] );
-}
-
-//! \brief Compute the determinant of the Jacobian of a coordinate
-//!  transformation over a tetrahedron
-//! \param[in] v1 (x,y,z) coordinates of 1st vertex of the tetrahedron
-//! \param[in] v2 (x,y,z) coordinates of 2nd vertex of the tetrahedron
-//! \param[in] v3 (x,y,z) coordinates of 3rd vertex of the tetrahedron
-//! \param[in] v4 (x,y,z) coordinates of 4th vertex of the tetrahedron
-//! \return Determinant of the Jacobian of transformation of physical
-//!   tetrahedron to reference (xi, eta, zeta) space
-inline real
-Jacobian( const std::array< real, 3 >& v1,
-          const std::array< real, 3 >& v2,
-          const std::array< real, 3 >& v3,
-          const std::array< real, 3 >& v4 )
-{
-  std::array< real, 3 > ba{{ v2[0]-v1[0], v2[1]-v1[1], v2[2]-v1[2] }},
-                        ca{{ v3[0]-v1[0], v3[1]-v1[1], v3[2]-v1[2] }},
-                        da{{ v4[0]-v1[0], v4[1]-v1[1], v4[2]-v1[2] }};
-  return triple( ba, ca, da );
-}
-
-//! \brief Compute the inverse of the Jacobian of a coordinate transformation
-//!   over a tetrahedron
-//! \param[in] v1 (x,y,z) coordinates of 1st vertex of the tetrahedron
-//! \param[in] v2 (x,y,z) coordinates of 2nd vertex of the tetrahedron
-//! \param[in] v3 (x,y,z) coordinates of 3rd vertex of the tetrahedron
-//! \param[in] v4 (x,y,z) coordinates of 4th vertex of the tetrahedron
-//! \return Inverse of the Jacobian of transformation of physical
-//!   tetrahedron to reference (xi, eta, zeta) space
-inline std::array< std::array< real, 3 >, 3 >
-inverseJacobian( const std::array< real, 3 >& v1,
-                 const std::array< real, 3 >& v2,
-                 const std::array< real, 3 >& v3,
-                 const std::array< real, 3 >& v4 )
-{
-  std::array< std::array< real, 3 >, 3 > jacInv;
-
-  auto detJ = Jacobian( v1, v2, v3, v4 );
-
-  jacInv[0][0] =  (  (v3[1]-v1[1])*(v4[2]-v1[2])
-                   - (v4[1]-v1[1])*(v3[2]-v1[2])) / detJ;
-  jacInv[1][0] = -(  (v2[1]-v1[1])*(v4[2]-v1[2])
-                   - (v4[1]-v1[1])*(v2[2]-v1[2])) / detJ;
-  jacInv[2][0] =  (  (v2[1]-v1[1])*(v3[2]-v1[2])
-                   - (v3[1]-v1[1])*(v2[2]-v1[2])) / detJ;
-
-  jacInv[0][1] = -(  (v3[0]-v1[0])*(v4[2]-v1[2])
-                   - (v4[0]-v1[0])*(v3[2]-v1[2])) / detJ;
-  jacInv[1][1] =  (  (v2[0]-v1[0])*(v4[2]-v1[2])
-                   - (v4[0]-v1[0])*(v2[2]-v1[2])) / detJ;
-  jacInv[2][1] = -(  (v2[0]-v1[0])*(v3[2]-v1[2])
-                   - (v3[0]-v1[0])*(v2[2]-v1[2])) / detJ;
-
-  jacInv[0][2] =  (  (v3[0]-v1[0])*(v4[1]-v1[1])
-                   - (v4[0]-v1[0])*(v3[1]-v1[1])) / detJ;
-  jacInv[1][2] = -(  (v2[0]-v1[0])*(v4[1]-v1[1])
-                   - (v4[0]-v1[0])*(v2[1]-v1[1])) / detJ;
-  jacInv[2][2] =  (  (v2[0]-v1[0])*(v3[1]-v1[1])
-                   - (v3[0]-v1[0])*(v2[1]-v1[1])) / detJ;
-
-  return jacInv;
-}
-
-//! Compute the determinant of 3x3 matrix
-//!  \param[in] a 3x3 matrix
-//!  \return Determinant of the 3x3 matrix
-inline tk::real
-determinant( const std::array< std::array< tk::real, 3 >, 3 >& a )
-{
-  return ( a[0][0] * (a[1][1]*a[2][2]-a[1][2]*a[2][1])
-         - a[0][1] * (a[1][0]*a[2][2]-a[1][2]*a[2][0])
-         + a[0][2] * (a[1][0]*a[2][1]-a[1][1]*a[2][0]) );
-}
-
-//! Solve a 3x3 system of equations using Cramer's rule
-//!  \param[in] a 3x3 lhs matrix
-//!  \param[in] b 3x1 rhs matrix
-//!  \return Array of solutions of the 3x3 system
-inline std::array < tk::real, 3 >
-cramer( const std::array< std::array< tk::real, 3 >, 3>& a,
-        const std::array< tk::real, 3 >& b )
-{
-  auto de = determinant( a );
-
-  auto nu(0.0);
-  std::array < real, 3 > x;
-
-  nu = determinant( {{{{b[0], a[0][1], a[0][2]}},
-                      {{b[1], a[1][1], a[1][2]}},
-                      {{b[2], a[2][1], a[2][2]}}}} );
-  x[0] = nu/de;
-
-  nu = determinant( {{{{a[0][0], b[0], a[0][2]}},
-                      {{a[1][0], b[1], a[1][2]}},
-                      {{a[2][0], b[2], a[2][2]}}}} );
-  x[1] = nu/de;
-
-  nu = determinant( {{{{a[0][0], a[0][1], b[0]}},
-                      {{a[1][0], a[1][1], b[1]}},
-                      {{a[2][0], a[2][1], b[2]}}}} );
-  x[2] = nu/de;
-
-  return x;
+  return farea;
 }
 
 } // tk::

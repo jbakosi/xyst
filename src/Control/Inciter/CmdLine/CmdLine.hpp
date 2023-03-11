@@ -42,7 +42,6 @@ using CmdLineMembers = brigand::list<
   , tag::quiescence,     bool
   , tag::trace,          bool
   , tag::version,        bool
-  , tag::license,        bool
   , tag::cmdinfo,        tk::ctr::HelpFactory
   , tag::ctrinfo,        tk::ctr::HelpFactory
   , tag::helpkw,         tk::ctr::HelpKw
@@ -80,7 +79,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
                                      , kw::rsfreq
                                      , kw::trace
                                      , kw::version
-                                     , kw::license
                                      >;
 
     //! Set of tags to ignore when printing this CmdLine
@@ -139,7 +137,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
       get< tag::rsfreq >() = 1000;// Chkpt/restart after this many time steps
       get< tag::trace >() = true; // Output call and stack trace by default
       get< tag::version >() = false; // Do not display version info by default
-      get< tag::license >() = false; // Do not display license info by default
       // Initialize help: fill from own keywords + add map passed in
       brigand::for_each< keywords::set >( tk::ctr::Info(get<tag::cmdinfo>()) );
       get< tag::ctrinfo >() = std::move( ctrinfo );

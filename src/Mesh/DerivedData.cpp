@@ -1277,33 +1277,6 @@ genBelemTet( std::size_t nbfac,
   return belem;
 }
         
-std::array< real, 7 >
-geoFaceTri( const std::array< real, 3 >& x,
-            const std::array< real, 3 >& y,
-            const std::array< real, 3 >& z )
-// *****************************************************************************
-//! Compute geometry of the face given by three vertices
-//! \param[in] x x-coordinates of the three vertices of the triangular face.
-//! \param[in] y y-coordinates of the three vertices of the triangular face.
-//! \param[in] z z-coordinates of the three vertices of the triangular face.
-//! \return Face geometry information. This includes face area, unit normal
-//!   pointing outward of the element to the left of the face, and face
-//!   centroid coordinates.
-//! \details
-//!   0: face area
-//!   1-3: unit-normal x,y,z coordinates
-//!   4-6: centroid x,y,z coordinates
-// *****************************************************************************
-{
-  auto n = normal( x, y, z );
-
-  return { area(x,y,z),
-           n[0], n[1], n[2],
-           (x[0]+x[1]+x[2])/3.0,
-           (y[0]+y[1]+y[2])/3.0,
-           (z[0]+z[1]+z[2])/3.0 };
-}
-        
 bool
 leakyPartition( const std::vector< int >& esueltet,
                 const std::vector< std::size_t >& inpoel,
@@ -1337,14 +1310,14 @@ leakyPartition( const std::vector< int >& esueltet,
         auto A = inpoel[ mark + lpofa[f][0] ];
         auto B = inpoel[ mark + lpofa[f][1] ];
         auto C = inpoel[ mark + lpofa[f][2] ];
-        // Compute geometry data for face
-        auto geoface = geoFaceTri( {{x[A], x[B], x[C]}},
-                                   {{y[A], y[B], y[C]}},
-                                   {{z[A], z[B], z[C]}} );
+        // Compute face area and normal
+        real nx, ny, nz;
+        auto a = normal( x[A],x[B],x[C], y[A],y[B],y[C], z[A],z[B],z[C],
+                         nx, ny, nz );
         // Sum up face area * face unit-normal
-        s[0] += geoface[0] * geoface[1];
-        s[1] += geoface[0] * geoface[2];
-        s[2] += geoface[0] * geoface[3];
+        s[0] += a * nx;
+        s[1] += a * ny;
+        s[2] += a * nz;
       }
   }
 

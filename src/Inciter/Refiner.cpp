@@ -26,6 +26,7 @@
 #include "Sorter.hpp"
 #include "Discretization.hpp"
 #include "Problems.hpp"
+#include "Vector.hpp"
 
 namespace inciter {
 
@@ -2026,14 +2027,14 @@ Refiner::bndIntegral()
       auto A = tk::cref_find( m_lid, m_triinpoel[f*3+0] );
       auto B = tk::cref_find( m_lid, m_triinpoel[f*3+1] );
       auto C = tk::cref_find( m_lid, m_triinpoel[f*3+2] );
-      // Compute geometry data for face
-      auto geoface = tk::geoFaceTri( {{x[A], x[B], x[C]}},
-                                     {{y[A], y[B], y[C]}},
-                                     {{z[A], z[B], z[C]}} );
+      // Compute face area and normal
+      tk::real nx, ny, nz;
+      auto a = tk::normal( x[A],x[B],x[C], y[A],y[B],y[C], z[A],z[B],z[C],
+                           nx, ny, nz );
       // Sum up face area * face unit-normal
-      s[0] += geoface[0] * geoface[1];
-      s[1] += geoface[0] * geoface[2];
-      s[2] += geoface[0] * geoface[3];
+      s[0] += a * nx;
+      s[1] += a * ny;
+      s[2] += a * nz;
     }
   }
 

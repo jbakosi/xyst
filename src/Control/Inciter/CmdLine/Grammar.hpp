@@ -118,11 +118,6 @@ namespace cmd {
          tk::grm::process_cmd_switch< use, kw::version,
                                       tag::version > {};
 
-  //! Match switch on license output
-  struct license :
-         tk::grm::process_cmd_switch< use, kw::license,
-                                      tag::license > {};
-
   //! Match all command line keywords
   struct keywords :
          pegtl::sor< verbose,
@@ -139,7 +134,6 @@ namespace cmd {
                      rsfreq,
                      trace,
                      version,
-                     license,
                      io< kw::control, tag::control >,
                      io< kw::input, tag::input >,
                      io< kw::output, tag::output >,

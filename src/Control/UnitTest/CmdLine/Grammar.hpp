@@ -76,11 +76,6 @@ namespace cmd {
          tk::grm::process_cmd_switch< use, kw::version,
                                       tag::version > {};
 
-  //! Match switch on license output
-  struct license :
-         tk::grm::process_cmd_switch< use, kw::license,
-                                      tag::license > {};
-
   //! \brief Match and set io parameter
   template< typename keyword, typename io_tag >
   struct io :
@@ -92,7 +87,7 @@ namespace cmd {
   //! \brief Match all command line keywords
   struct keywords :
          pegtl::sor< verbose, charestate, help, helpkw, group,
-                     quiescence, trace, version, license,
+                     quiescence, trace, version,
                      io< kw::screen, tag::screen > > {};
 
   //! \brief Grammar entry point: parse keywords until end of string

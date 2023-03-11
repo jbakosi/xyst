@@ -51,6 +51,8 @@ InciterDriver::InciterDriver( const ctr::CmdLine& cmdline, int nrestart )
                cmdline.get< tag::nonblocking >() ? "on" : "off" );
   print.item( "Benchmark mode, -" + *kw::benchmark::alias(),
                cmdline.get< tag::benchmark >() ? "on" : "off" );
+  print.item( "On-screen feedback, -" + *kw::feedback::alias(),
+               cmdline.get< tag::feedback >() ? "on" : "off" );
 
   auto lbfreq = cmdline.get< tag::lbfreq >();
   if ( lbfreq < kw::lbfreq::info::expect::lower ||

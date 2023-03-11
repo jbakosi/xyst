@@ -147,12 +147,6 @@ genBelemTet( std::size_t nbfac,
               const std::pair< std::vector< std::size_t >,
                                std::vector< std::size_t > >& esup );
 
-//! Compute geometry of the face given by three vertices
-std::array< tk::real, 7 >
-geoFaceTri( const std::array< real, 3 >& x,
-            const std::array< real, 3 >& y,
-            const std::array< real, 3 >& z );
-
 //! Perform leak-test on mesh (partition)
 bool
 leakyPartition( const std::vector< int >& esueltet,

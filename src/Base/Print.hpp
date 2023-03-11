@@ -467,7 +467,7 @@ class Print {
     }
 
     //! Print version information
-    //! \param[in] executable Name of executable to output license for
+    //! \param[in] executable Name of executable to output version for
     //! \param[in] ver Version to output
     //! \param[in] copyright Copyright info to output
     template< Style s = VERBOSE >
@@ -475,14 +475,6 @@ class Print {
                   const std::string& ver,
                   const std::string& copyright ) const
     { stream<s>() << m_version_fmt % executable % ver % copyright; }
-
-    //! Print license information
-    //! \param[in] executable Name of executable to output license for
-    //! \param[in] lic License info to output
-    template< Style s = VERBOSE >
-    void license( const std::string& executable,
-                  const std::string& lic ) const
-    { stream<s>() << m_license_fmt % executable % lic; }
 
     //! Print mandatory arguments information
     //! \param[in] args Mandaatory-arguments infor to output
@@ -683,7 +675,6 @@ ____  ___                __    __      _____                .__    _________
     mutable format m_section_underline_fmt = format("%s%s\n");
     mutable format m_version_fmt =
               format("\nXyst::%s, version %s\n%s\n\n");
-    mutable format m_license_fmt = format("\nXyst::%s\n\n%s\n\n");
     mutable format m_mandatory_fmt = format("\n%s\n");
     mutable format m_usage_fmt =
               format("\n%s example usage:\n\n$ %s\n\n%s\n\n");

@@ -43,6 +43,8 @@ endfunction()
 #                      [POSTPROCESS_PROG exec]
 #                      [POSTPROCESS_PROG_ARGS arg1 arg2 ...]
 #                      [POSTPROCESS_PROG_OUTPUT file]
+#                      [EXTRA_PASS_REGEXP extra_pass_regexp]
+#                      [EXTRA_FAIL_REGEXP extra_fail_regexp]
 #
 # Mandatory arguments:
 # --------------------
@@ -126,12 +128,16 @@ endfunction()
 # POSTPROCESS_PROG_OUTPUT file - Filename to save the results of the
 # postprocessor program. Default: "".
 #
+# EXTRA_PASS_REGEXP extra_pass_regexp - Extra pass regular expression
+#
+# EXTRA_FAIL_REGEXP extra_fail_regexp - Extra fail regular expression
+#
 # ##############################################################################
 function(ADD_REGRESSION_TEST test_name executable)
 
   set(oneValueArgs NUMPES PPN TEXT_DIFF_PROG BIN_DIFF_PROG
                    FILECONV_PROG POSTPROCESS_PROG POSTPROCESS_PROG_OUTPUT
-                   CHECKPOINT)
+                   CHECKPOINT EXTRA_PASS_REGEXP EXTRA_FAIL_REGEXP)
   set(multiValueArgs INPUTFILES ARGS TEXT_BASELINE TEXT_RESULT BIN_BASELINE
                      BIN_RESULT LABELS POSTPROCESS_PROG_ARGS BIN_DIFF_PROG_ARGS
                      TEXT_DIFF_PROG_ARGS TEXT_DIFF_PROG_CONF BIN_DIFF_PROG_CONF
@@ -437,10 +443,6 @@ function(ADD_REGRESSION_TEST test_name executable)
   if (ARG_TEXT_BASELINE)
     list(APPEND pass_regexp ".*${test_name}.*PASS")
   endif()
-  # add pass regular expression for rngtest output if needed
-  if (test_name MATCHES "${RNGTEST_EXECUTABLE}")
-    list(APPEND pass_regexp "Failed statistics" "All tests passed")
-  endif()
   # add pass regular expression for exodiff output if needed
   if (ARG_BIN_BASELINE)
     list(APPEND pass_regexp "Binary diff found match")
@@ -449,6 +451,8 @@ function(ADD_REGRESSION_TEST test_name executable)
   if (ENABLE_MESHCONV AND NOT GMSH_FOUND)
     list(APPEND pass_regexp "would be required for this test to be rigorous")
   endif()
+  # add extra pass regexp
+  list(APPEND pass_regexp "${ARG_EXTRA_PASS_REGEXP}")
 
   # build fail regular expression list for test
   set(fail_regexp "")
@@ -468,6 +472,8 @@ function(ADD_REGRESSION_TEST test_name executable)
   endif()
   # add fail regular expression to detect cmake error during test run
   list(APPEND fail_regexp "CMake Error")
+  # add extra fail regexp
+  list(APPEND fail_regexp "${ARG_EXTRA_FAIL_REGEXP}")
 
   #message("'${test_name}' pass regexp: ${pass_regexp}, fail regexp: ${fail_regexp}")
 

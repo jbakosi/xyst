@@ -55,7 +55,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_steady
 add_regression_test(compflow_euler_vorticalflow_riecg_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES vortical_flow.q unitcube_1k.exo
-                    ARGS -c vortical_flow.q -i unitcube_1k.exo -v -u 0.5
+                    ARGS -f -c vortical_flow.q -i unitcube_1k.exo -v -u 0.5
                     BIN_BASELINE vortical_flow_pe4_u0.5.std.exo.0
                                  vortical_flow_pe4_u0.5.std.exo.1
                                  vortical_flow_pe4_u0.5.std.exo.2

@@ -96,8 +96,8 @@ farbc( tk::Fields& U,
 // *****************************************************************************
 //  Set farfield boundary conditions at nodes
 //! \param[in] U Solution vector at recent time step
-//! \param[in] bnorm Boundary point normals
-//! \param[in] farbcnodes Unique set of node ids at which to set farfield BCs
+//! \param[in] farbcnodes Nodes ids at which to set farfield BCs
+//! \param[in] farbcnorms Normals at nodes at which to set farfield BCs
 // *****************************************************************************
 {
   using inciter::g_inputdeck;

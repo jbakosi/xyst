@@ -76,6 +76,8 @@ Sorter::Sorter( std::size_t meshid,
 //! \param[in] transporter Transporter (host) Charm++ proxy
 //! \param[in] meshwriter Mesh writer Charm++ proxy
 //! \param[in] cbs Charm++ callbacks for Sorter
+//! \param[in] discretization Discretization Charm++ proxy
+//! \param[in] riecg RieCG Charm++ proxy
 //! \param[in] reorderRefiner Callback to use to send reordered mesh to Refiner
 //! \param[in] ginpoel Mesh connectivity (this chare) using global node IDs
 //! \param[in] coordmap Mesh node coordinates (this chare) for global node IDs

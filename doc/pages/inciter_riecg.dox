@@ -1,13 +1,13 @@
 namespace inciter {
 /*!
-  \page      inciter_alecg ALECG
+  \page      inciter_riecg RieCG
 
 @tableofcontents{xml}
 
 @ref inciter_main supports multiple hydrodynamics schemes. This page describes
-the `ALECG` method at a high level, for more details, see @ref papers.
+the `RieCG` method at a high level, for more details, see @ref papers.
 
-The basic ALECG algorithm is an edge-based finite element method for
+The basic RieCG algorithm is an edge-based finite element method for
 unstructured meshes, composed of tetrahedral cells, intended for the
 mathematical modelling of energetic, high-speed, compressible flows. This is an
 implementation of the method developed by Waltz and coworkers, see @ref
@@ -15,11 +15,11 @@ papers, to solve the governing equations of
 compressible flow to use an asynchronous-by-default, distributed-memory,
 task-parallel programming paradigm using the Charm++ runtime system.
 
-Note that the ALECG algorithm can be viewed as either an edge-based finite
+Note that the RieCG algorithm can be viewed as either an edge-based finite
 element method on tetrahedron meshes or a node-centered finite volume method
 (on the dual mesh, consisting of arbitrary polyhedra).
 
-@section alecg_euler The equations of compressible flow
+@section riecg_euler The equations of compressible flow
 
 The equations solved are the 3D unsteady Euler equations, governing inviscid
 compressible flow,
@@ -49,7 +49,7 @@ the ideal gas law is used most frequently, any arbitrary (i.e. analytic or
 tabulated) equation of state can be used to relate density and internal energy
 to pressure.
 
-@section alecg_method The numerical method
+@section riecg_method The numerical method
 
 The above system is solved using an edge-based finite-element method for linear
 tetrahedra. Using this particular approach, the unknown solution quantities are
@@ -108,7 +108,7 @@ The boundary terms \f$\color[HTML]{dcdcdc}B^{vw}_j\f$ and
 
 For the derivation and other details, see @ref papers.
 
-@section alecg_flux Numerical flux
+@section riecg_flux Numerical flux
 
 The numerical flux \f$\color[HTML]{dcdcdc}F^{vw}_j\f$ is evaluated at the
 midpoint between \f$\color[HTML]{dcdcdc}v\f$ and \f$\color[HTML]{dcdcdc}w\f$.
@@ -126,7 +126,7 @@ defined as
 where \f$\color[HTML]{dcdcdc}c^v\f$ is the speed of sound at vertex
 \f$\color[HTML]{dcdcdc}v\f$.
 
-@section alecg_reconstruction Solution reconstruction
+@section riecg_reconstruction Solution reconstruction
 
 The inputs to the flux function above are approximated using a piecewise
 limited solution reconstruction of the primitive variables. The reconstruction
@@ -155,7 +155,7 @@ This scheme corresponds to a piecewise linear reconstruction for
 can be any total variation diminishing limiter function. We use the Van Leer
 and minmod functions.
 
-@section alecg_time Time integration
+@section riecg_time Time integration
 
 The solution is advanced using a multi-stage explicit scheme of the form:
 \f[ \begin{split}
@@ -184,7 +184,7 @@ where \f$\color[HTML]{dcdcdc}\text{C} \leq 1\f$ is the Courant number, and
   \Delta t = \min_{\forall vw} \left( \Delta t^{vw}  \right).
 \end{split} \f]
 
-@section alecgrun_example Example setup, run, and solution
+@section riecgrun_example Example setup, run, and solution
 
 For an example test set up see the page on @ref inciter_example_f16
 "steady-state solution of transconic flow around an F16". For other examples,

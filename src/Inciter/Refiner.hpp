@@ -431,7 +431,7 @@ class Refiner : public CBase_Refiner {
 
     //! Regenerate boundary faces and nodes after AMR step
     void updateBndData( const std::unordered_set< std::size_t >& ref,
-                        const BndFaceData& bnd );
+                        const BndFaceData& pcFaceTets );
 
     //! Evaluate initial conditions (IC) at mesh nodes
     tk::Fields

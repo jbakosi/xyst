@@ -43,10 +43,6 @@ const std::array< UnsMesh::Edge, 6 >
 //! Const array defining the node ordering convention for triangle edges
 const std::array< UnsMesh::Edge, 3 > lpoet{{ {{0,1}}, {{1,2}}, {{2,0}} }};
 
-//! Determine edge orientation
-int
-orient( const UnsMesh::Edge& t, const UnsMesh::Edge& e );
-
 //! Compute number of points (nodes) in mesh from connectivity
 std::size_t
 npoin_in_graph( const std::vector< std::size_t >& inpoel );
@@ -157,21 +153,16 @@ geoFaceTri( const std::array< real, 3 >& x,
             const std::array< real, 3 >& y,
             const std::array< real, 3 >& z );
 
-//! Generate derived data structure, element geometry
-Fields
-genGeoElemTet( const std::vector< std::size_t >& inpoel,
-               const UnsMesh::Coords& coord );
-
 //! Perform leak-test on mesh (partition)
 bool
 leakyPartition( const std::vector< int >& esueltet,
                 const std::vector< std::size_t >& inpoel,
-                const UnsMesh::Coords& coord );
+                const std::array< std::vector< real >, 3 >& coord );
 
 //! Check if mesh (partition) is conforming
 bool
 conforming( const std::vector< std::size_t >& inpoel,
-            const UnsMesh::Coords& coord,
+            const std::array< std::vector< real >, 3 >& coord,
             bool cerr = true,
             const std::vector< std::size_t >& rid={} );
 

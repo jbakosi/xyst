@@ -2380,7 +2380,7 @@ HTML_EXTRA_STYLESHEET = \
 ##! M_THEME_COLOR = #22272e
 
 ##! M_LINKS_NAVBAR1 = \
-##!      "inciter_main inciter_diagcg inciter_alecg examples meshconv_main unittest_main inciter_performance" \
+##!      "inciter_main inciter_riecg meshconv_main unittest_main" \
 ##!       papers \
 ##!      "<a href=\"https://codeberg.org/xyst/xyst\">Source</a> namespaces annotated files licenses coverage"
 

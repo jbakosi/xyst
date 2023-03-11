@@ -6,7 +6,7 @@
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \bried     Problem-specific functions. Initial conditions, source terms.
+  \brief     Problem-specific functions. Initial conditions, source terms.
 */
 // *****************************************************************************
 #pragma once

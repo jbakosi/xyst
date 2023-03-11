@@ -6,7 +6,7 @@
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \bried     Problem-specific functions. Initial conditions, source terms.
+  \brief     Problem-specific functions. Initial conditions, source terms.
 */
 // *****************************************************************************
 
@@ -90,6 +90,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
 //! Set initial conditions prescribing nonlinear energy growth
 //! \param[in] x X coordinate where to evaluate the solution
 //! \param[in] y Y coordinate where to evaluate the solution
+//! \param[in] z Z coordinate where to evaluate the solution
 //! \param[in] t Time where to evaluate the solution
 //! \return Values of conserved variables
 // *****************************************************************************
@@ -197,6 +198,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
 //! Set initial conditions prescribing a Rayleigh-Taylor flow
 //! \param[in] x X coordinate where to evaluate the solution
 //! \param[in] y Y coordinate where to evaluate the solution
+//! \param[in] z Z coordinate where to evaluate the solution
 //! \param[in] t Time where to evaluate the solution
 //! \return Values of conserved variables
 // *****************************************************************************

@@ -3111,45 +3111,6 @@ void DerivedData_object::test< 59 >() {
   }
 }
 
-//! Generate and test element-geometry vector for a single tetrahedron
-template<> template<>
-void DerivedData_object::test< 61 >() {
-  set_test_name( "Element-geometry (genGeoElemTet) for a tetrahedron" );
-
-  // coordinates of tetrahedron vertices
-  tk::UnsMesh::Coords coord {{ {1.0, 0.0, 0.0, 0.0},
-                               {0.0, 0.0, 1.0, 0.0},
-                               {0.0, 0.0, 0.0, 1.0} }};
-
-  // element-node connectivity
-  std::vector< std::size_t > inpoel { 0, 3, 2, 1 };
-
-  // get element-geometries
-  auto geoElem = tk::genGeoElemTet( inpoel, coord );
-
-  // correct element-volume
-  tk::real correct_vole { 1.0/6.0 };
-
-  // correct element-centroid
-  tk::UnsMesh::Coords correct_ecent {{ {1.0/4.0},
-                                       {1.0/4.0},
-                                       {1.0/4.0} }};
-
-  tk::real prec = std::numeric_limits< tk::real >::epsilon();
-
-  ensure_equals("incorrect entry in geoElem-vol",
-                  geoElem(0,0,0), correct_vole, prec);
-
-  ensure_equals("incorrect entry in geoElem-cx",
-                  geoElem(0,1,0), correct_ecent[0][0], prec);
-
-  ensure_equals("incorrect entry in geoElem-cy",
-                  geoElem(0,2,0), correct_ecent[1][0], prec);
-
-  ensure_equals("incorrect entry in geoElem-cz",
-                  geoElem(0,3,0), correct_ecent[2][0], prec);
-}
-
 // Test conform() repeatedly on meshes refining an edge
 template<> template<>
 void DerivedData_object::test< 71 >() {

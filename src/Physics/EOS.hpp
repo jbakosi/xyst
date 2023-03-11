@@ -33,7 +33,10 @@ pressure( tk::real r, tk::real e ) {
 
 //! Compute pressure
 //! \param[in] r Density
-//! \param[in] re Specific total energy
+//! \param[in] u X-velocity
+//! \param[in] v Y-velocity
+//! \param[in] w Z-velocity
+//! \param[in] re Specific total (internal + kinetic) energy
 //! \return Pressure computed from the ideal gas equation of state
 inline tk::real
 pressure( tk::real r, tk::real u, tk::real v, tk::real w, tk::real re ) {

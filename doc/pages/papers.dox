@@ -8,27 +8,20 @@ implemented in Xyst.
   J. Bakosi, R. Bird, F.Gonzalez, C. Junghans, W. Li, H. Luo, A. Pandare, J. Waltz, **[Asynchronous distributed-memory task-parallel algorithm for compressible flows on unstructured 3D Eulerian grids](https://doi.org/10.1016/j.advengsoft.2020.102962)**, Advances in Engineering Software, 102962, 2021.
   @m_enddiv
 
-  This paper describes the hydro scheme implemented in @ref inciter_main as
-  @ref inciter_diagcg "DiagCG".
-
-- @m_div{m-text m-strong}
-  J. Bakosi, J. Waltz, N. Morgan, **[Improved ALE mesh velocities for complex flows](https://doi.org/10.1002/fld.4403)**, Numerical Methods in Fluids, 85: 662– 671, 2017.
-  @m_enddiv
-
-  This paper describes the algorithm implemented as an option (Helmholtz) to
-  move the mesh for arbitrary Lagrangian-Eulerian mesh motion in @ref inciter_alecg "ALECG"
-  in @ref inciter_main.
+  This paper describes the hydro scheme implemented in Quinoa as _DiagCG_.
+  While DiagCG is not part of Xyst, the paper and its discussion is relevant,
+  e.g., setup, mesh partitioning, Charm++-related concepts, etc.
 
 - @m_div{m-text m-strong}
   J. Waltz, N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, **[A three-dimensional finite element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured grids](https://doi.org/10.1016/j.compfluid.2013.12.021)**, Computers & Fluids, 92: 172-187, 2014.
   @m_enddiv
 
   This paper describes the hydro scheme implemented in @ref inciter_main as
-  @ref inciter_alecg "ALECG".
+  @ref inciter_riecg "RieCG".
 
 - @m_div{m-text m-strong}
   J. Waltz, **[Parallel adaptive refinement for unsteady flow calculations on 3D unstructured grids](http://dx.doi.org/10.1002/fld.674)**, International Journal for Numerical Methods in Fluids, 46: 37–57, 2004.
   @m_enddiv
 
-  This paper describes the @ref inciter_amr algorithm implemented in @ref inciter_main.
+  This paper describes the @ref inciter_amr algorithm being implemented in @ref inciter_main.
 */

@@ -96,16 +96,14 @@ Here are the important classes that interoperate within inciter:
  - `Refiner` (chare _array_, mesh refiner)
  - `Sorter` (chare _array_, performs mesh reordering)
  - `Discretization` (chare _array_, generic PDE solver base class)
-   - `DiagCG` (chare _array_, PDE solver child class, specialized to a continuous
+   - `RieCG` (chare _array_, PDE solver child class, specialized to a continuous
      Galerkin finite element discretization scheme with a lumped-mass left-hand
-     side and flux-corrected transport combined with Lax-Wendroff-like explicit
-     time stepping scheme that is second order accurate in space and time),
-   - `DG` (chare _array_, PDE solver child class, specialized to a discontinuous
-     Galerkin finite element discretization scheme with a diagonal left-hand
-     side with explicit Runge-Kutta time stepping),
+     side, approximate Riemann solver along edges with MUSCL reconstruction and
+     limiting combined with Runge-Kutta explicit time stepping scheme that is
+     second order accurate in space and time),
    - ... (more hydro schemes to be added in the future)
  - `DistFCT` (chare _array_, performs distributed-memory flux-corrected
-   transport, if used by a specific discretization scheme, e.g., `DiagCG`)
+   transport, if used by a specific discretization scheme)
 
 _Chare_ above means a single Charm++ chare. There is a single instance of this
 class. By design, `Transporter` is a single chare and is used as a driver that
@@ -164,10 +162,9 @@ number of PEs available. (`-u 0.0` yields an execution style that is most
 similar to how MPI codes are traditionally used, which is the default.) Nonzero
 overdecomposition yields larger number of mesh partitions than the available
 PEs. The extreme of `1.0` represents the largest degree of overdecomposition,
-which also results in the smallest work units. For a discussion on the effects
-of overdecomposition, see the page on @ref inciter_performance.
+which also results in the smallest work units.
 
-_Bound arrays_: `Discretization` and its specialized children, `DiagCG`, `DG`,
+_Bound arrays_: `Discretization` and its specialized children, `RieCG`,
 etc., `Refiner`, and, if used/created, `DistFCT` are _bound_ arrays. This means
 that the runtime system migrates its corresponding array elements together.
 Bound arrays facilitate modularization among workers that migrate. Since array
@@ -205,7 +202,7 @@ during time stepping.
 @note The classes that eventually do most of the heavy-lifting of computing
 operators for partial differential equations, are not yet created - not all
 information is available for those yet. However, their Charm++ proxies are
-created and encapsulated within SchemeBase. These _worker proxies_, `DiagCG`,
+created and encapsulated within SchemeBase. These _worker proxies_, `RieCG`,
 etc., together with their "base" class, `Discretization`, are bound together so
 that the runtime system migrates them together during load balancing. This is
 because the "child" is designed to be able to directly access data from its
@@ -287,7 +284,7 @@ connectivity and boundary node lists associated to multiple side sets are also
 passed to Refiner, and only those portions of these data structures that belong
 to the particular `Refiner` chare. (Boundary face connectivity is used for
 cell-based discretization schemes, such as `DG`, while boundary node lists are
-used for nodal discretizations, such as `DiagCG` to set boundary conditions.)
+used for nodal discretizations, such as `RieCG` to set boundary conditions.)
 
 @note As usual, dynamic insertion calls are asynchronous, i.e., the calls are
 really only signals to the runtime system that it is time to start calling
@@ -359,7 +356,7 @@ stores the mesh, connectivity, node coordinates, etc. As `Discretization` is a
 chare array, its elements are distributed across the whole problem on all
 available compute nodes and PEs, and can also migrate for load balancing. In
 the OOP sense, derived (or child) classes are the classes that implement a
-particular discretization scheme, e.g., DiagCG or DG.
+particular discretization scheme, e.g., RieCG.
 
 @note For more details on runtime polymorphism with migratable Charm++ chare
 arrays using value semantics, see Inciter/Scheme.h and the talk, titled
@@ -392,7 +389,7 @@ a DAG) ,Transporter::stat() is called in which execution continues by creating
 the child (or derived) workers in Sorter::createWorkers(). As usual, the
 children are also created by dynamic array insertion.
 
-@warning Since the child classes `DiagCG`, `DG`, etc., access (potentially
+@warning Since the child classes `RieCG`, etc., access (potentially
 large) data from `Discretization` via raw pointers (from Charm++ proxies), base
 and child are always migrated together, using Charm++'s _bound arrays_ feature.
 `Refiner` and `DistFCT` are also bound to `Discretization` and the children.
@@ -418,7 +415,7 @@ interoperate with their host, `Transporter`. These are Charm++ entry methods
 and must also have the same function signature (as in a derived class in OOP).
 Since the set of these function may change, the best way to find out what is
 required is to compare the Charm++ interface (`.ci`) files for the specific
-discretization schemes, e.g., DiagCG, DG, etc., and look for entry methods that
+discretization schemes, e.g., RieCG, etc., and look for entry methods that
 are defined by all child schemes.
 
 */

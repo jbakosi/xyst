@@ -1,7 +1,7 @@
 /*!
   \page      inciter_main Inciter
 
-__Navier-Stokes solver for complex domains__
+__Navier-Stokes solver for engineering flows__
 
 Inciter is a fully asynchronous distributed-memory-parallel fluid solver for
 complex 3D engineering geometries. Computational domains of arbitrary shapes
@@ -14,34 +14,25 @@ communication which enables overlapping parallel computation, communication,
 input, and output (I/O).
 
 Inciter can solve the Euler equations, modeling ideal single-material
-compressible flow, using continuous Galerkin finite element methods, with
-solution-adaptive mesh-refinement, enabling dynamically concentrating compute
-resources to regions with interesting physics. Current development continues
-towards productizing the solver, i.e., increase robustness, user-friendliness,
-and add practicality features.
+compressible flow, using continuous Galerkin finite element methods, enabling
+dynamically concentrating compute resources to regions with interesting
+physics. Current development continues towards productizing the solver, i.e.,
+increase robustness, user-friendliness, and add practicality features.
 
 Inciter currently has the following different fluid dynamics algorithms:
 
-1. `DiagCG`, a node-centered continuous Galerkin finite element method,
-   combining flux-corrected transport with Lax-Wendroff time
-   stepping, see @ref inciter_diagcg for a high-level description and
-   @ref papers for more details.
-
-2. `ALECG`, a node-centered continuous Galerkin finite element method,
-   featuring Riemann solvers and MUSCL reconstruction on cell-edges, combined
-   with Runge-Kutta time stepping, see @ref inciter_alecg for a high-level
-   description and @ref papers for more details.
+1. `RieCG`, a node-centered continuous Galerkin finite element method,
+   featuring approximate Riemann solvers and MUSCL reconstruction on cell-edges,
+   combined with Runge-Kutta time stepping, see @ref inciter_riecg for a
+   high-level description and @ref papers for more details.
 
 @section inciter_pages Related pages
-- @ref inciter_diagcg "DiagCG hydrodynamics"
-- @ref inciter_alecg "ALECG hydrodynamics"
+- @ref inciter_riecg "RieCG hydrodynamics"
 - @ref inciter_amr "Adaptive Mesh Refinement (TetAMR)"
 - @ref inciter_cmd "Command line arguments"
 - @ref inciter_ctr "Control file keywords"
 - @ref papers "Publications"
-- @ref inciter_performance "Performance"
 - @ref inciter_design "Software design"
-- @ref inciter_newscheme "How to add a new scheme"
 - @ref layout "Data layout"
 - @ref inciter_examples "Examples"
 */

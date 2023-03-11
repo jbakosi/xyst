@@ -32,21 +32,6 @@
 
 namespace tk {
 
-int
-orient( const UnsMesh::Edge& t, const UnsMesh::Edge& e )
-// *****************************************************************************
-// Determine edge orientation
-//! \return -1.0 if edge t is oriented the same as edge e, +1.0 opposite
-// *****************************************************************************
-{
-  if (t[0] == e[0] && t[1] == e[1])
-    return -1;
-  else if (t[0] == e[1] && t[1] == e[0])
-    return 1;
-  else
-    return 0;
-}
-
 std::size_t
 npoin_in_graph( const std::vector< std::size_t >& inpoel )
 // *****************************************************************************
@@ -1319,81 +1304,10 @@ geoFaceTri( const std::array< real, 3 >& x,
            (z[0]+z[1]+z[2])/3.0 };
 }
         
-Fields
-genGeoElemTet( const std::vector< std::size_t >& inpoel,
-               const UnsMesh::Coords& coord )
-// *****************************************************************************
-//  Generate derived data, which stores the geometry details of tetrahedral
-//   elements.
-//! \param[in] inpoel Element-node connectivity.
-//! \param[in] coord Co-ordinates of nodes in this mesh-chunk.
-//! \return Element geometry information. This includes element volume,
-//!   element centroid coordinates, and minimum edge length. Use the following
-//!   examples to access this information for element-e.
-//!   volume: geoElem(e,0,0),
-//!   centroid x-coordinate: geoElem(e,1,0),
-//!            y-coordinate: geoElem(e,2,0),
-//!            z-coordinate: geoElem(e,3,0).
-//!   minimum edge-length: geoElem(e,4,0).
-// *****************************************************************************
-{
-  // set tetrahedron geometry
-  std::size_t nnpe(4);
-
-  Assert( inpoel.size()%nnpe == 0,
-          "Size of inpoel must be divisible by nnpe" );
-
-  auto nelem = inpoel.size()/nnpe;
-
-  Fields geoElem( nelem, 5 );
-
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  for(std::size_t e=0; e<nelem; ++e)
-  {
-    // get volume
-    const auto A = inpoel[nnpe*e+0];
-    const auto B = inpoel[nnpe*e+1];
-    const auto C = inpoel[nnpe*e+2];
-    const auto D = inpoel[nnpe*e+3];
-    std::array< real, 3 > ba{{ x[B]-x[A], y[B]-y[A], z[B]-z[A] }},
-                              ca{{ x[C]-x[A], y[C]-y[A], z[C]-z[A] }},
-                              da{{ x[D]-x[A], y[D]-y[A], z[D]-z[A] }};
-
-    const auto vole = triple( ba, ca, da ) / 6.0;
-
-    Assert( vole > 0, "Element Jacobian non-positive" );
-
-    geoElem(e,0,0) = vole;
-
-    // get centroid
-    geoElem(e,1,0) = (x[A]+x[B]+x[C]+x[D])/4.0;
-    geoElem(e,2,0) = (y[A]+y[B]+y[C]+y[D])/4.0;
-    geoElem(e,3,0) = (z[A]+z[B]+z[C]+z[D])/4.0;
-
-    // calculate minimum edge-length
-    real edgelen = std::numeric_limits< real >::max();
-    for (std::size_t i=0; i<nnpe-1; ++i)
-    {
-      for (std::size_t j=i+1; j<nnpe; ++j)
-      {
-        auto ni(inpoel[nnpe*e+i]), nj(inpoel[nnpe*e+j]);
-        edgelen = std::min( edgelen, tk::length( x[ni]-x[nj], y[ni]-y[nj],
-          z[ni]-z[nj] ) );
-      }
-    }
-    geoElem(e,4,0) = edgelen;
-  }
-
-  return geoElem;
-}
-
 bool
 leakyPartition( const std::vector< int >& esueltet,
                 const std::vector< std::size_t >& inpoel,
-                const UnsMesh::Coords& coord )
+                const std::array< std::vector< real >, 3 >& coord )
 // *****************************************************************************
 // Perform leak-test on mesh (partition)
 //! \param[in] esueltet Elements surrounding elements for tetrahedra, see
@@ -1440,7 +1354,7 @@ leakyPartition( const std::vector< int >& esueltet,
 
 bool
 conforming( const std::vector< std::size_t >& inpoel,
-            const UnsMesh::Coords& coord,
+            const std::array< std::vector< real >, 3 >& coord,
             bool cerr,
             const std::vector< std::size_t >& rid )
 // *****************************************************************************

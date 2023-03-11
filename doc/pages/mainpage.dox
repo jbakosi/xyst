@@ -5,7 +5,7 @@
 <img src="images/Eo_circle_deep-orange_letter-x.svg"/>
 @m_enddiv
 
-Xyst is a flow solver for complex domains.
+_Xyst_ is a Navier-Stokes solver for engineering flows.
 
 Using the [Charm++](http://charmplusplus.org/) runtime system, it employs
 _asynchronous_ (or non-blocking) parallel programming and decomposes
@@ -19,11 +19,11 @@ simulation distributed across many computers.
 
 Xyst consists of the following tools:
 
-@ref inciter_main --- __Flow solver for complex domains__
+@ref inciter_main --- __Navier-Stokes solver for engineering flows__
 
 _Inciter_ is a fully asynchronous distributed-memory-parallel fluid solver for
-complex engineering geometries. We are working on a compressible-flow solver
-using continuous Galerkin finite element methods and solution-adaptive
+complex engineering geometries. We are working on a flow solver using
+continuous Galerkin finite element methods and solution-adaptive
 mesh-refinement, enabling dynamically concentrating compute resources to
 regions with interesting physics.
 
@@ -65,13 +65,15 @@ GPL v3.
 @section mainpage_history History
 
 Xyst is forked from [Quinoa](https://quinoacomputing.github.io/archive). Compared to
-Quinoa Xyst
+Quinoa, Xyst
 
 1. removes the stochastic differential equation solver
-([walker](https://wlkr.cc)), and also
+([walker](https://wlkr.cc)),
 
-2. removes the cell-centered schemes, keeping only the node-centered @ref
-inciter_diagcg and @ref inciter_alecg.
+2. replaces all of Quinoa's solvers with an edge-based implementation of
+Quinoa's ALECG, renamed here as @ref inciter_riecg, and
+
+3. significantly simplifies Quinoa's original code and its build system.
 
 Development on [Quinoa](https://github.com/quinoacomputing/quinoa) and
 [Xyst](https://codeberg.org/xyst/xyst) continues on two different forks.

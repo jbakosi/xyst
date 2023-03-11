@@ -212,7 +212,14 @@ grad( const std::vector< std::size_t >& dedge,
       tk::Fields& G )
 // *****************************************************************************
 //  Compute nodal gradients of primitive variables in all points
+//! \param[in] dedge Streamable domain edge end points with local ids
+//! \param[in] deint Streamable domain edge integrals
+//! \param[in] bpoin Streamable boundary point local ids
+//! \param[in] bpint Streamable boundary point integrals
+//! \param[in] bedge Streamable boundary edges with local ids
+//! \param[in] beint Streamable boundary edge integrals
 //! \param[in] U Solution vector at recent time step
+//! \param[in,out] G Nodal gradients
 //! \return Gradients of primitive variables in all mesh points
 // *****************************************************************************
 {
@@ -334,6 +341,8 @@ advdom( const tk::UnsMesh::Coords& coord,
 // *****************************************************************************
 //! Compute domain-edge integral for advection
 //! \param[in] coord Mesh node coordinates
+//! \param[in] dedge Streamable domain edge end points with local ids
+//! \param[in] deint Streamable domain edge integrals
 //! \param[in] G Nodal gradients
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector computed
@@ -445,7 +454,14 @@ advbnd( const tk::UnsMesh::Coords& coord,
         tk::Fields& R )
 // *****************************************************************************
 //! Compute boundary integrals for advection
-//! \param[in] triinpoel Boundary triangle face connecitivity with local ids
+//! \param[in] coord Mesh node coordinates
+//! \param[in] bpoin Streamable boundary point local ids
+//! \param[in] bpint Streamable boundary point integrals
+//! \param[in] bedge Streamable boundary edges with local ids
+//! \param[in] beint Streamable boundary edge integrals
+//! \param[in] bpsym Streamable boundary point symmetry BC flags
+//! \param[in] besym Streamable boundary edge symmetry BC flags
+//! \param[in] G Gradients in mesh nodes
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
@@ -583,6 +599,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 //! \param[in] coord Mesh node coordinates
 //! \param[in] v Nodal mesh volumes without contributions from other chares
 //! \param[in] t Physical time
+//! \param[in] tp Physical time for each mesh node
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
 {
@@ -612,7 +629,7 @@ rhs( const std::vector< std::size_t >& dedge,
      const std::vector< tk::real >& beint,
      const std::vector< std::uint8_t >& bpsym,
      const std::vector< std::uint8_t >& besym,
-     const tk::UnsMesh::Coords& coord,
+     const std::array< std::vector< tk::real >, 3 >& coord,
      const tk::Fields& G,
      const tk::Fields& U,
      const std::vector< tk::real >& v,
@@ -621,7 +638,20 @@ rhs( const std::vector< std::size_t >& dedge,
      tk::Fields& R )
 // *****************************************************************************
 //  Compute right hand side
-//! \param[in] U Solution vector at recent time step
+//! \param[in] dedge Streamable domain edge end points with local ids
+//! \param[in] deint Streamable domain edge integrals
+//! \param[in] bpoin Streamable boundary point local ids
+//! \param[in] bpint Streamable boundary point integrals
+//! \param[in] bedge Streamable boundary edges with local ids
+//! \param[in] beint Streamable boundary edge integrals
+//! \param[in] bpsym Streamable boundary point symmetry BC flags
+//! \param[in] besym Streamable boundary edge symmetry BC flags
+//! \param[in] coord Mesh node coordinates
+//! \param[in] G Gradients in mesh nodes
+//! \param[in] U Unknowns/solution vector in mesh nodes
+//! \param[in] v Nodal mesh volumes without contributions from other chares
+//! \param[in] t Physical time
+//! \param[in] tp Physical time for each mesh node
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
 {

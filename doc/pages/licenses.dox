@@ -9,73 +9,59 @@ libraries (TPLs) used by Xyst.
 \section tpl_licenses Third-party libraries (TPLs)
 
 \subsection charm_license The Charm++ Parallel Programming System
-  - Required
   - Searched for and if not found, built by default
   - Web: http://charm.cs.illinois.edu
   - License: @subpage charm_license_page
 
 \subsection pegtl_license The Parsing Expression Grammar Template Library
-  - Required
   - Web: https://github.com/taocpp/PEGTL
   - License: @subpage pegtl_license_page
 
 \subsection tut_license C++ Template Unit Test Framework
-  - Required
   - Web: http://mrzechonek.github.io/tut-framework
   - License: @subpage tut_license_page
 
 \subsection boost_license Boost C++ libraries
-  - Required
   - Web: http://www.boost.org
   - License: @subpage boost_license_page
 
 \subsection pstreams_license PStreams for POSIX process Control
-  - Required
   - Web: http://pstreams.sourceforge.net/
   - License: @subpage pstreams_license_page
 
-\subsection hdf5_license The HDF5 data model
-  - Required
+\subsection hdf5_license The HDF5 data model, required by SEACAS
   - Web: http://www.hdfgroup.org/HDF5
   - License: @subpage hdf5_license_page
 
-\subsection netcdf_license The NetCDF data model
-  - Required
+\subsection netcdf_license The NetCDF data model, required by SEACAS
   - Web: http://www.unidata.ucar.edu/downloads/netcdf/index.jsp
   - License: @subpage netcdf_license_page
 
-\subsection seacas_license SEACAS for storing data for finite element analyses
-  - Required
+\subsection seacas_license SEACAS for mesh-based I/O
   - Web: https://github.com/trilinos/Trilinos/tree/master/packages/seacas
   - License: @subpage seacas_license_page
 
-\subsection zoltan_license Zoltan for static load balancing
-  - Required
+\subsection zoltan_license Zoltan for static mesh partitioning
   - Web: http://www.cs.sandia.gov/Zoltan/Zoltan.html
   - License: @subpage zoltan_license_page
 
 \subsection libstdcpp_license Libstdc++ for standard C++ containers and algorithms
-  - Either libc++ or libstdc++ required
   - Web: https://gcc.gnu.org/libstdc++
   - License: @subpage libstdcpp_license_page
 
 \subsection libcpp_license Libc++ for standard C++ containers and algorithms
-  - Either libc++ or libstdc++ required
   - Web: http://libcxx.llvm.org
   - License: @subpage libcpp_license_page
 
 \subsection openmpi_license OpenMPI for the message passing interface
-  - Required
   - Web: http://www.open-mpi.org
   - License: @subpage openmpi_license_page
 
 \subsection highwayhash_license HighwayHash for generating hashes
-  - Required
   - Web: https://github.com/google/highwayhash
   - License: @subpage highwayhash_license_page
 
 \subsection brigand_license Brigand for template meta-programming
-  - Required
   - Web: https://github.com/edouarda/brigand
   - License: @subpage brigand_license_page
 

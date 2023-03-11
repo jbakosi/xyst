@@ -667,7 +667,6 @@ RieCG::comgrad(
 //  Receive contributions to node gradients on chare-boundaries
 //! \param[in] ingrad Partial contributions to chare-boundary nodes. Key: 
 //!   global mesh node IDs, value: contributions for all scalar components.
-//! \param[in] inrhs Partial contributions of gradients at chare-boundary nodes
 //! \details This function receives contributions to m_grad, which stores the
 //!   gradients at mesh nodes. While m_grad stores own contributions, m_gradc
 //!   collects the neighbor chare contributions during communication. This way

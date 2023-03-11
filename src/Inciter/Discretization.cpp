@@ -78,7 +78,6 @@ Discretization::Discretization(
 // *****************************************************************************
 //  Constructor
 //! \param[in] meshid Mesh ID
-//! \param[in] disc All Discretization proxies (one per mesh)
 //! \param[in] transporter Host (Transporter) proxy
 //! \param[in] meshwriter Mesh writer proxy
 //! \param[in] coordmap Coordinates of mesh nodes and their global IDs

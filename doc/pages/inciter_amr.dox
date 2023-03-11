@@ -100,7 +100,6 @@ inciter) to provide appropriate connectivity of the partitioned mesh.
     compatibility algorithm at this stage will not make any difference, since that uses local-edge
     information to determine compatibility.
   - Once done, the Refiner::correctref() is called via Transporter::compatibility().
-  .
 - Refiner::correctref() begins the parallel-compatibility algorithm.
   - Using certain rules, correctref() determines if the partition-boundary markings (local-edge
     ref-data) need corrections due to the neighbor-partitions (stored in the remote-edge data by
@@ -115,18 +114,14 @@ inciter) to provide appropriate connectivity of the partitioned mesh.
     - comExtra() is again called (indicating the beginning of another parallel-compat iteration)
       to receive similar corrections from neighbors. This results in an iterative algorithm, until
       all partitions agree to the state of partition-boundary edges.
-    .
-  .
 - Once the compatibility algorithm converges, perform() is called. perform(), as the name suggests,
   actually performs the refinement on the mesh.
   - It adds/removes edges/elements as determined by the previous algorithm.
   - It then calls updateMesh().
-  .
 - Refiner::updateMesh() updates the mesh data structures stored in Refiner as follows:
   - Updates fundamental mesh data structures.
   - Checks for hanging nodes. This trips for many amr-related bugs.
   - Finally returns to perform().
-  .
 - Refiner::perform() finally calls Refiner::next(), which essentially goes back to the code which
   called the required Refiner::function.
 
@@ -146,7 +141,6 @@ Refiner::updateMesh() details:
   `documentation being updated`
   - calls Refiner::updateBndData():
   `documentation being updated`
-  .
 
 @section debugging Debugging
 Uncomment the @code #define ENABLE_TRACE 1 @endcode line in `Inciter/AMR/Loggers.hpp` to get the `trace_out` screen-output from the AMR-library.

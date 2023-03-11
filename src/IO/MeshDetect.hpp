@@ -21,10 +21,10 @@ namespace tk {
 enum class MeshReaderType : uint8_t { GMSH = 0
                                     , NETGEN
                                     , EXODUSII
-                                    , HYPER
                                     , ASC
                                     , UGRID
                                     , RDGFLO
+                                    , MEDIT
                                     };
 
 //! Supported mesh writers

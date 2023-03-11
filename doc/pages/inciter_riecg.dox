@@ -1,0 +1,194 @@
+namespace inciter {
+/*!
+  \page      inciter_riecg RieCG
+
+@tableofcontents{xml}
+
+@ref inciter_main supports multiple hydrodynamics schemes. This page describes
+the `RieCG` method at a high level, for more details, see @ref papers.
+
+The basic RieCG algorithm is an edge-based finite element method for
+unstructured meshes, composed of tetrahedral cells, intended for the
+mathematical modelling of energetic, high-speed, compressible flows. This is an
+implementation of the method developed by Waltz and coworkers, see @ref
+papers, to solve the governing equations of
+compressible flow to use an asynchronous-by-default, distributed-memory,
+task-parallel programming paradigm using the Charm++ runtime system.
+
+Note that the RieCG algorithm can be viewed as either an edge-based finite
+element method on tetrahedron meshes or a node-centered finite volume method
+(on the dual mesh, consisting of arbitrary polyhedra).
+
+@section riecg_euler The equations of compressible flow
+
+The equations solved are the 3D unsteady Euler equations, governing inviscid
+compressible flow,
+
+\f[ \begin{split}
+  \frac{\partial U}{\partial t} + \frac{\partial F_j}{\partial x_j} = S,\qquad
+  U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \end{Bmatrix}, \enskip F_j =
+  \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p)
+  \end{Bmatrix}, \enskip
+  S = \begin{Bmatrix} S_\rho \\ S_{u,i} \\ S_E \end{Bmatrix},
+\end{split} \f]
+where the summation convention on repeated indices has been applied,
+\f$\color[HTML]{dcdcdc}\rho\f$ is the density, \f$\color[HTML]{dcdcdc}u_i\f$ is
+the velocity vector, \f$\color[HTML]{dcdcdc}E=u_iu_i/2+e\f$ is the specific
+total energy, \f$\color[HTML]{dcdcdc}e\f$ is the specific internal energy, and
+\f$\color[HTML]{dcdcdc}p\f$ is the pressure. \f$\color[HTML]{dcdcdc}S_\rho\f$,
+\f$\color[HTML]{dcdcdc}S_{u,i}\f$, and \f$\color[HTML]{dcdcdc}S_E\f$ are source
+terms that arise from the application of the method of manufactured solutions,
+used for verification; these source terms are zero when computing practical
+engineering problems. The system is closed with the ideal gas law equation of
+state
+\f[ \begin{split}
+  p = \rho e (\gamma - 1),
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}\gamma\f$ is the ratio of specific heats. Although
+the ideal gas law is used most frequently, any arbitrary (i.e. analytic or
+tabulated) equation of state can be used to relate density and internal energy
+to pressure.
+
+@section riecg_method The numerical method
+
+The above system is solved using an edge-based finite-element method for linear
+tetrahedra. Using this particular approach, the unknown solution quantities are
+the conserved variables \f$\color[HTML]{dcdcdc}U\f$ and are located at the
+nodes of the mesh. The solution at any point within the computational domain is
+represented as
+\f[ \begin{split}
+  U(\vec{x}) = \sum_{v \in \Omega_h} N^v(\vec{x}) U^v
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}\Omega_h\f$ is the tetrahedron containing the
+point \f$\color[HTML]{dcdcdc}\vec{x}\f$, \f$\color[HTML]{dcdcdc}U^v\f$ is the
+solution at vertex \f$\color[HTML]{dcdcdc}v\f$, and
+\f$\color[HTML]{dcdcdc}N^v(\vec{x})\f$ is a linear basis function associated
+with vertex \f$\color[HTML]{dcdcdc}v\f$ and element
+\f$\color[HTML]{dcdcdc}\Omega_h\f$.
+
+Applying a Galerkin, lumped-mass approximation to Euler equations gives the
+following semi-discrete form of the governing equations for a vertex
+\f$\color[HTML]{dcdcdc}v\f$:
+\f[ \begin{split}
+  \frac{\text{d}U^v}{\text{d}t} = - \frac{1}{V^v} \sum_j \left[  \sum_{ vw\in
+  v} D^{vw}_j F^{vw}_j +  \sum_{vw\in v} B^{vw}_j \left( F^v_j + F^w_j\right) +
+  B^v_j F^v_j \right]
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}vw\f$ represent all edges connected to
+\f$\color[HTML]{dcdcdc}v\f$, \f$\color[HTML]{dcdcdc}V\f$ is the volume
+surrounding \f$\color[HTML]{dcdcdc}v\f$, \f$\color[HTML]{dcdcdc}F^{vw}_j\f$
+numerical flux between \f$\color[HTML]{dcdcdc}v\f$ and
+\f$\color[HTML]{dcdcdc}w\f$.  The first term on the right-hand-side above is
+evaluated for all vertices within the domain. The last two terms are only
+evaluated for vertices \f$\color[HTML]{dcdcdc}v\f$ and surrounding edges
+\f$\color[HTML]{dcdcdc}vw\f$ that lie on the domain boundary. As such,
+\f$\color[HTML]{dcdcdc}F^v_j\f$ denotes the boundary flux.
+
+The term \f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is effectively the area-weighted
+normal to the dual face separating \f$\color[HTML]{dcdcdc}v\f$ and
+\f$\color[HTML]{dcdcdc}w\f$. It is calculated as
+\f[ \begin{split}
+  D^{vw}_j = \frac{1}{2} \sum_{\Omega_h \in vw} \int_{\Omega_h} \left( N^v
+  \frac{\partial N^w}{\partial x_j} - N^w \frac{\partial N^v}{\partial x_j}
+  \right) \, \text{d} \Omega
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}\Omega_h \in vw\f$ represents all elements
+attached to an edge \f$\color[HTML]{dcdcdc}vw\f$. The described numerical
+scheme is guaranteed conservative since \f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is
+antisymmetric.
+
+The boundary terms \f$\color[HTML]{dcdcdc}B^{vw}_j\f$ and
+\f$\color[HTML]{dcdcdc}B^v_j\f$ are defined by the following:
+\f[ \begin{split}
+  B^{vw}_j &= \frac{1}{2} \sum_{\Gamma_h \in vw} \int_{\Gamma_h} N^v N^w n_j
+  \, \text{d} \Gamma \\
+  B^v_j &= \sum_{\Gamma_h \in v} \int_{\Gamma_h} N^v N^v n_j  \, \text{d}
+  \Gamma
+\end{split} \f]
+
+For the derivation and other details, see @ref papers.
+
+@section riecg_flux Numerical flux
+
+The numerical flux \f$\color[HTML]{dcdcdc}F^{vw}_j\f$ is evaluated at the
+midpoint between \f$\color[HTML]{dcdcdc}v\f$ and \f$\color[HTML]{dcdcdc}w\f$.
+Here we used the Rusanov flux which approximates the flux between
+\f$\color[HTML]{dcdcdc}v\f$ and \f$\color[HTML]{dcdcdc}w\f$ as
+\f[ \begin{split}
+  D^{vw}_j F^{vw}_j = D^{vw}_j \left( F^v_j + F^w_j \right) + \left| D^{vw}_j
+  \right| \lambda^{vw} \left( U^w - U^v \right)
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}\lambda^{vw}=\max (\lambda_v, \lambda_w)\f$ is the maximum wavespeed,
+defined as
+\f[ \begin{split}
+  \lambda_v = \left| u_j \frac{D^{vw}_j}{\left|D^{vw}_j\right|} \right| + c^v
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}c^v\f$ is the speed of sound at vertex
+\f$\color[HTML]{dcdcdc}v\f$.
+
+@section riecg_reconstruction Solution reconstruction
+
+The inputs to the flux function above are approximated using a piecewise
+limited solution reconstruction of the primitive variables. The reconstruction
+is performed component-wise for each edge \f$\color[HTML]{dcdcdc}vw\f$ as
+follows:
+\f[ \begin{split}
+  \hat{u}^v &= u^v + \frac{1}{4} \left[ (1-k) \phi(r^v) \delta_1 +
+    (1+k)\phi\left(\frac{1}{r^v}\right)\delta_2 \right]\\
+  \hat{u}^w &= u^w - \frac{1}{4} \left[ (1-k) \phi(r^w) \delta_3 +
+    (1+k)\phi\left(\frac{1}{r^w}\right)\delta_2 \right]
+ \end{split} \f]
+with
+\f[ \begin{split}
+  \delta_1 &= 2x_i^{vw} \frac{\partial u^v}{\partial x_i} - \delta_2 \\
+  \delta_2 &= u^w - u^v \\
+  \delta_3 &= 2x_i^{vw} \frac{\partial u^w}{\partial x_i} - \delta_2
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}x_i^{vw}=x_i^w - x_i^v\f$ and
+\f[ \begin{split}
+  r^v &= \frac{\delta_2}{\delta_1} \\
+  r^w &= \frac{\delta_2}{\delta_3}
+\end{split} \f]
+This scheme corresponds to a piecewise linear reconstruction for
+\f$\color[HTML]{dcdcdc}k=-1\f$ and a piecewise parabolic reconstruction for
+\f$\color[HTML]{dcdcdc}k=1/3\f$. The function \f$\color[HTML]{dcdcdc}\phi\f$
+can be any total variation diminishing limiter function. We use the Van Leer
+and minmod functions.
+
+@section riecg_time Time integration
+
+The solution is advanced using a multi-stage explicit scheme of the form:
+\f[ \begin{split}
+  U^{v,k} = U^{v,0} - \alpha^k \Delta t \cdot \left.
+  \frac{\text{d}U^v}{\text{d}t}\right|^{k-1}
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}k\f$ is the current stage,
+\f$\color[HTML]{dcdcdc}m\f$ is the total number of stages,
+\f$\color[HTML]{dcdcdc}\Delta t\f$ is the time step, and
+\f[ \begin{split}
+  \alpha^k = \frac{1} {1+m-k}
+\end{split} \f]
+The explicit Euler time marching scheme is obtained for
+\f$\color[HTML]{dcdcdc}m=1\f$ and the classical 2nd-order Runge-Kutta method is
+obtained with \f$\color[HTML]{dcdcdc}m=2\f$.
+
+The global time step is obtained by finding the minimum value for all edges in
+the domain. The time step for an edge \f$\color[HTML]{dcdcdc}vw\f$ is calculated as
+\f[ \begin{split}
+  \Delta t^{vw} = \frac{\text{C}l^{vw}}{\lambda^{vw}}
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}\text{C} \leq 1\f$ is the Courant number, and
+\f$\color[HTML]{dcdcdc}l^{vw}\f$ is the legnth of an edge
+\f$\color[HTML]{dcdcdc}vw\f$. The global time step is thus
+\f[ \begin{split}
+  \Delta t = \min_{\forall vw} \left( \Delta t^{vw}  \right).
+\end{split} \f]
+
+@section riecgrun_example Example setup, run, and solution
+
+For an example test set up see the page on @ref inciter_example_f16
+"steady-state solution of transconic flow around an F16". For other examples,
+see @ref papers.
+
+*/
+} // inciter::

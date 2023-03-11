@@ -9,10 +9,10 @@ meshes from and to either of the following formats:
   - Gmsh, http://www.geuz.org/gmsh
   - Netgen, https://sourceforge.net/projects/netgen-mesher
   - ExodusII, https://github.com/gsjaardema/seacas
-  - HyperMesh, http://www.altairhyperworks.com/product/HyperMesh
-  - ASC, used in [Jacob Waltz](https://www.researchgate.net/scientific-contributions/2014382994_Jacob_Waltz)'s _Chicoma_ code,
+  - ASC, used in [Jacob Waltz](https://www.researchgate.net/scientific-contributions/2014382994_Jacob_Waltz)'s _Chicoma_ code
   - UGRID, https://www.simcenter.msstate.edu/software/documentation/aflr3
   - RDGFLO, https://www.mae.ncsu.edu/people/hluo2
+  - Medit, https://people.sc.fsu.edu/~jburkardt/data/medit/medit.html
 
 Similar to the rest of Xyst, meshconv also uses the Charm++ runtime system,
 however, meshconv is currently not parallelized.

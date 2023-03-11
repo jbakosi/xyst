@@ -34,6 +34,7 @@ target_include_directories(Init PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Control
+                           ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${BRIGAND_INCLUDE_DIRS}
@@ -57,7 +58,6 @@ add_executable(${UNITTEST_EXECUTABLE}
                ../../tests/unit/Base/TestData.cpp
                ../../tests/unit/Base/TestException.cpp
                ../../tests/unit/Base/TestExceptionMPI.cpp
-               ../../tests/unit/Base/TestFactory.cpp
                ../../tests/unit/Base/TestFlip_map.cpp
                ../../tests/unit/Base/TestHas.cpp
                ../../tests/unit/Base/TestPrint.cpp
@@ -75,16 +75,11 @@ add_executable(${UNITTEST_EXECUTABLE}
                ../../tests/unit/Control/TestStringParser.cpp
                ../../tests/unit/Control/TestSystemComponents.cpp
                ../../tests/unit/Control/TestToggle.cpp
-               ../../tests/unit/Inciter/TestScheme.cpp
                ../../tests/unit/Inciter/AMR/TestError.cpp
                ../../tests/unit/IO/TestExodusIIMeshReader.cpp
                ../../tests/unit/IO/TestMesh.cpp
                ../../tests/unit/IO/TestMeshReader.cpp
-               ../../tests/unit/LoadBalance/TestLinearMap.cpp
                ../../tests/unit/LoadBalance/TestLoadDistributor.cpp
-               ../../tests/unit/LoadBalance/TestUnsMeshMap.cpp
-               ../../tests/unit/LinearSolver/TestCSR.cpp
-               ../../tests/unit/LinearSolver/TestConjugateGradients.cpp
                ../../tests/unit/Mesh/TestAround.cpp
                ../../tests/unit/Mesh/TestDerivedData.cpp
                ../../tests/unit/Mesh/TestDerivedData_MPISingle.cpp
@@ -98,7 +93,6 @@ target_include_directories(${UNITTEST_EXECUTABLE} PUBLIC
                            ${PROJECT_SOURCE_DIR}/../LoadBalance
                            ${PROJECT_SOURCE_DIR}/../IO
                            ${TUT_INCLUDE_DIRS}
-                           ${LAPACKE_INCLUDE_DIRS}
                            ${RANDOM123_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../UnitTest
                            ${PROJECT_BINARY_DIR}/../IO)
@@ -112,20 +106,15 @@ target_link_libraries(${UNITTEST_EXECUTABLE}
                       MeshRefinement
                       UnitTest
                       UnitTestControl
-                      LoadBalance
-                      LinearSolver
                       Mesh
                       MeshDetect
                       NativeMeshIO
                       ExodusIIMeshIO
-                      HyperMeshIO
-                      ${PUGIXML_LIBRARIES}
                       ${SEACASExodus_LIBRARIES}
                       ${MKL_CORE_LIBRARY}
                       ${MKL_INTERFACE_LIBRARY}
                       ${MKL_SEQUENTIAL_LAYER_LIBRARY}
                       ${HDF5_C_LIBRARIES}
-                      Backward::Backward
 )
 
 # Add custom dependencies for UnitTest's main Charm++ module
@@ -146,14 +135,8 @@ config_executable(${INCITER_EXECUTABLE})
 
 target_link_libraries(${INCITER_EXECUTABLE}
                       InciterControl
-                      PDE
                       Inciter
-                      TransportProblem
-                      CGTransportPhysics
-                      CompFlowProblem
-                      CGCompFlowPhysics
                       MeshRefinement
-                      LoadBalance
                       ZoltanInterOp
                       Base
                       Config
@@ -163,13 +146,10 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       ExodusIIMeshIO
                       MeshDetect
                       Mesh
+                      Physics
                       Statistics
-                      LinearSolver
-                      ${EXAM2M_LIBRARIES}
                       ${SEACASExodus_LIBRARIES}
                       ${Zoltan2_LIBRARIES}
-                      ${LAPACKE_LIBRARIES}
-                      Backward::Backward
 )
 
 # Add custom dependencies for Inciter's main Charm++ module
@@ -193,17 +173,14 @@ target_include_directories(${MESHCONV_EXECUTABLE} PUBLIC
 target_link_libraries(${MESHCONV_EXECUTABLE}
                       NativeMeshIO
                       ExodusIIMeshIO
-                      HyperMeshIO
                       MeshDetect
                       Mesh
                       MeshConvControl
                       Base
                       Config
                       Init
-                      ${PUGIXML_LIBRARIES}
                       ${SEACASExodus_LIBRARIES}
                       ${HDF5_C_LIBRARIES}
-                      Backward::Backward
 )
 
 # Add custom dependencies for MeshConv's main Charm++ module

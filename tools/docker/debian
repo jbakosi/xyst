@@ -8,7 +8,7 @@
 #            2022-2023 J. Bakosi
 #            2022-2023 J. Bakosi
 #            All rights reserved. See the LICENSE file for details.
-# \brief     Install xyst external libraries ready for CI.
+# \brief     Install xyst external libraries ready for CI
 # \details
 #   Install xyst external external libraries ready for CI.
 #
@@ -32,7 +32,7 @@
 FROM debian:bullseye
 
 # Install system-wide prerequisites
-RUN apt-get update -y && apt-get install -y git autoconf cmake gfortran g++ gmsh libblas-dev liblapack-dev liblapacke-dev libopenmpi-dev libhdf5-dev libhdf5-openmpi-dev libnetcdf-mpi-dev libboost-all-dev tao-pegtl-dev libpstreams-dev libbackward-cpp-dev libdw-dev binutils-dev libpugixml-dev
+RUN apt-get update -y && apt-get install -y git autoconf cmake gfortran g++ gmsh libblas-dev liblapack-dev libopenmpi-dev libhdf5-dev libhdf5-openmpi-dev libnetcdf-mpi-dev libboost-all-dev tao-pegtl-dev libpstreams-dev
 
 # Clone
 RUN git clone https://codeberg.org/xyst/xyst.git
@@ -45,10 +45,11 @@ RUN cd xyst && mkdir -p external/build && cd external/build && cmake .. && make 
 # Clean up
 RUN rm -rf xyst/external/build
 
-# The commands below can be used to build and test xyst if anything
-# upstream is updated. After no error, they should be commented.
+# The commands below can be used to build and test xyst if anything upstream is
+# updated: comment clean-up above, uncomment below, run, after no error,
+# comment below and re-enable clean-up above.
 
 # Build
 #RUN cd xyst && mkdir -p build && cd build && cmake -Wno-dev -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" ../src && make -sj$(grep -c processor /proc/cpuinfo)
 # Run tests
-#RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -v -q && ctest -j $(grep -c processor /proc/cpuinfo) --output-on-failure -LE extreme
+#RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -v -q && ctest -j $(grep -c processor /proc/cpuinfo) --output-on-failure

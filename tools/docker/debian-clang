@@ -1,0 +1,76 @@
+################################################################################
+# vim: filetype=dockerfile:
+#
+# \file      tools/docker/debian-clang
+# \copyright 2012-2015 J. Bakosi,
+#            2016-2018 Los Alamos National Security, LLC.,
+#            2019-2021 Triad National Security, LLC.
+#            2022-2023 J. Bakosi
+#            2022-2023 J. Bakosi
+#            All rights reserved. See the LICENSE file for details.
+# \brief     Install xyst external libraries ready for CI
+# \details
+#   Install xyst external external libraries ready for CI.
+#
+#   This image is intended to prepare a docker image that contains the external
+#   libraries pre-installed. The image is parked at
+#
+#   https://hub.docker.com/repository/docker/jbakosi/
+#
+#   which can then be pulled by continuous integration (CI) to build and test.
+#   This ensures the external libs do not have to be rebuilt, any time the test
+#   suite needs to run, which reduces load on CI.
+#
+#   Usage:
+#
+#   docker build -f debian-clang -t xyst-clang .#--build-arg COMMIT=master --no-cache
+#   docker-squash --cleanup xyst-clang -t jbakosi/xyst-clang
+#   docker push jbakosi/xyst-clang
+#
+################################################################################
+
+FROM debian:bullseye
+
+# Install system-wide prerequisites
+RUN apt-get update -y && apt-get install -y git autoconf libtool-bin bzip2 cmake g++ clang gmsh libblas-dev liblapack-dev libboost-dev tao-pegtl-dev libpstreams-dev zlib1g-dev
+
+# Install OpenMPI
+ADD https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.4.tar.bz2 /openmpi/
+RUN cd /openmpi/ && tar xjf openmpi-4.1.4.tar.bz2 && cd openmpi-4.1.4 && ./configure CC=clang CXX=clang++ CLFAGS=-fPIC --disable-mpi-fortran --enable-shared --enable-static --prefix=/opt/openmpi && make -sj$(grep -c processor /proc/cpuinfo) install
+ENV CC /opt/openmpi/bin/mpicc
+ENV CXX /opt/openmpi/bin/mpicxx
+ENV PATH /opt/openmpi/bin:$PATH
+ENV LD_LIBRARY_PATH /opt/openmpi/lib:$LD_LIBRARY_PATH
+RUN rm -rf /openmpi
+
+# Install HDF5 using the above OpenMPI
+RUN git clone https://github.com/HDFGroup/hdf5.git /hdf5
+RUN cd hdf5 && git checkout hdf5-1_13_0-rc5 && ./autogen.sh && ./configure CFLAGS=-fPIE --prefix=/opt/hdf5 --disable-static --enable-shared --enable-parallel --enable-build-mode=production && make -sj$(grep -c processor /proc/cpuinfo) install
+ENV HDF5_ROOT /opt/hdf5
+RUN rm -rf /hdf5
+
+# Install NetCDF using the above OpenMPI and HDF5
+RUN git clone https://github.com/Unidata/netcdf-c.git /netcdf
+RUN cd netcdf && git checkout v4.4.1.1 && ./configure CFLAGS=-I/opt/hdf5/include LDFLAGS=-L/opt/hdf5/lib --prefix=/opt/netcdf --disable-static --enable-shared --enable-netcdf4 --disable-examples --disable-fsync --disable-dap && make -sj$(grep -c processor /proc/cpuinfo) install
+ENV NETCDF_DIR /opt/netcdf
+RUN rm -rf /netcdf
+
+# Clone
+RUN git clone https://codeberg.org/xyst/xyst.git
+ARG COMMIT
+RUN cd xyst && git checkout $COMMIT && git log -1 HEAD
+
+## Build external libs
+RUN cd xyst && mkdir -p external/build && cd external/build && cmake -Wno-dev .. && make -sj$(grep -c processor /proc/cpuinfo)
+
+# Clean up
+RUN rm -rf xyst/external/build
+
+# The commands below can be used to build and test xyst if anything upstream is
+# updated: comment clean-up above, uncomment below, run, after no error,
+# comment below and re-enable clean-up above.
+
+# Build
+#RUN cd xyst && mkdir -p build && cd build && cmake -Wno-dev -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity  -DCMAKE_BUILD_TYPE=Debug ../src && make -sj$(grep -c processor /proc/cpuinfo)
+# Run tests
+#RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -v -q && ctest -j $(grep -c processor /proc/cpuinfo) --output-on-failure

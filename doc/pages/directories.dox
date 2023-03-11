@@ -94,91 +94,6 @@ unittest_main.
 @dir src/Control/UnitTest/CmdLine
 @brief Command line parsing and grammar for _UnitTest_
 
-@dir src/Control/Walker
-@brief Types, options, command line parsing, and grammar for _Walker_
-
-@dir src/Control/Walker/CmdLine
-@brief Command line parsing and grammar for _Walker_
-
-@dir src/Control/Walker/InputDeck
-@brief Input file parsing and grammar for _Walker_
-
-@dir src/PDE
-@brief Partial differential equations
-
-@details This directory contains implementations of spatial discretizations
-for _partial_ differential equations (PDE). (_Partial_ as opposed to _ordinary_
-differential equations in `src/DiffEq`). At this time, all of these PDEs are
-used exclusively by @ref inciter_main.
-
-`Configure<eq>.[Ch]` contain functionality related to registration and querying
-user-configuration information on specific equation types.
-
-All specific equation types "inherit" from a common "base" so that
-user-configured instances of multiple specific equations (as a potentially
-coupled system) can be integrated in a generic fashion. This is done using
-[concept-based runtime
-polymorphism](http://sean-parent.stlab.cc/papers-and-presentations/#value-semantics-and-concept-based-polymorphism).
-
-The specific equation types are registered into a
-[factory](http://www.boost.org/doc/libs/release/libs/functional/factory), which
-leads to generic code for configuring and using existing equation types and
-adding new ones.
-
-Currently, there is only family of spatial discretizations (or _schemes_)
-implemented: _continuous_ Galerkin (CG) finite element methods (FEM).
-Correspondingly, there is a factory into which PDEs are registered,
-inciter::CGFactory.
-
-CG discretization in the DiagCG scheme in space is combined with a time
-stepping scheme that is equivalent to the [Lax-Wendroff
-(LW)](https://en.wikipedia.org/wiki/Lax%E2%80%93Wendroff_method) scheme adopted
-to the unstructured-mesh finite element context and treats discontinuities with
-flux-corrected transport (FCT). ALECG uses 3rd order Runge-Kutta.
-
-@dir src/PDE/Transport
-@brief Partial differential equations for scalar transport
-
-@details This directory contains code for discretizing a system of scalar
-transport equations. The subdirectories `Physics` and `Problem` contain various
-ways to configure scalar transport with respect to the type of physics solved
-(e.g., advection only or advection _and_ diffusion) and with respect to the
-type of problem solved (e.g., a predefined problem with an analytical solution
-for verification or a user-defined problem).
-
-@dir src/PDE/Transport/Physics
-@brief Physics configurations for scalar transport
-
-@dir src/PDE/Transport/Problem
-@brief Problem configurations for scalar transport
-
-@dir src/PDE/CompFlow
-@brief Partial differential equations for compressible flow
-
-@details This directory contains code for discretizing a system of conservation
-equations that govern compressible flow. The subdirectories `Physics` and
-`Problem` contain various ways configure the compressible flow solver with respect to
-the type of physics solved (e.g., inviscid or viscous) and with respect to the
-type of problem solved (e.g., a predefined problem with an analytical solution
-for verification or a user-defined problem).
-
-@dir src/PDE/CompFlow/Physics
-@brief Physics configurations for compressible flow
-
-@dir src/PDE/CompFlow/Problem
-@brief Problem configurations for compressible flow
-
-@dir src/PDE/MultiMat
-@brief Partial differential equations for compressible multi-material flow
-
-@details This directory contains code for discretizing a system of conservation
-equations that govern compressible multi-material flow. The subdirectories
-`Physics` and `Problem` contain various ways to configure the compressible
-multi-material flow solver with respect to the type of physics solved (e.g.,
-inviscid or viscous) and with respect to the type of problem solved (e.g., a
-predefined problem with an analytical solution for verification or a
-user-defined problem).
-
 @dir src/Statistics
 @brief Estimating statistical moments and probablity distributions from ensembles
 
@@ -205,12 +120,6 @@ subdirectories mirrored.
 @dir tests/unit/Control
 @brief Unit tests for subdirectory _Control_
 
-@dir tests/unit/Control/Options
-@brief Unit tests for subdirectory _Control/Options_
-
-@dir tests/unit/Control/Options
-@brief Unit tests for subdirectory _Control/Options_
-
 @dir tests/unit/Inciter
 @brief Unit tests for subdirectory _Inciter_
 
@@ -228,6 +137,10 @@ subdirectories mirrored.
 
 @dir src/NoWarning
 @brief Include files turning on/off specific compiler warnings for third-party library includes
+
+@dir src/Physics
+@brief Functions implementing physcs: operators, boundary conditions, test
+problem-specific functionality, etc.
 
 @dir src/Mesh
 @brief Functionality related to unstructured meshes and derived data structures

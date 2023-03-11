@@ -18,8 +18,8 @@ target_include_directories(UnitTest PUBLIC
                            ${PROJECT_SOURCE_DIR}/../UnitTest
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PROJECT_SOURCE_DIR}/../Mesh
-                           ${PROJECT_SOURCE_DIR}/../LinearSolver
                            ${PROJECT_SOURCE_DIR}/../PDE
+                           ${Boost_INCLUDE_DIRS}
                            ${TUT_INCLUDE_DIRS}
                            ${HIGHWAYHASH_INCLUDE_DIRS}
                            ${BRIGAND_INCLUDE_DIRS}
@@ -30,20 +30,13 @@ target_include_directories(UnitTest PUBLIC
                            ${PROJECT_BINARY_DIR}/../Base
                            ${PROJECT_BINARY_DIR}/../Main
                            ${PROJECT_BINARY_DIR}/../IO
-                           ${PROJECT_BINARY_DIR}/../LinSys
-                           ${PROJECT_BINARY_DIR}/../LoadBalance
-                           ${PROJECT_BINARY_DIR}/../LinearSolver
                            ${PROJECT_BINARY_DIR}/../Inciter
                            ${PROJECT_BINARY_DIR}/../UnitTest)
 
-addCharmModule( "charmchild" "UnitTest" )
 addCharmModule( "charmtimer" "UnitTest" )
-addCharmModule( "testarray" "UnitTest" )
-addCharmModule( "cgreceiver" "UnitTest" )
 addCharmModule( "migrated_base" "UnitTest" )
 addCharmModule( "quietcerr" "UnitTest" )
 
-addCharmModule( "migrated_inciter" "UnitTest" )
 addCharmModule( "tutsuiteinciter" "UnitTest" )
 addCharmModule( "tuttestinciter" "UnitTest" )
 addCharmModule( "mpirunnerinciter" "UnitTest" )
@@ -56,19 +49,8 @@ add_dependencies("UnitTest" "unittestinciterCharmModule")
 
 # Add extra dependencies of UnitTest on those CharmModules that are required for
 # testing Inciter.
-add_dependencies("UnitTest" "diagcgCharmModule"
-                            "alecgCharmModule"
-                            "distfctCharmModule"
-                            "aleCharmModule"
-                            "conjugategradientsCharmModule"
-                            "discretizationCharmModule"
+add_dependencies("UnitTest" "discretizationCharmModule"
                             "transporterCharmModule")
-
-# Add extra dependency of TUTSuite on charm modules testing advanced array
-# element placement using maps. This is required since TUTSuite spawns chare
-# arrays testing advanced array element placement maps.
-add_dependencies( "tutsuiteinciterCharmModule"
-                  "linearmapCharmModule" "unsmeshmapCharmModule" )
 
 set_target_properties(UnitTest PROPERTIES LIBRARY_OUTPUT_NAME xyst_unittest)
 

@@ -248,7 +248,6 @@ struct pressure { static std::string name() { return "pressure"; } };
 struct energy { static std::string name() { return "energy"; } };
 struct energy_content { static std::string name() { return "energy_content"; } };
 struct temperature { static std::string name() { return "temperature"; } };
-struct outvar { static std::string name() { return "outvar"; } };
 struct box { static std::string name() { return "box"; } };
 struct xmin { static std::string name() { return "xmin"; } };
 struct xmax { static std::string name() { return "xmax"; } };

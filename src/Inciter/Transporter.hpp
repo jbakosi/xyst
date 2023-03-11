@@ -23,7 +23,6 @@
 #include "InciterPrint.hpp"
 #include "Partitioner.hpp"
 #include "Progress.hpp"
-#include "Scheme.hpp"
 #include "ContainerUtil.hpp"
 
 namespace inciter {
@@ -119,8 +118,7 @@ class Transporter : public CBase_Transporter {
                   std::size_t nderef, std::size_t sumrefmode );
 
     //! Compute surface integral across the whole problem and perform leak-test
-    void bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb,
-                 tk::real summeshid );
+    void bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb );
 
     //! Reduction target: all chares have refined their mesh
     void refined( std::size_t summeshid, std::size_t nelem, std::size_t npoin );
@@ -128,9 +126,6 @@ class Transporter : public CBase_Transporter {
     //! \brief Reduction target: all worker chares have resized their own data
     //!   after AMR or ALE
     void resized( std::size_t meshid );
-
-    //! Reduction target: all worker chares have generated their own esup
-    void startEsup( std::size_t meshid );
 
     //! Reduction target: all Sorter chares have queried their boundary edges
     void queried( std::size_t meshid );
@@ -162,7 +157,7 @@ class Transporter : public CBase_Transporter {
     void chadj() { m_progWork.inc< ADJ >( printer() ); }
 
     //! Reduction target indicating that the communication maps have been setup
-    void comfinal( std::size_t initial, std::size_t summeshid );
+    void comfinal( std::size_t summeshid );
 
     //! Reduction target summing total mesh volume
     void totalvol( tk::real v, tk::real initial, tk::real summeshid );
@@ -223,7 +218,8 @@ class Transporter : public CBase_Transporter {
       p | m_ndtrefit;
       p | m_noutrefit;
       p | m_noutderefit;
-      p | m_scheme;
+      p | m_discretization;
+      p | m_riecg;
       p | m_partitioner;
       p | m_refiner;
       p | m_meshwriter;
@@ -273,8 +269,10 @@ class Transporter : public CBase_Transporter {
     std::vector< std::size_t > m_noutrefit;
     //! Number of outderef mesh ref iters (one per mesh)
     std::vector< std::size_t > m_noutderefit;
-    //! Discretization scheme (one per mesh)
-    std::vector< Scheme > m_scheme;
+    //! Discretization proxies (one per mesh)
+    std::vector< CProxy_Discretization > m_discretization;
+    //! Discretization scheme proxies (one per mesh)
+    std::vector< CProxy_RieCG > m_riecg;
     //! Partitioner nodegroup proxies (one per mesh)
     std::vector< CProxy_Partitioner > m_partitioner;
     //! Mesh refiner array proxies (one per mesh)
@@ -312,26 +310,11 @@ class Transporter : public CBase_Transporter {
     //! Configure and write diagnostics file header
     void diagHeader();
 
-    //! Echo configuration to screen
-    void info( const InciterPrint& print );
-
     //! Print out time integration header to screen
     void inthead( const InciterPrint& print );
 
     //! Echo diagnostics on mesh statistics
     void stat();
-
-    //! Query variable names for all equation systems to be integrated
-    //! \param[in] eq Equation system whose variable names to query
-    //! \param[in,out] var Vector of strings to which we append the variable
-    //!   names for this equation. We append as many strings as many scalar
-    //!   variables are in the equation system given by eq.
-    template< class Eq >
-    void varnames( const Eq& eq, std::vector< std::string >& var ) {
-      auto o = eq.names();
-      auto offset = eq.offset();
-      for (std::size_t c=0; c<o.size(); ++c) var[offset+c] = o[c];
-    }
 
     //! Create pretty printer specialized to Inciter
     //! \return Pretty printer
@@ -392,9 +375,6 @@ class Transporter : public CBase_Transporter {
 
     //! Generate list of input mesh filenames configured by the user
     std::vector< std::string > input();
-
-    //! Decide if ALE will need a linear solver
-    bool need_linearsolver() const;
 };
 
 } // inciter::

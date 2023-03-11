@@ -16,7 +16,6 @@ module partitioner {
 
   include "Types.hpp";
   include "UnsMesh.hpp";
-  include "Scheme.hpp";
   include "Callback.hpp";
 
   extern module transporter;
@@ -36,7 +35,8 @@ module partitioner {
         const CProxy_Refiner& refiner,
         const CProxy_Sorter& sorter,
         const tk::CProxy_MeshWriter& meshwriter,
-        const std::vector< Scheme >& scheme,
+        const CProxy_Discretization& discretization,
+        const CProxy_RieCG& riecg,
         const std::map< int, std::vector< std::size_t > >& belem,
         const std::map< int, std::vector< std::size_t > >& faces,
         const std::map< int, std::vector< std::size_t > >& bnode );

@@ -457,6 +457,16 @@ class Data {
     void resize( std::size_t count, tk::real value = 0.0 )
     { resize( count, value, int2type< Layout >() ); }
 
+    //! Resize data given number of unknowns and number of properties
+    //! \param[in] nu Number of unknowns to allocate memory for
+    //! \param[in] np Total number of properties, i.e., scalar variables or
+    //!   components, per unknown
+    void resize( std::size_t nu, std::size_t np ) {
+      m_vec.resize( nu * np );
+      m_nunk = nu;
+      m_nprop = np;
+    }
+
     //! Remove a number of unknowns
     //! \param[in] unknown Set of indices of unknowns to remove
     void rm( const std::set< ncomp_t >& unknown ) {

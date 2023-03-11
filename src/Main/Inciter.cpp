@@ -23,8 +23,6 @@
 #include "XystConfig.hpp"
 #include "Timer.hpp"
 #include "Exception.hpp"
-#include "CGPDE.hpp"
-#include "PDEStack.hpp"
 #include "ProcessException.hpp"
 #include "InciterPrint.hpp"
 #include "InciterDriver.hpp"
@@ -88,37 +86,10 @@ ctr::InputDeck g_inputdeck_defaults;
 //!   system distributes it to all PEs during initialization. Once distributed,
 //!   the object does not change.
 ctr::InputDeck g_inputdeck;
-//! Partial differential equations using continuous Galerkin selected by user
-//! \details This vector is in global scope, because it holds polymorphic
-//!   objects, and thus must be distributed to all PEs during initialization.
-//!   Once distributed by the runtime system, the objects do not change.
-std::vector< CGPDE > g_cgpde;
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
 #endif
-
-//! \brief Pack/Unpack selected partial differential equations using continuous
-//!   Galerkin discretization.
-//! \details This Pack/Unpack method (re-)creates the PDE factory since it needs
-//!   to (re-)bind function pointers on different processing elements. Therefore
-//!   we circumvent Charm's usual pack/unpack for this type, and thus sizing
-//!   does not make sense: sizing is a no-op. We could initialize the factory in
-//!   InciterDriver's constructor and let this function re-create the stack only
-//!   when unpacking, but that leads to repeating the same code twice: once in
-//!   InciterDriver's constructor, once here. Another option is to use this
-//!   pack/unpack routine to both initially create (when packing) and to
-//!   re-create (when unpacking) the factory, which eliminates the need for
-//!   pre-creating the object in InciterDriver's constructor and therefore
-//!   eliminates the repeated code. This explains the guard for sizing: the code
-//!   below is called for packing only (in serial) and packing and unpacking (in
-//!   parallel).
-inline
-void operator|( PUP::er& p, std::vector< CGPDE >& eqs ) {
-  try {
-    if (!p.isSizing()) eqs = PDEStack().selectedCG();
-  } catch (...) { tk::processExceptionCharm(); }
-}
 
 } // inciter::
 

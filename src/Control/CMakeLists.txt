@@ -18,6 +18,7 @@ target_include_directories(InciterControl PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../PDE
                            ${PROJECT_SOURCE_DIR}/../Inciter
+                           ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${BRIGAND_INCLUDE_DIRS}
@@ -46,6 +47,7 @@ target_include_directories(UnitTestControl PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_BINARY_DIR}/../Main
+                           ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${BRIGAND_INCLUDE_DIRS})
@@ -71,6 +73,7 @@ target_include_directories(MeshConvControl PUBLIC
                            ${PROJECT_SOURCE_DIR}/../IO
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_BINARY_DIR}/../Main
+                           ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${BRIGAND_INCLUDE_DIRS})

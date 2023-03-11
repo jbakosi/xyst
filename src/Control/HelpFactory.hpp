@@ -18,7 +18,6 @@
 #include <brigand/algorithms/for_each.hpp>
 
 #include "PUPUtil.hpp"
-#include "Factory.hpp"
 #include "Has.hpp"
 
 namespace tk {

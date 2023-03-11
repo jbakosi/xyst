@@ -13,17 +13,15 @@
 */
 // *****************************************************************************
 
-#include "CGPDE.hpp"
 #include "NodeDiagnostics.hpp"
 #include "DiagReducer.hpp"
 #include "Discretization.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
-#include "Refiner.hpp"
+#include "Problems.hpp"
 
 namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
-extern std::vector< CGPDE > g_cgpde;
 
 static CkReduction::reducerType DiagMerger;
 
@@ -47,24 +45,14 @@ NodeDiagnostics::registerReducers()
 }
 
 bool
-NodeDiagnostics::compute(
-  Discretization& d,
-  const tk::Fields& u,
-  const tk::Fields& un,
-  const std::unordered_map< int,
-          std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& bnorm,
-  const std::unordered_set< std::size_t >& symbcnodes,
-  const std::unordered_set< std::size_t >& farfieldbcnodes ) const
+NodeDiagnostics::compute( Discretization& d,
+                          const tk::Fields& u,
+                          const tk::Fields& un ) const
 // *****************************************************************************
 //  Compute diagnostics, e.g., residuals, norms of errors, etc.
 //! \param[in] d Discretization proxy to read from
 //! \param[in] u Current solution vector
 //! \param[in] un Previous solution vector
-//! \param[in] bnorm Face normals in boundary points, key local node id,
-//!   first 3 reals of value: unit normal, outer key: side set id
-//! \param[in] symbcnodes Unique set of node ids at which to set symmetry BCs
-//! \param[in] farfieldbcnodes Unique set of node ids at which to set farfield
-//!   BCs
 //! \return True if diagnostics have been computed
 //! \details Diagnostics are defined as some norm, e.g., L2 norm, of a quantity,
 //!   computed in mesh nodes, A, as ||A||_2 = sqrt[ sum_i(A_i)^2 V_i ],
@@ -83,58 +71,63 @@ NodeDiagnostics::compute(
 
   if ( !((d.It()+1) % diagfreq) ) {     // if remainder, don't dump
 
+    auto ncomp = u.nprop();
+
     // Diagnostics vector (of vectors) during aggregation. See
     // Inciter/Diagnostics.h.
     std::vector< std::vector< tk::real > >
-      diag( NUMDIAG, std::vector< tk::real >( u.nprop(), 0.0 ) );
+      diag( NUMDIAG, std::vector< tk::real >( ncomp, 0.0 ) );
 
-    const auto& coord = d.Coord();
-    const auto& x = coord[0];
-    const auto& y = coord[1];
-    const auto& z = coord[2];
     const auto& v = d.V();  // nodal volumes without contributions from others
 
-    // Evaluate analytic solution (if exist, if not, IC)
+    // query function to evaluate analytic solution (if defined)
+    auto sol = problems::SOL();
+
+    // Evaluate analytic solution (if defined)
     auto an = u;
-    for (std::size_t i=0; i<an.nunk(); ++i) {
-      for (const auto& eq : g_cgpde) {  // order not guaranteed!
-        auto s = eq.solution( x[i], y[i], z[i], d.T()+d.Dt() );
-        auto offset = eq.offset();
-        for (std::size_t c=0; c<s.size(); ++c) an(i,c,offset) = s[c];
+    if (sol) {
+      const auto& coord = d.Coord();
+      const auto& x = coord[0];
+      const auto& y = coord[1];
+      const auto& z = coord[2];
+      for (std::size_t i=0; i<u.nunk(); ++i) {
+        auto s = sol( x[i], y[i], z[i], d.T()+d.Dt() );
+        s[1] /= s[0];
+        s[2] /= s[0];
+        s[3] /= s[0];
+        s[4] = s[4] / s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
+        for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
       }
     }
 
-    // Apply symmetry BCs on analytic solution (if exist, if not, IC)
-    for (const auto& eq : g_cgpde)
-      eq.symbc( an, coord, bnorm, symbcnodes );
-    // Apply farfield BCs on analytic solution (if exist, if not, IC)
-    for (const auto& eq : g_cgpde)
-      eq.farfieldbc( an, coord, bnorm, farfieldbcnodes );
-
     // Put in norms sweeping our mesh chunk
     for (std::size_t i=0; i<u.nunk(); ++i) {
-      for (const auto& eq : g_cgpde) {  // order not guaranteed!
-        auto ncomp = eq.ncomp();
-        auto offset = eq.offset();
-        // Compute sum for L2 norm of the numerical solution
-        for (std::size_t c=0; c<ncomp; ++c)
-          diag[L2SOL][offset+c] += u(i,c,offset) * u(i,c,offset) * v[i];
-        // Compute sum for L2 norm of the numerical-analytic solution
-        for (std::size_t c=0; c<ncomp; ++c)
-          diag[L2ERR][offset+c] += (u(i,c,offset)-an(i,c,offset)) *
-                            (u(i,c,offset)-an(i,c,offset)) * v[i];
-        // Compute sum for L2 norm of the residual
-        for (std::size_t c=0; c<ncomp; ++c)
-          diag[L2RES][offset+c] += (u(i,c,offset)-un(i,c,offset)) *
-                            (u(i,c,offset)-un(i,c,offset)) * v[i];
-        // Compute max for Linf norm of the numerical-analytic solution
-        for (std::size_t c=0; c<ncomp; ++c) {
-          auto err = std::abs( u(i,c,offset) - an(i,c,offset) );
-          if (err > diag[LINFERR][offset+c]) diag[LINFERR][offset+c] = err;
+      // Compute sum for L2 norm of the numerical solution
+      for (std::size_t c=0; c<ncomp; ++c)
+        diag[L2SOL][c] += u(i,c,0) * u(i,c,0) * v[i];
+      // Compute sum for L2 norm of the residual
+      for (std::size_t c=0; c<ncomp; ++c)
+        diag[L2RES][c] += (u(i,c,0)-un(i,c,0)) * (u(i,c,0)-un(i,c,0)) * v[i];
+      // Compute sum for the total energy over the entire domain (only the first
+      // entry is used)
+      diag[TOTALSOL][0] += u(i,ncomp-1,0) * v[i];
+      // Compute sum for L2 norm of the numerical-analytic solution
+      if (sol) {
+        auto nu = u[i];
+        nu[1] /= nu[0];
+        nu[2] /= nu[0];
+        nu[3] /= nu[0];
+        nu[4] = nu[4] / nu[0] - 0.5*(nu[1]*nu[1] + nu[2]*nu[2] + nu[3]*nu[3]);
+        for (std::size_t c=0; c<5; ++c) {
+          auto du = nu[c] - an(i,c,0);
+          diag[L2ERR][c] += du * du * v[i];
+          diag[L1ERR][c] += std::abs( du ) * v[i];
         }
-        // Compute sum of the total energy over the entire domain (only the first
-        // entry is used)
-        if (ncomp == 5) diag[TOTALSOL][0] += u(i,u.nprop()-1,0) * v[i];
+        for (std::size_t c=5; c<ncomp; ++c) {
+          auto du = u(i,c,0) - an(i,c,0);
+          diag[L2ERR][c] += du * du * v[i];
+          diag[L1ERR][c] += std::abs( du ) * v[i];
+        }
       }
     }
 

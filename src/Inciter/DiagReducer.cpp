@@ -88,15 +88,14 @@ mergeDiag( int nmsg, CkReductionMsg **msgs )
     // Apply diagnostics aggregation policy
     // Sum for L2 normal of the numerical solution for all scalar components
     for (std::size_t i=0; i<v[L2SOL].size(); ++i) v[L2SOL][i] += w[L2SOL][i];
-    // Sum for the L2 norm of the numerical - analytical solution for all comps
-    for (std::size_t i=0; i<v[L2ERR].size(); ++i) v[L2ERR][i] += w[L2ERR][i];
     // Sum for the L2 norm of the residual of all components
     for (std::size_t i=0; i<v[L2RES].size(); ++i) v[L2RES][i] += w[L2RES][i];
-    // Max for the Linf norm of the numerical - analytical solution for all comp
-    for (std::size_t i=0; i<v[LINFERR].size(); ++i)
-      if (w[LINFERR][i] > v[LINFERR][i]) v[LINFERR][i] = w[LINFERR][i];
     // Sum of the total energy over the entire domain
     v[TOTALSOL][0] += w[TOTALSOL][0];
+    // Sum for the L2 norm of the numerical - analytical solution for all comps
+    for (std::size_t i=0; i<v[L2ERR].size(); ++i) v[L2ERR][i] += w[L2ERR][i];
+    // Sum for the L1 norm of the numerical - analytical solution for all comps
+    for (std::size_t i=0; i<v[L1ERR].size(); ++i) v[L1ERR][i] += w[L1ERR][i];
     // Copy ITER, TIME, DT
     for (std::size_t j=v.size()-3; j<v.size(); ++j)
       for (std::size_t i=0; i<v[j].size(); ++i)

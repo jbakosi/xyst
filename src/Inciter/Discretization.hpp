@@ -66,10 +66,6 @@ class Discretization : public CBase_Discretization {
     explicit
       Discretization(
         std::size_t meshid,
-        const std::vector< CProxy_Discretization >& disc,
-        const CProxy_DistFCT& fctproxy,
-        const CProxy_ALE& aleproxy,
-        const tk::CProxy_ConjugateGradients& conjugategradientsproxy,
         const CProxy_Transporter& transporter,
         const tk::CProxy_MeshWriter& meshwriter,
         const tk::UnsMesh::CoordMap& coordmap,
@@ -90,41 +86,6 @@ class Discretization : public CBase_Discretization {
 
     //! Configure Charm++ reduction types
     static void registerReducers();
-
-    //! Start computing new mesh veloctity for ALE mesh motion
-    void meshvelStart(
-      const tk::UnsMesh::Coords vel,
-      const std::vector< tk::real >& soundspeed,
-      const std::unordered_map< int,
-        std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& bnorm,
-      tk::real adt,
-      CkCallback done ) const;
-
-    //! Query the mesh velocity
-    const tk::Fields& meshvel() const;
-
-   //! \brief Query ALE mesh velocity boundary condition node lists and node
-   //!   lists at which ALE moves boundaries
-   void meshvelBnd(
-     const std::map< int, std::vector< std::size_t > >& bface,
-     const std::map< int, std::vector< std::size_t > >& bnode,
-     const std::vector< std::size_t >& triinpoel ) const;
-
-    //! Assess and record mesh velocity linear solver convergence
-    void meshvelConv();
-
-    //! \brief Our mesh has been registered with the mesh-to-mesh transfer
-    //!   library (if coupled to other solver)
-    void transferInit();
-
-    //! Receive a list of callbacks from our own child solver
-    void transferCallback( std::vector< CkCallback >& cb );
-
-    //! Receive mesh transfer callbacks from source mesh/solver
-    void comcb( std::size_t srcmeshid, CkCallback c );
-
-    //! Start solution transfer (if coupled)
-    void transfer( const tk::Fields& u );
 
     //! Resize mesh data structures after mesh refinement
     void resizePostAMR(
@@ -163,8 +124,6 @@ class Discretization : public CBase_Discretization {
     const tk::UnsMesh::Coords& Coord() const { return m_coord; }
     //! Coordinates accessor as reference
     tk::UnsMesh::Coords& Coord() { return m_coord; }
-    //! Coordinates at time n accessor as const-ref
-    const tk::UnsMesh::Coords& Coordn() const { return m_coordn; }
 
     //! Global ids accessors as const-ref
     const std::vector< std::size_t >& Gid() const { return m_gid; }
@@ -187,10 +146,6 @@ class Discretization : public CBase_Discretization {
 
     //! Nodal mesh volumes at current time step accessors as const-ref
     const std::vector< tk::real >& Vol() const { return m_vol; }
-    //! Nodal mesh volumes at previous time step accessors as const-ref
-    const std::vector< tk::real >& Voln() const { return m_voln; }
-    //! Nodal mesh volumes at previous time step accessors as ref
-    std::vector< tk::real >& Voln() { return m_voln; }
     //! Element mesh volumes at t=t0 accessors as const-ref
     const std::vector< tk::real >& Vol0() const { return m_vol0; }
 
@@ -200,9 +155,6 @@ class Discretization : public CBase_Discretization {
     //! Query 'initial' flag
     //! \return True during setup, false durign time stepping
     bool Initial() const { return m_initial; }
-
-    //! Update coordinates at time n
-    void UpdateCoordn() { m_coordn = m_coord; }
 
     //! History points data accessor as const-ref
     const std::vector< HistData >& Hist() const { return m_histdata; }
@@ -251,22 +203,6 @@ class Discretization : public CBase_Discretization {
               "Refiner ckLocal() null" );
       return m_refiner[ thisIndex ].ckLocal();
     }
-
-    //! Access bound DistFCT class pointer
-    DistFCT* FCT() const {
-      Assert(m_fct[ thisIndex ].ckLocal() != nullptr, "DistFCT ckLocal() null");
-      return m_fct[ thisIndex ].ckLocal();
-    }
-
-    //! Access Discretization proxy for a mesh
-    CProxy_Discretization coupled( std::size_t meshid ) const {
-      Assert( meshid < m_disc.size(),
-              "No proxy for mesh ID " + std::to_string(meshid) );
-      return m_disc[ meshid ];
-    }
-
-    //! Const-ref accessor to solver/mesh transfer configuration
-    const std::vector< Transfer >& Transfers() const { return m_transfer; }
 
     //! Boundary node ids accessor as const-ref
     const std::unordered_map< std::size_t, std::size_t >& Bid() const
@@ -406,10 +342,6 @@ class Discretization : public CBase_Discretization {
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
     void pup( PUP::er &p ) override {
       p | m_meshid;
-      p | m_transfer_complete;
-      p | m_transfer;
-      p | m_mytransfer;
-      p | m_disc;
       p | m_nchare;
       p | m_it;
       p | m_itr;
@@ -424,8 +356,6 @@ class Discretization : public CBase_Discretization {
       p | m_dt;
       p | m_dtn;
       p | m_nvol;
-      p | m_fct;
-      p | m_ale;
       p | m_transporter;
       p | m_meshwriter;
       p | m_refiner;
@@ -436,14 +366,12 @@ class Discretization : public CBase_Discretization {
         m_lid = std::get< 2 >( m_el );
       }
       p | m_coord;
-      p | m_coordn;
       p | m_nodeCommMap;
       p | m_edgeCommMap;
       p | m_meshvol;
       p | m_v;
       p | m_vol;
       p | m_volc;
-      p | m_voln;
       p | m_vol0;
       p | m_boxvol;
       p | m_bid;
@@ -452,10 +380,6 @@ class Discretization : public CBase_Discretization {
       p( reinterpret_cast<char*>(&m_prevstatus), sizeof(Clock::time_point) );
       p | m_nrestart;
       p | m_histdata;
-      p | m_nsrc;
-      p | m_ndst;
-      p | m_meshvel;
-      p | m_meshvel_converged;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -469,18 +393,6 @@ class Discretization : public CBase_Discretization {
 
     //! Mesh ID
     std::size_t m_meshid;
-    //! Function to continue with if not coupled to any other solver
-    CkCallback m_transfer_complete;
-    //! Solution/mesh transfer (coupling) information
-    //! \details This has the same size with the same src/dst information on
-    //!   all solvers.
-    std::vector< Transfer > m_transfer;
-    //! My solution transfer/mesh (coupling) information
-    //! \details This is a subset of m_transfer, holding only those entries
-    //!   that this solver is involved in (either a source or a destination).
-    std::vector< Transfer > m_mytransfer;
-    //! Discretization proxies (one per mesh)
-    std::vector< CProxy_Discretization > m_disc;
     //! Total number of Discretization chares
     int m_nchare;
     //! Iteration count
@@ -515,10 +427,6 @@ class Discretization : public CBase_Discretization {
     //! \brief Number of chares from which we received nodal volume
     //!   contributions on chare boundaries
     std::size_t m_nvol;
-    //! Distributed FCT proxy
-    CProxy_DistFCT m_fct;
-    //! Distributed ALE proxy
-    CProxy_ALE m_ale;
     //! Transporter proxy
     CProxy_Transporter m_transporter;
     //! Mesh writer proxy
@@ -540,8 +448,6 @@ class Discretization : public CBase_Discretization {
     std::unordered_map< std::size_t, std::size_t >& m_lid = std::get<2>( m_el );
     //! Mesh point coordinates
     tk::UnsMesh::Coords m_coord;
-    //! Mesh coordinates at the time n for ALE
-    tk::UnsMesh::Coords m_coordn;
     //! \brief Global mesh node IDs bordering the mesh chunk held by fellow
     //!   Discretization chares associated to their chare IDs
     tk::NodeCommMap m_nodeCommMap;
@@ -566,11 +472,6 @@ class Discretization : public CBase_Discretization {
     //!   cell volumes / 4) with contributions from other chares on
     //!   chare-boundaries.
     std::unordered_map< std::size_t, tk::real > m_volc;
-    //! Volume of nodes at previous time step
-    //! \details This is the volume of the mesh associated to nodes of owned
-    //!   elements (sum of surrounding cell volumes / 4) with contributions from
-    //!   other chares on chare-boundaries at the previous time step stage
-    std::vector< tk::real > m_voln;
     //! Mesh element volumes at t=t0
     std::vector< tk::real > m_vol0;
     //! Volume of user-defined box IC
@@ -589,30 +490,12 @@ class Discretization : public CBase_Discretization {
     int m_nrestart;
     //! Data at history point locations
     std::vector< HistData > m_histdata;
-    //! Number of transfers requested as a source
-    std::size_t m_nsrc;
-    //! Number of transfers requested as a destination
-    std::size_t m_ndst;
-    //! Mesh velocity if ALE is not enabled
-    tk::Fields m_meshvel;
-    //! \brief True if all stages of the time step converged the mesh velocity
-    //!   linear solve in ALE
-    bool m_meshvel_converged;
+
     //! Generate chare-boundary node id map
     std::unordered_map< std::size_t, std::size_t > genBid();
 
-    //! Generate {A,x,b} for Laplacian mesh velocity smoother
-    std::tuple< tk::CSR, std::vector< tk::real >, std::vector< tk::real > >
-    Laplacian( std::size_t ncomp ) const;
-
     //! Set mesh coordinates based on coordinates map
     tk::UnsMesh::Coords setCoord( const tk::UnsMesh::CoordMap& coordmap );
-
-    //! Determine if communication of mesh transfer callbacks is complete
-    bool transferCallbacksComplete() const;
-
-    //! Finish setting up communication maps and solution transfer callbacks
-    void comfinal();
 };
 
 } // inciter::

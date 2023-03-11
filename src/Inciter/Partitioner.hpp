@@ -64,7 +64,8 @@ class Partitioner : public CBase_Partitioner {
                  const CProxy_Refiner& refiner,
                  const CProxy_Sorter& sorter,
                  const tk::CProxy_MeshWriter& meshwriter,
-                 const std::vector< Scheme >& scheme,
+                 const CProxy_Discretization& discretization,
+                 const CProxy_RieCG& riecg,
                  const std::map< int, std::vector< std::size_t > >& bface,
                  const std::map< int, std::vector< std::size_t > >& faces,
                  const std::map< int, std::vector< std::size_t > >& bnode );
@@ -113,7 +114,8 @@ class Partitioner : public CBase_Partitioner {
       p | m_refiner;
       p | m_sorter;
       p | m_meshwriter;
-      p | m_scheme;
+      p | m_discretization;
+      p | m_riecg;
       p | m_ginpoel;
       p | m_coord;
       p | m_inpoel;
@@ -156,8 +158,10 @@ class Partitioner : public CBase_Partitioner {
     CProxy_Sorter m_sorter;
     //! Mesh writer proxy
     tk::CProxy_MeshWriter m_meshwriter;
-    //! Discretization schemes (one per mesh)
-    std::vector< Scheme > m_scheme;
+    //! Discretization base proxy
+    CProxy_Discretization m_discretization;
+    //! Discretization scheme proxy
+    CProxy_RieCG m_riecg;
     //! Element connectivity of this compute node's mesh chunk (global ids)
     std::vector< std::size_t > m_ginpoel;
     //! Coordinates of mesh nodes of this compute node's mesh chunk

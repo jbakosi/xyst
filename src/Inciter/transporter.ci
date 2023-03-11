@@ -42,17 +42,14 @@ module transporter {
       entry [reductiontarget] void bndint( tk::real sx,
                                            tk::real sy,
                                            tk::real sz,
-                                           tk::real cb,
-                                           tk::real summeshid );
+                                           tk::real cb );
       entry [reductiontarget] void refined( std::size_t meshid,
                                             std::size_t nelem,
                                             std::size_t npoin );
       entry [reductiontarget] void resized( std::size_t meshid );
-      entry [reductiontarget] void startEsup( std::size_t meshid );
       entry [reductiontarget] void queried( std::size_t meshid );
       entry [reductiontarget] void responded( std::size_t meshid );
-      entry [reductiontarget] void comfinal( std::size_t initial,
-                                             std::size_t summeshid );
+      entry [reductiontarget] void comfinal( std::size_t summeshid );
       entry [reductiontarget] void totalvol( tk::real v,
                                              tk::real initial,
                                              tk::real summeshid );

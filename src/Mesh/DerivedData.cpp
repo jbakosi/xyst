@@ -32,21 +32,6 @@
 
 namespace tk {
 
-int
-orient( const UnsMesh::Edge& t, const UnsMesh::Edge& e )
-// *****************************************************************************
-// Determine edge orientation
-//! \return -1.0 if edge t is oriented the same as edge e, +1.0 opposite
-// *****************************************************************************
-{
-  if (t[0] == e[0] && t[1] == e[1])
-    return -1;
-  else if (t[0] == e[1] && t[1] == e[0])
-    return 1;
-  else
-    return 0;
-}
-
 std::size_t
 npoin_in_graph( const std::vector< std::size_t >& inpoel )
 // *****************************************************************************
@@ -1292,106 +1277,7 @@ genBelemTet( std::size_t nbfac,
   return belem;
 }
         
-Fields
-genGeoFaceTri( std::size_t nipfac,
-               const std::vector< std::size_t >& inpofa,
-               const UnsMesh::Coords& coord )
-// *****************************************************************************
-//  Generate derived data, which stores the geometry details both internal and
-//   boundary triangular faces in the mesh.
-//! \param[in] nipfac Number of internal and physical-boundary faces.
-//! \param[in] inpofa Face-node connectivity.
-//! \param[in] coord Co-ordinates of nodes in this mesh-chunk.
-//! \return Face geometry information. This includes face area, unit normal
-//!   pointing outward of the element to the left of the face, and face
-//!   centroid coordinates. Use the following examples to access this
-//!   information for face-f.
-//! \details
-//!   face area: geoFace(f,0,0),
-//!   unit-normal x-component: geoFace(f,1,0),
-//!               y-component: geoFace(f,2,0),
-//!               z-component: geoFace(f,3,0),
-//!   centroid x-coordinate: geoFace(f,4,0),
-//!            y-coordinate: geoFace(f,5,0),
-//!            z-coordinate: geoFace(f,6,0).
-// *****************************************************************************
-{
-  Fields geoFace( nipfac, 7 );
-
-  // set triangle geometry
-  std::size_t nnpf(3);
-
-  Assert( inpofa.size()%nnpf == 0,
-          "Size of inpofa must be divisible by nnpf" );
-
-  for(std::size_t f=0; f<nipfac; ++f)
-  {
-    std::size_t ip1, ip2, ip3;
-    real xp1, yp1, zp1,
-             xp2, yp2, zp2,
-             xp3, yp3, zp3;
-
-    // get area
-    ip1 = inpofa[nnpf*f];
-    ip2 = inpofa[nnpf*f + 1];
-    ip3 = inpofa[nnpf*f + 2];
-
-    xp1 = coord[0][ip1];
-    yp1 = coord[1][ip1];
-    zp1 = coord[2][ip1];
-
-    xp2 = coord[0][ip2];
-    yp2 = coord[1][ip2];
-    zp2 = coord[2][ip2];
-
-    xp3 = coord[0][ip3];
-    yp3 = coord[1][ip3];
-    zp3 = coord[2][ip3];
-
-    auto geoif = geoFaceTri( {{xp1, xp2, xp3}},
-                             {{yp1, yp2, yp3}},
-                             {{zp1, zp2, zp3}} );
-
-    for (std::size_t i=0; i<7; ++i)
-      geoFace(f,i,0) = geoif(0,i,0);
-  }
-
-  return geoFace;
-}
-
-std::array< real, 3 >
-normal( const std::array< real, 3 >& x,
-        const std::array< real, 3 >& y,
-        const std::array< real, 3 >& z )
-// *****************************************************************************
-//! Compute the unit normal vector of a triangle
-//! \param[in] x x-coordinates of the three vertices of the triangle
-//! \param[in] y y-coordinates of the three vertices of the triangle
-//! \param[in] z z-coordinates of the three vertices of the triangle
-//! \return Unit normal
-// *****************************************************************************
-{
-  real nx, ny, nz;
-  normal( x[0],x[1],x[2], y[0],y[1],y[2], z[0],z[1],z[2], nx, ny, nz );
-  return { std::move(nx), std::move(ny), std::move(nz) };
-}
-
-real
-area( const std::array< real, 3 >& x,
-      const std::array< real, 3 >& y,
-      const std::array< real, 3 >& z )
-// *****************************************************************************
-//! Compute the are of a triangle
-//! \param[in] x x-coordinates of the three vertices of the triangle
-//! \param[in] y y-coordinates of the three vertices of the triangle
-//! \param[in] z z-coordinates of the three vertices of the triangle
-//! \return Area
-// *****************************************************************************
-{
-  return area( x[0],x[1],x[2], y[0],y[1],y[2], z[0],z[1],z[2] );
-}
-
-Fields
+std::array< real, 7 >
 geoFaceTri( const std::array< real, 3 >& x,
             const std::array< real, 3 >& y,
             const std::array< real, 3 >& z )
@@ -1404,109 +1290,24 @@ geoFaceTri( const std::array< real, 3 >& x,
 //!   pointing outward of the element to the left of the face, and face
 //!   centroid coordinates.
 //! \details
-//!   face area: geoFace(f,0,0),
-//!   unit-normal x-component: geoFace(f,1,0),
-//!               y-component: geoFace(f,2,0),
-//!               z-component: geoFace(f,3,0),
-//!   centroid x-coordinate: geoFace(f,4,0),
-//!            y-coordinate: geoFace(f,5,0),
-//!            z-coordinate: geoFace(f,6,0).
+//!   0: face area
+//!   1-3: unit-normal x,y,z coordinates
+//!   4-6: centroid x,y,z coordinates
 // *****************************************************************************
 {
-  Fields geoiFace( 1, 7 );
-
-  // compute area
-  geoiFace(0,0,0) = area( x, y, z );
-
-  // compute unit normal to face
   auto n = normal( x, y, z );
-  geoiFace(0,1,0) = n[0];
-  geoiFace(0,2,0) = n[1];
-  geoiFace(0,3,0) = n[2];
 
-  // compute centroid
-  geoiFace(0,4,0) = (x[0]+x[1]+x[2])/3.0;
-  geoiFace(0,5,0) = (y[0]+y[1]+y[2])/3.0;
-  geoiFace(0,6,0) = (z[0]+z[1]+z[2])/3.0;
-
-  return geoiFace;
+  return { area(x,y,z),
+           n[0], n[1], n[2],
+           (x[0]+x[1]+x[2])/3.0,
+           (y[0]+y[1]+y[2])/3.0,
+           (z[0]+z[1]+z[2])/3.0 };
 }
         
-Fields
-genGeoElemTet( const std::vector< std::size_t >& inpoel,
-               const UnsMesh::Coords& coord )
-// *****************************************************************************
-//  Generate derived data, which stores the geometry details of tetrahedral
-//   elements.
-//! \param[in] inpoel Element-node connectivity.
-//! \param[in] coord Co-ordinates of nodes in this mesh-chunk.
-//! \return Element geometry information. This includes element volume,
-//!   element centroid coordinates, and minimum edge length. Use the following
-//!   examples to access this information for element-e.
-//!   volume: geoElem(e,0,0),
-//!   centroid x-coordinate: geoElem(e,1,0),
-//!            y-coordinate: geoElem(e,2,0),
-//!            z-coordinate: geoElem(e,3,0).
-//!   minimum edge-length: geoElem(e,4,0).
-// *****************************************************************************
-{
-  // set tetrahedron geometry
-  std::size_t nnpe(4);
-
-  Assert( inpoel.size()%nnpe == 0,
-          "Size of inpoel must be divisible by nnpe" );
-
-  auto nelem = inpoel.size()/nnpe;
-
-  Fields geoElem( nelem, 5 );
-
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  for(std::size_t e=0; e<nelem; ++e)
-  {
-    // get volume
-    const auto A = inpoel[nnpe*e+0];
-    const auto B = inpoel[nnpe*e+1];
-    const auto C = inpoel[nnpe*e+2];
-    const auto D = inpoel[nnpe*e+3];
-    std::array< real, 3 > ba{{ x[B]-x[A], y[B]-y[A], z[B]-z[A] }},
-                              ca{{ x[C]-x[A], y[C]-y[A], z[C]-z[A] }},
-                              da{{ x[D]-x[A], y[D]-y[A], z[D]-z[A] }};
-
-    const auto vole = triple( ba, ca, da ) / 6.0;
-
-    Assert( vole > 0, "Element Jacobian non-positive" );
-
-    geoElem(e,0,0) = vole;
-
-    // get centroid
-    geoElem(e,1,0) = (x[A]+x[B]+x[C]+x[D])/4.0;
-    geoElem(e,2,0) = (y[A]+y[B]+y[C]+y[D])/4.0;
-    geoElem(e,3,0) = (z[A]+z[B]+z[C]+z[D])/4.0;
-
-    // calculate minimum edge-length
-    tk::real edgelen = std::numeric_limits< tk::real >::max();
-    for (std::size_t i=0; i<nnpe-1; ++i)
-    {
-      for (std::size_t j=i+1; j<nnpe; ++j)
-      {
-        auto ni(inpoel[nnpe*e+i]), nj(inpoel[nnpe*e+j]);
-        edgelen = std::min( edgelen, tk::length( x[ni]-x[nj], y[ni]-y[nj],
-          z[ni]-z[nj] ) );
-      }
-    }
-    geoElem(e,4,0) = edgelen;
-  }
-
-  return geoElem;
-}
-
 bool
 leakyPartition( const std::vector< int >& esueltet,
                 const std::vector< std::size_t >& inpoel,
-                const UnsMesh::Coords& coord )
+                const std::array< std::vector< real >, 3 >& coord )
 // *****************************************************************************
 // Perform leak-test on mesh (partition)
 //! \param[in] esueltet Elements surrounding elements for tetrahedra, see
@@ -1541,9 +1342,9 @@ leakyPartition( const std::vector< int >& esueltet,
                                    {{y[A], y[B], y[C]}},
                                    {{z[A], z[B], z[C]}} );
         // Sum up face area * face unit-normal
-        s[0] += geoface(0,0,0) * geoface(0,1,0);
-        s[1] += geoface(0,0,0) * geoface(0,2,0);
-        s[2] += geoface(0,0,0) * geoface(0,3,0);
+        s[0] += geoface[0] * geoface[1];
+        s[1] += geoface[0] * geoface[2];
+        s[2] += geoface[0] * geoface[3];
       }
   }
 
@@ -1553,7 +1354,7 @@ leakyPartition( const std::vector< int >& esueltet,
 
 bool
 conforming( const std::vector< std::size_t >& inpoel,
-            const UnsMesh::Coords& coord,
+            const std::array< std::vector< real >, 3 >& coord,
             bool cerr,
             const std::vector< std::size_t >& rid )
 // *****************************************************************************
@@ -1596,7 +1397,7 @@ conforming( const std::vector< std::size_t >& inpoel,
   using Edge = UnsMesh::Edge;
   using Tet = UnsMesh::Tet;
 
-  // Compare operator to be used as less-than for std::array< tk::real, 3 >,
+  // Compare operator to be used as less-than for std::array< real, 3 >,
   // implemented as a lexicographic ordering.
   struct CoordLess {
     const real eps = std::numeric_limits< real >::epsilon();
@@ -1779,191 +1580,6 @@ intet( const std::array< std::vector< real >, 3 >& coord,
   } else {
     return false;
   }
-}
-
-tk::UnsMesh::Coords
-curl( const std::array< std::vector< tk::real >, 3 >& coord,
-      const std::vector< std::size_t >& inpoel,
-      const tk::UnsMesh::Coords& v )
-// *****************************************************************************
-//  Compute curl of a vector field at nodes of unstructured tetrahedra mesh
-//! \param[in] coord Mesh node coordinates
-//! \param[in] inpoel Mesh element connectivity
-//! \param[in] v Vector field whose curl to compute
-//! \return Weak (partial) result of curl of v (partial beacuse it still needs
-//!   a division by the nodal volumes.
-// *****************************************************************************
-{
-  // access node cooordinates
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-  // access vector field components
-  const auto& vx = v[0];
-  const auto& vy = v[1];
-  const auto& vz = v[2];
-
-  auto npoin = x.size();
-  tk::UnsMesh::Coords curl;
-  curl[0].resize( npoin, 0.0 );
-  curl[1].resize( npoin, 0.0 );
-  curl[2].resize( npoin, 0.0 );
-
-  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    // access node IDs
-    std::size_t N[4] =
-      { inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
-    // compute element Jacobi determinant, J = 6V
-    tk::real bax = x[N[1]]-x[N[0]];
-    tk::real bay = y[N[1]]-y[N[0]];
-    tk::real baz = z[N[1]]-z[N[0]];
-    tk::real cax = x[N[2]]-x[N[0]];
-    tk::real cay = y[N[2]]-y[N[0]];
-    tk::real caz = z[N[2]]-z[N[0]];
-    tk::real dax = x[N[3]]-x[N[0]];
-    tk::real day = y[N[3]]-y[N[0]];
-    tk::real daz = z[N[3]]-z[N[0]];
-    auto J = tk::triple( bax, bay, baz, cax, cay, caz, dax, day, daz );
-    auto J24 = J/24.0;
-    // shape function derivatives, nnode*ndim [4][3]
-    tk::real g[4][3];
-    tk::crossdiv( cax, cay, caz, dax, day, daz, J,
-                  g[1][0], g[1][1], g[1][2] );
-    tk::crossdiv( dax, day, daz, bax, bay, baz, J,
-                  g[2][0], g[2][1], g[2][2] );
-    tk::crossdiv( bax, bay, baz, cax, cay, caz, J,
-                  g[3][0], g[3][1], g[3][2] );
-    for (std::size_t i=0; i<3; ++i)
-      g[0][i] = -g[1][i] - g[2][i] - g[3][i];
-    for (std::size_t b=0; b<4; ++b) {
-      tk::real c[3];
-      tk::cross( g[b][0], g[b][1], g[b][2],
-                 vx[N[b]], vy[N[b]], vz[N[b]],
-                 c[0], c[1], c[2] );
-      for (std::size_t a=0; a<4; ++a) {
-        curl[0][N[a]] += J24 * c[0];
-        curl[1][N[a]] += J24 * c[1];
-        curl[2][N[a]] += J24 * c[2];
-      }
-    }
-  }
-
-  return curl;
-}
-
-std::vector< tk::real >
-div( const std::array< std::vector< tk::real >, 3 >& coord,
-     const std::vector< std::size_t >& inpoel,
-     const tk::UnsMesh::Coords& v )
-// *****************************************************************************
-//  Compute divergence of vector field at nodes of unstructured tetrahedra mesh
-//! \param[in] coord Mesh node coordinates
-//! \param[in] inpoel Mesh element connectivity
-//! \param[in] v Vector field whose divergence to compute
-//! \return Weak (partial) result of div v (partial beacuse it still needs
-//!   a division by the nodal volumes.
-// *****************************************************************************
-{
-  // access node cooordinates
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  auto npoin = x.size();
-  std::vector< tk::real > div( npoin, 0.0 );
-
-  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    // access node IDs
-    std::size_t N[4] =
-      { inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
-    // compute element Jacobi determinant, J = 6V
-    tk::real bax = x[N[1]]-x[N[0]];
-    tk::real bay = y[N[1]]-y[N[0]];
-    tk::real baz = z[N[1]]-z[N[0]];
-    tk::real cax = x[N[2]]-x[N[0]];
-    tk::real cay = y[N[2]]-y[N[0]];
-    tk::real caz = z[N[2]]-z[N[0]];
-    tk::real dax = x[N[3]]-x[N[0]];
-    tk::real day = y[N[3]]-y[N[0]];
-    tk::real daz = z[N[3]]-z[N[0]];
-    auto J = tk::triple( bax, bay, baz, cax, cay, caz, dax, day, daz );
-    auto J24 = J/24.0;
-    // shape function derivatives, nnode*ndim [4][3]
-    tk::real g[4][3];
-    tk::crossdiv( cax, cay, caz, dax, day, daz, J,
-                  g[1][0], g[1][1], g[1][2] );
-    tk::crossdiv( dax, day, daz, bax, bay, baz, J,
-                  g[2][0], g[2][1], g[2][2] );
-    tk::crossdiv( bax, bay, baz, cax, cay, caz, J,
-                  g[3][0], g[3][1], g[3][2] );
-    for (std::size_t i=0; i<3; ++i)
-      g[0][i] = -g[1][i] - g[2][i] - g[3][i];
-    for (std::size_t a=0; a<4; ++a)
-      for (std::size_t b=0; b<4; ++b)
-        for (std::size_t i=0; i<3; ++i)
-          div[N[a]] += J24 * g[b][i] * v[i][N[b]];
-  }
-
-  return div;
-}
-
-tk::UnsMesh::Coords
-grad( const std::array< std::vector< tk::real >, 3 >& coord,
-      const std::vector< std::size_t >& inpoel,
-      const std::vector< tk::real >& phi )
-// *****************************************************************************
-//  Compute gradient of a scalar field at nodes of unstructured tetrahedra mesh
-//! \param[in] coord Mesh node coordinates
-//! \param[in] inpoel Mesh element connectivity
-//! \param[in] phi Scalar field whose gradient to compute
-//! \return Weak (partial) result of grad phi (partial beacuse it still needs
-//!   a division by the nodal volumes.
-// *****************************************************************************
-{
-  // access node cooordinates
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  auto npoin = x.size();
-  tk::UnsMesh::Coords grad;
-  grad[0].resize( npoin, 0.0 );
-  grad[1].resize( npoin, 0.0 );
-  grad[2].resize( npoin, 0.0 );
-
-  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    // access node IDs
-    std::size_t N[4] =
-      { inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
-    // compute element Jacobi determinant, J = 6V
-    tk::real bax = x[N[1]]-x[N[0]];
-    tk::real bay = y[N[1]]-y[N[0]];
-    tk::real baz = z[N[1]]-z[N[0]];
-    tk::real cax = x[N[2]]-x[N[0]];
-    tk::real cay = y[N[2]]-y[N[0]];
-    tk::real caz = z[N[2]]-z[N[0]];
-    tk::real dax = x[N[3]]-x[N[0]];
-    tk::real day = y[N[3]]-y[N[0]];
-    tk::real daz = z[N[3]]-z[N[0]];
-    auto J = tk::triple( bax, bay, baz, cax, cay, caz, dax, day, daz );
-    auto J24 = J/24.0;
-    // shape function derivatives, nnode*ndim [4][3]
-    tk::real g[4][3];
-    tk::crossdiv( cax, cay, caz, dax, day, daz, J,
-                  g[1][0], g[1][1], g[1][2] );
-    tk::crossdiv( dax, day, daz, bax, bay, baz, J,
-                  g[2][0], g[2][1], g[2][2] );
-    tk::crossdiv( bax, bay, baz, cax, cay, caz, J,
-                  g[3][0], g[3][1], g[3][2] );
-    for (std::size_t i=0; i<3; ++i)
-      g[0][i] = -g[1][i] - g[2][i] - g[3][i];
-    for (std::size_t a=0; a<4; ++a)
-      for (std::size_t b=0; b<4; ++b)
-        for (std::size_t i=0; i<3; ++i)
-          grad[i][N[a]] += J24 * g[b][i] * phi[N[b]];
-  }
-
-  return grad;
 }
 
 } // tk::

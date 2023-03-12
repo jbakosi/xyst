@@ -65,13 +65,6 @@ class GeometricMeshElemAdapter : public Zoltan2::MeshAdapter< ZoltanTypes > {
     void getIDsViewOf( MeshEntityType, const gno_t*& Ids) const override
     { Ids = m_elemid.data(); }
 
-    //! Provide a pointer to the entity topology types
-    //! \param Types Pointer to the list of entity topology types on this rank
-    // cppcheck-suppress unusedFunction
-    void getTopologyViewOf( MeshEntityType,
-                            const EntityTopologyType*& Types ) const override
-    { Types = &m_topology; }
-
     //! Return dimensionality of the mesh
     //! \return Number of mesh dimension
     // cppcheck-suppress unusedFunction

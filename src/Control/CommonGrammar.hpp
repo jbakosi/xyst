@@ -327,21 +327,6 @@ namespace grm {
       "Each IC box must specify material id in the box." },
     { MsgKey::BOXMATIDWRONG, "Error in the preceding block. "
       "Material id in IC box larger than number of materials." },
-    { MsgKey::STAGBCWRONG, "Stagnation boundary conditions incorrectly "
-      "configured. Within a bc_stag ... end block there must be a point ... "
-      "end block and a radius ... end block. Both point and radius blocks must "
-      "contain floating-point numbers, and the number of items in the point "
-      "block must be exactly 3x that of radii." },
-    { MsgKey::SKIPBCWRONG, "Skip boundary conditions incorrectly "
-      "configured. Within a bc_skip ... end block there must be a point ... "
-      "end block and a radius ... end block. Both point and radius blocks must "
-      "contain floating-point numbers, and the number of items in the point "
-      "block must be exactly 3x that of radii." },
-    { MsgKey::SPONGEBCWRONG, "Sponge symmetry boundary conditions incorrectly "
-      "configured. Within a bc_sym ... end block, if a sponge parameter vector "
-      "is given, its size must equal the number of side sets configured for "
-      "symmetry BCs, and each entry must be between 0.0 and 1.0, prescribing "
-      "the percentage of absorption at the boundary." },
     { MsgKey::NONDISJOINTBC, "Different boundary condition types are assigned "
       "to the same side set." },
     { MsgKey::WRONGSIZE, "Error in the preceding line or block. The size of "

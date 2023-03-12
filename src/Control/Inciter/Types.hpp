@@ -21,7 +21,6 @@
 #include "TaggedTuple.hpp"
 #include "Base/Types.hpp"
 #include "Inciter/Options/Problem.hpp"
-#include "Inciter/Options/Initiate.hpp"
 #include "Inciter/Options/AMRInitial.hpp"
 #include "Inciter/Options/AMRError.hpp"
 #include "Options/PartitioningAlgorithm.hpp"
@@ -73,14 +72,6 @@ using moving_sides = tk::TaggedTuple< brigand::list<
   //! User-defined table (function) type
   ,  tag::fntype,  tk::ctr::UserTableType
   //! Functions x(t), y(t), and z(t) to move the side sets with
-  ,  tag::fn,      std::vector< tk::real >
-> >;
-
-//! A list of side sets along with a user-defined function for time dependent BC
-using time_dependent_bc = tk::TaggedTuple< brigand::list<
-  //! List of side sets on which to apply time dependent BC
-     tag::sideset, std::vector< kw::sideset::info::expect::type >
-  //! Functions p(t), rho(t), u(t), v(t) and w(t) to specify time dependent BC
   ,  tag::fn,      std::vector< tk::real >
 > >;
 
@@ -188,14 +179,6 @@ using diagnostics = tk::TaggedTuple< brigand::list<
   tag::error,       std::vector< tk::ctr::ErrorType > //!< Errors to compute
 > >;
 
-//! Initiation configuration for box IC
-using InitiateParameters = tk::TaggedTuple< brigand::list<
-    tag::init,          InitiateType
-  , tag::point,         std::vector< kw::point::info::expect::type >
-  , tag::radius,        kw::radius::info::expect::type
-  , tag::velocity,      kw::velocity::info::expect::type
-> >;
-
 //! Box, given by coordinates, specifying physics variables
 using box = tk::TaggedTuple< brigand::list<
     tag::xmin,          kw::xmin::info::expect::type
@@ -211,7 +194,6 @@ using box = tk::TaggedTuple< brigand::list<
   , tag::energy,        kw::energy::info::expect::type
   , tag::energy_content,kw::energy_content::info::expect::type
   , tag::temperature,   kw::temperature::info::expect::type
-  , tag::initiate,      InitiateParameters
 > >;
 
 //! Initial condition configuration
@@ -235,13 +217,7 @@ using bc = tk::TaggedTuple< brigand::list<
                               kw::sideset::info::expect::type > >
   , tag::bcsym,             std::vector< std::vector<
                               kw::sideset::info::expect::type > >
-  , tag::bcinlet,           std::vector< std::vector<
-                              kw::sideset::info::expect::type > >
-  , tag::bcoutlet,          std::vector< std::vector<
-                              kw::sideset::info::expect::type > >
   , tag::bcfarfield,        std::vector< std::vector<
-                              kw::sideset::info::expect::type > >
-  , tag::bcextrapolate,     std::vector< std::vector<
                               kw::sideset::info::expect::type > >
 > >;
 
@@ -254,32 +230,6 @@ using mesh = tk::TaggedTuple< brigand::list<
   , tag::orientation, std::vector<
                         std::vector< kw::orientation::info::expect::type > >
   , tag::reference,   std::vector< char >
-> >;
-
-//! Stagnation points parameters storage
-using StagnationParameters = tk::TaggedTuple< brigand::list<
-    tag::point,         std::vector<
-                          std::vector< kw::point::info::expect::type > >
-  , tag::radius,        std::vector<
-                          std::vector< kw::radius::info::expect::type > >
-> >;
-
-//! Skip points parameters storage
-using SkipParameters = tk::TaggedTuple< brigand::list<
-    tag::point,         std::vector<
-                          std::vector< kw::point::info::expect::type > >
-  , tag::radius,        std::vector<
-                          std::vector< kw::radius::info::expect::type > >
-> >;
-
-//! Sponge parameters storage
-using SpongeParameters = tk::TaggedTuple< brigand::list<
-    tag::sideset,       std::vector< std::vector<
-                          kw::sideset::info::expect::type > >
-  , tag::velocity,      std::vector< std::vector<
-                          kw::velocity::info::expect::type > >
-  , tag::pressure,      std::vector< std::vector<
-                          kw::pressure::info::expect::type > >
 > >;
 
 //! Transport equation parameters storage
@@ -295,8 +245,6 @@ using TransportPDEParameters = tk::TaggedTuple< brigand::list<
   , tag::source,        std::vector< std::vector<
                           kw::pde_source::info::expect::type > >
   , tag::bc,            bc
-  , tag::bctimedep,     std::vector< std::vector< time_dependent_bc > >
-  , tag::sponge,        SpongeParameters
 > >;
 
 //! Compressible flow equation parameters storage
@@ -308,13 +256,7 @@ using CompFlowPDEParameters = tk::TaggedTuple< brigand::list<
   , tag::farfield_velocity, std::vector< std::vector<
                               kw::velocity::info::expect::type > >
   , tag::bc,            bc
-  , tag::bctimedep,     std::vector< std::vector< time_dependent_bc > >
-  , tag::sponge,        SpongeParameters
   , tag::ic,            ic
-  //! Stagnation boundary condition configuration storage
-  , tag::stag,          StagnationParameters
-  //! Skip boundary condition configuration storage
-  , tag::skip,          SkipParameters
     //! Parameter vector (for specific, e.g., verification problems)
   , tag::alpha,         std::vector< kw::pde_alpha::info::expect::type >
     //! Parameter vector (for specific, e.g., verification problems)

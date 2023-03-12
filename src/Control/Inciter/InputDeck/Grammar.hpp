@@ -595,20 +595,6 @@ namespace deck {
              tk::grm::scan< tk::grm::number,
                insert< target, tag, tags... > > > > {};
 
-  //! User defined time dependent BC bc_timedep...end block
-  template< class eq >
-  struct timedep_bc :
-         pegtl::if_must<
-           tk::grm::readkw< use< kw::bc_timedep >::pegtl_string >,
-           tk::grm::start_vector_back< tag::param, eq, tag::bctimedep >,
-           tk::grm::block< use< kw::end >,
-             user_fn< tag::fn, tk::grm::Back_back_store_back, tag::param, eq,
-               tag::bctimedep >,
-             pegtl::if_must< tk::grm::vector< use< kw::sideset >,
-               tk::grm::Back_back_store_back< tag::sideset, tag::param, eq,
-                 tag::bctimedep >,
-               use< kw::end > > > > > {};
-
   //! Stagnation boundary conditions block
   template< class eq, class bc, class kwbc >
   struct bc_spec :
@@ -628,32 +614,6 @@ namespace deck {
                                         tk::grm::start_vector,
                                         tk::grm::check_vector,
                                         eq, bc, tag::point > > > {};
-
-  //! Boundary conditions block
-  template< class eq >
-  struct sponge :
-         pegtl::if_must<
-           tk::grm::readkw< typename use< kw::sponge >::pegtl_string >,
-           tk::grm::block<
-             use< kw::end >,
-             tk::grm::parameter_vector< use,
-                                        use< kw::velocity >,
-                                        tk::grm::Store_back_back,
-                                        tk::grm::start_vector,
-                                        tk::grm::check_vector,
-                                        eq, tag::sponge, tag::velocity >,
-             tk::grm::parameter_vector< use,
-                                        use< kw::pressure >,
-                                        tk::grm::Store_back_back,
-                                        tk::grm::start_vector,
-                                        tk::grm::check_vector,
-                                        eq, tag::sponge, tag::pressure >,
-             tk::grm::parameter_vector< use,
-                                        use< kw::sideset >,
-                                        tk::grm::Store_back_back,
-                                        tk::grm::start_vector,
-                                        tk::grm::check_vector,
-                                        eq, tag::sponge, tag::sideset > > > {};
 
   //! Farfield boundary conditions block
   template< class keyword, class eq, class param >
@@ -698,7 +658,7 @@ namespace deck {
                              half_world< kw::amr_zminus, tag::zminus >,
                              half_world< kw::amr_zplus, tag::zplus > > > {};
 
-  //! initial conditins box block
+  //! initial conditions box block
   template< class eq >
   struct box :
          pegtl::if_must<
@@ -718,16 +678,6 @@ namespace deck {
              , box_parameter< eq, kw::energy, tag::energy >
              , box_parameter< eq, kw::mass, tag::mass >
              , box_vector< eq, kw::velocity, tag::velocity >
-             , box_option< eq, ctr::Initiate, kw::initiate, tag::initiate,
-                           tag::init >
-             , pegtl::if_must<
-                 tk::grm::readkw< use< kw::linear >::pegtl_string >,
-                 tk::grm::block< use< kw::end >
-                   , box_deep_vector< eq, kw::point, tag::initiate, tag::point >
-                   , box_deep_parameter< eq, kw::radius, tag::initiate,
-                                         tag::radius >
-                   , box_deep_parameter< eq, kw::velocity, tag::initiate,
-                                         tag::velocity > > >
              > > {};
 
   //! initial conditions block for compressible flow
@@ -788,7 +738,6 @@ namespace deck {
          pegtl::if_must<
            tk::grm::readkw< use< kw::compflow >::pegtl_string >,
            tk::grm::start_vector< tag::param, tag::compflow, tag::ic, tag::box >,
-           tk::grm::start_vector< tag::param, tag::compflow, tag::bctimedep >,
            tk::grm::block< use< kw::end >,
                            tk::grm::depvar< use,
                                             tag::compflow,
@@ -816,17 +765,10 @@ namespace deck {
                                       tag::kappa >,
                            bc< kw::bc_dirichlet, tag::compflow, tag::bcdir >,
                            bc< kw::bc_sym, tag::compflow, tag::bcsym >,
-                           bc_spec< tag::compflow, tag::stag, kw::bc_stag >,
-                           bc_spec< tag::compflow, tag::skip, kw::bc_skip >,
-                           bc< kw::bc_inlet, tag::compflow, tag::bcinlet >,
-                           sponge< tag::compflow >,
                            farfield_bc< kw::bc_farfield,
                                         tag::compflow,
-                                        tag::bcfarfield >,
-                           bc< kw::bc_extrapolate, tag::compflow,
-                               tag::bcextrapolate >,
-                           timedep_bc< tag::compflow >
-                           >,
+                                        tag::bcfarfield >
+                         >,
            check_errors< tag::compflow, tk::grm::check_compflow > > {};
 
   //! scalar transport

@@ -1082,53 +1082,6 @@ struct zmax_info {
 };
 using zmax = keyword< zmax_info, TAOCPP_PEGTL_STRING("zmax") >;
 
-struct impulse_info {
-  static std::string name() { return "impulse"; }
-  static std::string shortDescription() { return
-    "Select the impulse initiation type, e.g., for a box IC"; }
-  static std::string longDescription() { return
-    R"(This keyword can be used to select the 'impulse' initiation/assignment
-    type for box initial conditions. It simply assigns the prescribed values to
-    mesh points within a configured box at t=0.)"; }
-};
-using impulse = keyword< impulse_info, TAOCPP_PEGTL_STRING("impulse") >;
-
-struct linear_info {
-  static std::string name() { return "linear"; }
-  static std::string shortDescription() { return
-    "Select the linear initiation type, e.g., for a box IC"; }
-  static std::string longDescription() { return
-    R"(This keyword can be used to select the 'linear' initiation/assignment
-    type for box initial conditions. Linear initiation uses a linear function
-    in time and space, configured with an initiation point in space, an initial
-    radius around the point, and a constant velocity that grows a sphere in time
-    (and space) linearly and assigns values to mesh points falling within a
-    growing sphere within a configured box.)"; }
-};
-using linear = keyword< linear_info, TAOCPP_PEGTL_STRING("linear") >;
-
-struct initiate_info {
-  static std::string name() { return "initiate type"; }
-  static std::string shortDescription() { return "Initiation/assignemt type"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select an initiation type to configure how
-    values are assigned, e.g., for a box initial condition. This can be used to
-    specify, how the values are assigned to mesh nodes within a box. Examples:
-    (1) impulse: assign the full values at t=0 for all points in a box,
-    (2) linear: use a linear function in time and space, configured with an
-    initiation point in space, an initial radius around the point, and a
-    velocity that grows a sphere in time (and space) linearly and assigns values
-    to mesh points falling within a growing sphere within a configured box.)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-    static std::string choices() {
-      return '\'' + impulse::string() + "\' | \'"
-                  + linear::string() + '\'';
-    }
-  };
-};
-using initiate = keyword< initiate_info, TAOCPP_PEGTL_STRING("initiate") >;
-
 struct box_info {
   static std::string name() { return "box"; }
   static std::string shortDescription() { return
@@ -2628,87 +2581,6 @@ struct radius_info {
 };
 using radius = keyword< radius_info, TAOCPP_PEGTL_STRING("radius") >;
 
-struct sponge_info {
-  static std::string name() { return "Sponge boundary"; }
-  static std::string shortDescription() { return
-    "Start configuration block describing a sponge boundary"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce an sponge ... end block, used to
-    specify the configuration for applying sponge parameters on boundaries.
-    Keywords allowed in a sponge ... end block: )" + std::string("\'")
-    + sideset::string() + "\', \'"
-    + velocity::string() + "\', \'"
-    + pressure::string() + "\'.";
-  }
-};
-using sponge = keyword< sponge_info, TAOCPP_PEGTL_STRING("sponge") >;
-
-struct bc_stag_info {
-  static std::string name() { return "Stagnation boundary condition"; }
-  static std::string shortDescription() { return
-    "Start configuration block describing stagnation boundary conditions"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce an bc_stag ... end block, used to
-    specify the configuration for setting stagnation boundary conditions for a
-    partial differential equation. Keywords allowed in a bc_stag ... end
-    block: )" + std::string("\'")
-    + point::string() + "\', \'"
-    + radius::string() + "\'.";
-  }
-};
-using bc_stag = keyword< bc_stag_info, TAOCPP_PEGTL_STRING("bc_stag") >;
-
-struct bc_skip_info {
-  static std::string name() { return "Skip boundary condition"; }
-  static std::string shortDescription() { return
-    "Start configuration block describing skip boundary conditions"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce an bc_skip ... end block, used to
-    specify the configuration for setting 'skip' boundary conditions for a
-    partial differential equation. If a mesh point falls into a skip region,
-    configured by a point and a radius, any application of boundary conditions
-    on those points will be skipped. Keywords allowed in a bc_skip ... end
-    block: )" + std::string("\'")
-    + point::string() + "\', \'"
-    + radius::string() + "\'. ";
-  }
-};
-using bc_skip = keyword< bc_skip_info, TAOCPP_PEGTL_STRING("bc_skip") >;
-
-struct bc_inlet_info {
-  static std::string name() { return "Inlet boundary condition"; }
-  static std::string shortDescription() { return
-    "Start configuration block describing inlet boundary conditions"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce an bc_inlet ... end block, used to
-    specify the configuration for setting inlet boundary conditions for a
-    partial differential equation. Keywords allowed in a bc_inlet ... end
-    block: )" + std::string("\'")
-    + sideset::string() + "\'. "
-    + R"(For an example bc_inlet ... end block, see
-      doc/html/inicter_example_gausshump.html.)";
-  }
-};
-using bc_inlet =
-  keyword< bc_inlet_info, TAOCPP_PEGTL_STRING("bc_inlet") >;
-
-struct bc_outlet_info {
-  static std::string name() { return "Inlet boundary condition"; }
-  static std::string shortDescription() { return
-    "Start configuration block describing outlet boundary conditions"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce an bc_outlet ... end block, used to
-    specify the configuration for setting outlet boundary conditions for a
-    partial differential equation. Keywords allowed in a bc_outlet ... end
-    block: )" + std::string("\'")
-    + sideset::string() + "\'. "
-    + R"(For an example bc_outlet ... end block, see
-      doc/html/inicter_example_gausshump.html.)";
-  }
-};
-using bc_outlet =
-  keyword< bc_outlet_info, TAOCPP_PEGTL_STRING("bc_outlet") >;
-
 struct bc_farfield_info {
   static std::string name() { return "Farfield boundary condition"; }
   static std::string shortDescription() { return
@@ -2726,45 +2598,6 @@ struct bc_farfield_info {
 };
 using bc_farfield =
   keyword< bc_farfield_info, TAOCPP_PEGTL_STRING("bc_farfield") >;
-
-struct bc_extrapolate_info {
-  static std::string name() { return "Extrapolation boundary condition"; }
-  static std::string shortDescription() { return
-    "Start configuration block describing Extrapolation boundary conditions"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce a bc_extrapolate ... end block, used to
-    specify the configuration for setting extrapolation boundary conditions for a
-    partial differential equation. Keywords allowed in a bc_extrapolate ... end
-    block: )" + std::string("\'")
-    + sideset::string() + "\'. "
-    + R"(For an example bc_extrapolate ... end block, see
-      doc/html/inciter_example_gausshump.html.)";
-  }
-};
-using bc_extrapolate =
-  keyword< bc_extrapolate_info, TAOCPP_PEGTL_STRING("bc_extrapolate") >;
-
-struct bc_timedep_info {
-  static std::string name() { return "Time dependent boundary condition"; }
-  static std::string shortDescription() { return
-    "Start configuration block describing time dependent boundary conditions"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce a bc_timedep ... end block, used to
-    specify the configuration of time dependent boundary conditions for a
-    partial differential equation. A discrete function in time t in the form of
-    a table with 6 columns (t, pressure(t), density(t), vx(t), vy(t), vz(t)) is
-    expected inside a fn ... end block, specified within the bc_timedep ... end
-    block. Multiple such bc_timedep blocks can be specified for different
-    time dependent BCs on different groups of side sets. Keywords allowed in a
-    bc_timedep ... end block: )"
-    + std::string("\'") + sideset::string() + "\', "
-    + std::string("\'") + fn::string() + "\'. "
-    + R"(For an example bc_timedep ... end block, see
-      tests/regression/inciter/compflow/Euler/TimedepBC/timedep_bc.q.)";
-  }
-};
-using bc_timedep =
-  keyword< bc_timedep_info, TAOCPP_PEGTL_STRING("bc_timedep") >;
 
 struct id_info {
   static std::string name() { return "id"; }
@@ -2946,8 +2779,6 @@ struct transport_info {
     + pde_lambda::string() + "\', \'"
     + bc_dirichlet::string() + "\', \'"
     + bc_sym::string() + "\', \'"
-    + bc_inlet::string() + "\', \'"
-    + bc_outlet::string() + "\', \'"
     + pde_u0::string() + "\'. "
     + pde_source::string() + "\'. "
     + R"(For an example transport ... end block, see
@@ -2980,11 +2811,7 @@ struct compflow_info {
     + pde_kappa::string() + "\', \'"
     + bc_dirichlet::string() + "\', \'"
     + bc_sym::string() + "\', \'"
-    + bc_inlet::string() + "\', \'"
-    + bc_outlet::string() + "\', \'"
     + bc_farfield::string() + "\', \'"
-    + bc_extrapolate::string() + "\'."
-    + bc_timedep::string() + "\'."
     + R"(For an example compflow ... end block, see
       doc/html/inicter_example_compflow.html.)";
   }

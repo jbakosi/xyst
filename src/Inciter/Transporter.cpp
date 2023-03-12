@@ -192,10 +192,6 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
   std::unordered_set< int > usedsets;
   brigand::for_each< PDEsBCs >( UserBC( g_inputdeck, usedsets ) );
  
-  // Query side sets of time dependent BCs (since tag::bctimedep is not a part
-  // of tag::bc)
-  brigand::for_each< PDETypes >( UserTimedepBC(g_inputdeck, usedsets) );
- 
   // Add sidesets requested for field output
   const auto& ss = g_inputdeck.get< tag::cmd, tag::io, tag::surface >();
   for (const auto& s : ss) {

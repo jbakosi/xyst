@@ -30,7 +30,6 @@ INSTALL(TARGETS IO
 add_library(NativeMeshIO
             MeshFactory.cpp
             GmshMeshReader.cpp
-            STLTxtMeshReader.cpp
             NetgenMeshReader.cpp
             ASCMeshReader.cpp
             UGRIDMeshReader.cpp

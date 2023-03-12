@@ -101,9 +101,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::fntype
                                  , kw::fn
                                  , kw::move
-                                 , kw::initiate
-                                 , kw::impulse
-                                 , kw::linear
                                  , kw::pressure
                                  , kw::energy
                                  , kw::energy_content
@@ -196,14 +193,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::amr_zminus
                                  , kw::amr_zplus
                                  , kw::bc_sym
-                                 , kw::bc_inlet
-                                 , kw::bc_outlet
                                  , kw::bc_farfield
-                                 , kw::bc_extrapolate
-                                 , kw::bc_timedep
-                                 , kw::bc_stag
-                                 , kw::bc_skip
-                                 , kw::sponge
                                  , kw::point
                                  , kw::radius
                                  , kw::gauss_hump
@@ -310,27 +300,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
       std::vector< char > depvar;
       //brigand::for_each< PDETypes >( Depvar( *this, depvar ) );
       return depvar;
-    }
-
-    //! Query special point BC configuration
-    //! \tparam eq PDE type to query
-    //! \tparam sbc Special BC type to query, e.g., stagnation, skip
-    //! \param[in] system Equation system id
-    //! \return Vectors configuring the special points and their radii
-    template< class eq, class sbc >
-    std::tuple< std::vector< tk::real >, std::vector< tk::real > >
-    specialBC( std::size_t system ) {
-      const auto& bcspec = get< tag::param, eq, sbc >();
-      const auto& point = bcspec.template get< tag::point >();
-      const auto& radius = bcspec.template get< tag::radius >();
-      std::vector< tk::real > pnt;
-      std::vector< tk::real > rad;
-      if (point.size() > system && radius.size() > system) {
-        pnt = point[ system ];
-        rad = radius[ system ];
-      }
-      Assert( pnt.size() == 3*rad.size(), "Size mismatch" );
-      return { std::move(pnt), std::move(rad) };
     }
 
   private:

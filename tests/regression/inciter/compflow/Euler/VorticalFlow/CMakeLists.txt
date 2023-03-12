@@ -79,6 +79,35 @@ add_regression_test(compflow_euler_vorticalflow_riecg_u0.5 ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
+add_regression_test(compflow_euler_vorticalflow_riecg_reord_u0.5
+                    ${INCITER_EXECUTABLE}
+                    NUMPES 4
+                    INPUTFILES vortical_flow_reord.q unitcube_1k.exo
+                    ARGS -c vortical_flow_reord.q -i unitcube_1k.exo -v -u 0.5
+                         -f
+                    BIN_BASELINE vortical_flow_pe4_u0.5.std.exo.0
+                                 vortical_flow_pe4_u0.5.std.exo.1
+                                 vortical_flow_pe4_u0.5.std.exo.2
+                                 vortical_flow_pe4_u0.5.std.exo.3
+                                 vortical_flow_pe4_u0.5.std.exo.4
+                                 vortical_flow_pe4_u0.5.std.exo.5
+                                 vortical_flow_pe4_u0.5.std.exo.6
+                                 vortical_flow_pe4_u0.5.std.exo.7
+                    BIN_RESULT out.e-s.0.8.0
+                               out.e-s.0.8.1
+                               out.e-s.0.8.2
+                               out.e-s.0.8.3
+                               out.e-s.0.8.4
+                               out.e-s.0.8.5
+                               out.e-s.0.8.6
+                               out.e-s.0.8.7
+                    BIN_DIFF_PROG_ARGS -m
+                    BIN_DIFF_PROG_CONF exodiff_reord.cfg
+                    TEXT_BASELINE diag.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS riecg)
+
 # Parallel + virtualization + migration
 
 add_regression_test(compflow_euler_vorticalflow_riecg_u0.9_migr

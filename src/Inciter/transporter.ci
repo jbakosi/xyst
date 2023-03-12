@@ -71,16 +71,10 @@ module transporter {
 
       entry void pepartitioned();
       entry void pedistributed();
-      entry void chbnd();
       entry void chcomm();
       entry void chmask();
       entry void chreordered();
-
       entry void chcreated();
-      entry void chbndface();
-      entry void chcomfac();
-      entry void chghost();
-      entry void chadj();
 
       // SDAG code follows. See http://charm.cs.illinois.edu/manuals/html/
       // charm++/manual.html, Sec. "Structured Control Flow: Structured Dagger".

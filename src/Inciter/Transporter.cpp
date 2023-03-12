@@ -954,8 +954,7 @@ Transporter::stat()
     // Print out time integration header to screen
     inthead( print );
 
-    m_progWork.start( print, "Preparing workers",
-      {{ m_nchare[0], m_nchare[0], m_nchare[0], m_nchare[0], m_nchare[0] }} );
+    m_progWork.start( print, "Preparing workers", {{ m_nchare[0] }} );
 
     // Create "derived-class" workers
     for (std::size_t i=0; i<m_nelem.size(); ++i) m_sorter[i].createWorkers();

@@ -36,11 +36,11 @@ static const std::array< std::string, 7 >
                       "mask", "reorder" }};
 
 //! Indices for progress report on workers preparation
-enum ProgWork{ CREATE=0, BNDFACE, COMFAC, GHOST, ADJ };
+enum ProgWork{ CREATE=0 };
 //! Prefixes for progress report on workers preparation
-static const std::array< std::string, 5 >
-  ProgWorkPrefix = {{ "c", "b", "f", "g", "a" }},
-  ProgWorkLegend = {{ "create", "bndface", "comfac", "ghost", "adj" }};
+static const std::array< std::string, 1 >
+  ProgWorkPrefix = {{ "c" }},
+  ProgWorkLegend = {{ "create" }};
 
 //! Transporter drives the time integration of transport equations
 class Transporter : public CBase_Transporter {
@@ -136,25 +136,14 @@ class Transporter : public CBase_Transporter {
     void pepartitioned() { m_progMesh.inc< PART >( printer() ); }
     //! Non-reduction target for receiving progress report on distributing mesh
     void pedistributed() { m_progMesh.inc< DIST >( printer() ); }
-    //! Non-reduction target for receiving progress report on finding bnd nodes
-    void chbnd() { m_progMesh.inc< BND >( printer() ); }
     //! Non-reduction target for receiving progress report on node ID comm map
     void chcomm() { m_progMesh.inc< COMM >( printer() ); }
     //! Non-reduction target for receiving progress report on node ID mask
     void chmask() { m_progMesh.inc< MASK >( printer() ); }
     //! Non-reduction target for receiving progress report on reordering mesh
     void chreordered() { m_progMesh.inc< REORD >( printer() ); }
-
     //! Non-reduction target for receiving progress report on creating workers
     void chcreated() { m_progWork.inc< CREATE >( printer() ); }
-    //! Non-reduction target for receiving progress report on finding bnd faces
-    void chbndface() { m_progWork.inc< BNDFACE >( printer() ); }
-    //! Non-reduction target for receiving progress report on face communication
-    void chcomfac() { m_progWork.inc< COMFAC >( printer() ); }
-    //! Non-reduction target for receiving progress report on sending ghost data
-    void chghost() { m_progWork.inc< GHOST >( printer() ); }
-    //! Non-reduction target for receiving progress report on face adjacency
-    void chadj() { m_progWork.inc< ADJ >( printer() ); }
 
     //! Reduction target indicating that the communication maps have been setup
     void comfinal( std::size_t summeshid );
@@ -302,7 +291,7 @@ class Transporter : public CBase_Transporter {
     //! Progress object for preparing mesh
     tk::Progress< 7 > m_progMesh;
     //! Progress object for preparing workers
-    tk::Progress< 5 > m_progWork;
+    tk::Progress< 1 > m_progWork;
 
     //! Create mesh partitioner and boundary condition object group
     void createPartitioner();

@@ -88,11 +88,6 @@ class ExodusIIMeshWriter {
                           int varid,
                           const std::vector< tk::real >& var ) const;
 
-    //! Write header without mesh, function overloading
-    void writeHeader( const char* title, int64_t ndim, int64_t nnodes,
-                      int64_t nelem, int64_t nblk, int64_t node_set,
-                      int64_t side_set ) const;
-
     //! Write element block to ExodusII file
     void writeElemBlock( int& elclass,
                          int64_t nnpe,

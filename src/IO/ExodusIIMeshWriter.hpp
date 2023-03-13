@@ -48,18 +48,6 @@ class ExodusIIMeshWriter {
     void writeMesh( const UnsMesh& mesh ) const;
 
     //! Write ExodusII mesh file taking inputs to a tk::UnsMesh object
-    void writeMesh( const std::vector< std::size_t >& tetinp,
-                    const UnsMesh::Coords& coord,
-                    const std::map< int, std::vector< std::size_t > >& bface,
-                    const std::vector< std::size_t >& triinp ) const;
-
-    //! Write ExodusII mesh file taking inputs to a tk::UnsMesh object
-    void writeMesh( const std::vector< std::size_t >& tetinp,
-                    const UnsMesh::Coords& coord,
-                    const std::map< int, std::vector< std::size_t > >& bnode )
-      const;
-
-    //! Write ExodusII mesh file taking inputs to a tk::UnsMesh object
     //! \tparam nnode 3 or 4, indicating a triangle or tetrahedron mesh
     //! \param[in] inpoel Element connectivity
     //! \param[in] coord Node coordinates
@@ -104,11 +92,6 @@ class ExodusIIMeshWriter {
     void writeHeader( const char* title, int64_t ndim, int64_t nnodes,
                       int64_t nelem, int64_t nblk, int64_t node_set,
                       int64_t side_set ) const;
-
-    //! Write nodes without mesh, function overloading.
-    void writeNodes( const std::vector< tk::real >& x, 
-                     const std::vector< tk::real >& y,
-                     const std::vector< tk::real >& z ) const;
 
     //! Write element block to ExodusII file
     void writeElemBlock( int& elclass,

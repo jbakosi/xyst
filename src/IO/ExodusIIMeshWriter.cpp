@@ -90,67 +90,6 @@ ExodusIIMeshWriter::writeMesh( const UnsMesh& mesh ) const
 }
 
 void
-ExodusIIMeshWriter::writeMesh(
-  const std::vector< std::size_t >& tetinp,
-  const UnsMesh::Coords& coord,
-  const std::map< int, std::vector< std::size_t > >& bface,
-  const std::vector< std::size_t >& triinp ) const
-// *****************************************************************************
-//  Write ExodusII mesh file taking inputs to a tk::UnsMesh object
-//! \param[in] tetinp Tetrahedron element connectivity
-//! \param[in] coord Node coordinates
-//! \param[in] bface Boundary face ids for each side set
-//! \param[in] triinp Triangle face connectivity (for all faces in bface)
-// *****************************************************************************
-{
-  // Fill element-relative face ids (0,1,2,3) for all side sets with 0 (will
-  // use triangles as face elements for side sets)
-  std::map< int, std::vector< std::size_t > > faceid;
-  for (const auto& s : bface) faceid[s.first].resize( s.second.size(), 0 );
-
-  // Generate file-internal Exodus (triangle face) element ids for all faces of
-  // all side sets. bface_exo:: face ids for each side set, triinpoel: triangle
-  // face connectivity for all side sets.
-  std::map< int, std::vector< std::size_t > > bface_exo;
-  std::vector< std::size_t > triinpoel( triinp.size() );
-  // Generate/start exodus-file-face ids from max number of tetrahedra because
-  // tet elem blocks will be written out first
-  std::size_t exo_faceid = tetinp.size() / 4;
-  for (const auto& s : bface) {
-    auto& b = bface_exo[ s.first ];
-    b.resize( s.second.size() );
-    std::size_t j = 0;  // side-set-relative face id
-    for (auto f : s.second) {   // for all faces on side set s.first
-      b[ j++ ] = exo_faceid;    // generate exo-file face id
-      auto k = exo_faceid - tetinp.size()/4;
-      // copy over triangle connectivity in order
-      triinpoel[ k*3+0 ] = triinp[ f*3+0 ];
-      triinpoel[ k*3+1 ] = triinp[ f*3+1 ];
-      triinpoel[ k*3+2 ] = triinp[ f*3+2 ];
-      ++exo_faceid;
-    }
-  }
-
-  // Write mesh
-  writeMesh( tk::UnsMesh( tetinp, coord, bface_exo, triinpoel, faceid ) );
-}
-
-void
-ExodusIIMeshWriter::writeMesh(
-  const std::vector< std::size_t >& tetinp,
-  const UnsMesh::Coords& coord,
-  const std::map< int, std::vector< std::size_t > >& bnode ) const
-// *****************************************************************************
-//  Write ExodusII mesh file taking inputs to a tk::UnsMesh object
-//! \param[in] tetinp Tetrahedron element connectivity
-//! \param[in] coord Node coordinates
-//! \param[in] bnode Boundary node ids for each side set
-// *****************************************************************************
-{
-  writeMesh( tk::UnsMesh( tetinp, coord, bnode ) );
-}
-
-void
 ExodusIIMeshWriter::writeHeader( const UnsMesh& mesh ) const
 // *****************************************************************************
 //  Write ExodusII header
@@ -205,21 +144,6 @@ ExodusIIMeshWriter::writeNodes( const UnsMesh& mesh ) const
 {
   ErrChk( ex_put_coord( m_outFile, mesh.x().data(), mesh.y().data(),
                         mesh.z().data() ) == 0,
-          "Failed to write coordinates to ExodusII file: " + m_filename );
-}
-
-void
-ExodusIIMeshWriter::writeNodes( const std::vector< tk::real >& x,
-                                const std::vector< tk::real >& y,
-                                const std::vector< tk::real >& z ) const
-// *****************************************************************************
-//  Write node coordinates to ExodusII file without Mesh
-//! \param[in] x coordinates of mesh nodes
-//! \param[in] y coordinates of mesh nodes
-//! \param[in] z coordinates of mesh nodes
-// *****************************************************************************
-{
-  ErrChk( ex_put_coord( m_outFile, x.data(), y.data(), z.data() ) == 0,
           "Failed to write coordinates to ExodusII file: " + m_filename );
 }
 

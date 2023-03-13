@@ -115,7 +115,7 @@ MeshWriter::write(
         ExodusIIMeshWriter ev( vf, ExoWriter::CREATE );
         // Write chare mesh (do not write side sets in parallel)
         if (m_nchare == 1) {
-          ev.writeMesh( inpoel, coord, bnode );
+          ev.writeMesh( tk::UnsMesh( inpoel, coord, bnode ) );
         } else {
           ev.writeMesh< 4 >( inpoel, coord );
         }

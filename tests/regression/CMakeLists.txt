@@ -53,6 +53,7 @@ add_subdirectory(inciter/compflow/Euler/TaylorGreen)
 add_subdirectory(inciter/compflow/Euler/RayleighTaylor)
 add_subdirectory(inciter/compflow/Euler/Sod)
 add_subdirectory(inciter/compflow/Euler/Sedov)
+add_subdirectory(inciter/transport/slot_cyl)
 
 #add_subdirectory(inciter/mesh_refinement/t0ref)
 #add_subdirectory(inciter/mesh_refinement/dtref)

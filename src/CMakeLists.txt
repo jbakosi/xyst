@@ -189,6 +189,20 @@ set(NONTEST_EXECUTABLES ${MESHCONV_EXECUTABLE} ${INCITER_EXECUTABLE})
 
 set(EXECUTABLES ${MESHCONV_EXECUTABLE} ${UNITTEST_EXECUTABLE} ${INCITER_EXECUTABLE})
 
+# Decide if the Exception class will write to std::cerr. This may not always be
+# thread-safe, e.g., in Charm++'s SMP mode, so it can be disabled here. The
+# default is set based on whether Charm++ is built in SMP or non-SMP mode.
+if (NOT EXCEPTIONS_WRITE_TO_CERR)     # set default if not set
+  if (CHARM_SMP)
+    set(cerr false)
+  else()
+    set(cerr true)
+  endif()
+  # will become compiler define in Main/QuinoaBuildConfig.hpp
+  set(EXCEPTIONS_WRITE_TO_CERR ${cerr} CACHE BOOL "Exceptions write std::cerr.")
+endif()
+message(STATUS "Exceptions write to cerr: ${EXCEPTIONS_WRITE_TO_CERR}")
+
 # Configure cmake variables to pass to the build
 configure_file( "${PROJECT_SOURCE_DIR}/Main/XystConfig.hpp.in"
                 "${PROJECT_BINARY_DIR}/Main/XystConfig.hpp" )

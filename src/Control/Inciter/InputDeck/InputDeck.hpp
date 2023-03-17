@@ -149,7 +149,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::elem
                                  , kw::node
                                  , kw::depvar
-                                 , kw::nl_energy_growth
+                                 , kw::nonlinear_energy_growth
                                  , kw::pde_betax
                                  , kw::pde_betay
                                  , kw::pde_betaz
@@ -196,9 +196,9 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::bc_farfield
                                  , kw::point
                                  , kw::radius
-                                 , kw::rotated_sod_shocktube
-                                 , kw::sod_shocktube
-                                 , kw::sedov_blastwave
+                                 , kw::rotated_sod
+                                 , kw::sod
+                                 , kw::sedov
                                  >;
 
     //! Set of tags to ignore when printing this InputDeck

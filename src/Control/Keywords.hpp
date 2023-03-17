@@ -1965,7 +1965,7 @@ struct vortical_flow_info {
 using vortical_flow =
   keyword< vortical_flow_info, TAOCPP_PEGTL_STRING("vortical_flow") >;
 
-struct nl_energy_growth_info {
+struct nonlinear_energy_growth_info {
   using code = Code< N >;
   static std::string name() { return "Nonlinear energy growth"; }
   static std::string shortDescription() { return
@@ -1975,7 +1975,7 @@ struct nl_energy_growth_info {
     The purpose of this test problem is to test nonlinear, time dependent energy
     growth and the subsequent development of pressure gradients due to coupling
     between the internal energy and the equation of state. Example: "problem
-    nl_energy_growth". For more details, see Waltz, et. al, "Manufactured
+    nonlinear_energy_growth". For more details, see Waltz, et. al, "Manufactured
     solutions for the three-dimensional Euler equations with relevance to
     Inertial Confinement Fusion", Journal of Computational Physics 267 (2014)
     196-209.)"; }
@@ -1983,8 +1983,8 @@ struct nl_energy_growth_info {
     static std::string description() { return "string"; }
   };
 };
-using nl_energy_growth =
-  keyword< nl_energy_growth_info,
+using nonlinear_energy_growth =
+  keyword< nonlinear_energy_growth_info,
            TAOCPP_PEGTL_STRING("nonlinear_energy_growth") >;
 
 struct rayleigh_taylor_info {
@@ -2027,7 +2027,7 @@ struct taylor_green_info {
 using taylor_green =
   keyword< taylor_green_info, TAOCPP_PEGTL_STRING("taylor_green") >;
 
-struct sod_shocktube_info {
+struct sod_info {
   using code = Code< H >;
   static std::string name() { return "Sod shock-tube"; }
   static std::string shortDescription() { return
@@ -2044,10 +2044,9 @@ struct sod_shocktube_info {
     static std::string description() { return "string"; }
   };
 };
-using sod_shocktube =
-  keyword< sod_shocktube_info, TAOCPP_PEGTL_STRING("sod") >;
+using sod = keyword< sod_info, TAOCPP_PEGTL_STRING("sod") >;
 
-struct sod_rotated_shocktube_info {
+struct rotated_sod_info {
   using code = Code< O >;
   static std::string name() { return "Rotated Sod shock-tube"; }
   static std::string shortDescription() { return
@@ -2067,10 +2066,10 @@ struct sod_rotated_shocktube_info {
     static std::string description() { return "string"; }
   };
 };
-using rotated_sod_shocktube =
-  keyword< sod_rotated_shocktube_info, TAOCPP_PEGTL_STRING("rotated_sod") >;
+using rotated_sod =
+  keyword< rotated_sod_info, TAOCPP_PEGTL_STRING("rotated_sod") >;
 
-struct sedov_blastwave_info {
+struct sedov_info {
   using code = Code< B >;
   static std::string name() { return "Sedov blast-wave"; }
   static std::string shortDescription() { return
@@ -2084,8 +2083,7 @@ struct sedov_blastwave_info {
     static std::string description() { return "string"; }
   };
 };
-using sedov_blastwave =
-  keyword< sedov_blastwave_info, TAOCPP_PEGTL_STRING("sedov") >;
+using sedov = keyword< sedov_info, TAOCPP_PEGTL_STRING("sedov") >;
 
 
 struct problem_info {
@@ -2106,11 +2104,11 @@ struct problem_info {
                   + point_src::string() + "\' | \'"
                   + slot_cyl::string() + "\' | \'"
                   + vortical_flow::string() + "\' | \'"
-                  + nl_energy_growth::string() + "\' | \'"
+                  + nonlinear_energy_growth::string() + "\' | \'"
                   + rayleigh_taylor::string() + "\' | \'"
                   + taylor_green::string() + "\' | \'"
-                  + sod_shocktube::string() + "\' | \'"
-                  + rotated_sod_shocktube::string() + '\'';
+                  + sod::string() + "\' | \'"
+                  + rotated_sod::string() + '\'';
     }
   };
 };

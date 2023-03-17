@@ -21,7 +21,12 @@ inciter
       gamma 1.66666666666667 end
     end
     bc_dirichlet
-      sideset 1 2 3 4 5 6 end
+      sideset 1 1 1 1 1 1 end
+      sideset 2 1 1 1 1 1 end 
+      sideset 3 1 1 1 1 1 end
+      sideset 4 1 1 1 1 1 end
+      sideset 5 1 1 1 1 1 end
+      sideset 6 1 1 1 1 1 end
     end
   end
 

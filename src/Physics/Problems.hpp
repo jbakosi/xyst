@@ -34,9 +34,15 @@ std::function< std::vector< tk::real >
 SOL();
 
 //! Query user config and assign function to add a source term
-std::function< void( tk::real, tk::real, tk::real, tk::real,
-  tk::real&, tk::real&, tk::real&, tk::real&, tk::real&, tk::real& ) >
+std::function< std::vector< tk::real >
+  ( tk::real, tk::real, tk::real, tk::real ) >
 SRC();
+
+//  Query user config and assign function to apply source to numerical solution
+std::function< void( const std::array< std::vector< tk::real >, 3 >&,
+                     tk::real,
+                     tk::Fields& ) >
+PHYS_SRC();
 
 //! Initalize the compressible flow equations, prepare for time integration
 void

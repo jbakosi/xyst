@@ -17,10 +17,11 @@ namespace physics {
 
 //! Set Dirichlet boundary conditions
 void
-dirbc( tk::Fields& U,
-       tk::real t,
-       const std::array< std::vector< tk::real >, 3 >& coord,
-       const std::vector< std::size_t >& dirbcnodes );
+dirbc(
+  tk::Fields& U,
+  tk::real t,
+  const std::array< std::vector< tk::real >, 3 >& coord,
+  const std::vector< std::size_t >& dirbcmasks );
 
 //! Set symmetry boundary conditions
 void

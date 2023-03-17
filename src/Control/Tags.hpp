@@ -169,7 +169,7 @@ struct farfield_density {
   static std::string name() { return "farfield_density"; } };
 struct farfield_velocity {
   static std::string name() { return "farfield_velocity"; } };
-struct bcfarfield { static std::string name() { return "bcfarfield"; } };
+struct farfield { static std::string name() { return "farfield"; } };
 struct component { static std::string name() { return "component"; } };
 struct rescomp { static std::string name() { return "residual component"; } };
 struct iter { static std::string name() { return "iter"; } };
@@ -196,8 +196,8 @@ struct problem { static std::string name() { return "problem"; } };
 struct physics { static std::string name() { return "physics"; } };
 struct diffusivity { static std::string name() { return "diffusivity"; } };
 struct u0 { static std::string name() { return "u0"; } };
-struct bcdir { static std::string name() { return "bcdir"; } };
-struct bcsym { static std::string name() { return "bcsym"; } };
+struct dirichlet { static std::string name() { return "dirichlet"; } };
+struct symmetry { static std::string name() { return "symmetry"; } };
 struct point { static std::string name() { return "point"; } };
 struct source { static std::string name() { return "source"; } };
 struct radius { static std::string name() { return "radius"; } };

@@ -120,18 +120,26 @@ namespace grm {
     static void apply( const Input& in, Stack& stack ) {
       using inciter::deck::neq;
       using tag::param;
+      using ProblemType = inciter::ctr::ProblemType;
 
       // Error out if no dependent variable has been selected
       auto& depvar = stack.template get< param, eq, tag::depvar >();
       if (depvar.empty() || depvar.size() != neq.get< eq >())
         Message< Stack, ERROR, MsgKey::NODEPVAR >( stack, in );
 
-      // Set number of components to 5 (mass, 3 x mom, energy)
-      stack.template get< tag::component, eq >().push_back( 5 );
+      // Setup number of scalar components based on problem specified
+      auto problem = stack.template get< tag::problem >();
+      std::size_t nc = 5;
+      if (problem == ProblemType::SLOT_CYL ||
+          problem == ProblemType::POINT_SRC) {
+         ++nc;
+      }
+      stack.template get< tag::component, eq >().push_back( nc );
 
       // Error check Dirichlet boundary condition block for all transport eq
       // configurations
-      const auto& bc = stack.template get< param, eq, tag::bc, tag::bcdir >();
+      const auto& bc =
+        stack.template get< param, eq, tag::bc, tag::dirichlet >();
       for (const auto& s : bc)
         if (s.empty()) Message< Stack, ERROR, MsgKey::BC_EMPTY >( stack, in );
     }
@@ -163,7 +171,8 @@ namespace grm {
 
       // Error check Dirichlet boundary condition block for all transport eq
       // configurations
-      const auto& bc = stack.template get< param, eq, tag::bc, tag::bcdir >();
+      const auto& bc =
+        stack.template get< param, eq, tag::bc, tag::dirichlet >();
       for (const auto& s : bc)
         if (s.empty()) Message< Stack, ERROR, MsgKey::BC_EMPTY >( stack, in );
     }
@@ -182,34 +191,6 @@ namespace grm {
       store_option< Stack, inciter::deck::use, Option, inciter::ctr::InputDeck,
                     Input, tags... >
                   ( stack, in, inciter::g_inputdeck_defaults );
-    }
-  };
-
-  //! Function object to ensure disjoint side sets for all boundary conditions
-  //! \details This is instantiated using a Cartesian product of all PDE types
-  //!    and all BC types at compile time. It goes through all side sets
-  //!    configured by the user and triggers an error if a side set is assigned
-  //!    a BC more than once (within a solver).
-  template< typename Input, typename Stack >
-  struct ensure_disjoint {
-    const Input& m_input;
-    Stack& m_stack;
-    explicit ensure_disjoint( const Input& in, Stack& stack ) :
-      m_input( in ), m_stack( stack ) {}
-    template< typename U > void operator()( brigand::type_<U> ) {
-      using Eq = typename brigand::front< U >;
-      using BC = typename brigand::back< U >;
-      const auto& bc = m_stack.template get< tag::param, Eq, tag::bc, BC >();
-      for (const auto& eq : bc) {
-        std::unordered_set< int > bcset;
-        for (const auto& s : eq) {
-          auto id = std::stoi(s);
-          if (bcset.find(id) != end(bcset))
-            Message< Stack, ERROR, MsgKey::NONDISJOINTBC >( m_stack, m_input );
-          else
-            bcset.insert( id );
-        }
-      }
     }
   };
 
@@ -299,12 +280,6 @@ namespace grm {
       if (rc < 1 || rc > ncomps.nprop())
         Message< Stack, ERROR, MsgKey::LARGECOMP >( stack, in );
 
-      // Ensure no different BC types are assigned to the same side set
-      using PDETypes = inciter::ctr::parameters::Keys;
-      using BCTypes = inciter::ctr::bc::Keys;
-      brigand::for_each< tk::cartesian_product< PDETypes, BCTypes > >(
-        ensure_disjoint< Input, Stack >( in, stack ) );
-
       // Do error checking on output time range configuration parameters: they
       // all must be a 3 reals: mintime, maxtime, and dt with maxtime >
       // mintime, and dt<maxtime-mintime.
@@ -316,6 +291,8 @@ namespace grm {
       Assert(
         (stack.template get< tag::history, tag::id >().size() == hist.size()),
         "Number of history points and ids must equal" );
+
+      using PDETypes = inciter::ctr::parameters::Keys;
 
       // If at least a mesh filename is assigned to a solver, all solvers must
       // have a mesh filename assigned
@@ -571,67 +548,51 @@ namespace deck {
                            tk::grm::Store_back_bool< tag::param, eq, p >,
                            pegtl::alpha > {};
 
-  //! Boundary conditions block
-  template< class keyword, class eq, class param >
-  struct bc :
+  //! Dirichlet boundary conditions block
+  struct bc_dirichlet :
          pegtl::if_must<
-           tk::grm::readkw< typename use< keyword >::pegtl_string >,
+           tk::grm::readkw< use< kw::bc_dirichlet >::pegtl_string >,
            tk::grm::block<
              use< kw::end >,
-             tk::grm::parameter_vector< use,
-                                        use< kw::sideset >,
-                                        tk::grm::Store_back_back,
-                                        tk::grm::start_vector,
-                                        tk::grm::check_vector,
-                                        eq, tag::bc, param > > > {};
+             tk::grm::parameter_vector<
+               use,
+               use< kw::sideset >,
+               tk::grm::Store_back_back,
+               tk::grm::start_vector,
+               tk::grm::check_vector,
+               tag::compflow, tag::bc, tag::dirichlet > > > {};
 
-  //! Match user-defined function as a discrete list of real numbers
-  template< class target, template< class... > class insert, class tag,
-    class... tags >
-  struct user_fn :
+  //! Symmetry boundary conditions block
+  struct bc_sym :
          pegtl::if_must<
-           tk::grm::readkw< use< kw::fn >::pegtl_string >,
-           tk::grm::block< use< kw::end >,
-             tk::grm::scan< tk::grm::number,
-               insert< target, tag, tags... > > > > {};
-
-  //! Stagnation boundary conditions block
-  template< class eq, class bc, class kwbc >
-  struct bc_spec :
-         pegtl::if_must<
-           tk::grm::readkw< typename kwbc::pegtl_string >,
+           tk::grm::readkw< typename use< kw::bc_sym >::pegtl_string >,
            tk::grm::block<
              use< kw::end >,
-             tk::grm::parameter_vector< use,
-                                        use< kw::radius >,
-                                        tk::grm::Store_back_back,
-                                        tk::grm::start_vector,
-                                        tk::grm::check_vector,
-                                        eq, bc, tag::radius >,
-             tk::grm::parameter_vector< use,
-                                        use< kw::point >,
-                                        tk::grm::Store_back_back,
-                                        tk::grm::start_vector,
-                                        tk::grm::check_vector,
-                                        eq, bc, tag::point > > > {};
+             tk::grm::parameter_vector<
+               use,
+               use< kw::sideset >,
+               tk::grm::Store_back_back,
+               tk::grm::start_vector,
+               tk::grm::check_vector,
+               tag::compflow, tag::bc, tag::symmetry > > > {};
 
   //! Farfield boundary conditions block
-  template< class keyword, class eq, class param >
-  struct farfield_bc :
+  struct bc_farfield :
          pegtl::if_must<
-           tk::grm::readkw< typename use< keyword >::pegtl_string >,
+           tk::grm::readkw< typename use< kw::bc_farfield >::pegtl_string >,
            tk::grm::block<
              use< kw::end >,
-             parameter< eq, kw::pressure, tag::farfield_pressure >,
-             parameter< eq, kw::density, tag::farfield_density >,
-             pde_parameter_vector< kw::velocity, eq,
+             parameter< tag::compflow, kw::pressure, tag::farfield_pressure >,
+             parameter< tag::compflow, kw::density, tag::farfield_density >,
+             pde_parameter_vector< kw::velocity, tag::compflow,
                                    tag::farfield_velocity >,
-             tk::grm::parameter_vector< use,
-                                        use< kw::sideset >,
-                                        tk::grm::Store_back_back,
-                                        tk::grm::start_vector,
-                                        tk::grm::check_vector,
-                                        eq, tag::bc, param > > > {};
+             tk::grm::parameter_vector<
+               use,
+               use< kw::sideset >,
+               tk::grm::Store_back_back,
+               tk::grm::start_vector,
+               tk::grm::check_vector,
+               tag::compflow, tag::bc, tag::farfield > > > {};
 
   //! edgelist ... end block
   struct edgelist :
@@ -763,11 +724,21 @@ namespace deck {
                                       tag::ce >,
                            parameter< tag::compflow, kw::pde_kappa,
                                       tag::kappa >,
-                           bc< kw::bc_dirichlet, tag::compflow, tag::bcdir >,
-                           bc< kw::bc_sym, tag::compflow, tag::bcsym >,
-                           farfield_bc< kw::bc_farfield,
-                                        tag::compflow,
-                                        tag::bcfarfield >
+                           pde_parameter_vector< kw::pde_diffusivity,
+                                                 tag::compflow,
+                                                 tag::diffusivity >,
+                           pde_parameter_vector< kw::pde_lambda,
+                                                 tag::compflow,
+                                                 tag::lambda >,
+                           pde_parameter_vector< kw::pde_u0,
+                                                 tag::compflow,
+                                                 tag::u0 >,
+                           pde_parameter_vector< kw::pde_source,
+                                                 tag::compflow,
+                                                 tag::source >,
+                           bc_dirichlet,
+                           bc_sym,
+                           bc_farfield
                          >,
            check_errors< tag::compflow, tk::grm::check_compflow > > {};
 
@@ -793,9 +764,7 @@ namespace deck {
                                                  tag::u0 >,
                            pde_parameter_vector< kw::pde_source,
                                                  tag::transport,
-                                                 tag::source >,
-                           bc< kw::bc_dirichlet, tag::transport, tag::bcdir >,
-                           bc< kw::bc_sym, tag::transport, tag::bcsym >
+                                                 tag::source >
                          >,
            check_errors< tag::transport, tk::grm::check_transport > > {};
 

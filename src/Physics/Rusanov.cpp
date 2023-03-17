@@ -613,10 +613,9 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
   const auto& z = coord[2];
 
   for (std::size_t p=0; p<R.nunk(); ++p) {
-    std::array< tk::real, 6 > s;
     if (g_inputdeck.get< tag::discr, tag::steady_state >()) t = tp[p];
-    src( x[p], y[p], z[p], t, s[0], s[1], s[2], s[3], s[4], s[5] );
-    for (std::size_t c=0; c<5; ++c) R(p,c,0) -= s[c] * v[p];
+    auto s = src( x[p], y[p], z[p], t );
+    for (std::size_t c=0; c<s.size(); ++c) R(p,c,0) -= s[c] * v[p];
   }
 }
 
@@ -724,9 +723,7 @@ dt( const std::vector< tk::real >& vol,
     // access solution at node p at recent time step
     const auto u = U[i];
     // compute pressure
-    auto ie = u[4]/u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3])/u[0]/u[0];
-    auto p = eos::pressure( u[0], ie );
-    //auto p = eos::pressure( u[0], u[1]/u[0], u[2]/u[0], u[3]/u[0], u[4] );
+    auto p = eos::pressure( u[0], u[1]/u[0], u[2]/u[0], u[3]/u[0], u[4] );
     if (p < 0) p = 0.0;
     auto c = eos::soundspeed( u[0], p );
     // characteristic velocity

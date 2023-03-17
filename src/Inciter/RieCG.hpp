@@ -179,7 +179,6 @@ class RieCG : public CBase_RieCG {
       p | m_bndedgeint;
       p | m_bndedgeintc;
       p | m_domedgeint;
-      p | m_domedgeintc;
       p | m_bpoin;
       p | m_bpint;
       p | m_bedge;
@@ -188,7 +187,7 @@ class RieCG : public CBase_RieCG {
       p | m_deint;
       p | m_bpsym;
       p | m_besym;
-      p | m_dirbcnodes;
+      p | m_dirbcmasks;
       p | m_symbcnodeset;
       p | m_symbcnodes;
       p | m_symbcnorms;
@@ -277,8 +276,6 @@ class RieCG : public CBase_RieCG {
     //! Domain edge integrals
     std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
       tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_domedgeint;
-    //! Receive buffer for domain edge integrals along chare-boundary edges
-    decltype(m_domedgeint) m_domedgeintc;
     //! Streamable boundary point local ids
     std::vector< std::size_t > m_bpoin;
     //! Streamable boundary point integrals
@@ -299,8 +296,8 @@ class RieCG : public CBase_RieCG {
     tk::Fields m_grad;
     //! Gradients receive buffer
     std::unordered_map< std::size_t, std::vector< tk::real > > m_gradc;
-    //! Streamable nodes at which Dirichlet BCs are set
-    std::vector< std::size_t > m_dirbcnodes;
+    //! Nodes and their Dirichlet BC masks
+    std::vector< std::size_t > m_dirbcmasks;
     //! Unique set of ordered nodes at which symmetry BCs are set
     std::set< std::size_t > m_symbcnodeset;
     //! Streamable nodes at which symmetry BCs are set
@@ -329,6 +326,9 @@ class RieCG : public CBase_RieCG {
       Assert( m_disc[ thisIndex ].ckLocal() != nullptr, "ckLocal() null" );
       return m_disc[ thisIndex ].ckLocal();
     }
+
+    //! Prepare boundary condition data structures
+    void setupBC();
 
     //! Compute local contributions to domain edge integrals
     void domint();
@@ -365,6 +365,9 @@ class RieCG : public CBase_RieCG {
 
     //! Compute gradients for next time step
     void grad();
+
+    //! Apply scalar source to solution
+    void src();
 };
 
 } // inciter::

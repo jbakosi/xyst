@@ -196,10 +196,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::bc_farfield
                                  , kw::point
                                  , kw::radius
-                                 , kw::gauss_hump
                                  , kw::rotated_sod_shocktube
-                                 , kw::cyl_advect
-                                 , kw::cyl_vortex
                                  , kw::sod_shocktube
                                  , kw::sedov_blastwave
                                  >;
@@ -277,12 +274,8 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
     //!   always the same.
     std::set< int > outsets() const {
       std::set< int > ids;
-      for (const auto& s : get< tag::cmd, tag::io, tag::surface >()) {
-        std::stringstream conv( s );
-        int num;
-        conv >> num;
-        ids.insert( num );
-      }
+      for (const auto& s : get< tag::cmd, tag::io, tag::surface >())
+        ids.insert( s );
       return ids;
     }
 

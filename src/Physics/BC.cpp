@@ -28,33 +28,31 @@ void
 dirbc( tk::Fields& U,
        tk::real t,
        const std::array< std::vector< tk::real >, 3 >& coord,
-       const std::vector< std::size_t >& dirbcnodes )
+       const std::vector< std::size_t >& dirbcmasks )
 // *****************************************************************************
 //  Set symmetry boundary conditions at nodes
 //! \param[in] t Physical time at which to evaluate BCs
 //! \param[in] U Solution vector at recent time step
 //! \param[in] coord Mesh node coordinates
-//! \param[in] dirbcnodes List of node ids at which to set Dirichlet BCs
+//! \param[in] dirbcmasks Nodes and component masks for Dirichlet BCs
 // *****************************************************************************
 {
-  using inciter::g_inputdeck;
+  auto ncomp = U.nprop();
+  auto nmask = ncomp + 1;
 
-  const auto& dbc =
-    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::bcdir >();
-  if (dbc.empty()) return;
+  Assert( dirbcmasks.size() % nmask == 0, "Dirichlet BC masks size mismatch" );
 
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
-  auto ic = problems::SOL();
+  auto ic = problems::IC();
 
-  for (auto p : dirbcnodes) {
-    auto s = ic( x[p], y[p], z[p], t );
-    U(p,0,0) = s[0];
-    U(p,1,0) = s[1];
-    U(p,2,0) = s[2];
-    U(p,3,0) = s[3];
-    U(p,4,0) = s[4];
+  for (std::size_t i=0; i<dirbcmasks.size()/nmask; ++i) {
+    auto p = dirbcmasks[i*nmask+0];
+    auto u = ic( x[p], y[p], z[p], t );
+    for (std::size_t c=0; c<ncomp; ++c)
+      if (dirbcmasks[i*nmask+1+c])
+        U(p,c,0) = u[c];
   }
 }
 
@@ -72,7 +70,7 @@ symbc( tk::Fields& U,
   using inciter::g_inputdeck;
 
   const auto& sbc =
-    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::bcsym >();
+    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::symmetry >();
   if (sbc.empty()) return;
 
   Assert( symbcnodes.size()*3 == symbcnorms.size(), "Size mismaatch" );
@@ -104,7 +102,7 @@ farbc( tk::Fields& U,
 
   const auto& compflow = g_inputdeck.get< tag::param, tag::compflow >();
 
-  const auto& fbc = compflow.get< tag::bc, tag::bcfarfield >();
+  const auto& fbc = compflow.get< tag::bc, tag::farfield >();
   if (fbc.empty()) return;
 
   Assert( farbcnodes.size() == farbcnorms.size()*3, "Size mismaatch" );

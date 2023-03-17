@@ -123,21 +123,15 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
   return { r, 0.0, 0.0, 0.0, re };
 }
 
-static void
-src( tk::real x, tk::real y, tk::real z, tk::real t,
-     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re,
-     tk::real& )
+static std::vector< tk::real >
+src( tk::real x, tk::real y, tk::real z, tk::real t )
 // *****************************************************************************
 //! Compute and return source term for nonlinear energy growth
 //! \param[in] x X coordinate where to evaluate the source
 //! \param[in] y Y coordinate where to evaluate the source
 //! \param[in] z Z coordinate where to evaluate the source
 //! \param[in] t Time where to evaluate the source
-//! \param[in,out] r Density source
-//! \param[in,out] ru X momentum source
-//! \param[in,out] rv Y momentum source
-//! \param[in,out] rw Z momentum source
-//! \param[in,out] re Specific total energy source
+//! \return Source for flow variables + transported scalars
 // *****************************************************************************
 {
   using inciter::g_inputdeck;
@@ -178,14 +172,18 @@ src( tk::real x, tk::real y, tk::real z, tk::real t,
                                   2.0 * pow(ie,4.0) * kappa * h * dh[1] * t,
                                   2.0 * pow(ie,4.0) * kappa * h * dh[2] * t };
   const auto dedt = kappa * h * h * pow(ie,4.0);
+
+  std::vector< tk::real > s( 5, 0.0 );
   // density source
-  r = drdt;
+  s[0] = drdt;
   // momentum source
-  ru = (g-1.0)*(rho*dedx[0] + ie*drdx[0]);
-  rv = (g-1.0)*(rho*dedx[1] + ie*drdx[1]);
-  rw = (g-1.0)*(rho*dedx[2] + ie*drdx[2]);
+  s[1] = (g-1.0)*(rho*dedx[0] + ie*drdx[0]);
+  s[2] = (g-1.0)*(rho*dedx[1] + ie*drdx[1]);
+  s[3] = (g-1.0)*(rho*dedx[2] + ie*drdx[2]);
   // energy source
-  re = rho*dedt + ie*drdt;
+  s[4] = rho*dedt + ie*drdt;
+
+  return s;
 }
 
 } // nonlinear_energy_growth::
@@ -230,21 +228,15 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
   return { r, r*u, r*v, r*w, rE };
 }
 
-static void
-src( tk::real x, tk::real y, tk::real z, tk::real t,
-     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re,
-     tk::real& )
+static std::vector< tk::real >
+src( tk::real x, tk::real y, tk::real z, tk::real t )
 // *****************************************************************************
 //! Compute and return source term for a Rayleigh-Taylor flow
 //! \param[in] x X coordinate where to evaluate the source
 //! \param[in] y Y coordinate where to evaluate the source
 //! \param[in] z Z coordinate where to evaluate the source
 //! \param[in] t Time where to evaluate the source
-//! \param[in,out] r Density source
-//! \param[in,out] ru X momentum source
-//! \param[in,out] rv Y momentum source
-//! \param[in,out] rw Z momentum source
-//! \param[in,out] re Specific total energy source
+//! \return Source for flow variables + transported scalars
 // *****************************************************************************
 {
   using inciter::g_inputdeck;
@@ -261,14 +253,14 @@ src( tk::real x, tk::real y, tk::real z, tk::real t,
   auto g = g_inputdeck.get< param, compflow, tag::gamma >()[0][0];
 
   // evaluate solution at x,y,z,t
-  auto s = ic( x, y, z, t );
+  auto U = ic( x, y, z, t );
 
   // density, velocity, energy, pressure
-  auto rho = s[0];
-  auto u = s[1]/s[0];
-  auto v = s[2]/s[0];
-  auto w = s[3]/s[0];
-  auto E = s[4]/s[0];
+  auto rho = U[0];
+  auto u = U[1]/U[0];
+  auto v = U[2]/U[0];
+  auto w = U[3]/U[0];
+  auto E = U[4]/U[0];
   auto p = p0 + a*(bx*x*x + by*y*y + bz*z*z);
 
   // spatial gradients
@@ -298,15 +290,18 @@ src( tk::real x, tk::real y, tk::real z, tk::real t,
   auto dwdt =  k*M_PI*sin(k*M_PI*t)/2*M_PI*z*z*(cos(M_PI*x) - sin(M_PI*y));
   auto dedt = u*dudt + v*dvdt + w*dwdt;
 
+  std::vector< tk::real > s( 5, 0.0 );
   // density source
-  r = u*drdx[0] + v*drdx[1] + w*drdx[2];
+  s[0] = u*drdx[0] + v*drdx[1] + w*drdx[2];
   // momentum source
-  ru = rho*dudt+u*r+dpdx[0] + s[1]*dudx[0]+s[2]*dudx[1]+s[3]*dudx[2];
-  rv = rho*dvdt+v*r+dpdx[1] + s[1]*dvdx[0]+s[2]*dvdx[1]+s[3]*dvdx[2];
-  rw = rho*dwdt+w*r+dpdx[2] + s[1]*dwdx[0]+s[2]*dwdx[1]+s[3]*dwdx[2];
+  s[1] = rho*dudt+u*s[0]+dpdx[0] + U[1]*dudx[0]+U[2]*dudx[1]+U[3]*dudx[2];
+  s[2] = rho*dvdt+v*s[0]+dpdx[1] + U[1]*dvdx[0]+U[2]*dvdx[1]+U[3]*dvdx[2];
+  s[3] = rho*dwdt+w*s[0]+dpdx[2] + U[1]*dwdx[0]+U[2]*dwdx[1]+U[3]*dwdx[2];
   // energy source
-  re = rho*dedt + E*r + s[1]*dedx[0]+s[2]*dedx[1]+s[3]*dedx[2]
+  s[4] = rho*dedt + E*s[0] + U[1]*dedx[0]+U[2]*dedx[1]+U[3]*dedx[2]
        + u*dpdx[0]+v*dpdx[1]+w*dpdx[2];
+
+  return s;
 }
 
 } // rayleigh_taylor::
@@ -408,26 +403,22 @@ ic( tk::real x, tk::real y, tk::real, tk::real )
   return { r, r*u, r*v, r*w, rE };
 }
 
-static void
-src( tk::real x, tk::real y, tk::real, tk::real,
-     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re,
-     tk::real& )
+static std::vector< tk::real >
+src( tk::real x, tk::real y, tk::real, tk::real )
 // *****************************************************************************
 //! Compute and return source term for a the Taylor-Green vortex
 //! \param[in] x X coordinate where to evaluate the source
 //! \param[in] y Y coordinate where to evaluate the source
-//! \param[in,out] r Density source
-//! \param[in,out] ru X momentum source
-//! \param[in,out] rv Y momentum source
-//! \param[in,out] rw Z momentum source
-//! \param[in,out] re Specific total energy source
+//! \return Source for flow variables + transported scalars
 // *****************************************************************************
 {
   using std::cos;
 
-  r = ru = rv = rw = 0.0;
-  re = 3.0*M_PI/8.0*( cos(3.0*M_PI*x)*cos(M_PI*y)
-                    - cos(3.0*M_PI*y)*cos(M_PI*x) );
+  std::vector< tk::real > s( 5, 0.0 );
+  s[4] = 3.0*M_PI/8.0*( cos(3.0*M_PI*x)*cos(M_PI*y)
+                      - cos(3.0*M_PI*y)*cos(M_PI*x) );
+
+  return s;
 }
 
 } // taylor_green::
@@ -463,20 +454,14 @@ ic( tk::real x, tk::real y, tk::real z, tk::real )
   return { 1.0, ru, rv, rw, rE };
 }
 
-static void
-src( tk::real x, tk::real y, tk::real z, tk::real,
-     tk::real& r, tk::real& ru, tk::real& rv, tk::real& rw, tk::real& re,
-     tk::real& )
+static std::vector< tk::real >
+src( tk::real x, tk::real y, tk::real z, tk::real )
 // *****************************************************************************
 //! Compute and return source term for vortical flow
 //! \param[in] x X coordinate where to evaluate the source
 //! \param[in] y Y coordinate where to evaluate the source
 //! \param[in] z Z coordinate where to evaluate the source
-//! \param[in,out] r Density source
-//! \param[in,out] ru X momentum source
-//! \param[in,out] rv Y momentum source
-//! \param[in,out] rw Z momentum source
-//! \param[in,out] re Specific total energy source
+//! \return Source for flow variables + transported scalars
 // *****************************************************************************
 {
   using inciter::g_inputdeck;
@@ -488,43 +473,178 @@ src( tk::real x, tk::real y, tk::real z, tk::real,
   // ratio of specific heats
   auto g = g_inputdeck.get< param, compflow, tag::gamma >()[0][0];
   // evaluate solution at x,y,z
-  auto s = ic( x, y, z, 0.0 );
+  auto u = ic( x, y, z, 0.0 );
 
-  // density source
-  r = 0.0;
+  std::vector< tk::real > s( 5, 0.0 );
   // momentum source
-  ru = a*s[1]/s[0] - b*s[2]/s[0];
-  rv = b*s[1]/s[0] + a*s[2]/s[0];
-  rw = 0.0;
+  s[1] = a*u[1]/u[0] - b*u[2]/u[0];
+  s[2] = b*u[1]/u[0] + a*u[2]/u[0];
   // energy source
-  re = (ru*s[1] + rv*s[2])/s[0] + 8.0*a*a*a*z*z/(g-1.0);
+  s[4] = (s[1]*u[1] + s[2]*u[2])/u[0] + 8.0*a*a*a*z*z/(g-1.0);
+
+  return s;
 }
 
 } // vortical_flow::
 
-namespace point_source {
+namespace slot_cyl {
 
-static void
-src( tk::real x, tk::real y, tk::real z, tk::real t,
-     tk::real&, tk::real&, tk::real&, tk::real&, tk::real&, tk::real& sc )
+static std::vector< tk::real >
+ic( tk::real x, tk::real y, tk::real, tk::real t )
 // *****************************************************************************
-//! Compute and return source term for vortical flow
+//! Set initial conditions prescribing slotted cylinder, cone, Gauss hump
+//! \param[in] x X coordinate where to evaluate the solution
+//! \param[in] y Y coordinate where to evaluate the solution
+//! \param[in] t Time where to evaluate the solution
+//! \return Values of conserved variables
+// *****************************************************************************
+{
+  using inciter::g_inputdeck;
+  using tag::param; using tag::compflow;
+  using std::sin; using std::cos; using std::sqrt;
+
+  // manufactured solution parameters
+  tk::real p0 = 1.0;
+
+  std::vector< tk::real > u( 6, 0.0 );
+
+  // prescribed velocity: rotate in x-y plane
+  u[0] = 1.0;
+  u[1] = u[0] * (0.5 - y);
+  u[2] = u[0] * (x - 0.5);
+  u[3] = 0.0;
+  u[4] = eos::totalenergy( u[0], u[1]/u[0], u[2]/u[0], u[3]/u[0], p0 );
+
+  const tk::real R0 = 0.15;
+
+  // center of the cone
+  tk::real x0 = 0.5;
+  tk::real y0 = 0.25;
+  tk::real r = sqrt((x0-0.5)*(x0-0.5) + (y0-0.5)*(y0-0.5));
+  tk::real kx = 0.5 + r*sin( t );
+  tk::real ky = 0.5 - r*cos( t );
+
+  // center of the hump
+  x0 = 0.25;
+  y0 = 0.5;
+  r = sqrt((x0-0.5)*(x0-0.5) + (y0-0.5)*(y0-0.5));
+  tk::real hx = 0.5 + r*sin( t-M_PI/2.0 ),
+           hy = 0.5 - r*cos( t-M_PI/2.0 );
+
+  // center of the slotted cylinder
+  x0 = 0.5;
+  y0 = 0.75;
+  r = sqrt((x0-0.5)*(x0-0.5) + (y0-0.5)*(y0-0.5));
+  tk::real cx = 0.5 + r*sin( t+M_PI ),
+           cy = 0.5 - r*cos( t+M_PI );
+
+  // end points of the cylinder slot
+  tk::real i1x = 0.525, i1y = cy - r*cos( std::asin(0.025/r) ),
+           i2x = 0.525, i2y = 0.8,
+           i3x = 0.475, i3y = 0.8;
+
+  // rotate end points of cylinder slot
+  tk::real ri1x = 0.5 + cos(t)*(i1x-0.5) - sin(t)*(i1y-0.5),
+           ri1y = 0.5 + sin(t)*(i1x-0.5) + cos(t)*(i1y-0.5),
+           ri2x = 0.5 + cos(t)*(i2x-0.5) - sin(t)*(i2y-0.5),
+           ri2y = 0.5 + sin(t)*(i2x-0.5) + cos(t)*(i2y-0.5),
+           ri3x = 0.5 + cos(t)*(i3x-0.5) - sin(t)*(i3y-0.5),
+           ri3y = 0.5 + sin(t)*(i3x-0.5) + cos(t)*(i3y-0.5);
+
+  // direction of slot sides
+  tk::real v1x = ri2x-ri1x, v1y = ri2y-ri1y,
+           v2x = ri3x-ri2x, v2y = ri3y-ri2y;
+
+  // lengths of direction of slot sides vectors
+  tk::real v1 = sqrt(v1x*v1x + v1y*v1y),
+           v2 = sqrt(v2x*v2x + v2y*v2y);
+
+  // cone
+  r = sqrt((x-kx)*(x-kx) + (y-ky)*(y-ky)) / R0;
+  if (r<1.0) u[5] = 0.6*(1.0-r);
+
+  // hump
+  r = sqrt((x-hx)*(x-hx) + (y-hy)*(y-hy)) / R0;
+  if (r<1.0) u[5] = 0.2*(1.0+cos(M_PI*std::min(r,1.0)));
+
+  // cylinder
+  r = sqrt((x-cx)*(x-cx) + (y-cy)*(y-cy)) / R0;
+  const std::array< tk::real, 2 > r1{{ v1x, v1y }},
+                                  r2{{ x-ri1x, y-ri1y }};
+  const auto d1 = (r1[0]*r2[1] - r2[0]*r1[1]) / v1;
+  const std::array< tk::real, 2 > r3{{ v2x, v2y }},
+                                  r4{{ x-ri2x, y-ri2y }};
+  const auto d2 = (r3[0]*r4[1] - r4[0]*r3[1]) / v2;
+  if (r<1.0 && (d1>0.05 || d1<0.0 || d2<0.0)) u[5] = 0.6;
+
+  return u;
+}
+
+static std::vector< tk::real >
+src( tk::real x, tk::real y, tk::real z, tk::real t )
+// *****************************************************************************
+//! Compute and return source term for slotted cylinder, cone, Gauss hump
 //! \param[in] x X coordinate where to evaluate the source
 //! \param[in] y Y coordinate where to evaluate the source
 //! \param[in] z Z coordinate where to evaluate the source
 //! \param[in] t Time where to evaluate the source
-//! \param[in,out] sc Scalar source
+//! \return Source for flow variables + transported scalars
+// *****************************************************************************
+{
+  // evaluate solution at x,y,z,t
+  auto u = ic( x, y, z, t );
+
+  std::vector< tk::real > s( 6, 0.0 );
+  // momentum source
+  s[1] = -u[0]*u[2];
+  s[2] =  u[0]*u[1];
+  // energy source
+  s[4] = (u[1]*s[1] + u[2]*s[2])/u[0];
+
+  return s;
+}
+
+} // slot_cyl::
+
+namespace point_source {
+
+static std::vector< tk::real >
+ic( tk::real x, tk::real y, tk::real z, tk::real t )
+// *****************************************************************************
+//! Set initial conditions for point source problem
+//! \param[in] x X coordinate where to evaluate the source
+//! \param[in] y Y coordinate where to evaluate the source
+//! \param[in] z Z coordinate where to evaluate the source
+//! \param[in] t Time where to evaluate the source
+//! \return Values of conserved variables
+// *****************************************************************************
+{
+  auto u = userdef::ic( x, y, z, t );
+  u.push_back( 0.0 );
+  return u;
+}
+
+static void
+src( const std::array< std::vector< tk::real >, 3 >& coord,
+     tk::real t,
+     tk::Fields& U )
+// *****************************************************************************
+//! Apply point-source directly to numerical solution
+//! \param[in] coord Mesh node coordinates
+//! \param[in] t Physical time
+//! \param[in,out] U Solution vector at recent time step
+//! \note This is different from other source terms, because this directly
+//!   modifies the solution instead of applied as a source term mathematically.
+//!   Hence the function signature is also different.
 // *****************************************************************************
 {
   using inciter::g_inputdeck;
-  using tag::transport;
 
-std::cout << "!";
-  const auto& ns = g_inputdeck.get< tag::param, transport, tag::source >();
+  const auto& nc = g_inputdeck.get< tag::component >().get< tag::compflow >();
+  if (nc[0] == 5) return;
+
+  const auto& ns = g_inputdeck.get< tag::param, tag::compflow, tag::source >();
   if (ns.empty()) return;
-
-  const auto& nc = g_inputdeck.get< tag::component >().get< transport >();
-  if (nc.empty()) return;
 
   const auto& src = ns[0];
 
@@ -538,7 +658,16 @@ std::cout << "!";
 
   if (t < st) return;
 
-  if (((sx-x)*(sx-x) + (sy-y)*(sy-y) + (sz-z)*(sz-z)) < sr*sr) sc = 1.0;
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  for (std::size_t i=0; i<U.nunk(); ++i) {
+    auto rx = sx - x[i];
+    auto ry = sy - y[i];
+    auto rz = sz - z[i];
+    if (rx*rx + ry*ry + rz*rz < sr*sr) U(i,5,0) = 1.0;
+  }
 }
 
 } // point_source::
@@ -573,6 +702,10 @@ IC()
     ic = taylor_green::ic;
   else if (problem == ProblemType::VORTICAL_FLOW)
     ic = vortical_flow::ic;
+  else if (problem == ProblemType::SLOT_CYL)
+    ic = slot_cyl::ic;
+  else if (problem == ProblemType::POINT_SRC)
+    ic = point_source::ic;
   else
     Throw( "problem type ic not hooked up" );
 
@@ -594,7 +727,8 @@ SOL()
 
   if (problem == ProblemType::USER_DEFINED ||
       problem == ProblemType::SOD ||
-      problem == ProblemType::SEDOV)
+      problem == ProblemType::SEDOV ||
+      problem == ProblemType::POINT_SRC)
     return {};
   else
     return IC();
@@ -622,16 +756,12 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
   // Set initial conditions dependeing on problem configured
   for (std::size_t i=0; i<x.size(); ++i) {
     auto s = ic( x[i], y[i], z[i], t );
-    U(i,0,0) = s[0]; // rho
-    U(i,1,0) = s[1]; // rho * u
-    U(i,2,0) = s[2]; // rho * v
-    U(i,3,0) = s[3]; // rho * w
-    U(i,4,0) = s[4]; // rho * e, e: total = kinetic + internal
+    for (std::size_t c=0; c<s.size(); ++c) U(i,c,0) = s[c];
   }
 }
 
-std::function< void( tk::real, tk::real, tk::real, tk::real,
-  tk::real&, tk::real&, tk::real&, tk::real&, tk::real&, tk::real& ) >
+std::function< std::vector< tk::real >
+                 ( tk::real, tk::real, tk::real, tk::real ) >
 SRC()
 // *****************************************************************************
 //  Query user config and assign function to add a source term
@@ -642,8 +772,7 @@ SRC()
   auto problem = g_inputdeck.get< tag::problem >();
 
   std::function<
-    void( tk::real, tk::real, tk::real, tk::real,
-      tk::real&, tk::real&, tk::real&, tk::real&, tk::real&, tk::real& ) > src;
+    std::vector< tk::real >( tk::real, tk::real, tk::real, tk::real ) > src;
 
   using ProblemType = inciter::ctr::ProblemType;
 
@@ -655,7 +784,31 @@ SRC()
     src = taylor_green::src;
   else if (problem == ProblemType::VORTICAL_FLOW)
     src = vortical_flow::src;
-  else if (problem == ProblemType::POINT_SOURCE)
+  else if (problem == ProblemType::SLOT_CYL)
+    src = slot_cyl::src;
+
+  return src;
+}
+
+std::function< void( const std::array< std::vector< tk::real >, 3 >&,
+                     tk::real,
+                     tk::Fields& ) >
+PHYS_SRC()
+// *****************************************************************************
+//  Query user config and assign function to apply source to numerical solution
+//! \return The function to call to evaluate a problem-sepcific source term
+// *****************************************************************************
+{
+  using inciter::g_inputdeck;
+  auto problem = g_inputdeck.get< tag::problem >();
+
+  std::function< void( const std::array< std::vector< tk::real >, 3 >&,
+                       tk::real,
+                       tk::Fields& ) > src;
+
+  using ProblemType = inciter::ctr::ProblemType;
+
+  if (problem == ProblemType::POINT_SRC)
     src = point_source::src;
 
   return src;

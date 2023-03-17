@@ -213,12 +213,12 @@ using ic = tk::TaggedTuple< brigand::list<
 
 //! Boundary conditions configuration (list of side sets for each eq system)
 using bc = tk::TaggedTuple< brigand::list<
-    tag::bcdir,             std::vector< std::vector<
-                              kw::sideset::info::expect::type > >
-  , tag::bcsym,             std::vector< std::vector<
-                              kw::sideset::info::expect::type > >
-  , tag::bcfarfield,        std::vector< std::vector<
-                              kw::sideset::info::expect::type > >
+    tag::dirichlet,     std::vector< std::vector<
+                          kw::sideset::info::expect::type > >
+  , tag::symmetry,      std::vector< std::vector<
+                          kw::sideset::info::expect::type > >
+  , tag::farfield,      std::vector< std::vector<
+                          kw::sideset::info::expect::type > >
 > >;
 
 //! Mesh assignment and configuration
@@ -287,6 +287,14 @@ using CompFlowPDEParameters = tk::TaggedTuple< brigand::list<
     //! Heat conductivity
   , tag::k,             std::vector<
                           std::vector< kw::mat_k::info::expect::type > >
+  , tag::diffusivity,   std::vector< std::vector<
+                          kw::pde_diffusivity::info::expect::type > >
+  , tag::lambda,        std::vector< std::vector<
+                          kw::pde_lambda::info::expect::type > >
+  , tag::u0,            std::vector< std::vector<
+                          kw::pde_u0::info::expect::type > >
+  , tag::source,        std::vector< std::vector<
+                          kw::pde_source::info::expect::type > >
 > >;
 
 //! Parameters storage

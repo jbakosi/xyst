@@ -26,15 +26,12 @@ namespace ctr {
 //! Problem types
 enum class ProblemType : uint8_t { USER_DEFINED
                                  , SHEAR_DIFF
-                                 , POINT_SOURCE
+                                 , POINT_SRC
                                  , VORTICAL_FLOW
                                  , NONLINEAR_ENERGY_GROWTH
                                  , RAYLEIGH_TAYLOR
                                  , TAYLOR_GREEN
                                  , SLOT_CYL
-                                 , GAUSS_HUMP
-                                 , CYL_ADVECT
-                                 , CYL_VORTEX
                                  , SOD
                                  , ROTATED_SOD_SHOCKTUBE
                                  , SEDOV
@@ -55,9 +52,6 @@ class Problem : public tk::Toggle< ProblemType > {
                                      , kw::rayleigh_taylor
                                      , kw::taylor_green
                                      , kw::slot_cyl
-                                     , kw::gauss_hump
-                                     , kw::cyl_advect
-                                     , kw::cyl_vortex
                                      , kw::sod_shocktube
                                      , kw::rotated_sod_shocktube
                                      , kw::sedov_blastwave
@@ -73,15 +67,12 @@ class Problem : public tk::Toggle< ProblemType > {
         //! Enums -> names
         { { ProblemType::USER_DEFINED, kw::user_defined::name() }
         , { ProblemType::SHEAR_DIFF, kw::shear_diff::name() }
-        , { ProblemType::POINT_SOURCE, kw::point_src::name() }
+        , { ProblemType::POINT_SRC, kw::point_src::name() }
         , { ProblemType::VORTICAL_FLOW, kw::vortical_flow::name() }
         , { ProblemType::NONLINEAR_ENERGY_GROWTH, kw::nl_energy_growth::name() }
         , { ProblemType::RAYLEIGH_TAYLOR, kw::rayleigh_taylor::name() }
         , { ProblemType::TAYLOR_GREEN, kw::taylor_green::name() }
         , { ProblemType::SLOT_CYL, kw::slot_cyl::name() }
-        , { ProblemType::GAUSS_HUMP, kw::gauss_hump::name() }
-        , { ProblemType::CYL_ADVECT, kw::cyl_advect::name() }
-        , { ProblemType::CYL_VORTEX, kw::cyl_vortex::name() }
         , { ProblemType::SOD, kw::sod_shocktube::name() }
         , { ProblemType::ROTATED_SOD_SHOCKTUBE,
            kw::rotated_sod_shocktube::name() }
@@ -90,16 +81,13 @@ class Problem : public tk::Toggle< ProblemType > {
         //! keywords -> Enums
         { { kw::user_defined::string(), ProblemType::USER_DEFINED }
         , { kw::shear_diff::string(), ProblemType::SHEAR_DIFF }
-        , { kw::point_src::string(), ProblemType::POINT_SOURCE }
+        , { kw::point_src::string(), ProblemType::POINT_SRC }
         , { kw::vortical_flow::string(), ProblemType::VORTICAL_FLOW }
         , { kw::nl_energy_growth::string(),
             ProblemType::NONLINEAR_ENERGY_GROWTH }
         , { kw::rayleigh_taylor::string(), ProblemType::RAYLEIGH_TAYLOR }
         , { kw::taylor_green::string(), ProblemType::TAYLOR_GREEN }
         , { kw::slot_cyl::string(), ProblemType::SLOT_CYL }
-        , { kw::gauss_hump::string(), ProblemType::GAUSS_HUMP }
-        , { kw::cyl_advect::string(), ProblemType::CYL_ADVECT }
-        , { kw::cyl_vortex::string(), ProblemType::CYL_VORTEX }
         , { kw::sod_shocktube::string(), ProblemType::SOD }
         , { kw::rotated_sod_shocktube::string(),
             ProblemType::ROTATED_SOD_SHOCKTUBE }
@@ -137,15 +125,12 @@ class Problem : public tk::Toggle< ProblemType > {
     std::map< ProblemType, std::string > policy {
         { ProblemType::USER_DEFINED, *kw::user_defined::code() }
       , { ProblemType::SHEAR_DIFF, *kw::shear_diff::code() }
-      , { ProblemType::POINT_SOURCE, *kw::point_src::code() }
+      , { ProblemType::POINT_SRC, *kw::point_src::code() }
       , { ProblemType::VORTICAL_FLOW, *kw::vortical_flow::code() }
       , { ProblemType::NONLINEAR_ENERGY_GROWTH, *kw::nl_energy_growth::code() }
       , { ProblemType::RAYLEIGH_TAYLOR, *kw::rayleigh_taylor::code() }      
       , { ProblemType::TAYLOR_GREEN, *kw::taylor_green::code() }      
       , { ProblemType::SLOT_CYL, *kw::slot_cyl::code() }
-      , { ProblemType::GAUSS_HUMP, *kw::gauss_hump::code() }
-      , { ProblemType::CYL_ADVECT, *kw::cyl_advect::code() }
-      , { ProblemType::CYL_VORTEX, *kw::cyl_vortex::code() }
       , { ProblemType::SOD, *kw::sod_shocktube::code() }
       , { ProblemType::ROTATED_SOD_SHOCKTUBE,
           *kw::rotated_sod_shocktube::code() }

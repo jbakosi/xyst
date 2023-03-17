@@ -186,29 +186,29 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
 //! \return True if sidesets have been used and found in mesh
 // *****************************************************************************
 {
-  using PDETypes = ctr::parameters::Keys;
-  // Query side set ids at which BCs assigned for all BC types for all PDEs
-  using PDEsBCs = tk::cartesian_product< PDETypes, ctr::bc::Keys >;
-  std::unordered_set< int > usedsets;
-  brigand::for_each< PDEsBCs >( UserBC( g_inputdeck, usedsets ) );
+  using tag::param; using tag::bc; using eq = tag::compflow;
+
+  // Collect side sets at which BCs are set
+  std::unordered_set< int > usersets;
+  for (const auto& s : g_inputdeck.get< param, eq, bc, tag::dirichlet >())
+    if (!s.empty()) usersets.insert( s[0] );
+  for (const auto& s : g_inputdeck.get< param, eq, bc, tag::symmetry >())
+    usersets.insert( s.begin(), s.end() );
+  for (const auto& s : g_inputdeck.get< param, eq, bc, tag::farfield >())
+    usersets.insert( s.begin(), s.end() );
  
   // Add sidesets requested for field output
-  const auto& ss = g_inputdeck.get< tag::cmd, tag::io, tag::surface >();
-  for (const auto& s : ss) {
-    std::stringstream conv( s );
-    int num;
-    conv >> num;
-    usedsets.insert( num );
-  }
- 
+  for (auto s : g_inputdeck.get< tag::cmd, tag::io, tag::surface >())
+    usersets.insert( s );
+
   // Find user-configured side set ids among side sets read from mesh file
   std::unordered_set< int > sidesets_used;
-  for (auto i : usedsets) {       // for all side sets used in control file
+  for (auto i : usersets) {       // for all side sets used in control file
     if (bnd.find(i) != end(bnd))  // used set found among side sets in file
       sidesets_used.insert( i );  // store side set id configured as BC
     else {
-      Throw( "Boundary conditions specified on side set " +
-        std::to_string(i) + " which does not exist in mesh file" );
+      Throw( "Boundary conditions specified on side set " + std::to_string(i) +
+             " which does not exist in mesh file" );
     }
   }
  
@@ -740,12 +740,10 @@ Transporter::diagHeader()
 
   // Collect variables names for integral/diagnostics output
   std::vector< std::string > var{ "r", "ru", "rv", "rw", "re" };
-  const auto& nt = g_inputdeck.get< tag::component >().get< tag::transport >();
-  if (!nt.empty())
-    for (std::size_t c=0; c<nt[0]; ++c)
-      var.push_back( "c" + std::to_string(c) );
+  auto ncomp = g_inputdeck.get< tag::component, tag::compflow >()[0];
+  for (std::size_t c=5; c<ncomp; ++c)
+    var.push_back( "c" + std::to_string(c-5) );
 
-  const tk::ctr::Error opt;
   auto nv = var.size();
   std::vector< std::string > d;
 
@@ -1016,7 +1014,7 @@ Transporter::diagnostics( CkReductionMsg* msg )
   delete msg;
 
   auto id = std::to_string(meshid);
-  auto ncomp = g_inputdeck.get< tag::component >().nprop();
+  auto ncomp = g_inputdeck.get< tag::component, tag::compflow >()[0];
 
   Assert( ncomp > 0, "Number of scalar components must be positive");
   Assert( d.size() == NUMDIAG, "Diagnostics vector size mismatch" );

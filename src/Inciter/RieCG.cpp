@@ -52,9 +52,7 @@ RieCG::RieCG( const CProxy_Discretization& disc,
   m_nbeint( 0 ),
   m_ndeint( 0 ),
   m_ngrad( 0 ),
-  m_ncomp( 5 +
-     (g_inputdeck.get<tag::component>().get<tag::transport>().empty() ? 0 :
-      g_inputdeck.get<tag::component>().get<tag::transport>()[0] ) ),
+  m_ncomp( g_inputdeck.get< tag::component, tag::compflow >()[0] ),
   m_bnode( bnode ),
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
@@ -110,6 +108,56 @@ RieCG::RieCG( const CProxy_Discretization& disc,
 //! [Constructor]
 
 void
+RieCG::setupBC()
+// *****************************************************************************
+// Prepare boundary condition data structures
+// *****************************************************************************
+{
+  using inciter::g_inputdeck; using tag::param; using tag::bc;
+
+  auto d = Disc();
+
+  // Query BC nodes associated to side sets
+  auto dir = d->bcnodes< bc, tag::dirichlet >( m_bface, m_triinpoel );
+
+  auto ncomp = m_u.nprop();
+  auto nmask = ncomp + 1;
+
+  // Collect unique set of nodes + Dirichlet BC components mask
+  const auto& dbc =
+    g_inputdeck.get< param, tag::compflow, bc, tag::dirichlet >();
+  std::unordered_map< std::size_t, std::vector< int > > dirbcset;
+  for (const auto& mask : dbc) {
+    ErrChk( mask.size() == nmask, "Incorrect Dirichlet BC mask ncomp" );
+    auto n = dir.find( mask[0] );
+    if (n != end(dir))
+      for (auto p : n->second) {
+        auto& m = dirbcset[p];
+        if (m.empty()) m.resize( ncomp, 0 );
+        for (std::size_t c=1; c<mask.size(); ++c)
+          if (!m[c-1]) m[c-1] = mask[c];  // overwrite mask if 0 -> 1
+      }
+  }
+
+  // Compile streamable list of nodes + Dirichlet BC components mask
+  for (const auto& [p,mask] : dirbcset) {
+    m_dirbcmasks.push_back( p );
+    m_dirbcmasks.insert( end(m_dirbcmasks), begin(mask), end(mask) );
+  }
+
+  ErrChk( m_dirbcmasks.size() % nmask == 0, "Dirichlet BC masks incomplete" );
+
+  auto sym = d->bcnodes< bc, tag::symmetry >( m_bface, m_triinpoel );
+  auto far = d->bcnodes< bc, tag::farfield >( m_bface, m_triinpoel );
+
+  for (const auto& [s,n] : sym) m_symbcnodeset.insert( begin(n), end(n) );
+  for (const auto& [s,n] : far) m_farbcnodeset.insert( begin(n), end(n) );
+
+  // If farfield BC is set on a node, will not also set symmetry BC
+  for (auto i : m_farbcnodeset) m_symbcnodeset.erase(i);
+}
+
+void
 RieCG::integrals()
 // *****************************************************************************
 // Start (re-)computing domain and boundary integrals
@@ -117,21 +165,8 @@ RieCG::integrals()
 {
   auto d = Disc();
 
-  // Query BC nodes associated to side sets
-  auto dir = d->bcnodes< tag::bc, tag::bcdir >( m_bface, m_triinpoel );
-  auto sym = d->bcnodes< tag::bc, tag::bcsym >( m_bface, m_triinpoel );
-  auto far = d->bcnodes< tag::bc, tag::bcfarfield >( m_bface, m_triinpoel );
-
-  // Compile unique set of BC nodes
-  for (const auto& [s,n] : dir)
-    m_dirbcnodes.insert( end(m_dirbcnodes), begin(n), end(n) );
-  tk::unique( m_dirbcnodes );
-
-  for (const auto& [s,n] : sym) m_symbcnodeset.insert( begin(n), end(n) );
-  for (const auto& [s,n] : far) m_farbcnodeset.insert( begin(n), end(n) );
-
-  // If farfield BC is set on a node, will not also set symmetry BC
-  for (auto i : m_farbcnodeset) m_symbcnodeset.erase(i);
+  // Prepare boundary conditions data structures
+  setupBC();
 
   // Compute local contributions to boundary normals and integrals
   bndint();
@@ -352,8 +387,12 @@ RieCG::setup()
   // Query time history field output labels from all PDEs integrated
   const auto& hist_points = g_inputdeck.get< tag::history, tag::point >();
   if (!hist_points.empty()) {
-    d->histheader( { "density", "xvelocity", "yvelocity", "zvelocity",
-                     "energy", "pressure" } );
+    std::vector< std::string > var
+      {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
+    auto ncomp = m_u.nprop();
+    for (std::size_t c=5; c<ncomp; ++c)
+      var.push_back( "c" + std::to_string(c-5) );
+    d->histheader( std::move(var) );
   }
 }
 //! [setup]
@@ -486,10 +525,10 @@ RieCG::merge()
 
   // Convert symmetry BC data to streamable data structures
   const auto& sbc =
-    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::bcsym >();
+    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::symmetry >();
   for (auto p : m_symbcnodeset) {
     for (const auto& s : sbc[0]) {
-      auto m = m_bnorm.find(std::stoi(s));
+      auto m = m_bnorm.find(s);
       if (m != end(m_bnorm)) {
         auto r = m->second.find(p);
         if (r != end(m->second)) {
@@ -505,10 +544,10 @@ RieCG::merge()
 
   // Convert farfield BC data to streamable data structures
   const auto& fbc =
-    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::bcfarfield >();
+    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::farfield >();
   for (auto p : m_farbcnodeset) {
     for (const auto& s : fbc[0]) {
-      auto n = m_bnorm.find(std::stoi(s));
+      auto n = m_bnorm.find(s);
       if (n != end(m_bnorm)) {
         auto a = n->second.find(p);
         if (a != end(n->second)) {
@@ -551,7 +590,7 @@ RieCG::BC()
 
   // Apply Dirichlet BCs
   auto t = d->T() + rkcoef[m_stage] * d->Dt();
-  physics::dirbc( m_u, t, coord, m_dirbcnodes );
+  physics::dirbc( m_u, t, coord, m_dirbcmasks );
 
   // Apply symmetry BCs
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms );
@@ -800,6 +839,10 @@ RieCG::solve()
 
   }
 
+  // Configure and apply scalar source to solution (if defined)
+  auto src = problems::PHYS_SRC();
+  if (src) src( d->Coord(), d->T(), m_u );
+
   // Enforce boundary conditions
   BC();
 
@@ -849,7 +892,8 @@ RieCG::refine( const std::vector< tk::real >& l2res )
 
     // this is the last time step if max time of max number of time steps
     // reached or the residual has reached its convergence criterion
-    if (d->finished() or l2res[rc] < residual) m_finished = 1;
+    if (d->finished() or (l2res[rc] > 0.0 and l2res[rc] < residual))
+      m_finished = 1;
 
   } else {
 
@@ -1001,6 +1045,37 @@ RieCG::writeFields( CkCallback cb )
       nodefields.push_back( m_u.extract( 5+c, 0 ) );
     }
 
+    // query function to evaluate analytic solution (if defined)
+    auto sol = problems::SOL();
+
+    if (sol) {
+      const auto& coord = d->Coord();
+      const auto& x = coord[0];
+      const auto& y = coord[1];
+      const auto& z = coord[2];
+      auto an = m_u;
+      std::vector< tk::real > ap( m_u.nunk() );
+      for (std::size_t i=0; i<an.nunk(); ++i) {
+        auto s = sol( x[i], y[i], z[i], d->T() );
+        s[1] /= s[0];
+        s[2] /= s[0];
+        s[3] /= s[0];
+        s[4] = s[4] / s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
+        ap[i] = eos::pressure( s[0], s[4] );
+        for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
+      }
+      for (std::size_t c=0; c<5; ++c) {
+        nodefieldnames.push_back( nodefieldnames[c] + "_analytic" );
+        nodefields.push_back( an.extract( c, 0 ) );
+      }
+      nodefieldnames.push_back( nodefieldnames[5] + "_analytic" );
+      nodefields.push_back( std::move(ap) );
+      for (std::size_t c=0; c<ncomp-5; ++c) {
+        nodefieldnames.push_back( nodefieldnames[6+c] + "_analytic" );
+        nodefields.push_back( an.extract( 5+c, 0 ) );
+      }
+    }
+
     Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 
     // Surface output
@@ -1058,13 +1133,14 @@ RieCG::out()
 
   if (d->histiter() or d->histtime() or d->histrange()) {
 
+    auto ncomp = m_u.nprop();
     const auto& inpoel = d->Inpoel();
     std::vector< std::vector< tk::real > > hist( d->Hist().size() );
     std::size_t j = 0;
     for (const auto& p : d->Hist()) {
       auto e = p.get< tag::elem >();        // host element id
       const auto& n = p.get< tag::fn >();   // shapefunctions evaluated at point
-      hist[j].resize( 6, 0.0 );
+      hist[j].resize( ncomp+1, 0.0 );
       for (std::size_t i=0; i<4; ++i) {
         const auto u = m_u[ inpoel[e*4+i] ];
         hist[j][0] += n[i] * u[0];
@@ -1074,6 +1150,7 @@ RieCG::out()
         hist[j][4] += n[i] * u[4]/u[0];
         auto ei = u[4]/u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3])/u[0]/u[0];
         hist[j][5] += n[i] * eos::pressure( u[0], ei );
+        for (std::size_t c=5; c<ncomp; ++c) hist[j][c+1] += n[i] * u[c];
       }
       ++j;
     }

@@ -1944,55 +1944,6 @@ struct slot_cyl_info {
 };
 using slot_cyl = keyword< slot_cyl_info, TAOCPP_PEGTL_STRING("slot_cyl") >;
 
-struct gauss_hump_info {
-  using code = Code< G >;
-  static std::string name() { return "Advection of 2D Gaussian hump"; }
-  static std::string shortDescription() { return
-    "Select advection of 2D Gaussian hump test problem"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the advection of 2D Gaussian hump test
-    problem. The initial and boundary conditions are specified to set up the
-    test problem suitable to exercise and test the advection
-    terms of the scalar transport equation. Example: "problem gauss_hump".)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-  };
-};
-using gauss_hump = keyword< gauss_hump_info, TAOCPP_PEGTL_STRING("gauss_hump") >;
-
-struct cyl_advect_info {
-  using code = Code< C >;
-  static std::string name() { return "Advection of cylinder"; }
-  static std::string shortDescription() { return
-    "Select advection of cylinder test problem"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the advection of cylinder test
-    problem. The initial and boundary conditions are specified to set up the
-    test problem suitable to exercise and test the advection
-    terms of the scalar transport equation. Example: "problem cyl_advect".)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-  };
-};
-using cyl_advect = keyword< cyl_advect_info, TAOCPP_PEGTL_STRING("cyl_advect") >;
-
-struct cyl_vortex_info {
-  using code = Code< X >;
-  static std::string name() { return "Deformation of cylinder in a vortex"; }
-  static std::string shortDescription() { return
-    "Select deformation of cylinder in a vortex test problem"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the test problem which deforms a cylinder
-    in a vortical velocity field. The initial and boundary conditions are
-    specified to set up the test problem suitable to exercise and test the
-    advection terms of the scalar transport equation.
-    Example: "problem cyl_vortex".)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-  };
-};
-using cyl_vortex = keyword< cyl_vortex_info, TAOCPP_PEGTL_STRING("cyl_vortex") >;
-
 struct vortical_flow_info {
   using code = Code< V >;
   static std::string name() { return "Vortical flow"; }
@@ -2154,9 +2105,6 @@ struct problem_info {
                   + shear_diff::string() + "\' | \'"
                   + point_src::string() + "\' | \'"
                   + slot_cyl::string() + "\' | \'"
-                  + gauss_hump::string() + "\' | \'"
-                  + cyl_advect::string() + "\' | \'"
-                  + cyl_vortex::string() + "\' | \'"
                   + vortical_flow::string() + "\' | \'"
                   + nl_energy_growth::string() + "\' | \'"
                   + rayleigh_taylor::string() + "\' | \'"
@@ -2493,7 +2441,7 @@ struct sideset_info {
     solving partial differential equation.)";
   }
   struct expect {
-    using type = std::string;
+    using type = int;
     static std::string description() { return "strings"; }
   };
 };

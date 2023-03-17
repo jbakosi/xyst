@@ -278,7 +278,7 @@ class Discretization : public CBase_Discretization {
           g_inputdeck.template get< tag::param, Eq, tags... >();
         for (const auto& eq : ss) {
           for (const auto& s : eq) {
-            auto k = m_bface.find( std::stoi(s) );
+            auto k = m_bface.find(s);
             if (k != end(m_bface)) {
               auto& n = m_nodes[ k->first ];  // associate set id
               for (auto f : k->second) {      // face ids on side set

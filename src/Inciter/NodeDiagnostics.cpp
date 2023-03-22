@@ -13,6 +13,7 @@
 */
 // *****************************************************************************
 
+#include "Diagnostics.hpp"
 #include "NodeDiagnostics.hpp"
 #include "DiagReducer.hpp"
 #include "Discretization.hpp"
@@ -41,7 +42,7 @@ NodeDiagnostics::registerReducers()
 //!   http://charm.cs.illinois.edu/manuals/html/charm++/manual.html.
 // *****************************************************************************
 {
-  DiagMerger = CkReduction::addReducer( mergeDiag );
+  DiagMerger = CkReduction::addReducer( diagnostics::mergeDiag );
 }
 
 bool
@@ -65,6 +66,8 @@ NodeDiagnostics::compute( Discretization& d,
 // *****************************************************************************
 {
   // Optionally collect diagnostics and send for aggregation across all workers
+
+  using namespace diagnostics;
 
   // Query after how many time steps user wants to dump diagnostics
   auto diagfreq = g_inputdeck.get< tag::output, tag::iter, tag::diag >();
@@ -108,9 +111,8 @@ NodeDiagnostics::compute( Discretization& d,
       // Compute sum for L2 norm of the residual
       for (std::size_t c=0; c<ncomp; ++c)
         diag[L2RES][c] += (u(i,c,0)-un(i,c,0)) * (u(i,c,0)-un(i,c,0)) * v[i];
-      // Compute sum for the total energy over the entire domain (only the first
-      // entry is used)
-      diag[TOTALSOL][0] += u(i,ncomp-1,0) * v[i];
+      // Compute sum for the total energy over the entire domain (first entry)
+      diag[TOTALSOL][0] += u(i,4,0) * v[i];
       // Compute sum for L2 norm of the numerical-analytic solution
       if (sol) {
         auto nu = u[i];

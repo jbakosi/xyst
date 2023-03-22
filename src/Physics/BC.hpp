@@ -35,4 +35,10 @@ farbc( tk::Fields& U,
        const std::vector< std::size_t >& farbcnodes,
        const std::vector< tk::real >& farbcnorms );
 
+//! Set pressure boundary conditions at nodes
+void
+prebc( tk::Fields& U,
+       const std::vector< std::size_t >& prebcnodes,
+       const std::vector< tk::real >& prebcvals );
+
 } // physics::

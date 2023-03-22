@@ -177,6 +177,9 @@ class Transporter : public CBase_Transporter {
     //!   residuals, from all  worker chares
     void diagnostics( CkReductionMsg* msg );
 
+    //! \brief Reduction target optionally collecting integrals
+    void integrals( CkReductionMsg* msg );
+
     //! Resume execution from checkpoint/restart files
     void resume();
 
@@ -298,6 +301,9 @@ class Transporter : public CBase_Transporter {
 
     //! Configure and write diagnostics file header
     void diagHeader();
+
+    //! Configure and write integrals file header
+    void integralsHeader();
 
     //! Print out time integration header to screen
     void inthead( const InciterPrint& print );

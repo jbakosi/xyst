@@ -139,6 +139,7 @@ struct control { static std::string name() { return "control"; } };
 struct stat { static std::string name() { return "stat"; } };
 struct field { static std::string name() { return "field"; } };
 struct surface { static std::string name() { return "surface"; } };
+struct integral { static std::string name() { return "integral"; } };
 struct kappa { static std::string name() { return "kappa"; } };
 struct rho2 { static std::string name() { return "rho2"; } };
 struct rho { static std::string name() { return "rho"; } };
@@ -170,6 +171,8 @@ struct farfield_density {
 struct farfield_velocity {
   static std::string name() { return "farfield_velocity"; } };
 struct farfield { static std::string name() { return "farfield"; } };
+struct pressure_pressure { static std::string name() { return "pressure_pressure"; } };
+struct pressure_density { static std::string name() { return "pressure_density"; } };
 struct component { static std::string name() { return "component"; } };
 struct rescomp { static std::string name() { return "residual component"; } };
 struct iter { static std::string name() { return "iter"; } };

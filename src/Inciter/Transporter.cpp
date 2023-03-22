@@ -23,8 +23,6 @@
 #include <limits>
 #include <cmath>
 
-#include <brigand/algorithms/for_each.hpp>
-
 #include "Macro.hpp"
 #include "Transporter.hpp"
 #include "Fields.hpp"
@@ -35,8 +33,9 @@
 #include "MeshReader.hpp"
 #include "Inciter/Types.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
-#include "NodeDiagnostics.hpp"
 #include "DiagWriter.hpp"
+#include "Diagnostics.hpp"
+#include "Integrals.hpp"
 #include "Callback.hpp"
 #include "CartesianProduct.hpp"
 #include "Problems.hpp"
@@ -110,6 +109,9 @@ Transporter::Transporter() :
 
     // Configure and write diagnostics file header
     diagHeader();
+
+    // Configure and write integrals file header
+    integralsHeader();
 
     // Create mesh partitioner AND boundary condition object group
     createPartitioner();
@@ -198,8 +200,13 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
     usersets.insert( s.begin(), s.end() );
  
   // Add sidesets requested for field output
-  for (auto s : g_inputdeck.get< tag::cmd, tag::io, tag::surface >())
-    usersets.insert( s );
+  const auto& sidesets_field =
+    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::field >();
+  for (auto s : sidesets_field) usersets.insert( s );
+  // Add sidesets requested for integral output
+  const auto& sidesets_integral =
+    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
+  for (auto s : sidesets_integral) usersets.insert( s );
 
   // Find user-configured side set ids among side sets read from mesh file
   std::unordered_set< int > sidesets_used;
@@ -649,7 +656,7 @@ Transporter::resized( std::size_t meshid )
 // *****************************************************************************
 {
   m_discretization[ meshid ].vol();
-  m_riecg[ meshid ].integrals();
+  m_riecg[ meshid ].feop();
 }
 
 void
@@ -774,6 +781,27 @@ Transporter::diagHeader()
 
   // Write diagnostics header
   dw.header( d );
+}
+
+void
+Transporter::integralsHeader()
+// *****************************************************************************
+// Configure and write integrals file header
+// *****************************************************************************
+{
+  auto filename = g_inputdeck.get< tag::cmd, tag::io, tag::output >() + ".int";
+  tk::DiagWriter dw( filename,
+                     g_inputdeck.get< tag::flformat, tag::integral >(),
+                     g_inputdeck.get< tag::prec, tag::integral >() );
+
+  // Collect variables names for integral output
+  const auto& sidesets_integral =
+    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
+  std::vector< std::string > var;
+  for (auto s : sidesets_integral) var.push_back( "|rudA" + std::to_string(s) );
+
+  // Write integrals header
+  dw.header( var );
 }
 
 void
@@ -986,9 +1014,10 @@ Transporter::inthead( const InciterPrint& print )
   "       EGT - estimated grind wall-clock time (ms/timestep)\n"
   "       flg - status flags, legend:\n"
   "             f - " + std::string(refined ? "refined " : "")
-                      + "field (volume and surface)\n"
-  "             d - diagnostics\n"
-  "             t - physics time history\n"
+                      + "field (volume and surface) output\n"
+  "             i - integral output\n"
+  "             d - diagnostics output\n"
+  "             t - physics time history output\n"
   "             h - h-refinement\n"
   "             l - load balancing\n"
   "             r - checkpoint\n",
@@ -1001,9 +1030,10 @@ Transporter::diagnostics( CkReductionMsg* msg )
 // *****************************************************************************
 // Reduction target optionally collecting diagnostics, e.g., residuals
 //! \param[in] msg Serialized diagnostics vector aggregated across all PEs
-//! \note Only used for nodal schemes
 // *****************************************************************************
 {
+  using namespace diagnostics;
+
   std::size_t meshid;
   std::vector< std::vector< tk::real > > d;
 
@@ -1055,10 +1085,51 @@ Transporter::diagnostics( CkReductionMsg* msg )
                      g_inputdeck.get< tag::flformat, tag::diag >(),
                      g_inputdeck.get< tag::prec, tag::diag >(),
                      std::ios_base::app );
-  dw.diag( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
+  dw.write( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
 
   // Continue time step
   m_riecg[ meshid ].refine( l2res );
+}
+
+void
+Transporter::integrals( CkReductionMsg* msg )
+// *****************************************************************************
+// Reduction target optionally collecting integrals
+//! \param[in] msg Serialized integrals aggregated across all PEs
+// *****************************************************************************
+{
+  using namespace integrals;
+
+  std::size_t meshid;
+  std::vector< std::map< int, tk::real > > d;
+
+  // Deserialize integrals vector
+  PUP::fromMem creator( msg->getData() );
+  creator | meshid;
+  creator | d;
+  delete msg;
+
+  Assert( d.size() == NUMINT, "Integrals vector size mismatch" );
+
+  // Allocate storage for integrals final values
+  std::vector< tk::real > ints;
+
+  // Collect integrals for output
+  for (const auto& [s,m] : d[MASS_FLOW_RATE]) ints.push_back( m );
+
+  // Append integrals file at selected times
+  auto filename = g_inputdeck.get< tag::cmd, tag::io, tag::output >() + ".int";
+  tk::DiagWriter dw( filename,
+                     g_inputdeck.get< tag::flformat, tag::integral >(),
+                     g_inputdeck.get< tag::prec, tag::integral >(),
+                     std::ios_base::app );
+  dw.write( static_cast<uint64_t>(tk::cref_find( d[ITER], 0 )),
+            tk::cref_find( d[TIME], 0 ),
+            tk::cref_find( d[DT], 0 ),
+            ints );
+
+  // Continue time step
+  m_riecg[ meshid ].step();
 }
 
 void

@@ -72,10 +72,10 @@ DiagWriter::header( const std::vector< std::string >& name ) const
 }
 
 std::size_t
-DiagWriter::diag( uint64_t it,
-                  tk::real t,
-                  tk::real dt,
-                  const std::vector< tk::real >& diagnostics )
+DiagWriter::write( uint64_t it,
+                   tk::real t,
+                   tk::real dt,
+                   const std::vector< tk::real >& diagnostics )
 // *****************************************************************************
 //  Write out diagnostics
 //! \param[in] it Iteration counter

@@ -51,10 +51,13 @@ Discretization::Discretization(
   m_lastDumpTime( -std::numeric_limits< tk::real >::max() ),
   m_physFieldFloor( 0.0 ),
   m_physHistFloor( 0.0 ),
+  m_physIntFloor( 0.0 ),
   m_rangeFieldFloor(
     g_inputdeck.get< tag::output, tag::range, tag::field >().size(), 0.0 ),
   m_rangeHistFloor(
     g_inputdeck.get< tag::output, tag::range, tag::history >().size(), 0.0 ),
+  m_rangeIntFloor(
+    g_inputdeck.get< tag::output, tag::range, tag::integral >().size(), 0.0 ),
   m_dt( g_inputdeck.get< tag::discr, tag::dt >() ),
   m_dtn( m_dt ),
   m_nvol( 0 ),
@@ -626,7 +629,7 @@ Discretization::write(
            g_inputdeck.get< tag::cmd, tag::io, tag::output >(),
            inpoel, coord, bface, bnode, triinpoel, elemfieldnames,
            nodefieldnames, nodesurfnames, elemfields, nodefields, nodesurfs,
-           g_inputdeck.outsets(), c );
+           g_inputdeck.fieldoutsets(), c );
 }
 
 void
@@ -656,16 +659,24 @@ Discretization::next()
   if (ft > eps) m_physFieldFloor = std::floor( m_t / ft );
   const auto ht = g_inputdeck.get< tag::output, tag::time, tag::history >();
   if (ht > eps) m_physHistFloor = std::floor( m_t / ht );
+  const auto it = g_inputdeck.get< tag::output, tag::time, tag::integral >();
+  if (it > eps) m_physIntFloor = std::floor( m_t / it );
 
   // Update floors of physics time divided by output interval times for ranges
   const auto& rf = g_inputdeck.get< tag::output, tag::range, tag::field >();
   for (std::size_t i=0; i<rf.size(); ++i)
     if (m_t > rf[i][0] and m_t < rf[i][1])
       m_rangeFieldFloor[i] = std::floor( m_t / rf[i][2] );
+
   const auto& rh = g_inputdeck.get< tag::output, tag::range, tag::history >();
   for (std::size_t i=0; i<rh.size(); ++i)
     if (m_t > rh[i][0] and m_t < rh[i][1])
       m_rangeHistFloor[i] = std::floor( m_t / rh[i][2] );
+
+  const auto& ri = g_inputdeck.get< tag::output, tag::range, tag::integral >();
+  for (std::size_t i=0; i<ri.size(); ++i)
+    if (m_t > ri[i][0] and m_t < ri[i][1])
+      m_rangeIntFloor[i] = std::floor( m_t / ri[i][2] );
 
   ++m_it;
   m_t += m_dt;
@@ -767,7 +778,7 @@ Discretization::history( std::vector< std::vector< tk::real > >&& data )
                        g_inputdeck.get< tag::flformat, tag::history >(),
                        prec,
                        std::ios_base::app );
-    hw.diag( m_it, m_t, m_dt, data[i] );
+    hw.write( m_it, m_t, m_dt, data[i] );
     ++i;
   }
 }
@@ -829,6 +840,8 @@ Discretization::histiter() const
 //! \return True if history output iteration count interval is hit
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::benchmark >()) return false;
+
   const auto hist = g_inputdeck.get< tag::output, tag::iter, tag::history >();
   const auto& hist_points = g_inputdeck.get< tag::history, tag::point >();
 
@@ -869,6 +882,60 @@ Discretization::histrange() const
   for (std::size_t i=0; i<rh.size(); ++i)
     if (m_t > rh[i][0] and m_t < rh[i][1])
       output |= std::floor(m_t/rh[i][2]) - m_rangeHistFloor[i] > eps;
+
+  return output;
+}
+
+bool
+Discretization::intiter() const
+// *****************************************************************************
+//  Decide if integral output iteration count interval is hit
+//! \return True if integral output iteration count interval is hit
+// *****************************************************************************
+{
+  if (g_inputdeck.get< tag::cmd, tag::benchmark >()) return false;
+
+  const auto integ = g_inputdeck.get< tag::output, tag::iter, tag::integral >();
+  const auto& sidesets_integral =
+    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
+
+  return m_it % integ == 0 and not sidesets_integral.empty();
+}
+
+bool
+Discretization::inttime() const
+// *****************************************************************************
+//  Decide if integral output physics time interval is hit
+//! \return True if integral output physics time interval is hit
+// *****************************************************************************
+{
+  if (g_inputdeck.get< tag::cmd, tag::benchmark >()) return false;
+
+  const auto eps = std::numeric_limits< tk::real >::epsilon();
+  const auto it = g_inputdeck.get< tag::output, tag::time, tag::integral >();
+
+  if (it < eps) return false;
+
+  return std::floor(m_t/it) - m_physIntFloor > eps;
+}
+
+bool
+Discretization::intrange() const
+// *****************************************************************************
+//  Decide if physics time falls into a integral output time range
+//! \return True if physics time falls into a integral output time range
+// *****************************************************************************
+{
+  if (g_inputdeck.get< tag::cmd, tag::benchmark >()) return false;
+
+  const auto eps = std::numeric_limits< tk::real >::epsilon();
+
+  bool output = false;
+
+  const auto& ri = g_inputdeck.get< tag::output, tag::range, tag::integral >();
+  for (std::size_t i=0; i<ri.size(); ++i)
+    if (m_t > ri[i][0] and m_t < ri[i][1])
+      output |= std::floor(m_t/ri[i][2]) - m_rangeIntFloor[i] > eps;
 
   return output;
 }
@@ -944,6 +1011,7 @@ Discretization::status()
     if (fielditer() or fieldtime() or fieldrange()) print << 'f';
     if (not (m_it % diag)) print << 'd';
     if (histiter() or histtime() or histrange()) print << 't';
+    if (intiter() or inttime() or intrange()) print << 'i';
     if (m_refined) print << 'h';
     if (not (m_it % lbfreq) && not finished()) print << 'l';
     if (not benchmark && (not (m_it % rsfreq) || finished())) print << 'r';

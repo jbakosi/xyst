@@ -95,12 +95,15 @@ using precision = tk::TaggedTuple< brigand::list<
     tag::diag, kw::precision::info::expect::type
     //! History output precision
   , tag::history, kw::precision::info::expect::type
+    //! Integral output precision
+  , tag::integral, kw::precision::info::expect::type
 > >;
 
 //! ASCII output floating-point format
 using floatformat = tk::TaggedTuple< brigand::list<
     tag::diag,    tk::ctr::TxtFloatFormatType  //!< Diagnostics output format
   , tag::history, tk::ctr::TxtFloatFormatType  //!< History output format
+  , tag::integral,tk::ctr::TxtFloatFormatType  //!< Integral output format
 > >;
 
 //! Output intervals in units of iteration count
@@ -111,6 +114,8 @@ using interval_iter = tk::TaggedTuple< brigand::list<
   , tag::field,   kw::interval_iter::info::expect::type
     //! History output interval
   , tag::history, kw::interval_iter::info::expect::type
+    //! Integral output interval
+  , tag::integral,kw::interval_iter::info::expect::type
     //! Diags output interval
   , tag::diag,    kw::interval_iter::info::expect::type
 > >;
@@ -121,6 +126,8 @@ using interval_time = tk::TaggedTuple< brigand::list<
     tag::field,   kw::interval_time::info::expect::type
     //! History output interval
   , tag::history, kw::interval_time::info::expect::type
+    //! Integral output interval
+  , tag::integral, kw::interval_time::info::expect::type
 > >;
 
 //! Output time ranges in units of physics time
@@ -133,6 +140,10 @@ using time_range = tk::TaggedTuple< brigand::list<
     //!        inner vector: mintime, maxtime, dt
   , tag::history, std::vector<
                     std::vector< kw::time_range::info::expect::type > >
+    //! \brief Integral output configuration: outer vector: multiple ranges,
+    //!        inner vector: mintime, maxtime, dt
+  , tag::integral, std::vector<
+                     std::vector< kw::time_range::info::expect::type > >
 > >;
 
 //! Output configuration parameters
@@ -157,6 +168,14 @@ using Sources = tk::TaggedTuple< brigand::list<
   , tag::id,      std::vector< std::string >     //!< Point identifiers
 > >;
 
+//! Surface I/O parameters storage
+using surface = tk::TaggedTuple< brigand::list<
+    //! List of side sets to save as field output
+    tag::field,    std::vector< kw::sideset::info::expect::type >
+    //! List of side sets at which to save integral output
+  , tag::integral, std::vector< kw::sideset::info::expect::type >
+> >;
+
 //! IO parameters storage
 using ios = tk::TaggedTuple< brigand::list<
     tag::nrestart,  int                             //!< Number of restarts
@@ -166,8 +185,7 @@ using ios = tk::TaggedTuple< brigand::list<
     //! Refined output (output field data on a refined mesh)
   , tag::refined,   kw::refined::info::expect::type
   , tag::screen,    kw::screen::info::expect::type  //!< Screen output filename
-    //! List of side sets to save as field output
-  , tag::surface,   std::vector< kw::sideset::info::expect::type >
+  , tag::surface,   surface
     //! Diagnostics filename
   , tag::diag,      kw::diagnostics_cmd::info::expect::type
   , tag::particles, std::string                     //!< Particles filename
@@ -219,6 +237,8 @@ using bc = tk::TaggedTuple< brigand::list<
                           kw::sideset::info::expect::type > >
   , tag::farfield,      std::vector< std::vector<
                           kw::sideset::info::expect::type > >
+  , tag::pressure,      std::vector< std::vector<
+                          kw::sideset::info::expect::type > >
 > >;
 
 //! Mesh assignment and configuration
@@ -255,6 +275,8 @@ using CompFlowPDEParameters = tk::TaggedTuple< brigand::list<
   , tag::farfield_density,  std::vector< kw::density::info::expect::type >
   , tag::farfield_velocity, std::vector< std::vector<
                               kw::velocity::info::expect::type > >
+  , tag::pressure_pressure, std::vector< kw::pressure::info::expect::type >
+  , tag::pressure_density,  std::vector< kw::density::info::expect::type >
   , tag::bc,            bc
   , tag::ic,            ic
     //! Parameter vector (for specific, e.g., verification problems)

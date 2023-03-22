@@ -71,6 +71,8 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::slot_cyl
                                  , kw::problem
                                  , kw::field_output
+                                 , kw::history_output
+                                 , kw::integral_output
                                  , kw::refined
                                  , kw::interval_iter
                                  , kw::interval_time
@@ -117,7 +119,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::txt_float_scientific
                                  , kw::precision
                                  , kw::diagnostics
-                                 , kw::history_output
                                  , kw::mesh
                                  , kw::filename
                                  , kw::location
@@ -194,6 +195,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::amr_zplus
                                  , kw::bc_sym
                                  , kw::bc_farfield
+                                 , kw::bc_pressure
                                  , kw::point
                                  , kw::radius
                                  , kw::rotated_sod
@@ -244,12 +246,15 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
       // Default txt floating-point output precision in digits
       get< tag::prec, tag::diag >() = std::cout.precision();
       get< tag::prec, tag::history >() = std::cout.precision();
+      get< tag::prec, tag::integral >() = std::cout.precision();
       // Default intervals
       get< tag::output, tag::iter, tag::tty >() = 1;
       get< tag::output, tag::iter, tag::diag >() = 1;
       get< tag::output, tag::iter, tag::field >() =
         std::numeric_limits< kw::interval_iter::info::expect::type >::max();
       get< tag::output, tag::iter, tag::history >() =
+        std::numeric_limits< kw::interval_iter::info::expect::type >::max();
+      get< tag::output, tag::iter, tag::integral >() =
         std::numeric_limits< kw::interval_iter::info::expect::type >::max();
       // Initialize help: fill own keywords
       const auto& ctrinfoFill = tk::ctr::Info( get< tag::cmd, tag::ctrinfo >() );
@@ -267,15 +272,28 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
     friend void operator|( PUP::er& p, InputDeck& i ) { i.pup(p); }
     //@}
 
-    //! Extract surface side set ids along which user wants to save solution
+    //! Extract surface side set ids along which user wants to save fields
     //! \return Unique set of surface side set ids along which user wants to
     //!   save solution field variables
     //! \note This returns an ordered set so the order of the set ids are
     //!   always the same.
-    std::set< int > outsets() const {
+    std::set< int > fieldoutsets() const {
       std::set< int > ids;
-      for (const auto& s : get< tag::cmd, tag::io, tag::surface >())
+      for (const auto& s : get< tag::cmd, tag::io, tag::surface, tag::field >())
         ids.insert( s );
+      return ids;
+    }
+
+    //! Extract surface side set ids along which user wants to integrals
+    //! \return Unique set of surface side set ids along which user wants to
+    //!   save solution integral variables
+    //! \note This returns an ordered set so the order of the set ids are
+    //!   always the same.
+    std::set< int > integraloutsets() const {
+      std::set< int > ids;
+      const auto& sidesets_integral =
+        get< tag::cmd, tag::io, tag::surface, tag::integral >();
+      for (const auto& s : sidesets_integral) ids.insert( s );
       return ids;
     }
 

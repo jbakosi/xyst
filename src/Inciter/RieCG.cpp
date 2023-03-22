@@ -21,6 +21,8 @@
 #include "DerivedData.hpp"
 #include "Discretization.hpp"
 #include "DiagReducer.hpp"
+#include "IntegralReducer.hpp"
+#include "Integrals.hpp"
 #include "Refiner.hpp"
 #include "Reorder.hpp"
 #include "Around.hpp"
@@ -33,6 +35,8 @@ namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
 extern ctr::InputDeck g_inputdeck_defaults;
+
+static CkReduction::reducerType IntegralsMerger;
 
 //! Runge-Kutta coefficients
 static const std::array< tk::real, 3 > rkcoef{{ 1.0/3.0, 1.0/2.0, 1.0 }};
@@ -71,7 +75,6 @@ RieCG::RieCG( const CProxy_Discretization& disc,
 //! \param[in] bnode Boundary-node lists mapped to side sets used in input file
 //! \param[in] triinpoel Boundary-face connectivity where BCs set (global ids)
 // *****************************************************************************
-//! [Constructor]
 {
   usesAtSync = true;    // enable migration at AtSync
 
@@ -105,7 +108,6 @@ RieCG::RieCG( const CProxy_Discretization& disc,
   contribute( sizeof(std::size_t), &meshid, CkReduction::sum_ulong,
     CkCallback(CkReductionTarget(Transporter,comfinal), d->Tr()) );
 }
-//! [Constructor]
 
 void
 RieCG::setupBC()
@@ -113,19 +115,19 @@ RieCG::setupBC()
 // Prepare boundary condition data structures
 // *****************************************************************************
 {
-  using inciter::g_inputdeck; using tag::param; using tag::bc;
+  using inciter::g_inputdeck; using tag::param; using tag::compflow;
+  using tag::bc; using tag::pressure_density; using tag::pressure_pressure;
 
   auto d = Disc();
 
-  // Query BC nodes associated to side sets
+  // Query Dirichlet BC nodes associated to side sets
   auto dir = d->bcnodes< bc, tag::dirichlet >( m_bface, m_triinpoel );
 
   auto ncomp = m_u.nprop();
   auto nmask = ncomp + 1;
 
   // Collect unique set of nodes + Dirichlet BC components mask
-  const auto& dbc =
-    g_inputdeck.get< param, tag::compflow, bc, tag::dirichlet >();
+  const auto& dbc = g_inputdeck.get< param, compflow, bc, tag::dirichlet >();
   std::unordered_map< std::size_t, std::vector< int > > dirbcset;
   for (const auto& mask : dbc) {
     ErrChk( mask.size() == nmask, "Incorrect Dirichlet BC mask ncomp" );
@@ -147,10 +149,45 @@ RieCG::setupBC()
 
   ErrChk( m_dirbcmasks.size() % nmask == 0, "Dirichlet BC masks incomplete" );
 
+
+  // Query pressure BC nodes associated to side sets
+  auto pre = d->bcnodes< bc, tag::pressure >( m_bface, m_triinpoel );
+
+  // Prepare density and pressure values for pressure BC nodes
+  const auto& pbc_set = g_inputdeck.get< param, compflow, bc, tag::pressure >();
+  if (!pbc_set.empty()) {
+    const auto& pbc_r = g_inputdeck.get< param, compflow, pressure_density >();
+    ErrChk( pbc_r.size() == pbc_set.size(), "Pressure BC density unspecified" );
+    const auto& pbc_p = g_inputdeck.get< param, compflow, pressure_pressure >();
+    ErrChk( pbc_p.size() == pbc_set.size(), "Pressure BC pressure unspecified" );
+
+    for (const auto& [s,n] : pre) {
+      m_prebcnodes.insert( end(m_prebcnodes), begin(n), end(n) );
+      for (std::size_t p=0; p<pbc_set.size(); ++p) {
+        for (auto u : pbc_set[p]) {
+          if (s == u) {
+            for (std::size_t i=0; i<n.size(); ++i) {
+              m_prebcvals.push_back( pbc_r[p] );
+              m_prebcvals.push_back( pbc_p[p] );
+            }
+          }
+        }
+      }
+    }
+  }
+
+  ErrChk( m_prebcnodes.size()*2 == m_prebcvals.size(),
+          "Pressure BC data incomplete" );
+
+
+  // Query symmetry BC nodes associated to side sets
   auto sym = d->bcnodes< bc, tag::symmetry >( m_bface, m_triinpoel );
+  // Query farfield BC nodes associated to side sets
   auto far = d->bcnodes< bc, tag::farfield >( m_bface, m_triinpoel );
 
+  // Generate unique set of symmetry BC nodes
   for (const auto& [s,n] : sym) m_symbcnodeset.insert( begin(n), end(n) );
+  // Generate unique set of farfield BC nodes
   for (const auto& [s,n] : far) m_farbcnodeset.insert( begin(n), end(n) );
 
   // If farfield BC is set on a node, will not also set symmetry BC
@@ -158,9 +195,9 @@ RieCG::setupBC()
 }
 
 void
-RieCG::integrals()
+RieCG::feop()
 // *****************************************************************************
-// Start (re-)computing domain and boundary integrals
+// Start (re-)computing finite element domain and boundary operators
 // *****************************************************************************
 {
   auto d = Disc();
@@ -354,6 +391,7 @@ RieCG::registerReducers()
 // *****************************************************************************
 {
   NodeDiagnostics::registerReducers();
+  IntegralsMerger = CkReduction::addReducer( integrals::mergeIntegrals );
 }
 
 void
@@ -407,8 +445,8 @@ RieCG::box( tk::real v )
   // Store user-defined box IC volume
   Disc()->Boxvol() = v;
 
-  // Compute edge integrals
-  integrals();
+  // Compute finite element operators
+  feop();
 }
 
 //! [start]
@@ -486,6 +524,40 @@ RieCG::merge()
     m_bpint[i*3+2] = b[2];
     ++i;
   }
+
+  // Query surface integral output nodes
+  const auto& sidesets_integral =
+    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
+  std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
+  for (auto s : sidesets_integral) {
+    auto m = m_bface.find(s);
+    if (m != end(m_bface)) {
+      auto& n = surfintnodes[ m->first ];       // associate set id
+      for (auto f : m->second) {                // face ids on side set
+        n.push_back( m_triinpoel[f*3+0] );      // nodes on side set
+        n.push_back( m_triinpoel[f*3+1] );
+        n.push_back( m_triinpoel[f*3+2] );
+      }
+    }
+  }
+  for (auto& [s,n] : surfintnodes) tk::unique( n );
+  // Prepare surface integral data
+  const auto& gid = Disc()->Gid();
+  for (auto&& [s,n] : surfintnodes) {
+    auto& sint = m_surfint[s];  // associate set id
+    auto& nodes = sint.first;
+    auto& ndA = sint.second;
+    nodes = std::move(n);
+    ndA.resize( nodes.size()*3 );
+    std::size_t a = 0;
+    for (auto p : nodes) {
+      const auto& b = tk::cref_find( m_bndpoinint, gid[p] );
+      ndA[a*3+0] = b[0];        // store ni * dA
+      ndA[a*3+1] = b[1];
+      ndA[a*3+2] = b[2];
+      ++a;
+    }
+  }
   tk::destroy( m_bndpoinint );
 
   // Convert boundary edge integrals into streamable data structures
@@ -560,6 +632,7 @@ RieCG::merge()
     }
   }
   tk::destroy( m_farbcnodeset );
+  tk::destroy( m_bnorm );
 
   if (Disc()->Initial()) {
     // Enforce boundary conditions on initial conditions
@@ -567,7 +640,7 @@ RieCG::merge()
     // Output initial conditions to file
     writeFields( CkCallback(CkIndex_RieCG::start(), thisProxy[thisIndex]) );
   } else {
-    //integrals_complete();
+    //feop_complete();
   }
 }
 //! [Merge normals and continue]
@@ -597,6 +670,9 @@ RieCG::BC()
 
   // Apply farfield BCs
   physics::farbc( m_u, m_farbcnodes, m_farbcnorms );
+
+  // Apply pressure BCs
+  physics::prebc( m_u, m_prebcnodes, m_prebcvals );
 }
 
 void
@@ -918,7 +994,7 @@ RieCG::refine( const std::vector< tk::real >& l2res )
   } else {      // do not refine
 
     d->refined() = 0;
-    integrals_complete();
+    feop_complete();
     resized();
 
   }
@@ -1091,7 +1167,7 @@ RieCG::writeFields( CkCallback cb )
 
     const auto& lid = d->Lid();
     auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
-    for (auto sideset : g_inputdeck.outsets()) {
+    for (auto sideset : g_inputdeck.fieldoutsets()) {
       auto b = bnode.find(sideset);
       if (b == end(bnode)) continue;
       const auto& nodes = b->second;
@@ -1130,9 +1206,7 @@ RieCG::out()
   auto d = Disc();
 
   // Time history
-
   if (d->histiter() or d->histtime() or d->histrange()) {
-
     auto ncomp = m_u.nprop();
     const auto& inpoel = d->Inpoel();
     std::vector< std::vector< tk::real > > hist( d->Hist().size() );
@@ -1155,14 +1229,50 @@ RieCG::out()
       ++j;
     }
     d->history( std::move(hist) );
-
   }
 
   // Field data
-  if (d->fielditer() or d->fieldtime() or d->fieldrange() or m_finished)
-    writeFields( CkCallback(CkIndex_RieCG::step(), thisProxy[thisIndex]) );
-  else
+  if (d->fielditer() or d->fieldtime() or d->fieldrange() or m_finished) {
+    writeFields( CkCallback(CkIndex_RieCG::integrals(), thisProxy[thisIndex]) );
+  } else {
+    integrals();
+  }
+}
+
+void
+RieCG::integrals()
+// *****************************************************************************
+// Compute integral quantities for output
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  if (d->intiter() or d->inttime() or d->intrange()) {
+    using namespace integrals;
+    std::vector< std::map< int, tk::real > > ints( NUMINT );
+    // Prepend integral vector with metadata on the current time step:
+    // current iteration count, current physical time, time step size
+    ints[ ITER ][ 0 ] = static_cast< tk::real >( d->It() );
+    ints[ TIME ][ 0 ] = d->T();
+    ints[ DT ][ 0 ] = d->Dt();
+    // Compute mass flow rate for surfaces requested
+    for (const auto& [s,sint] : m_surfint) {
+      auto& mfr = ints[ MASS_FLOW_RATE ][ s ];
+      const auto& nodes = sint.first;
+      const auto& ndA = sint.second;
+      for (std::size_t i=0; i<nodes.size(); ++i) {
+        auto p = nodes[i];
+        mfr += ndA[i*3+0] * m_u(p,1,0)
+             + ndA[i*3+1] * m_u(p,2,0)
+             + ndA[i*3+2] * m_u(p,3,0);
+      }
+    }
+    auto stream = serialize( d->MeshId(), ints );
+    d->contribute( stream.first, stream.second.get(), IntegralsMerger,
+      CkCallback(CkIndex_Transporter::integrals(nullptr), d->Tr()) );
+  } else {
     step();
+  }
 }
 
 void

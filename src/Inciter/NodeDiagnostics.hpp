@@ -11,14 +11,10 @@
     and various norms of errors while solving partial differential equations.
 */
 // *****************************************************************************
-#ifndef NodeDiagnostics_h
-#define NodeDiagnostics_h
-
-#include <unordered_set>
+#pragma once
 
 #include "Discretization.hpp"
 #include "PUPUtil.hpp"
-#include "Diagnostics.hpp"
 
 namespace inciter {
 
@@ -46,5 +42,3 @@ class NodeDiagnostics {
 };
 
 } // inciter::
-
-#endif // NodeDiagnostics_h

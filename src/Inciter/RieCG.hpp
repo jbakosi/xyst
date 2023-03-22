@@ -94,7 +94,7 @@ class RieCG : public CBase_RieCG {
     void advance( tk::real newdt );
 
     //! Start (re-)computing domain and boundary integrals
-    void integrals();
+    void feop();
 
     //! Receive contributions to boundary point normals on chare-boundaries
     void comnorm( const std::unordered_map< int,
@@ -131,6 +131,9 @@ class RieCG : public CBase_RieCG {
 
     //! Resizing data sutrctures after mesh refinement has been completed
     void resized();
+
+    //! Compute integral quantities for output
+    void integrals();
 
     //! Evaluate whether to continue with next time step
     void step();
@@ -188,12 +191,15 @@ class RieCG : public CBase_RieCG {
       p | m_bpsym;
       p | m_besym;
       p | m_dirbcmasks;
+      p | m_prebcnodes;
+      p | m_prebcvals;
       p | m_symbcnodeset;
       p | m_symbcnodes;
       p | m_symbcnorms;
       p | m_farbcnodeset;
       p | m_farbcnodes;
       p | m_farbcnorms;
+      p | m_surfint;
       p | m_stage;
       p | m_boxnodes;
       p | m_dtp;
@@ -249,7 +255,7 @@ class RieCG : public CBase_RieCG {
     NodeDiagnostics m_diag;
     //! Boundary point normals
     //! \details Outer key: side set id. Inner key: global node id of boundary
-    //!   point, value: weighted normals and inverse distance square.
+    //!   point, value: weighted normals, inverse distance square, nodal area.
     std::unordered_map< int,
       std::unordered_map< std::size_t, std::array<tk::real,4> > > m_bnorm;
     //! Boundary point normals receive buffer
@@ -298,6 +304,10 @@ class RieCG : public CBase_RieCG {
     std::unordered_map< std::size_t, std::vector< tk::real > > m_gradc;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmasks;
+    //! Nodes at pressure BCs
+    std::vector< std::size_t > m_prebcnodes;
+    //! Density and pressure values at pressure BCs
+    std::vector< tk::real > m_prebcvals;
     //! Unique set of ordered nodes at which symmetry BCs are set
     std::set< std::size_t > m_symbcnodeset;
     //! Streamable nodes at which symmetry BCs are set
@@ -310,6 +320,9 @@ class RieCG : public CBase_RieCG {
     std::vector< std::size_t > m_farbcnodes;
     //! Streamable normals at nodes at which farfield BCs are set
     std::vector< tk::real > m_farbcnorms;
+    //! Streamable surface integral nodes and normals * dA on surfaces
+    std::map< int, std::pair< std::vector< std::size_t >,
+                              std::vector< tk::real > > > m_surfint;
     //! Runge-Kutta stage counter
     std::size_t m_stage;
     //! Mesh node ids at which user-defined box ICs are defined (multiple boxes)

@@ -6,13 +6,12 @@
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Text diagnostics writer declaration
-  \details   This file declares the ASCII diagnostics writer class that
+  \brief     Text diagnostics writer definition
+  \details   This file feines the ASCII diagnostics writer class that
      facilitates outputing diagnostics to text files.
 */
 // *****************************************************************************
-#ifndef DiagWriter_h
-#define DiagWriter_h
+#pragma once
 
 #include <string>
 #include <vector>
@@ -42,10 +41,10 @@ class DiagWriter : public tk::Writer {
     void header( const std::vector< std::string >& name ) const;
 
     //! Write diagnostics file
-    std::size_t diag( uint64_t it,
-                      tk::real t,
-                      tk::real dt,
-                      const std::vector< tk::real >& diagnostics );
+    std::size_t write( uint64_t it,
+                       tk::real t,
+                       tk::real dt,
+                       const std::vector< tk::real >& diagnostics );
 
     //! Precision accessor
     int prec() const { return m_precision; }
@@ -56,5 +55,3 @@ class DiagWriter : public tk::Writer {
 };
 
 } // tk::
-
-#endif // DiagWriter_h

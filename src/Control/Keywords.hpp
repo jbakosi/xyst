@@ -863,6 +863,18 @@ struct history_output_info {
 using history_output =
   keyword< history_output_info, TAOCPP_PEGTL_STRING("history_output") >;
 
+struct integral_output_info {
+  static std::string name() { return "integral_output"; }
+  static std::string shortDescription() { return
+    "Start of integral_output input block"; }
+  static std::string longDescription() { return
+    R"(This keyword is used to start a block in the input file containing the
+    descriptions and settings of requested integral output.)";
+  }
+};
+using integral_output =
+  keyword< integral_output_info, TAOCPP_PEGTL_STRING("integral_output") >;
+
 struct field_output_info {
   static std::string name() { return "field_output"; }
   static std::string shortDescription() { return
@@ -2544,6 +2556,23 @@ struct bc_farfield_info {
 };
 using bc_farfield =
   keyword< bc_farfield_info, TAOCPP_PEGTL_STRING("bc_farfield") >;
+
+struct bc_pressure_info {
+  static std::string name() { return "Pressure boundary condition"; }
+  static std::string shortDescription() { return
+    "Start configuration block describing pressure boundary conditions"; }
+  static std::string longDescription() { return
+    R"(This keyword is used to introduce a bc_pressure ... end block, used
+    to specify the configuration for setting pressure boundary conditions
+    for the compressible flow equations. Keywords allowed in a bc_pressure
+    ... end block: )" + std::string("\'")
+    + density::string() + "\', \'"
+    + pressure::string() + "\', \'"
+    + sideset::string() + "\'. ";
+  }
+};
+using bc_pressure =
+  keyword< bc_pressure_info, TAOCPP_PEGTL_STRING("bc_pressure") >;
 
 struct id_info {
   static std::string name() { return "id"; }

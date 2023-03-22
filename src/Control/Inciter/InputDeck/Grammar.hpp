@@ -594,6 +594,22 @@ namespace deck {
                tk::grm::check_vector,
                tag::compflow, tag::bc, tag::farfield > > > {};
 
+  //! Pressure boundary conditions block
+  struct bc_pressure :
+         pegtl::if_must<
+           tk::grm::readkw< typename use< kw::bc_pressure >::pegtl_string >,
+           tk::grm::block<
+             use< kw::end >,
+             parameter< tag::compflow, kw::pressure, tag::pressure_pressure >,
+             parameter< tag::compflow, kw::density, tag::pressure_density >,
+             tk::grm::parameter_vector<
+               use,
+               use< kw::sideset >,
+               tk::grm::Store_back_back,
+               tk::grm::start_vector,
+               tk::grm::check_vector,
+               tag::compflow, tag::bc, tag::pressure > > > {};
+
   //! edgelist ... end block
   struct edgelist :
          tk::grm::vector< use< kw::amr_edgelist >,
@@ -738,7 +754,8 @@ namespace deck {
                                                  tag::source >,
                            bc_dirichlet,
                            bc_sym,
-                           bc_farfield
+                           bc_farfield,
+                           bc_pressure
                          >,
            check_errors< tag::compflow, tk::grm::check_compflow > > {};
 
@@ -861,7 +878,8 @@ namespace deck {
              pegtl::if_must<
                tk::grm::vector<
                  use< kw::sideset >,
-                 tk::grm::Store_back< tag::cmd, tag::io, tag::surface >,
+                 tk::grm::Store_back< tag::cmd, tag::io, tag::surface,
+                                      tag::field >,
                  use< kw::end > > >
            > > {};
 
@@ -896,6 +914,33 @@ namespace deck {
                > >
            > > {};
 
+  //! integral_output ... end block
+  struct integral_output :
+         pegtl::if_must<
+           tk::grm::readkw< use< kw::integral_output >::pegtl_string >,
+           tk::grm::block<
+             use< kw::end >,
+             tk::grm::interval_iter< use< kw::interval_iter >,
+                                     tag::output, tag::iter, tag::integral >,
+             tk::grm::interval_time< use< kw::interval_time >,
+                                     tag::output, tag::time, tag::integral >,
+             tk::grm::time_range< use, kw::time_range,
+                                  tag::output, tag::range, tag::integral >,
+             tk::grm::precision< use, tag::integral >,
+             tk::grm::process<
+               use< kw::txt_float_format >,
+               tk::grm::store_inciter_option< tk::ctr::TxtFloatFormat,
+                                              tag::flformat,
+                                              tag::integral >,
+               pegtl::alpha >,
+             pegtl::if_must<
+               tk::grm::vector<
+                 use< kw::sideset >,
+                 tk::grm::Store_back< tag::cmd, tag::io, tag::surface,
+                                      tag::integral >,
+                 use< kw::end > > >
+           > > {};
+
   //! 'inciter' block
   struct inciter :
          pegtl::if_must<
@@ -915,6 +960,7 @@ namespace deck {
                            partitioning,
                            field_output,
                            history_output,
+                           integral_output,
                            tk::grm::diagnostics<
                              use,
                              tk::grm::store_inciter_option > >,

@@ -12,13 +12,15 @@
     equations.
 */
 // *****************************************************************************
-#ifndef Diagnostics_h
-#define Diagnostics_h
+#pragma once
+
+#include <cstddef>
 
 namespace inciter {
+namespace diagnostics {
 
 //! Number of entries in diagnostics vector (of vectors)
-const std::size_t NUMDIAG = 8;
+constexpr std::size_t NUMDIAG = 8;
 
 //! Diagnostics labels
 enum Diag { L2SOL=0,    //!< L2 norm of numerical solution
@@ -30,6 +32,5 @@ enum Diag { L2SOL=0,    //!< L2 norm of numerical solution
             TIME,       //!< Physical time
             DT };       //!< Time step size
 
+} // diagnostics::
 } // inciter::
-
-#endif // Diagnostics_h

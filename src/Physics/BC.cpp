@@ -40,7 +40,7 @@ dirbc( tk::Fields& U,
   auto ncomp = U.nprop();
   auto nmask = ncomp + 1;
 
-  Assert( dirbcmasks.size() % nmask == 0, "Dirichlet BC masks size mismatch" );
+  Assert( dirbcmasks.size() % nmask == 0, "Size mismatch" );
 
   const auto& x = coord[0];
   const auto& y = coord[1];
@@ -73,7 +73,7 @@ symbc( tk::Fields& U,
     g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::symmetry >();
   if (sbc.empty()) return;
 
-  Assert( symbcnodes.size()*3 == symbcnorms.size(), "Size mismaatch" );
+  Assert( symbcnodes.size()*3 == symbcnorms.size(), "Size mismatch" );
 
   for (std::size_t i=0; i<symbcnodes.size(); ++i) {
     auto p  = symbcnodes[i];
@@ -157,6 +157,29 @@ farbc( tk::Fields& U,
       // pressure from outside, rest from inside
       re = eos::totalenergy( r, ru/r, rv/r, rw/r, fp );
     }
+  }
+}
+
+void
+prebc( tk::Fields& U,
+       const std::vector< std::size_t >& prebcnodes,
+       const std::vector< tk::real >& prebcvals )
+// *****************************************************************************
+//  Set pressure boundary conditions at nodes
+//! \param[in] U Solution vector at recent time step
+//! \param[in] prebcnodes Node ids at which to set pressure BCs
+//! \param[in] prebcvals Density and pressure values at pressure BC nodes
+// *****************************************************************************
+{
+  using inciter::g_inputdeck;
+
+  Assert( prebcnodes.size()*2 == prebcvals.size(), "Size mismatch" );
+
+  for (std::size_t i=0; i<prebcnodes.size(); ++i) {
+    auto p = prebcnodes[i];
+    U(p,0,0) = prebcvals[i*2+0];
+    U(p,4,0) = eos::totalenergy( U(p,0,0), U(p,1,0)/U(p,0,0),
+                 U(p,2,0)/U(p,0,0), U(p,3,0)/U(p,0,0), prebcvals[i*2+1] );
   }
 }
 

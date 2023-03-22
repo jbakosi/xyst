@@ -11,7 +11,8 @@ add_library(Inciter
             Sorter.cpp
             RieCG.cpp
             DiagReducer.cpp
-            NodeDiagnostics.cpp)
+            NodeDiagnostics.cpp
+            IntegralReducer.cpp)
 
 target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/..

@@ -6,8 +6,8 @@
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Custom Charm++ reducer for merging std::vectors across PEs
-  \details   Custom Charm++ reducer for merging std::vectors across PEs.
+  \brief     Custom Charm++ reducer for merging diagnostics across PEs
+  \details   Custom Charm++ reducer for merging diagnostics across PEs.
 */
 // *****************************************************************************
 
@@ -20,11 +20,12 @@
 #include "Exception.hpp"
 
 namespace inciter {
+namespace diagnostics {
 
 std::pair< int, std::unique_ptr<char[]> >
 serialize( std::size_t meshid, const std::vector< std::vector< tk::real > >& d )
 // *****************************************************************************
-// Serialize std::vectors to raw memory stream
+// Serialize diagnostics to raw memory stream
 //! \param[in] meshid Mesh ID
 //! \param[in] d Diagnostics vector of vectors (of eq components)
 //! \return Pair of the length and the raw stream containing the serialized
@@ -58,6 +59,8 @@ mergeDiag( int nmsg, CkReductionMsg **msgs )
 //! \return Aggregated diagnostics built for further aggregation if needed
 // *****************************************************************************
 {
+  using namespace diagnostics;
+
   // Will store deserialized diagnostics vector of vectors
   std::size_t meshid;
   std::vector< std::vector< tk::real > > v;
@@ -80,7 +83,7 @@ mergeDiag( int nmsg, CkReductionMsg **msgs )
     meshid = mid;
     Assert( v.size() == w.size(),
             "Size mismatch during diagnostics aggregation" );
-    Assert( v.size() == inciter::NUMDIAG,
+    Assert( v.size() == NUMDIAG,
             "Size mismatch during diagnostics aggregation" );
     for (std::size_t i=0; i<v.size(); ++i)
       Assert( v[i].size() == w[i].size(),
@@ -97,9 +100,9 @@ mergeDiag( int nmsg, CkReductionMsg **msgs )
     // Sum for the L1 norm of the numerical - analytical solution for all comps
     for (std::size_t i=0; i<v[L1ERR].size(); ++i) v[L1ERR][i] += w[L1ERR][i];
     // Copy ITER, TIME, DT
-    for (std::size_t j=v.size()-3; j<v.size(); ++j)
-      for (std::size_t i=0; i<v[j].size(); ++i)
-        v[j][i] = w[j][i];
+    for (std::size_t i=0; i<v[ITER].size(); ++i) v[ITER][i] = w[ITER][i];
+    for (std::size_t i=0; i<v[TIME].size(); ++i) v[TIME][i] = w[TIME][i];
+    for (std::size_t i=0; i<v[DT].size(); ++i) v[DT][i] = w[DT][i];
   }
 
   // Serialize concatenated diagnostics vector to raw stream
@@ -109,4 +112,5 @@ mergeDiag( int nmsg, CkReductionMsg **msgs )
   return CkReductionMsg::buildNew( stream.first, stream.second.get() );
 }
 
+} // diagnostics::
 } // inciter::

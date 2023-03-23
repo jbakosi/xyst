@@ -105,7 +105,7 @@ farbc( tk::Fields& U,
   const auto& fbc = compflow.get< tag::bc, tag::farfield >();
   if (fbc.empty()) return;
 
-  Assert( farbcnodes.size() == farbcnorms.size()*3, "Size mismaatch" );
+  Assert( farbcnodes.size()*3 == farbcnorms.size(), "Size mismatch" );
 
   const auto& fre = compflow.get< tag::farfield_density >();
   ErrChk( !fre.empty(), "No farfield density specified" );

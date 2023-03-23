@@ -4,16 +4,13 @@ namespace inciter {
 
 @tableofcontents{xml}
 
-@ref inciter_main supports multiple hydrodynamics schemes. This page describes
-the `RieCG` method at a high level, for more details, see @ref papers.
+This page describes the `RieCG` method at a high level, for more details, see
+@ref papers.
 
-The basic RieCG algorithm is an edge-based finite element method for
+The numerical method in RieCG is an edge-based finite element method for
 unstructured meshes, composed of tetrahedral cells, intended for the
 mathematical modelling of energetic, high-speed, compressible flows. This is an
-implementation of the method developed by Waltz and coworkers, see @ref
-papers, to solve the governing equations of
-compressible flow to use an asynchronous-by-default, distributed-memory,
-task-parallel programming paradigm using the Charm++ runtime system.
+implementation of the method, originally developed by [Luo, Baum, and Lohner, Edge-based finite element scheme for the Euler equations, AIAA Journal,1994,](https://doi.org/10.2514/3.12118) to use an asynchronous-by-default, distributed-memory, task-parallel programming paradigm using the Charm++ runtime system.
 
 Note that the RieCG algorithm can be viewed as either an edge-based finite
 element method on tetrahedron meshes or a node-centered finite volume method
@@ -64,10 +61,9 @@ point \f$\color[HTML]{dcdcdc}\vec{x}\f$, \f$\color[HTML]{dcdcdc}U^v\f$ is the
 solution at vertex \f$\color[HTML]{dcdcdc}v\f$, and
 \f$\color[HTML]{dcdcdc}N^v(\vec{x})\f$ is a linear basis function associated
 with vertex \f$\color[HTML]{dcdcdc}v\f$ and element
-\f$\color[HTML]{dcdcdc}\Omega_h\f$.
-
-Applying a Galerkin, lumped-mass approximation to Euler equations gives the
-following semi-discrete form of the governing equations for a vertex
+\f$\color[HTML]{dcdcdc}\Omega_h\f$. Applying a Galerkin, lumped-mass
+approximation to the Euler equations gives the following semi-discrete form of
+the governing equations for a vertex
 \f$\color[HTML]{dcdcdc}v\f$:
 \f[ \begin{split}
   \frac{\text{d}U^v}{\text{d}t} = - \frac{1}{V^v} \sum_j \left[  \sum_{ vw\in
@@ -82,10 +78,9 @@ numerical flux between \f$\color[HTML]{dcdcdc}v\f$ and
 evaluated for all vertices within the domain. The last two terms are only
 evaluated for vertices \f$\color[HTML]{dcdcdc}v\f$ and surrounding edges
 \f$\color[HTML]{dcdcdc}vw\f$ that lie on the domain boundary. As such,
-\f$\color[HTML]{dcdcdc}F^v_j\f$ denotes the boundary flux.
-
-The term \f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is effectively the area-weighted
-normal to the dual face separating \f$\color[HTML]{dcdcdc}v\f$ and
+\f$\color[HTML]{dcdcdc}F^v_j\f$ denotes the boundary flux. The term
+\f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is effectively the area-weighted normal to
+the dual face separating \f$\color[HTML]{dcdcdc}v\f$ and
 \f$\color[HTML]{dcdcdc}w\f$. It is calculated as
 \f[ \begin{split}
   D^{vw}_j = \frac{1}{2} \sum_{\Omega_h \in vw} \int_{\Omega_h} \left( N^v
@@ -93,12 +88,11 @@ normal to the dual face separating \f$\color[HTML]{dcdcdc}v\f$ and
   \right) \, \text{d} \Omega
 \end{split} \f]
 where \f$\color[HTML]{dcdcdc}\Omega_h \in vw\f$ represents all elements
-attached to an edge \f$\color[HTML]{dcdcdc}vw\f$. The described numerical
-scheme is guaranteed conservative since \f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is
-antisymmetric.
-
-The boundary terms \f$\color[HTML]{dcdcdc}B^{vw}_j\f$ and
-\f$\color[HTML]{dcdcdc}B^v_j\f$ are defined by the following:
+attached to an edge \f$\color[HTML]{dcdcdc}vw\f$. This numerical
+scheme is guaranteed to be conservative since
+\f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is antisymmetric. The boundary terms
+\f$\color[HTML]{dcdcdc}B^{vw}_j\f$ and \f$\color[HTML]{dcdcdc}B^v_j\f$ are
+defined by the following:
 \f[ \begin{split}
   B^{vw}_j &= \frac{1}{2} \sum_{\Gamma_h \in vw} \int_{\Gamma_h} N^v N^w n_j
   \, \text{d} \Gamma \\
@@ -106,13 +100,13 @@ The boundary terms \f$\color[HTML]{dcdcdc}B^{vw}_j\f$ and
   \Gamma
 \end{split} \f]
 
-For the derivation and other details, see @ref papers.
+For the derivation of the above and other details, see @ref papers.
 
 @section riecg_flux Numerical flux
 
 The numerical flux \f$\color[HTML]{dcdcdc}F^{vw}_j\f$ is evaluated at the
 midpoint between \f$\color[HTML]{dcdcdc}v\f$ and \f$\color[HTML]{dcdcdc}w\f$.
-Here we used the Rusanov flux which approximates the flux between
+We use Rusanov's flux which approximates the flux between
 \f$\color[HTML]{dcdcdc}v\f$ and \f$\color[HTML]{dcdcdc}w\f$ as
 \f[ \begin{split}
   D^{vw}_j F^{vw}_j = D^{vw}_j \left( F^v_j + F^w_j \right) + \left| D^{vw}_j
@@ -145,15 +139,12 @@ with
   \delta_3 &= 2x_i^{vw} \frac{\partial u^w}{\partial x_i} - \delta_2
 \end{split} \f]
 where \f$\color[HTML]{dcdcdc}x_i^{vw}=x_i^w - x_i^v\f$ and
-\f[ \begin{split}
-  r^v &= \frac{\delta_2}{\delta_1} \\
-  r^w &= \frac{\delta_2}{\delta_3}
-\end{split} \f]
+\f$\color[HTML]{dcdcdc}r^v = \delta_2/\delta_1\f$ and
+\f$\color[HTML]{dcdcdc}r^w = \delta_2/\delta_3\f$.
 This scheme corresponds to a piecewise linear reconstruction for
 \f$\color[HTML]{dcdcdc}k=-1\f$ and a piecewise parabolic reconstruction for
 \f$\color[HTML]{dcdcdc}k=1/3\f$. The function \f$\color[HTML]{dcdcdc}\phi\f$
-can be any total variation diminishing limiter function. We use the Van Leer
-and minmod functions.
+can be any total variation diminishing limiter function, e.g., that of van Leer.
 
 @section riecg_time Time integration
 
@@ -171,24 +162,14 @@ where \f$\color[HTML]{dcdcdc}k\f$ is the current stage,
 The explicit Euler time marching scheme is obtained for
 \f$\color[HTML]{dcdcdc}m=1\f$ and the classical 2nd-order Runge-Kutta method is
 obtained with \f$\color[HTML]{dcdcdc}m=2\f$.
-
-The global time step is obtained by finding the minimum value for all edges in
-the domain. The time step for an edge \f$\color[HTML]{dcdcdc}vw\f$ is calculated as
+The time step size is adaptive and obtained by finding the minimum value for
+all mesh points at every time step as
 \f[ \begin{split}
-  \Delta t^{vw} = \frac{\text{C}l^{vw}}{\lambda^{vw}}
+\Delta t = \text{C} \min_{\forall v} \frac{(V^v)^{1/3}}{\lambda^{v}}
 \end{split} \f]
 where \f$\color[HTML]{dcdcdc}\text{C} \leq 1\f$ is the Courant number, and
-\f$\color[HTML]{dcdcdc}l^{vw}\f$ is the legnth of an edge
-\f$\color[HTML]{dcdcdc}vw\f$. The global time step is thus
-\f[ \begin{split}
-  \Delta t = \min_{\forall vw} \left( \Delta t^{vw}  \right).
-\end{split} \f]
-
-@section riecgrun_example Example setup, run, and solution
-
-For an example test set up see the page on @ref inciter_example_f16
-"steady-state solution of transconic flow around an F16". For other examples,
-see @ref papers.
+\f$\color[HTML]{dcdcdc}V^{v}\f$ is the nodal volume of the dual-mesh associated
+to point \f$\color[HTML]{dcdcdc}v\f$.
 
 */
 } // inciter::

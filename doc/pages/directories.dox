@@ -200,8 +200,6 @@ files. It has
 
 @details This directory contains code specific to @ref inciter_main.
 
-@see @ref inciter_examples
-
 @dir src/Inciter/AMR
 @brief Adaptive mesh refinement for _Inciter_
 

@@ -70,7 +70,7 @@ For more details on concept-based runtime polymorphism with migratable Charm++
 chare arrays using value semantics, see Inciter/Scheme.h and the talk, titled
 _Concept-based runtime polymorphism with Charm++ chare arrays using value
 semantics_, given at the [16th Annual Workshop on Charm++ and its
-Applications](http://charm.cs.illinois.edu/workshops/charmWorkshop2018/program.php).
+Applications](http://charm.cs.illinois.edu/workshops/oldworkshops/charmWorkshop2018/program.html), titled _Concept-based runtime polymorphism with Charm++ chare arrays using value semantics_.
 
 @subsection inciter_startup_transporter Create inciter's driver, single Charm++ chare Transporter
 

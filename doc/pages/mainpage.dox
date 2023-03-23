@@ -60,7 +60,7 @@ All executables will be under `build/Main/`.
 
 @section mainpage_license License
 
-GPL v3.
+[GPL v3](https://codeberg.org/xyst/xyst/src/branch/master/LICENSE).
 
 @section mainpage_history History
 

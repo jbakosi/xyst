@@ -2,12 +2,7 @@
 
 _Xyst_ is a Navier-Stokes solver for engineering flows.
 
-Using the [Charm++](http://charmplusplus.org/) runtime system, it employs
-_asynchronous_ (or non-blocking) parallel programming and decomposes
-computational problems into a large number of work units (that may be more than
-the available number of processors) enabling _arbitrary overlap_ of parallel
-computation, communication, input, and output. Then the runtime system
-_dynamically_ and _automatically_ homogenizes computational load across the
-simulation distributed across many computers.
-
-More details at [xyst.cc](https://xyst.cc).
+Our ultimate goal is to simulate engineering problems with a production-quality
+code that is extensible and maintainable, using hardware resources efficiently,
+even for problems with a priori unknown, heterogeneous, and dynamic load
+distribution. More details at [xyst.cc](https://xyst.cc).

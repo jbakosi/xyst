@@ -9,13 +9,12 @@ distribution.
 
 The software implementation facilitates the effective use of hardware of any
 size, from laptops to the largest distributed-memory clusters, by combining
-data-, and task-parallelism on top of the Charm++
-(\url{http://charmplusplus.org}) runtime system. Charm++'s execution model is
-asynchronous by default, allowing arbitrary overlap of computation and
-communication. Built-in automatic load balancing enables redistribution of
-heterogeneous computational load based on real-time CPU load measurement at
-negligible cost. The runtime system also features automatic checkpointing,
-fault tolerance, resilience against hardware failure, and supports power-, and
-energy-aware computation.
+data-, and task-parallelism on top of the [Charm++](http://charmplusplus.org)
+runtime system. Charm++'s execution model is asynchronous by default, allowing
+arbitrary overlap of computation and communication. Built-in automatic load
+balancing enables redistribution of heterogeneous computational load based on
+real-time CPU load measurement at negligible cost. The runtime system also
+features automatic checkpointing, fault tolerance, resilience against hardware
+failure, and supports power-, and energy-aware computation.
 
 More details at [xyst.cc](https://xyst.cc).

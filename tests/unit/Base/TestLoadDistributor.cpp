@@ -1,13 +1,13 @@
 // *****************************************************************************
 /*!
-  \file      tests/unit/LoadBalance/TestLoadDistributor.cpp
+  \file      tests/unit/Base/TestLoadDistributor.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Unit tests for LoadBalance/LoadDistributor
-  \details   Unit tests for LoadBalance/LoadDistributor
+  \brief     Unit tests for Base/LoadDistributor
+  \details   Unit tests for Base/LoadDistributor
 */
 // *****************************************************************************
 
@@ -44,7 +44,7 @@ using LoadDistributor_group =
 using LoadDistributor_object = LoadDistributor_group::object;
 
 //! Define test group
-static LoadDistributor_group LoadDistributor( "LoadBalance/LoadDistributor" );
+static LoadDistributor_group LoadDistributor( "Base/LoadDistributor" );
 
 //! Test definitions for group
 

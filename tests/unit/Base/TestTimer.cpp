@@ -99,7 +99,7 @@ void Timer_object::test< 3 >() {
   tk::Timer timer;
   usleep( 1000000 );    // in micro-seconds, sleep for 1.0 second
   tk::Timer::Watch ete, eta;
-  timer.eta( term, time, nstep, it, ete, eta );
+  timer.eta( term, time, nstep, it, 0.0, 0.0, 0.0, ete, eta );
   // test estimated time elapsed with given precision
   ensure_equals( "estimated time elapsed in hrs",
                  static_cast<tk::real>(ete.hrs.count()), 0.0, precision );
@@ -130,7 +130,7 @@ void Timer_object::test< 4 >() {
   tk::Timer timer;
   usleep( 1000000 );    // in micro-seconds, sleep for 1.0 second
   tk::Timer::Watch ete, eta;
-  timer.eta( term, time, nstep, it, ete, eta );
+  timer.eta( term, time, nstep, it, 0.0, 0.0, 0.0, ete, eta );
   // test estimated time elapsed with given precision
   ensure_equals( "estimated time elapsed in hrs",
                  static_cast<tk::real>(ete.hrs.count()), 0.0, precision );
@@ -147,9 +147,43 @@ void Timer_object::test< 4 >() {
                  static_cast<tk::real>(eta.sec.count()), 39.0, precision );
 }
 
-//! Test converting a 1.0s duration timed as a float to Timer::Watch
+//! Test estimated time elapsed and to accomplishment triggered by residuals
 template<> template<>
 void Timer_object::test< 5 >() {
+  set_test_name( "ETE and ETA triggered by target residual" );
+
+  // Setup a duration case
+  tk::real term = 500.0;    // time at which to terminate time stepping (unused)
+  tk::real time = 1.0;      // current time (unused)
+  uint64_t nstep = 100;     // max number of time steps to take (unused)
+  uint64_t it = 1;          // current iteration
+  tk::real res0 = 1.0e-3;   // previous residual
+  tk::real res = 0.9997e-3; // current residual
+  tk::real rest = 1.0e-8;   // target residual
+
+  tk::Timer timer;
+  usleep( 1000000 );    // in micro-seconds, sleep for 1.0 second
+  tk::Timer::Watch ete, eta;
+  timer.eta( term, time, nstep, it, res0, res, rest, ete, eta );
+  // test estimated time elapsed with given precision
+  ensure_equals( "estimated time elapsed in hrs",
+                 static_cast<tk::real>(ete.hrs.count()), 0.0, precision );
+  ensure_equals( "estimated time elapsed in min",
+                 static_cast<tk::real>(ete.min.count()), 0.0, precision );
+  ensure_equals( "estimated time elapsed in sec",
+                 static_cast<tk::real>(ete.sec.count()), 1.0, precision );
+  // test estimated time to accomplishment with given precision
+  ensure_equals( "estimated time to accomplishment in hrs",
+                 static_cast<tk::real>(eta.hrs.count()), 10.0, precision );
+  ensure_equals( "estimated time to accomplishment in min",
+                 static_cast<tk::real>(eta.min.count()), 39.0, precision );
+  ensure_equals( "estimated time to accomplishment in sec",
+                 static_cast<tk::real>(eta.sec.count()), 33.0, precision*1e+3 );
+}
+
+//! Test converting a 1.0s duration timed as a float to Timer::Watch
+template<> template<>
+void Timer_object::test< 6 >() {
   set_test_name( "convert time stamp in float to Watch" );
 
   tk::Timer timer;
@@ -201,7 +235,7 @@ class CharmTimer : public CBase_CharmTimer {
 //!   suite this number must be updated in UnitTest/TUTSuite.h in
 //!   unittest::TUTSuite::m_migrations.
 template<> template<>
-void Timer_object::test< 6 >() {
+void Timer_object::test< 7 >() {
   // This test spawns a new Charm++ chare. The "1" at the end of the test name
   // signals that this is only the first part of this test: the part up to
   // firing up an asynchronous Charm++ chare. The second part creates a new test
@@ -216,7 +250,7 @@ void Timer_object::test< 6 >() {
 
 //! Test querying a timer from a std::map
 template<> template<>
-void Timer_object::test< 7 >() {
+void Timer_object::test< 8 >() {
   double prec = 1.0e-2; // only for this single test (to pass on Mac OS)
   set_test_name( "query timer from map" );
 
@@ -230,7 +264,7 @@ void Timer_object::test< 7 >() {
 
 //! Test that querying timer from a map throws with garbage key
 template<> template<>
-void Timer_object::test< 8 >() {
+void Timer_object::test< 9 >() {
   set_test_name( "query throws with non-existent key" );
 
   #ifdef NDEBUG        // exception only thrown in DEBUG mode

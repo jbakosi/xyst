@@ -339,6 +339,9 @@ class Discretization : public CBase_Discretization {
     //! Decide if this is the last time step
     bool finished() const;
 
+    //! Update residual (during convergence to steady state)
+    void residual( tk::real c );
+
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{
     //! \brief Pack/Unpack serialize member function
@@ -385,6 +388,8 @@ class Discretization : public CBase_Discretization {
       p( reinterpret_cast<char*>(&m_prevstatus), sizeof(Clock::time_point) );
       p | m_nrestart;
       p | m_histdata;
+      p | m_res;
+      p | m_res0;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -499,6 +504,10 @@ class Discretization : public CBase_Discretization {
     int m_nrestart;
     //! Data at history point locations
     std::vector< HistData > m_histdata;
+    //! Current residual (during convergence to steady state)
+    tk::real m_res;
+    //! Residual at previous ETA calcuation (during convergence to steady state)
+    tk::real m_res0;
 
     //! Generate chare-boundary node id map
     std::unordered_map< std::size_t, std::size_t > genBid();

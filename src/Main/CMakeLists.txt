@@ -71,6 +71,7 @@ add_executable(${UNITTEST_EXECUTABLE}
                ../../tests/unit/Base/TestTimer.cpp
                ../../tests/unit/Base/TestVector.cpp
                ../../tests/unit/Base/TestWriter.cpp
+               ../../tests/unit/Base/TestLoadDistributor.cpp
                ../../tests/unit/Control/TestFileParser.cpp
                ../../tests/unit/Control/TestStringParser.cpp
                ../../tests/unit/Control/TestSystemComponents.cpp
@@ -79,7 +80,6 @@ add_executable(${UNITTEST_EXECUTABLE}
                ../../tests/unit/IO/TestExodusIIMeshReader.cpp
                ../../tests/unit/IO/TestMesh.cpp
                ../../tests/unit/IO/TestMeshReader.cpp
-               ../../tests/unit/LoadBalance/TestLoadDistributor.cpp
                ../../tests/unit/Mesh/TestAround.cpp
                ../../tests/unit/Mesh/TestDerivedData.cpp
                ../../tests/unit/Mesh/TestDerivedData_MPISingle.cpp
@@ -90,7 +90,6 @@ add_executable(${UNITTEST_EXECUTABLE}
 target_include_directories(${UNITTEST_EXECUTABLE} PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
                            ${PROJECT_SOURCE_DIR}/../UnitTest
-                           ${PROJECT_SOURCE_DIR}/../LoadBalance
                            ${PROJECT_SOURCE_DIR}/../IO
                            ${TUT_INCLUDE_DIRS}
                            ${RANDOM123_INCLUDE_DIRS}

@@ -24,9 +24,10 @@
 
 namespace tk {
 
-//! Timer is a simple class to do timing various parts of the code in a portable
-//! way. The functionality is intended to be very minimal and simple, but still
-//! convenient to use, with as little state as possible.
+//! \brief Simple class to do timing
+//! \details Timing use at various parts of the code in a portable way. The
+//!   functionality is intended to be very minimal and simple, but still
+//!   convenient to use, with as little state as possible.
 class Timer {
 
   public:
@@ -43,42 +44,45 @@ class Timer {
       hours hrs;
       minutes min;
       seconds sec;
-      //! Zero constructor. Zeros hours, minutes, and seconds.
+      //! Zero constructor. Zeros hours, minutes, and seconds
       explicit Watch() :
         hrs( std::chrono::duration_cast< hours >( clock::duration::zero()) ),
         min( std::chrono::duration_cast< minutes >( clock::duration::zero() ) ),
         sec( std::chrono::duration_cast< seconds >( clock::duration::zero() ) )
       {}
-      //! Fill constructor. Initialize hours, minutes, and seconds given.
+      //! Fill constructor. Initialize hours, minutes, and seconds given
       explicit Watch( hours&& h, minutes&& m, seconds&& s ) :
         hrs( std::move(h) ), min( std::move(m) ), sec( std::move(s) ) {}
     };
 
-    //! Constructor: initialize clock to current time stamp.
-    explicit Timer() : m_start( clock::now() ) {}
+    //! Constructor: initialize clock to current time stamp
+    explicit Timer() : m_start( clock::now() ), m_prev( m_start ) {}
 
     //! Zero timer
-    void zero() { m_start = clock::now(); } 
+    void zero() { m_start = clock::now(); m_prev = m_start; }
 
-    //! Query time in second since the constructor call.
+    //! Query time in second since the constructor call
     //! \return Time elapsed between start and stop as a real number
     real dsec() const {
       return std::chrono::duration_cast< Dsec >(clock::now() - m_start).count();
     }
 
-    //! Query time in second since the constructor call.
+    //! Query time in second since the constructor call
     Watch hms() const;
 
     //! Estimate time for accomplishment
     void eta( real term, real time, uint64_t nstep, uint64_t it,
-              Watch& elapsedWatch, Watch& estimatedWatch ) const;
+              tk::real res0, tk::real res, tk::real rest,
+              Watch& elapsedWatch, Watch& estimatedWatch );
 
     /** @name Pack/Unpack: Serialize Timer object for Charm++ */
     ///@{
     //! Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    void pup( PUP::er& p )
-    { p( reinterpret_cast<char*>(&m_start), sizeof(clock::time_point) ); }
+    void pup( PUP::er& p ) {
+      p( reinterpret_cast<char*>(&m_start), sizeof(clock::time_point) );
+      p( reinterpret_cast<char*>(&m_prev), sizeof(clock::time_point) );
+    }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
     //! \param[in,out] t Timer object reference
@@ -86,7 +90,8 @@ class Timer {
     ///@}
 
   private:
-    clock::time_point m_start;  //!< Time stamp at start
+    clock::time_point m_start;  //!< Time stamp at Timer() or zero()
+    clock::time_point m_prev;   //!< Time stamp at previous update in eta()
 };
 
 //! Convert existing time stamp as a real to Watch (global scope)

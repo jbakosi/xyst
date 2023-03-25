@@ -970,6 +970,8 @@ RieCG::refine( const std::vector< tk::real >& l2res )
     // reached or the residual has reached its convergence criterion
     if (d->finished() or (l2res[rc] > 0.0 and l2res[rc] < residual))
       m_finished = 1;
+    else
+      d->residual( l2res[rc] );   // store/update residual
 
   } else {
 

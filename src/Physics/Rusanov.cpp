@@ -716,20 +716,19 @@ dt( const std::vector< tk::real >& vol,
 // *****************************************************************************
 {
   using inciter::g_inputdeck;
+  auto cfl = g_inputdeck.get< tag::discr, tag::cfl >();
 
-  for (std::size_t i=0; i<U.nunk(); ++i) {
-    // compute cubic root of element volume as the characteristic length
-    const auto L = std::cbrt( vol[i] );
-    // access solution at node p at recent time step
-    const auto u = U[i];
-    // compute pressure
-    auto p = eos::pressure( u[0], u[1]/u[0], u[2]/u[0], u[3]/u[0], u[4] );
-    if (p < 0) p = 0.0;
-    auto c = eos::soundspeed( u[0], p );
-    // characteristic velocity
-    auto v = std::sqrt((u[1]*u[1] + u[2]*u[2] + u[3]*u[3])/u[0]/u[0]) + c;
-    // compute dt for node
-    dtp[i] = L / v * g_inputdeck.get< tag::discr, tag::cfl >();
+  for (std::size_t p=0; p<U.nunk(); ++p) {
+    auto r  = U(p,0,0);
+    auto u  = U(p,1,0) / r;
+    auto v  = U(p,2,0) / r;
+    auto w  = U(p,3,0) / r;
+    auto re = U(p,4,0);
+    auto vel = tk::length( u, v, w );
+    auto pr = eos::pressure( r, u, v, w, re );
+    auto c = eos::soundspeed( r, pr );
+    auto L = std::cbrt( vol[p] );
+    dtp[p] = L / std::max( vel+c, 1.0e-8 ) * cfl;
   }
 }
 

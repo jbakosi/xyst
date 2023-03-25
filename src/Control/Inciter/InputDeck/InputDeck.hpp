@@ -223,7 +223,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
       get< tag::discr, tag::cfl >() = 0.0;
       get< tag::discr, tag::pelocal_reorder >() = false;
       get< tag::discr, tag::steady_state >() = false;
-      get< tag::discr, tag::residual >() = 1.0e-8;
+      get< tag::discr, tag::residual >() = 0.0;
       get< tag::discr, tag::rescomp >() = 1;
       // Default AMR settings
       get< tag::amr, tag::amr >() = false;

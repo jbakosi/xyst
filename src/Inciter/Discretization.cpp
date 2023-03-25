@@ -65,19 +65,15 @@ Discretization::Discretization(
   m_meshwriter( meshwriter ),
   m_el( el ),     // fills m_inpoel, m_gid, m_lid
   m_coord( setCoord( coordmap ) ),
-  m_nodeCommMap(),
-  m_edgeCommMap(),
   m_meshvol( 0.0 ),
   m_v( m_gid.size(), 0.0 ),
   m_vol( m_gid.size(), 0.0 ),
-  m_volc(),
   m_vol0( m_inpoel.size()/4, 0.0 ),
-  m_bid(),
-  m_timer(),
   m_refined( 0 ),
   m_prevstatus( std::chrono::high_resolution_clock::now() ),
   m_nrestart( 0 ),
-  m_histdata()
+  m_res( 0.0 ),
+  m_res0( 0.0 )
 // *****************************************************************************
 //  Constructor
 //! \param[in] meshid Mesh ID
@@ -955,6 +951,21 @@ Discretization::finished() const
 }
 
 void
+Discretization::residual( tk::real r )
+// *****************************************************************************
+//  Update residual (during convergence to steady state)
+//! \param[in] r Current residual
+// *****************************************************************************
+{
+  const auto tty = g_inputdeck.get< tag::output, tag::iter, tag::tty >();
+
+  if (not (m_it%tty)) {
+    m_res0 = m_res;
+    m_res = r;
+  }
+}
+
+void
 Discretization::status()
 // *****************************************************************************
 // Output one-liner status report
@@ -980,11 +991,12 @@ Discretization::status()
     const auto rsfreq = g_inputdeck.get< tag::cmd, tag::rsfreq >();
     const auto verbose = g_inputdeck.get< tag::cmd, tag::verbose >();
     const auto benchmark = g_inputdeck.get< tag::cmd, tag::benchmark >();
-    const auto steady = g_inputdeck.get< tag::discr, tag::steady_state >();
+    const auto residual = g_inputdeck.get< tag::discr, tag::residual >();
 
     // estimate time elapsed and time for accomplishment
     tk::Timer::Watch ete, eta;
-    if (not steady) m_timer.eta( term-t0, m_t-t0, nstep, m_it, ete, eta );
+    m_timer.eta( term-t0, m_t-t0, nstep, m_it, m_res0, m_res, residual,
+                 ete, eta );
 
     const auto& def =
       g_inputdeck_defaults.get< tag::cmd, tag::io, tag::screen >();

@@ -45,15 +45,20 @@ Timer::hms() const
 
 void
 Timer::eta( tk::real term, tk::real time, uint64_t nstep, uint64_t it,
-            Watch& elapsedWatch, Watch& estimatedWatch ) const
+            tk::real res0, tk::real res, tk::real rest,
+            Watch& elapsedWatch, Watch& estimatedWatch )
 // *****************************************************************************
 //  Estimate time for accomplishment
-//! \param[in]  term            Time at which to terminate time stepping
-//! \param[in]  time            Current time
-//! \param[in]  nstep           Max number of time steps to take
-//! \param[in]  it              Current iteration count
-//! \param[out] elapsedWatch    Elapsed time in h:m:s
-//! \param[out] estimatedWatch  Estimated time for accomplishmet in h:m:s
+//! \param[in] term Time at which to terminate time stepping
+//! \param[in] time Current time
+//! \param[in] nstep Max number of time steps to take
+//! \param[in] it Current iteration count
+//! \oaram[in] res0 Residual at previous call (during convergence to steady
+//!   state)
+//! \oaram[in] res Current residual (during convergence to steady state)
+//! \oaram[in] rest Target residual (during convergence to steady state)
+//! \param[out] elapsedWatch Elapsed time in h:m:s
+//! \param[out] estimatedWatch Estimated time for accomplishmet in h:m:s
 // *****************************************************************************
 {
   using std::chrono::duration_cast;
@@ -67,21 +72,41 @@ Timer::eta( tk::real term, tk::real time, uint64_t nstep, uint64_t it,
 
   } else {
 
+    tk::real eps = std::numeric_limits< real >::epsilon();
+
     // Compute time difference between start and now in seconds
     elapsed = clock::now() - m_start;
 
-    // Estimate time until nstep in seconds
-    Dsec est_nstep = elapsed * static_cast<tk::real>(nstep-it) / it;
-    // Estimate time until term in seconds
-    tk::real eps = std::numeric_limits< real >::epsilon();
-    tk::real large = std::numeric_limits< real >::max() - 1;
-    Dsec est_term = std::abs(time) > eps && term < large ?
-                    elapsed * (term-time) / time :
-                    est_nstep;
+    if (rest > eps) {
 
-    // Time stepping will stop at term or nstep, whichever is sooner
-    estimated = min(est_term, est_nstep);
+      if (res0 > eps && res > eps) {
+        // Estimate time until convergence to steady state (assume log-lin fn)
+        using std::log;
+        auto d = log(res0/res);
+        Dsec recent_elapsed = clock::now() - m_prev;
+        Dsec est_res = std::abs(d) > eps ?
+                       recent_elapsed * log(res/rest) / d :
+                       Dsec(0);
 
+        // Ignore negative estimates (temporarily non-decreasing residual)
+        estimated = std::max( Dsec(0), est_res );
+        m_prev = clock::now();
+      }
+
+
+    } else {
+
+      // Estimate time until nstep in seconds (assume lin-lin fn)
+      Dsec est_nstep = elapsed * static_cast<tk::real>(nstep-it) / it;
+      // Estimate time until term in seconds (assume lin-lin fn)
+      tk::real large = std::numeric_limits< real >::max() - 1;
+      Dsec est_term = std::abs(time) > eps && term < large ?
+                      elapsed * (term-time) / time :
+                      est_nstep;
+
+      // Time stepping will stop at term or nstep, whichever is sooner
+      estimated = std::min( est_term, est_nstep );
+    }
   }
 
   // Put elapsed time in watch as hours:minutes:seconds

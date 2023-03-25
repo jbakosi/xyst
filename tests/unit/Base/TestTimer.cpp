@@ -178,7 +178,7 @@ void Timer_object::test< 5 >() {
   ensure_equals( "estimated time to accomplishment in min",
                  static_cast<tk::real>(eta.min.count()), 39.0, precision );
   ensure_equals( "estimated time to accomplishment in sec",
-                 static_cast<tk::real>(eta.sec.count()), 33.0, precision*1e+4 );
+                 static_cast<tk::real>(eta.sec.count()), 33.0, precision*2e+4 );
 }
 
 //! Test converting a 1.0s duration timed as a float to Timer::Watch

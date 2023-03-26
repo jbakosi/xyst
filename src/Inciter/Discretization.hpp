@@ -340,7 +340,7 @@ class Discretization : public CBase_Discretization {
     bool finished() const;
 
     //! Update residual (during convergence to steady state)
-    void residual( tk::real c );
+    void residual( tk::real r );
 
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{

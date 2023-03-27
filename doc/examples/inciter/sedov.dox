@@ -102,7 +102,7 @@ inciter
 end
 @endcode
 
-@section inciter_example_sedov_run Run using the 750K mesh on 32 CPUs
+@section inciter_example_sedov_run Run using mesh 3 on 32 CPUs
 
 @code{.bash}
 ./charmrun +p32 Main/inciter -v -i sedov02.exo -c sedov.q -l 1000

@@ -1,0 +1,133 @@
+/*!
+  \page      inciter_example_sedov Inciter: Sedov blast
+
+This example uses @ref inciter_riecg in @ref inciter_main to compute the Sedov
+problem [1], widely used in shock hydrodynamics to test the ability of
+numerical methods to maintain symmetry. In this problem, a source of energy is
+defined to produce a shock in a single computational cell at the origin at t=0.
+The solution is a spherically spreading wave starting from a single point. The
+semi-analytic solution is known, therefore it can be used to verify the
+accuracy of the numerical method and the correctness of the software
+implementation.
+
+@section inciter_example_sedov_setup Problem setup
+
+We compute the solution in 3D using a simulation domain that is an octant of a
+sphere, centered around the point {0,0,0}, with increasing mesh resolutions.
+
+The initial conditions are
+\f[
+\begin{split}
+u_i(x_i) & = 0.0 \\
+\rho(x_i) & = 1.0 \\
+e(x_i) & = \left\{ {\begin{array}{cl} 1.0 \times 10^{-4} & x_i \ne 0.0 \\
+                               e_s    & x_i = 0.0 \\ \end{array} } \right. \\
+p(x_i) & = \left\{ {\begin{array}{cl} 0.67 \times 10^{-4} & x_i \ne 0.0 \\
+                               p_s    & x_i = 0.0 \\ \end{array} } \right.
+\end{split}
+\f]
+where \f$\color[HTML]{dcdcdc}e_s\f$ and \f$\color[HTML]{dcdcdc}p_s\f$ are
+initial values of the internal energy and pressure respectively, that depend on
+the size of the control volume at the center of the sphere. As the mesh size is
+decreased, these values are increased to maintain a constant total energy
+source. The characteristics of the meshes used are listed in the table below.
+       Mesh     |  Points     | Tetrahedra   | h       | e_s      | p_s
+       :------: | ----------: | -----------: | ------: | -------: | -------:
+             0  |     11,304  |      59,164  | 0.053   | 7.25e+3  | 4.86e+3
+             1  |     65,958  |     362,363  | 0.029   | 5.42e+4  | 3.63e+4
+             2  |    505,724  |   2,898,904  | 0.014   | 3.46e+5  | 2.32e+5
+             3  |  3,956,135  |  23,191,232  | 0.007   | x.xxe+x  | 1.85e+6
+             4  | xx,xxx,xxx  | xxx,xxx,xxx  | x.xxx   | x.xxe+x  | 1.48e+7
+Here h is the average edge length. Along the flat faces of the sphere symmetry
+(free-slip) boundary conditions are applied.
+
+@section inciter_example_sedov_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [aa29b26](https://codeberg.org/xyst/xyst/commit/aa29b264272ceda81089821731ea6ea678d42a14) and the control file below, and adjust for the mesh.
+
+@section inciter_example_sedov_control Control file
+
+@code{.bash}
+# vim: filetype=sh:
+# This is a comment
+# Keywords are case-sensitive
+
+title "Sedov blast wave"
+
+inciter
+
+  #nstep 10
+  term 1.0
+
+  cfl 0.5
+  ttyi 100
+
+  partitioning
+    algorithm rcb
+  end
+
+  problem sedov
+
+  compflow
+    depvar u
+
+    #p0 4.86e+3        # sedov_coarse.exo,   V(orig) = 8.50791e-06
+    #p0 3.63e+4        # sedov00.exo,        V(orig) = 1.13809e-06
+    #p0 2.32e+5        # sedov01.exo,        V(orig) = 1.78336e-07
+     p0 1.85e+6        # sedov02.exo,        V(orig) = 2.22920e-08
+    #p0 14773333.33333 # sedov02.exo+t0ref:u,V(orig) = 2.78650e-09
+
+    material
+      gamma 1.66666666666667 end
+    end
+    bc_sym
+      sideset 1 2 3 end
+    end
+  end
+
+  #amr
+  # t0ref true
+  # initial uniform
+  #end
+
+  diagnostics
+    interval 10
+    format scientific
+  end
+
+  field_output
+    interval 1000
+  end
+
+end
+@endcode
+
+@section inciter_example_sedov_run Run using the 750K mesh on 32 CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -v -i sedov02.exo -c sedov.q -l 1000
+@endcode
+
+@section inciter_example_sedov_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed fields as
+
+@code{.bash}
+paraview out.0
+@endcode
+
+The fluid density on the sphere surface and its radial distribution at t=1.0s
+using mesh 3 are depicted below.
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sedov.png"/>
+<img src="images/sedov_line.png"/>
+@m_enddiv
+
+@section inciter_example_sedov_references References
+
+@m_div{m-text m-noindent}
+[1] L.I. Sedov, [Similarity and Dimensional Methods in Mechanics](https://doi.org/10.1201/9780203739730), 10th ed. CRC Press. 1993.
+@m_enddiv
+
+*/

@@ -21,8 +21,8 @@ boundary conditions on the sides of the cube, sampling the analytic solution.
 The numerical solution does not depend on time and approaches steady state due
 to the source term which ensures equilibrium in time. As the numerical solution
 approaches a stationary state, the numerical errors in the flow variables
-converge to quasi-stationary values, determined by the combination of spatial
-and temporal errors which are measured and assessed.
+converge to stationary values, determined by the combination of spatial and
+temporal errors which are measured and assessed.
 
 @section inciter_example_vortical_flow_sha Code revision to reproduce
 
@@ -80,6 +80,7 @@ end
 @endcode
 
 @section inciter_example_vortical_flow_run Run using the 750K mesh on 32 CPUs
+
 @code{.bash}
 ./charmrun +p32 Main/inciter -v -i unitcube_750K.exo -c vortical_flow.q
 @endcode

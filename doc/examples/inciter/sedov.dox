@@ -41,6 +41,8 @@ source. The characteristics of the meshes used are listed in the table below.
 Here h is the average edge length. Along the flat faces of the sphere symmetry
 (free-slip) boundary conditions are applied.
 
+@note For the meshes, contact us using the link at the bottom of the page.
+
 @section inciter_example_sedov_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [aa29b26](https://codeberg.org/xyst/xyst/commit/aa29b264272ceda81089821731ea6ea678d42a14) and the control file below, and adjust for the mesh.

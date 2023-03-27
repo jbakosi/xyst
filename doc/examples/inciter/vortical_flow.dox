@@ -135,6 +135,8 @@ set ylabel "L1 error"
 plot [] [:8e-5] "750K/diag" u 2:20, "6M/diag" u 2:20, "48M/diag" u 2:20
 @endcode
 
+@note For the meshes, contact us using the link at the bottom of the page.
+
 @section inciter_example_vortical_flow_convergence Convergence rate
 
 The following table summarizes the L1 errors in all flow variables.

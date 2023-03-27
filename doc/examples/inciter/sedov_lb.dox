@@ -1,0 +1,194 @@
+/*!
+  \page      inciter_example_sedov_lb Inciter: Automatic load balancing
+
+With respect to solving partial differential equations on meshes, there is no
+magic using Charm++ compared to the message passing interface (MPI): the
+computational domain is still decomposed and communication of
+partition-boundary data still needs to be explicitly coded and communicated.
+However, an important difference compared to the usual divide-and-conquer
+strategy of domain-decomposition is that Charm++ also allows combining this
+data-parallelism with task parallelism. As a result, various tasks (e.g.,
+computation and communication) can be performed independently and may be
+overlapped due to Charm++'s asynchronous-by-default paradigm. For an example of
+how task-parallelism can be specified in Charm++ with a different Euler solver,
+see [1].
+
+Another unique feature of Charm++ compared to MPI is built-in automatic
+load-balancing. Charm++ can perform real-time CPU load measurement and if
+necessary can migrate data to under-loaded processors to homogenize
+computational load. This can be beneficial independent of its origin: adaptive
+mesh refinement, complex local equations of state, CPU frequency scaling or
+simply if some work-units have different number of boundary conditions to apply
+compared to others. Multiple load balancing strategies are available in Charm++
+and using them requires no extra programming effort: the feature is turned on
+by a command-line switch. Load balancing costs are negligible (compared to the
+physics operators) and can be beneficial for irregular work-loads at any
+problem size from laptop [2] to cluster [1].
+
+@section inciter_example_sedov_lb_problem The Sedov problem
+
+We computed the Sedov problem [3], widely used in shock hydrodynamics to test
+the ability of numerical methods to maintain symmetry. In this problem, a
+source of energy is defined to produce a shock in a single computational cell
+at the origin at t=0. The solution is a spherically spreading wave starting
+from a single point. We used a domain that is eighth of a sphere with the mesh
+consisting of 23,191,232 tetrahedra and 3,956,135 points. See also @ref
+inciter_example_sedov.
+
+@section inciter_example_sedov_lb_mod A modified Sedov problem
+
+To exercise Charm++'s built-in load balancing, we modified the Sedov problem by
+adding extra computational load to the function that computes the pressure
+based on density and internal energy: _if fluid density > 2.0 then sleep(1ms)_.
+This increases the cost of the equation of state evaluation whose location
+propagates in space and time, which induces load imbalance across multiple mesh
+partitions in parallel. The figure and table below show the effect of load
+balancing on wall-clock time: in this particular case the extra load would make
+the simulation about 36x more expensive, which load balancing speeds up by
+6.1x.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sedov_lb.png"/>
+@m_enddiv
+Measured wall-clock time of each time step during the Sedov calculation without
+extra load, as well as with extra load with and without load balancing. The
+area below each curve is proportional to the total computational cost.
+
+Timings for the Sedov problem with and without load balancing.
+       Case     |  Extra load  | Total time, s  | Speed-up
+       :------: | -----------: | -------------: | --------:
+             0  |          no  |           825  |    -
+             1  |         yes  |        30,276  |    -
+             2  |         yes  |         4,958  |    6.11x
+
+@note _We emphasize that we wrote no load balancing code_: we simply ensure
+overdecomposition (in this case we used 6399 mesh partitions on 32 CPUs) and
+turn on load balancing; the runtime system measures real-time CPU load and
+automatically performs object migration to homogenize the load. While this
+example was run on a single computer, experience shows that the benefits of
+such load-balancing can be even greater on large distributed-memory machines
+[1].
+
+@section inciter_example_sedov_lb_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [aa29b26](https://codeberg.org/xyst/xyst/commit/aa29b264272ceda81089821731ea6ea678d42a14), the following patch
+@code{.patch}
+diff --git a/src/Physics/EOS.hpp b/src/Physics/EOS.hpp
+index fe14fc7..c4c803f 100644
+--- a/src/Physics/EOS.hpp
++++ b/src/Physics/EOS.hpp
+@@ -10,6 +10,7 @@
+ // *****************************************************************************
+ #pragma once
+
++#include <thread>
+ #include "Inciter/InputDeck/InputDeck.hpp"
+
+ namespace inciter {
+@@ -28,6 +29,8 @@ inline tk::real
+ pressure( tk::real r, tk::real e ) {
+   using inciter::g_inputdeck;
+   auto g = g_inputdeck.get< tag::param, tag::compflow, tag::gamma >()[0][0];
++  using namespace std::chrono_literals;
++  if (r > 2.0) std::this_thread::sleep_for( 1ms );
+   return r * e * (g-1.0);
+ }
+@endcode
+by saving the above patch to file "p" and apply it as
+@code{.bash}
+patch -p1 -i p
+@endcode
+and use the control file below.
+
+@section inciter_example_sedov_lb_control Control file
+
+@code{.bash}
+# vim: filetype=sh:
+# This is a comment
+# Keywords are case-sensitive
+
+title "Sedov blast wave"
+
+inciter
+
+  #nstep 10
+  term 1.0
+
+  cfl 0.5
+  ttyi 100
+
+  partitioning
+    algorithm rcb
+  end
+
+  problem sedov
+
+  compflow
+    depvar u
+
+    #p0 4.86e+3        # sedov_coarse.exo,   V(orig) = 8.50791e-06
+    #p0 3.63e+4        # sedov00.exo,        V(orig) = 1.13809e-06
+    #p0 2.32e+5        # sedov01.exo,        V(orig) = 1.78336e-07
+     p0 1.85e+6        # sedov02.exo,        V(orig) = 2.22920e-08
+    #p0 14773333.33333 # sedov02.exo+t0ref:u,V(orig) = 2.78650e-09
+
+    material
+      gamma 1.66666666666667 end
+    end
+    bc_sym
+      sideset 1 2 3 end
+    end
+  end
+
+  #amr
+  # t0ref true
+  # initial uniform
+  #end
+
+  diagnostics
+    interval 10
+    format scientific
+  end
+
+  field_output
+    interval 1000
+  end
+
+end
+@endcode
+
+@note For the meshes, contact us using the link at the bottom of the page.
+
+@section inciter_example_sedov_lb_run Run using mesh 3 on 32 CPUs
+
+@code{.bash}
+# no extra load: run without applying the patch above
+./charmrun +p32 Main/inciter -v -i sedov02.exo -c sedov.q -b -l 1000
+# extra load, no lb: apply the patch above, and run with
+./charmrun +p32 Main/inciter -v -i sedov02.exo -c sedov.q -b -l 1000
+# extra load, lb: apply the patch above, and run with
+./charmrun +p32 Main/inciter -v -i sedov02.exo -c sedov.q -b -u 0.995 -l 20 +balancer MetisLB +balancer GreedyRefineLB
+@endcode
+
+In the last command line above, we apply overdecomposition with -u 0.995,
+yielding 6399 mesh partitions on 32 CPUs, and turn on load balancing in Charm++
+to use the MetisLB strategy in the first load balancing step and GreedyRefine
+subsequently. The -l 20 command line option tells Charm++ to perform load
+balancing every 20th time step. Consult the [Charm++
+manual](https://charm.readthedocs.io) for details on load balancing.
+
+@section inciter_example_sedov_lb_references References
+
+@m_div{m-text m-noindent}
+[1] J. Bakosi, R. Bird, F.Gonzalez, C. Junghans, W. Li, H. Luo, A. Pandare, J. Waltz, [Asynchronous distributed-memory task-parallel algorithm for compressible flows on unstructured 3D Eulerian grids](https://doi.org/10.1016/j.advengsoft.2020.102962), Advances in Engineering Software, 102962, 2021.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[2] W. Li, H. Luo, J. Bakosi, [A p-adaptive Discontinuous Galerkin Method for Compressible Flows using Charm++](https://doi.org/10.2514/6.2020-1565), AIAA Scitech 2020 Forum, Orlando, Florida, 6--10 January, 2020.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[3] L.I. Sedov, [Similarity and Dimensional Methods in Mechanics](https://doi.org/10.1201/9780203739730), 10th ed. CRC Press. 1993.
+@m_enddiv
+
+*/

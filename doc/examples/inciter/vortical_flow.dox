@@ -160,7 +160,7 @@ computed numerical solution in all variables approaches 2.
 @m_enddiv
 
 @m_div{m-text m-noindent}
-[2] J. Waltz, T.R. Canfield, N.R. Morgan, L.D. Risinger, J.G. Wohlbier, [Verification of a three-dimensional unstructured finite element method using analytic and manufactured solutions](https://doi.org/10.1016/j.compfluid.2013.03.025), Computers & Fluids, 2013.
+[2] J. Waltz, T.R. Canfield, N.R. Morgan, L.D. Risinger, J.G. Wohlbier, [Verification of a three-dimensional unstructured finite element method using analytic and manufactured solutions](https://doi.org/10.1016/j.compfluid.2013.03.025), Computers & Fluids, 81: 57-67, 2013.
 @m_enddiv
 
 */

@@ -1,6 +1,10 @@
 /*!
   \page      inciter_example_sedov_lb Inciter: Automatic load balancing
 
+This example uses @ref inciter_riecg in @ref inciter_main to induce parallel
+load imbalance and uses Charm++ to homogenize the computational load speeding
+up the simulation by over 6x.
+
 With respect to solving partial differential equations on meshes, there is no
 magic using Charm++ compared to the message passing interface (MPI): the
 computational domain is still decomposed and communication of
@@ -42,32 +46,7 @@ adding extra computational load to the function that computes the pressure
 based on density and internal energy: _if fluid density > 2.0 then sleep(1ms)_.
 This increases the cost of the equation of state evaluation whose location
 propagates in space and time, which induces load imbalance across multiple mesh
-partitions in parallel. The figure and table below show the effect of load
-balancing on wall-clock time: in this particular case the extra load would make
-the simulation about 36x more expensive, which load balancing speeds up by
-6.1x.
-
-@m_div{m-col-m-10 m-center-m}
-<img src="images/sedov_lb.png"/>
-@m_enddiv
-Measured wall-clock time of each time step during the Sedov calculation without
-extra load, as well as with extra load with and without load balancing. The
-area below each curve is proportional to the total computational cost.
-
-Timings for the Sedov problem with and without load balancing.
-       Case     |  Extra load  | Total time, s  | Speed-up
-       :------: | -----------: | -------------: | --------:
-             0  |          no  |           825  |    -
-             1  |         yes  |        30,276  |    -
-             2  |         yes  |         4,958  |    6.11x
-
-@note _We emphasize that we wrote no load balancing code_: we simply ensure
-overdecomposition (in this case we used 6399 mesh partitions on 32 CPUs) and
-turn on load balancing; the runtime system measures real-time CPU load and
-automatically performs object migration to homogenize the load. While this
-example was run on a single computer, experience shows that the benefits of
-such load-balancing can be even greater on large distributed-memory machines
-[1].
+partitions in parallel.
 
 @section inciter_example_sedov_lb_sha Code revision to reproduce
 
@@ -159,7 +138,7 @@ end
 
 @note For the meshes, contact us using the link at the bottom of the page.
 
-@section inciter_example_sedov_lb_run Run using mesh 3 on 32 CPUs
+@section inciter_example_sedov_lb_run Run on 32 CPUs
 
 @code{.bash}
 # no extra load: run without applying the patch above
@@ -173,9 +152,36 @@ end
 In the last command line above, we apply overdecomposition with -u 0.995,
 yielding 6399 mesh partitions on 32 CPUs, and turn on load balancing in Charm++
 to use the MetisLB strategy in the first load balancing step and GreedyRefine
-subsequently. The -l 20 command line option tells Charm++ to perform load
+subsequently. The -l 20 command line argument tells Charm++ to perform load
 balancing every 20th time step. Consult the [Charm++
 manual](https://charm.readthedocs.io) for details on load balancing.
+
+@section inciter_example_sedov_lb_timings Timings
+
+The figure and table below show the effect of load balancing on wall-clock
+time: in this particular case the extra load would make the simulation about
+36x more expensive, which load balancing speeds up by 6.1x.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sedov_lb.png"/>
+@m_enddiv
+Measured wall-clock time of each time step during the Sedov calculation without
+extra load, as well as with extra load with and without load balancing. The
+area below each curve is proportional to the total computational cost.
+
+Timings for the Sedov problem with and without load balancing.
+       Case     |  Extra load  | Total time, s  | Speed-up
+       :------: | -----------: | -------------: | --------:
+             0  |          no  |           825  |    -
+             1  |         yes  |        30,276  |    -
+             2  |         yes  |         4,958  |    6.11x
+
+@note _We emphasize that we wrote no load balancing code_: we simply ensure
+overdecomposition and turn on load balancing; the runtime system measures
+real-time CPU load and automatically performs object migration to homogenize
+the load. While this example was run on a single computer, experience shows
+that the benefits of such load-balancing can be even greater on large
+distributed-memory machines [1].
 
 @section inciter_example_sedov_lb_references References
 

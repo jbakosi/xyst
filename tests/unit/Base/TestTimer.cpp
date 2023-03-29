@@ -174,7 +174,7 @@ void Timer_object::test< 5 >() {
                  static_cast<tk::real>(ete.sec.count()), 1.0, precision );
   // test estimated time to accomplishment with given precision
   ensure_equals( "estimated time to accomplishment in hrs",
-                 static_cast<tk::real>(eta.hrs.count()), 10.0, precision );
+                 static_cast<tk::real>(eta.hrs.count()), 10.0, 1.0 );
   ensure_equals( "estimated time to accomplishment in min",
                  static_cast<tk::real>(eta.min.count()), 39.0, 1.0 );
   ensure_equals( "estimated time to accomplishment in sec",

@@ -15,6 +15,8 @@ vorticity and velocity gradients is a fundamental source of kinetic energy in
 flows that transition to shear-driven turbulence, and hence an important
 ingredient of computing many practical engineering and atmospheric flows.
 
+@section inciter_example_vortical_flow_setup Problem setup
+
 The simulation domain is a cube centered around the point {0,0,0}. The initial
 conditions are sampled from the analytic solution at t=0. We set Dirichlet
 boundary conditions on the sides of the cube, sampling the analytic solution.
@@ -128,10 +130,10 @@ mesh point v.
 @m_enddiv
 
 Gnuplot commands to reproduce the above plot:
-
 @code{.bash}
 set xlabel "time, s"
 set ylabel "L1 error"
+set grid
 plot [] [:8e-5] "750K/diag" u 2:20, "6M/diag" u 2:20, "48M/diag" u 2:20
 @endcode
 

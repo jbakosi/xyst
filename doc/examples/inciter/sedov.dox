@@ -36,8 +36,8 @@ source. The characteristics of the meshes used are listed in the table below.
              0  |     11,304  |      59,164  | 0.053   | 7.25e+3  | 4.86e+3
              1  |     65,958  |     362,363  | 0.029   | 5.42e+4  | 3.63e+4
              2  |    505,724  |   2,898,904  | 0.014   | 3.46e+5  | 2.32e+5
-             3  |  3,956,135  |  23,191,232  | 0.007   | x.xxe+x  | 1.85e+6
-             4  | xx,xxx,xxx  | xxx,xxx,xxx  | x.xxx   | x.xxe+x  | 1.48e+7
+             3  |  3,956,135  |  23,191,232  | 0.007   | 2.78e+6  | 1.85e+6
+             4  | 31,286,637  | 185,529,856  | 0.004   | 2.22e+7  | 1.48e+7
 Here h is the average edge length. Along the flat faces of the sphere symmetry
 (free-slip) boundary conditions are applied.
 
@@ -119,11 +119,27 @@ of the numerically computed fields as
 paraview out.0
 @endcode
 
-The fluid density on the sphere surface and its radial distribution at t=1.0s
-using mesh 3 are depicted below.
+The fluid density on the sphere octant surface using mesh 3 and its radial
+distributions using different mesh resolutions at t=1.0s are depicted below.
 @m_div{m-col-m-10 m-center-m}
 <img src="images/sedov.png"/>
 <img src="images/sedov_line.png"/>
+@m_enddiv
+
+@section inciter_example_sedov_convergence Convergence rate
+
+The L1 error is computed as
+\f[
+\left| \left| \varepsilon \right| \right|_1 = \frac{\sum_{v=1}^n V^v \left|
+\hat{U}^v - U^{v} \right|} {\sum_{v=1}^n V^v}
+\f]
+where n is the number of points, \f$\color[HTML]{dcdcdc}\hat{U}^v\f$ and
+\f$\color[HTML]{dcdcdc}U^v\f$ are the computed and exact solutions at mesh
+point v, and \f$\color[HTML]{dcdcdc}V^v\f$ denotes the volume associated to
+mesh point v. The L1 error is depicted below for all meshes.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sedov_L1r.png"/>
 @m_enddiv
 
 @section inciter_example_sedov_references References

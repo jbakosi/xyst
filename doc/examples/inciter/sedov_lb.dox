@@ -136,7 +136,7 @@ inciter
 end
 @endcode
 
-@note For the meshes, contact us using the link at the bottom of the page.
+@note For the mesh, contact us using the link at the bottom of the page.
 
 @section inciter_example_sedov_lb_run Run on 32 CPUs
 

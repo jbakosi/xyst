@@ -726,7 +726,7 @@ dt( const std::vector< tk::real >& vol,
     auto re = U(p,4,0);
     auto vel = tk::length( u, v, w );
     auto pr = eos::pressure( r, u, v, w, re );
-    auto c = eos::soundspeed( r, pr );
+    auto c = eos::soundspeed( r, pr < 0 ? 0 : pr );
     auto L = std::cbrt( vol[p] );
     dtp[p] = L / std::max( vel+c, 1.0e-8 ) * cfl;
   }

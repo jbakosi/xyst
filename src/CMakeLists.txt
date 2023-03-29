@@ -123,6 +123,14 @@ find_package(Zoltan2 REQUIRED)
 find_package(SEACASExodus REQUIRED)
 find_package(Exodiff REQUIRED)
 
+# get git sha1
+include(GitCommit)
+RunGitCommand(show -s "--format=%H" HEAD)
+if(exit_code EQUAL 0)
+  set(GIT_HEAD_SHA1 ${output})
+endif()
+message(STATUS "Git sha1: ${GIT_HEAD_SHA1}")
+
 # Find Python: required for code coverage (fastcov) and doc (m.css)
 find_package(PythonInterp 3.6)
 

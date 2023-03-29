@@ -97,7 +97,7 @@ CmdLineParser::CmdLineParser( int argc,
   if (version)
     print.version< tk::QUIET >( tk::unittest_executable(),
                                 tk::xyst_version(),
-                                tk::copyright() );
+                                tk::git_commit() );
 
   // Will exit in main chare constructor if any help was output
   if (cmdline.get< tag::help >() ||           // help on all cmdline args

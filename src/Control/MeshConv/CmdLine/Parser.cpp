@@ -102,7 +102,7 @@ CmdLineParser::CmdLineParser( int argc,
   if (version)
     print.version< tk::QUIET >( tk::meshconv_executable(),
                                 tk::xyst_version(),
-                                tk::copyright() );
+                                tk::git_commit() );
 
   // Immediately exit if any help was output or was called without any argument
   // or version info was requested with zero exit code

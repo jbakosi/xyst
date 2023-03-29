@@ -97,6 +97,7 @@ void echoBuildEnv( const Print& print, const std::string& executable )
   print.item( "Hostname", build_hostname() );
   print.item( "Executable", executable );
   print.item( "Version", xyst_version() );
+  print.item( "Git sha1", git_commit() );
   print.item( "CMake build type", build_type() );
 
 #ifdef NDEBUG

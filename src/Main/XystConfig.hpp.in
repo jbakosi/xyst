@@ -27,7 +27,7 @@ std::string inciter_executable();
 std::string meshconv_executable();
 
 std::string xyst_version();
-std::string copyright();
+std::string git_commit();
 std::string mpi_compiler();
 std::string compiler();
 std::string build_hostname();

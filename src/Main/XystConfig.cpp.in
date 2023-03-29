@@ -23,9 +23,9 @@ namespace tk {
 #define MESHCONV_EXECUTABLE          "@MESHCONV_EXECUTABLE@"
 
 #define XYST_VERSION                 "@VERSION_MAJOR@.@VERSION_MINOR@"
-#define COPYRIGHT                    "@COPYRIGHT@"
 #define MPI_COMPILER                 "@MPI_COMPILER@"
 #define COMPILER                     "@COMPILER@"
+#define GIT_COMMIT                   "@GIT_HEAD_SHA1@"
 #define BUILD_HOSTNAME               "@HOSTNAME@"
 #define BUILD_TYPE                   "@BUILD_TYPE@"
 #define BUILD_DATE                   "@BUILD_DATE@"
@@ -38,8 +38,8 @@ std::string inciter_executable() { return INCITER_EXECUTABLE; }
 std::string meshconv_executable() { return MESHCONV_EXECUTABLE; }
 
 std::string xyst_version() { return XYST_VERSION; }
-std::string copyright() { return COPYRIGHT; }
 std::string mpi_compiler() { return MPI_COMPILER; }
+std::string git_commit() { return GIT_COMMIT; }
 std::string compiler() { return COMPILER; }
 std::string build_hostname() { return BUILD_HOSTNAME; }
 std::string build_type() { return BUILD_TYPE; }

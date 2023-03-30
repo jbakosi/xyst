@@ -22,12 +22,13 @@ load-balancing. Charm++ can perform real-time CPU load measurement and if
 necessary can migrate data to under-loaded processors to homogenize
 computational load. This can be beneficial independent of its origin: adaptive
 mesh refinement, complex local equations of state, CPU frequency scaling or
-simply if some work-units have different number of boundary conditions to apply
-compared to others. Multiple load balancing strategies are available in Charm++
-and using them requires no extra programming effort: the feature is turned on
-by a command-line switch. Load balancing costs are negligible (compared to the
-physics operators) and can be beneficial for irregular work-loads at any
-problem size from laptop [2] to cluster [1].
+simply if some work-units have different number of boundary conditions (e.g.,
+on a larger surface area) to apply compared to others. Multiple load balancing
+strategies are available in Charm++ and using them requires no extra
+programming effort: the feature is turned on by a command-line switch. Load
+balancing costs are negligible (compared to the physics operators) and can be
+beneficial for irregular work-loads at any problem size from laptop [2] to
+cluster [1].
 
 @section inciter_example_sedov_lb_problem The Sedov problem
 
@@ -73,11 +74,13 @@ index fe14fc7..c4c803f 100644
    return r * e * (g-1.0);
  }
 @endcode
-by saving the above patch to file "p" and apply it as
+by saving the above patch to file "p" and applying it as
+
 @code{.bash}
 patch -p1 -i p
 @endcode
-and use the control file below.
+
+Then use the control file below.
 
 @section inciter_example_sedov_lb_control Control file
 
@@ -166,7 +169,7 @@ time: in this particular case the extra load would make the simulation about
 <img src="images/sedov_lb.png"/>
 @m_enddiv
 Measured wall-clock time of each time step during the Sedov calculation without
-extra load, as well as with extra load with and without load balancing. The
+extra load, as well as with extra load without and with load balancing. The
 area below each curve is proportional to the total computational cost.
 
 Timings for the Sedov problem with and without load balancing.

@@ -121,7 +121,7 @@ computed as
 \hat{U}^v - U^{v} \right|} {\sum_{v=1}^n V^v}
 \f]
 where n is the number of points, \f$\color[HTML]{dcdcdc}\hat{U}^v\f$ and
-\f$\color[HTML]{dcdcdc}U^v\f$ are the computed and exact solutions at mesh
+\f$\color[HTML]{dcdcdc}U^v\f$ are the exact and computed solutions at mesh
 point v, and \f$\color[HTML]{dcdcdc}V^v\f$ denotes the volume associated to
 mesh point v.
 
@@ -141,7 +141,8 @@ plot [] [:8e-5] "750K/diag" u 2:20, "6M/diag" u 2:20, "48M/diag" u 2:20
 
 @section inciter_example_vortical_flow_convergence Convergence rate
 
-The following table summarizes the L1 errors in all flow variables.
+The following table summarizes the L1 errors in all flow variables at the
+stationary state.
        Mesh     | L1(r)     |  L1(u)     | L1(v)     | L1(w)     | L(e)
        :------: | --------: | ---------: | --------: | --------: | --------:
        750K     | 6.07e-5   |  6.68e-5   | 4.16e-5   | 7.98e-5   | 1.24e-3

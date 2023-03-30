@@ -134,7 +134,7 @@ The L1 error is computed as
 \hat{U}^v - U^{v} \right|} {\sum_{v=1}^n V^v}
 \f]
 where n is the number of points, \f$\color[HTML]{dcdcdc}\hat{U}^v\f$ and
-\f$\color[HTML]{dcdcdc}U^v\f$ are the computed and exact solutions at mesh
+\f$\color[HTML]{dcdcdc}U^v\f$ are the exact and computed solutions at mesh
 point v, and \f$\color[HTML]{dcdcdc}V^v\f$ denotes the volume associated to
 mesh point v. The L1 error is depicted below for all meshes as a function of
 the average edge length. As expected, the error around the shock dominates,

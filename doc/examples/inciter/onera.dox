@@ -1,8 +1,9 @@
 /*!
   \page      inciter_example_onera Inciter: ONERA wing
 
-This example uses @ref inciter_riecg in @ref inciter_main to demonstrate the
-solver in a 3D complex-geometry case.
+This example uses @ref inciter_riecg in @ref inciter_main to demonstrate and
+validate the solver in a 3D complex-geometry case by comparing the numerical
+results to experimental data.
 
 We computed the popular and well-documented aerodynamic flow over the ONERA M6
 wing, see e.g., [1]. The available experimental data of the pressure

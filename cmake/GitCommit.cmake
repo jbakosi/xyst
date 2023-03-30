@@ -1,4 +1,4 @@
-find_package(Git QUIET REQUIRED)
+find_package(Git QUIET)
 
 # Macro: RunGitCommand
 # Description: short-hand macro for calling a git function. Outputs are the

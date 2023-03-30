@@ -596,10 +596,8 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
 
   std::vector< tk::real > s( 6, 0.0 );
   // momentum source
-  s[1] = -u[0]*u[2];
-  s[2] =  u[0]*u[1];
-  // energy source
-  s[4] = (u[1]*s[1] + u[2]*s[2])/u[0];
+  s[1] = -u[2];
+  s[2] =  u[1];
 
   return s;
 }

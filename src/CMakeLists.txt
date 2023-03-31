@@ -70,6 +70,66 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   add_compiler_flag("-Wextra")
   add_compiler_flag("-Wno-unknown-pragmas")
 
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+
+  add_compiler_flag("-w3")       # enable diagnostics: remarks, warnings, errors
+  add_compiler_flag("-Wremarks") # display remarks and comments
+
+  # Globally suppress the following Intel compiler remarks:
+  # 7: unrecognized token
+  # 68: integer conversion resulted in a change of sign
+  # 82: storage class is not first
+  # 111: statement is unreachable
+  # 186: pointless comparison of unsigned integer with zero
+  # 177: function was declared but never referenced
+  # 193: zero used for undefined preprocessing identifier
+  # 280: selector expression is constant
+  # 304: access control not specified ("public" by default)
+  # 383: value copied to temporary, reference to temporary used
+  # 327: NULL reference is not allowed
+  # 411: defines no constructor for initializer_list<>
+  # 444: destructor for base class is not virtual
+  # 593: parameter was set but never used
+  # 688: "simd" is an unrecognized __declspec attribute
+  # 869: parameter was never referenced
+  # 981: operands are evaluated in unspecified order
+  # 1011: missing return statement at end of non-void function (constexpr)
+  # 1292: unknown attribute "fallthrough"
+  # 1418: external function definition with no prior declaration
+  # 1419: external declaration in primary source file
+  # 1572: floating-point equality and inequality comparisons are unreliable
+  # 1599: declaration hides variable
+  # 2259: non-pointer conversion from "int" to "char" may lose significant bits
+  # 2407: the initialization of class will be done before that of member
+  # 2415: variable of static storage duration was declared but never referenced
+  # 2547: non-system include dir will be ignored when both a system and non-system include directory were specified
+  # 2557: comparison between signed and unsigned operands
+  # 3180: unrecognized OpenMP #pragma
+  # 3280: declaration hides member
+  # 3346: dynamic exception specifications are deprecated
+  # 3656: variable may be used before its value is set
+  # 10120: overriding '-O3' with '-O2'
+  # 10397: optimization reports are generated in *.optrpt files in the output location
+  # 15518: Structure assignment was serialized
+  add_compiler_flag("-diag-disable 7,68,82,111,177,186,193,280,304,327,383,411,444,593,688,869,981,1011,1292,1418,1419,1572,1599,2259,2407,2415,2547,2557,3180,3280,3346,3656,10120,10397,15518,2282")
+
+  # default: no openmp simd (regression tests would fail otherwise)
+  add_compiler_flag("-qno-openmp-simd")
+  # for vectorization: disable above and enable some below
+  #add_compiler_flag("-march=native")
+  #add_compiler_flag("-qopt-zmm-usage=high")
+  #add_compiler_flag("-vecabi=cmdtarget")
+  #add_compiler_flag("-vec-threshold0")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qopt-report=5 -qopt-report-phase=loop,vec")
+
+  # No limit on inlining. This can increase the build time.
+  if(CMAKE_BUILD_TYPE MATCHES "REL") # Release | RelWithDebInfo | MinSizeRel
+    #add_compiler_flag("-no-inline-max-size")
+    #add_compiler_flag("-no-inline-max-total-size")
+    #add_compiler_flag("-no-inline-max-per-routine")
+    add_compiler_flag("-diag-disable 11074,11076")
+  endif()
+
 endif()
 
 # Include cmake code to enable configuration for data layouts

@@ -746,7 +746,7 @@ Transporter::diagHeader()
                      g_inputdeck.get< tag::prec, tag::diag >() );
 
   // Collect variables names for integral/diagnostics output
-  std::vector< std::string > var{ "r", "ru", "rv", "rw", "re" };
+  std::vector< std::string > var{ "r", "ru", "rv", "rw", "rE" };
   auto ncomp = g_inputdeck.get< tag::component, tag::compflow >()[0];
   for (std::size_t c=5; c<ncomp; ++c)
     var.push_back( "c" + std::to_string(c-5) );
@@ -789,14 +789,17 @@ Transporter::integralsHeader()
 // Configure and write integrals file header
 // *****************************************************************************
 {
+  const auto& sidesets_integral =
+    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
+
+  if (sidesets_integral.empty()) return;
+
   auto filename = g_inputdeck.get< tag::cmd, tag::io, tag::output >() + ".int";
   tk::DiagWriter dw( filename,
                      g_inputdeck.get< tag::flformat, tag::integral >(),
                      g_inputdeck.get< tag::prec, tag::integral >() );
 
   // Collect variables names for integral output
-  const auto& sidesets_integral =
-    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
   std::vector< std::string > var;
   for (auto s : sidesets_integral) var.push_back( "|rudA" + std::to_string(s) );
 
@@ -1109,24 +1112,29 @@ Transporter::integrals( CkReductionMsg* msg )
   creator | d;
   delete msg;
 
-  Assert( d.size() == NUMINT, "Integrals vector size mismatch" );
+  const auto& sidesets_integral =
+    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
+  if (not sidesets_integral.empty()) {
 
-  // Allocate storage for integrals final values
-  std::vector< tk::real > ints;
+    Assert( d.size() == NUMINT, "Integrals vector size mismatch" );
 
-  // Collect integrals for output
-  for (const auto& [s,m] : d[MASS_FLOW_RATE]) ints.push_back( m );
+    // Allocate storage for integrals final values
+    std::vector< tk::real > ints;
 
-  // Append integrals file at selected times
-  auto filename = g_inputdeck.get< tag::cmd, tag::io, tag::output >() + ".int";
-  tk::DiagWriter dw( filename,
-                     g_inputdeck.get< tag::flformat, tag::integral >(),
-                     g_inputdeck.get< tag::prec, tag::integral >(),
-                     std::ios_base::app );
-  dw.write( static_cast<uint64_t>(tk::cref_find( d[ITER], 0 )),
-            tk::cref_find( d[TIME], 0 ),
-            tk::cref_find( d[DT], 0 ),
-            ints );
+    // Collect integrals for output
+    for (const auto& [s,m] : d[MASS_FLOW_RATE]) ints.push_back( m );
+
+    // Append integrals file at selected times
+    auto filename = g_inputdeck.get<tag::cmd, tag::io, tag::output>() + ".int";
+    tk::DiagWriter dw( filename,
+                       g_inputdeck.get< tag::flformat, tag::integral >(),
+                       g_inputdeck.get< tag::prec, tag::integral >(),
+                       std::ios_base::app );
+    dw.write( static_cast<uint64_t>(tk::cref_find( d[ITER], 0 )),
+              tk::cref_find( d[TIME], 0 ),
+              tk::cref_find( d[DT], 0 ),
+              ints );
+  }
 
   // Continue time step
   m_riecg[ meshid ].step();

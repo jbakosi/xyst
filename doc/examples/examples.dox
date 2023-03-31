@@ -6,6 +6,7 @@
   - \subpage inciter_example_sedov
   - \subpage inciter_example_sedov_lb
   - \subpage inciter_example_onera
+  - \subpage inciter_example_slotcyl
   - \subpage inciter_example_f16
 
 See the @ref papers for more examples.

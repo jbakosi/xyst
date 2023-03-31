@@ -1,0 +1,195 @@
+/*!
+  \page      inciter_example_slotcyl Inciter: Slotted cylinder
+
+This example uses @ref inciter_riecg in @ref inciter_main to compute a
+solid-body rotation problem. Such tests are frequently used to evaluate and
+compare numerical schemes for convection-dominated problems.
+
+Here we evaluate the numerical method using Zalesak's slotted cylinder problem
+[1], augmented by Leveque [2] in order to examine the resolution of both smooth
+and discontinuous profiles.
+
+@section inciter_example_slotcyl_equations Equations solved
+
+In this example we numerically solve the linear advection equation coupled to
+the Euler equations, see also @ref inciter_riecg. as
+
+\f[ \begin{split}
+  \frac{\partial U}{\partial t} + \frac{\partial F_j}{\partial x_j} = S,\qquad
+  U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \\ c  \end{Bmatrix}, \enskip F_j =
+  \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p) \\ u_j c
+  \end{Bmatrix}, \enskip
+  S = \begin{Bmatrix} S_\rho \\ S_{u,i} \\ S_E \\ S_c \end{Bmatrix},
+\end{split} \f]
+where the summation convention on repeated indices has been applied,
+\f$\color[HTML]{dcdcdc}\rho\f$ is the density, \f$\color[HTML]{dcdcdc}u_i\f$ is
+the velocity vector, \f$\color[HTML]{dcdcdc}E=u_iu_i/2+e\f$ is the specific
+total energy, \f$\color[HTML]{dcdcdc}e\f$ is the specific internal energy, and
+\f$\color[HTML]{dcdcdc}p\f$ is the pressure. \f$\color[HTML]{dcdcdc}S_\rho\f$,
+\f$\color[HTML]{dcdcdc}S_{u,i}\f$, \f$\color[HTML]{dcdcdc}S_E\f$, and
+\f$\color[HTML]{dcdcdc}S_c\f$ are source terms that arise from the application
+of the method of manufactured solutions, used for verification only; these
+source terms are zero when computing practical engineering problems. The system
+is closed with the ideal gas law equation of state
+\f[ \begin{split}
+  p = \rho e (\gamma - 1),
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}\gamma\f$ is the ratio of specific heats.
+
+@note While here we are only interested in the solution of the scalar field and
+that could also be done by prescribing an external velocity field and solving
+only for c, we still solve the above coupled system. This way we test the
+solver as it is intended to be used in practice: solving the same system of
+equations with its software implementation.
+
+@section inciter_example_slotcyl_setup Problem setup
+
+The inital configuration for the scalar field, c, is depicted in the figure
+below.
+@m_div{m-col-m-10 m-center-m}
+<img src="images/slotcyl_ic.png"/>
+@m_enddiv
+
+While this is a 2D test problem, we calculate it on a 3D domain with the
+extents {0,1,0} x {0,1,0.05}, Since we are only interested in the evolution of
+the scalar, we prescribe the source terms that yield a stationary flow with a
+prescribed rotational velocity field ui = { 1/2 - y, x - 1/2, 0 } as
+\f[ \begin{split}
+S_\rho &= 0 \\
+S_{u,i}&= \left\{ -\rho u_2, \rho u_1, 0 \right\} \\
+S_E    &= u_iS_{u,i} = 0 \\
+S_c    &= 0
+\end{split} \f]
+Each solid body lies within a radius r0 = 0.15 centered at a point {x0,y0,0}.
+In the rest of the domain the solution is initially zero. The shapes of the
+three bodies can be expressed in terms of the normalized distance function for
+the respective reference point {x0,y0,0}
+\f[ \begin{split}
+r(x,y)=\frac{1}{r_0}\sqrt{(x-x_0)^2+(y-y_0)^2}.
+\end{split} \f]
+The center of the slotted cylinder is located at {x0,y0,0} = {0.5,0.75,0} and
+its geometry is given by
+\f[ \begin{split}
+c(x,y)=\left\{
+\begin{aligned}
+&0.6\enskip\mathrm{if}\enskip|x-x_0|\ge0.025\enskip\mathrm{or}\enskip y\ge0.85,\\&0\enskip\mathrm{otherwise.}
+\end{aligned}
+\right.
+\end{split} \f]
+The corresponding analytical expression for the conical body is
+\f[ \begin{split}
+c(x,y)=0.6[1-r(x,y)],\quad(x_0,y_0)=(0.5,0.25),
+\end{split} \f]
+while the shape and location of the hump reads
+\f[ \begin{split}
+c(x,y)=0.2\left[1+\cos{\left(\pi\min\left(r(x,y),1\right)\right)}\right],\quad(x_0,y_0)=(0.25,0.5).
+\end{split} \f]
+
+The initial conditions are sampled from the analytic solutions above. We set
+inhomogeneous Dirichlet boundary conditions for the flow variables on all sides
+of the domain, sampling their analytic solutions. For the scalar, homogeneous
+Dirichlet conditions are set on those sides with normals in the x and y
+directions.
+
+@section inciter_example_slotcyl_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [82358a5](https://codeberg.org/xyst/xyst/commit/82358a5f14c685ceb2f6957d09fb3c1ded753b13) and the control file below.
+
+@section inciter_example_slotcyl_control Control file
+
+@code{.bash}
+# vim: filetype=sh:
+# This is a comment
+# Keywords are case-sensitive
+
+title "Scalar transport: slotted cylinder, cone, hump"
+
+inciter
+
+  term 3.1415926
+  ttyi 100
+  cfl 0.05
+
+  partitioning
+   algorithm rcb
+  end
+
+  problem slot_cyl
+
+  compflow
+    depvar u
+    material
+      gamma 1.66666666666667 end
+    end
+    bc_dirichlet
+      sideset 1 1 1 1 1 1 1 end
+      sideset 2 1 1 1 1 1 1 end 
+      sideset 3 1 1 1 1 1 1 end
+      sideset 4 1 1 1 1 1 0 end
+      sideset 5 1 1 1 1 1 1 end
+      sideset 6 1 1 1 1 1 0 end
+    end
+  end
+
+  field_output
+    interval 100
+  end
+
+  diagnostics
+    interval 10
+    format scientific
+    precision 12
+  end
+
+end
+@endcode
+
+@section inciter_example_slotcyl_run Run using on 32 CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -v -i unitsquare_01_1.9M.exo -c slot_cyl.q
+@endcode
+
+@note For the mesh, contact us using the link at the bottom of the page.
+
+@section inciter_example_slotcyl_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed fields as
+
+@code{.bash}
+paraview out.0
+@endcode
+
+@section inciter_example_slotcyl_results Results
+
+First, we verify that the flow variables are indeed constant in time. This
+verifies that that correct source terms have been chosen and that they have
+been implemented correctly. The following figure depicts the time evolution of
+L2-norm of the conserved flow variables.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/slotcyl_res.png"/>
+@m_enddiv
+
+The scalar field after half revolution is depicted below with several line-outs
+at various locations so the solution can be compared to the analytic solution.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/slotcyl_x0.5.png"/>
+<img src="images/slotcyl_x0.75.png"/>
+<img src="images/slotcyl_y0.25.png"/>
+<img src="images/slotcyl_y0.75.png"/>
+@m_enddiv
+
+@section inciter_example_slotcyl_references References
+
+@m_div{m-text m-noindent}
+[1] S.T. Zalesak, [Fully multidimensional flux-corrected transport algorithms for fluids](https://doi.org/10.1016/0021-9991(79)90051-2), J. Comput. Phys. 31,3, p.335-362, 1979.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[2] R.J. Leveque, [High-resolution conservative algorithms for advection in incompressible flow](https://doi.org/10.1137/0733033), SIAM J. on Numerical Analysis, 33, p.627-665  1996.
+@m_enddiv
+
+*/

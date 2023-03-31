@@ -1,13 +1,15 @@
 /*!
-  \page      inciter_example_f16 Inciter: Example setup for marching a transonic problem to steady-state
+  \page      inciter_example_f16 Inciter: F-16
 
-This example runs the ALECG algorithm in Quinoa marching the solution to steady
-state using a local time-stepping procedure. The problem is initialized with a
-free-stream Mach number of `M=0.84` and an angle of attack of 3.06 degrees.
+This example runs the
+[ALECG](https://quinoacomputing.github.io/archive/inciter_alecg.html) algorithm
+in [Quinoa](https://quinoacomputing.github.io/archive). The problem
+is initialized with a free-stream Mach number of M=0.84 and an angle of attack
+of 3.06 degrees, yielding a transonic flow.
 
 @m_div{m-col-m-12 m-center-m}
 <img src="images/f16_mesh.png"/>
-Surface mesh for computing the flow around the F16, nelem=6M, npoin=1M, see
+Surface mesh for computing the flow around the F-16, nelem=6M, npoin=1M, see
 below.
 @m_enddiv
 
@@ -27,7 +29,7 @@ inciter
   cfl 0.5
   steady_state true
   residual 1.0e-5
-  rescomp 1
+  rescomp 1     # convergence check for density
 
   scheme alecg
 

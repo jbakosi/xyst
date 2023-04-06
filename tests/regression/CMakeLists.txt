@@ -14,7 +14,7 @@
 set(TEST_RUNNER ${CMAKE_SOURCE_DIR}/../cmake/test_runner.cmake)
 
 # Find gmsh executable
-find_package(Gmsh REQUIRED)
+find_package(Gmsh)
 if(NOT GMSH_FOUND)
   message(WARNING "Gmsh not found, meshconv regression tests will not be rigorous")
 endif()

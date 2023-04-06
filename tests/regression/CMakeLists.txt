@@ -16,7 +16,8 @@ set(TEST_RUNNER ${CMAKE_SOURCE_DIR}/../cmake/test_runner.cmake)
 # Find gmsh executable
 find_package(Gmsh)
 if(NOT GMSH_FOUND)
-  message(WARNING "Gmsh not found, meshconv regression tests will not be rigorous")
+  message(STATUS
+         "Gmsh not found, will not configure meshconv tests with gmsh output")
 endif()
 
 # Find valgrind executable
@@ -38,7 +39,9 @@ include(add_regression_test)
 
 # MeshConv regression tests
 message(STATUS "Adding regression tests for ${MESHCONV_EXECUTABLE}")
-add_subdirectory(meshconv/gmsh_output)
+if(GMSH_FOUND)
+  add_subdirectory(meshconv/gmsh_output)
+endif()
 add_subdirectory(meshconv/netgen_output)
 add_subdirectory(meshconv/exo_output)
 

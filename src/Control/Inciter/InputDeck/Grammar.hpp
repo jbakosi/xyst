@@ -19,7 +19,6 @@
 #include <cmath>
 
 #include "CommonGrammar.hpp"
-#include "CartesianProduct.hpp"
 #include "Keywords.hpp"
 #include "ContainerUtil.hpp"
 #include "Centering.hpp"

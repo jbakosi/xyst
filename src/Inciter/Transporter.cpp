@@ -37,7 +37,6 @@
 #include "Diagnostics.hpp"
 #include "Integrals.hpp"
 #include "Callback.hpp"
-#include "CartesianProduct.hpp"
 #include "Problems.hpp"
 
 #include "NoWarning/inciter.decl.h"

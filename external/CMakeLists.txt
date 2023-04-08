@@ -23,14 +23,19 @@ set(BUILD_SHARED_LIBS ON
 # Set compiler id
 string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" COMP)
 
-option(SMP "Build Charm++ in SMP mode")
+option(SMP "Build Charm++ in SMP mode" OFF)
 if(SMP)
   set(smp "-smp")
+endif()
+option(RNDQ "Build Charm++ with randomized message queues" OFF)
+if(RNDQ)
+  set(rndq "-rndq")
+  set(CHARM_RNDQ "-D;RANDOMIZED_MSGQ=on;-D;PRIO_TYPE=int;-D;ERROR_CHECKING=on;-D;CMAKE_BUILD_TYPE=Debug")
 endif()
 
 # Set install directory based on compiler ID if was not given on command line
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install/${COMP}${smp}"
+  set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install/${COMP}${smp}${rndq}"
       CACHE STRING "Third-party libraries install prefix." FORCE)
   message(STATUS "CMAKE_INSTALL_PREFIX not specified, setting to ${CMAKE_INSTALL_PREFIX}")
 else()
@@ -68,7 +73,6 @@ ExternalProject_Add(
              -D CMAKE_INSTALL_RPATH:PATH=${CMAKE_INSTALL_PREFIX}/lib
              -D CMAKE_C_COMPILER:PATH=${MPI_C_COMPILER}
              -D CMAKE_CXX_COMPILER:PATH=${MPI_CXX_COMPILER}
-             -D CMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
              -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
   LOG_DOWNLOAD 1
   LOG_PATCH 1
@@ -86,6 +90,7 @@ ExternalProject_Add(
   CMAKE_ARGS -D TARGET=LIBS
              -D NETWORK=mpi
              -D SMP=${SMP}
+             ${CHARM_RNDQ}
              -D ENABLE_FORTRAN=off
              -D CMAKE_C_COMPILER:PATH=${MPI_C_COMPILER}
              -D CMAKE_CXX_COMPILER:PATH=${MPI_CXX_COMPILER}

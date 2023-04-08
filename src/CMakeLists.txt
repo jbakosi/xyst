@@ -143,14 +143,18 @@ execute_process(COMMAND "date" "+%A, %b %d, %Y"
                 OUTPUT_VARIABLE BUILD_DATE_SIMPLE)
 string(REGEX REPLACE "[\r\n]" "" BUILD_DATE_SIMPLE "${BUILD_DATE_SIMPLE}")
 
-option(SMP "Use Charm++ built in SMP mode")
+option(SMP "Use Charm++ built in SMP mode" OFF)
 if(SMP)
   set(smp "-smp")
+endif()
+option(RNDQ "Use Charm++ built with randomized message queues" OFF)
+if(RNDQ)
+  set(rndq "-rndq")
 endif()
 
 # Set external libraries install directory
 if (NOT TPL_DIR)
-  set(REL_TPL_DIR ${PROJECT_SOURCE_DIR}/../external/install/${COMP}${smp})
+  set(REL_TPL_DIR ${PROJECT_SOURCE_DIR}/../external/install/${COMP}${smp}${rndq})
   get_filename_component(ABS_TPL_DIR ${REL_TPL_DIR} ABSOLUTE)
   set(TPL_DIR ${ABS_TPL_DIR} CACHE
       STRING "Third-party (external) libraries install directory.")

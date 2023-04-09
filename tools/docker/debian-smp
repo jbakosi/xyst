@@ -32,7 +32,7 @@
 FROM debian:bullseye
 
 # Install system-wide prerequisites
-RUN apt-get update -y && apt-get install -y git autoconf cmake gfortran g++ gmsh libblas-dev liblapack-dev libopenmpi-dev libhdf5-dev libhdf5-openmpi-dev libnetcdf-mpi-dev libboost-all-dev tao-pegtl-dev libpstreams-dev
+RUN apt-get update -y && apt-get install -y git autoconf cmake gfortran g++ gmsh libblas-dev liblapack-dev libopenmpi-dev libhdf5-dev libhdf5-openmpi-dev libnetcdf-mpi-dev libboost-all-dev tao-pegtl-dev
 
 # Clone
 RUN git clone https://codeberg.org/xyst/xyst.git

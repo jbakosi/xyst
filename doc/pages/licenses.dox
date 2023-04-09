@@ -25,10 +25,6 @@ libraries (TPLs) used by Xyst.
   - Web: http://www.boost.org
   - License: @subpage boost_license_page
 
-\subsection pstreams_license PStreams for POSIX process Control
-  - Web: http://pstreams.sourceforge.net/
-  - License: @subpage pstreams_license_page
-
 \subsection hdf5_license The HDF5 data model, required by SEACAS
   - Web: http://www.hdfgroup.org/HDF5
   - License: @subpage hdf5_license_page

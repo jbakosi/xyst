@@ -6,7 +6,6 @@ include(charm)
 add_library(Base
             Exception.cpp
             ProcessException.cpp
-            ProcessControl.cpp
             LoadDistributor.cpp
             Timer.cpp
             Reader.cpp

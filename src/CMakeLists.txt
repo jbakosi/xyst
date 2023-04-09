@@ -173,7 +173,6 @@ find_package(PEGTL 2.0.0 REQUIRED)
 find_package(NumDiff REQUIRED)
 find_package(HighwayHash REQUIRED)
 find_package(Brigand REQUIRED)
-find_package(Pstreams REQUIRED)
 find_package(TUT REQUIRED)
 
 set(HDF5_PREFER_PARALLEL true)

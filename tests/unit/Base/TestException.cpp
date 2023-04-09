@@ -15,7 +15,6 @@
 
 #include "TUTConfig.hpp"
 #include "Exception.hpp"
-#include "ProcessControl.hpp"
 
 #ifndef DOXYGEN_GENERATING_OUTPUT
 
@@ -166,7 +165,7 @@ void Exception_object::test< 7 >() {
 //     stdout = fdopen( STDOUT_FILENO, "w" );
 //     close( stdout_fd );
 //     // remove handle_output from disk
-//     tk::rm( "handle_output" );
+//     ErrChk( !std::remove( "handle_output" ), "Failed to remove file" );
 //
 //   }
 //

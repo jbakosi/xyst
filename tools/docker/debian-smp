@@ -23,7 +23,7 @@
 #
 #   Usage:
 #
-#   docker build -f debian-smp -t xyst-gnu-smp . #--build-arg COMMIT=master --no-cache
+#   docker build -f debian-smp -t xyst-gnu-smp .#--build-arg COMMIT=master --no-cache
 #   docker-squash --cleanup xyst-gnu-smp -t jbakosi/xyst-gnu-smp
 #   docker push jbakosi/xyst-gnu-smp
 #

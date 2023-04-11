@@ -378,8 +378,13 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
     if (g_inputdeck.get< tag::amr, tag::t0ref >())
       nref = static_cast<int>(g_inputdeck.get< tag::amr, tag::init >().size());
 
+    // Query if PE-local reorder is configured
+    int nreord = 0;
+    if (g_inputdeck.get< tag::discr, tag::pelocal_reorder >())
+      nreord = m_nchare[0];
+
     m_progMesh.start( print, "Preparing mesh", {{ CkNumPes(), CkNumPes(), nref,
-      m_nchare[0], m_nchare[0], m_nchare[0], m_nchare[0] }} );
+      m_nchare[0], m_nchare[0], nreord, nreord }} );
   }
 }
 

@@ -1826,6 +1826,9 @@ Refiner::boundary()
 //      //m_oldparent[ {{cA,cB,cC,cD}} ] = {{pA,pB,pC,pD}};
 //      m_oldparent[ ct->second ] = t.second; //{{pA,pB,pC,pD}};
       if (m_oldTets.find(ct->second) == end(m_oldTets)) {
+        // TODO: the following code can assign negative ids to newly added tets.
+        // This needs to be corrected before applying to cell-based schemes.
+        //Assert((p-m_oldntets) > 0, "Negative id assigned to added tet");
         m_addedTets[ c++ ] = p - m_oldntets;
       }
     }
@@ -2039,6 +2042,7 @@ Refiner::bndIntegral()
   }
 
   s.push_back( -1.0 );  // negative: no call-back after reduction
+  s.push_back( static_cast< tk::real >( m_meshid ) );
 
   // Send contribution to host summing partial surface integrals
   contribute( s, CkReduction::sum_double, m_cbr.get< tag::bndint >() );

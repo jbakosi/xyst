@@ -118,7 +118,8 @@ class Transporter : public CBase_Transporter {
                   std::size_t nderef, std::size_t sumrefmode );
 
     //! Compute surface integral across the whole problem and perform leak-test
-    void bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb );
+    void bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb,
+                 tk::real summeshid );
 
     //! Reduction target: all chares have refined their mesh
     void refined( std::size_t summeshid, std::size_t nelem, std::size_t npoin );

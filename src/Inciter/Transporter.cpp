@@ -573,13 +573,15 @@ Transporter::matched( std::size_t summeshid,
 }
 
 void
-Transporter::bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb )
+Transporter::bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb,
+                     tk::real summeshid )
 // *****************************************************************************
 // Compute surface integral across the whole problem and perform leak-test
 //! \param[in] sx X component of vector summed
 //! \param[in] sy Y component of vector summed
 //! \param[in] sz Z component of vector summed
 //! \param[in] cb Invoke callback if positive
+//! \param[in] summeshid Mesh id (summed accross all chares)
 //! \details This function aggregates partial surface integrals across the
 //!   boundary faces of the whole problem. After this global sum a
 //!   non-zero vector result indicates a leak, e.g., a hole in the boundary,
@@ -587,6 +589,8 @@ Transporter::bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb )
 //!   compute the partial surface integrals.
 // *****************************************************************************
 {
+  /*auto meshid =*/tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
+
   std::stringstream err;
   if (cb < 0.0) {
     err << "Mesh boundary leaky after mesh refinement step; this is due to a "

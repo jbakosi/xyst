@@ -272,7 +272,11 @@ if (NOT EXCEPTIONS_WRITE_TO_CERR)     # set default if not set
   # will become compiler define in Main/QuinoaBuildConfig.hpp
   set(EXCEPTIONS_WRITE_TO_CERR ${cerr} CACHE BOOL "Exceptions write std::cerr.")
 endif()
-message(STATUS "Exceptions write to cerr: ${EXCEPTIONS_WRITE_TO_CERR}")
+if(EXCEPTIONS_WRITE_TO_CERR)
+  message(STATUS "Exceptions write to cerr")
+else()
+  message(STATUS "Exceptions do not write to cerr")
+endif()
 
 # Configure cmake variables to pass to the build
 configure_file( "${PROJECT_SOURCE_DIR}/Main/XystConfig.hpp.in"

@@ -143,6 +143,7 @@ if(AMPI_C_COMPILER AND AMPI_CXX_COMPILER)
 endif()
 
 if(CHARM_COMPILER)
+  set(CMAKE_REQUIRED_QUIET 1)
   include(CheckIncludeFiles)
   CHECK_INCLUDE_FILES("${CHARM_INCLUDE_DIR}/conv-mach-opt.h"
                       HAVE_CHARM_CONV_MACH_OPT)

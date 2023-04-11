@@ -2,7 +2,7 @@
 #
 # Rough naming convention for AMR regression tests
 #
-# Example: amr_t0ref_uu_trans_reord_alecg_u0.8_migr
+# Example: amr_t0ref_uu_trans_reord_riecg_u0.8_migr
 #
 # Legend:
 # * amr - exercising adaptive mesh refinement (AMR)
@@ -16,6 +16,6 @@
 #        - d : uniform de-refinement (keyword: uniform_derefine)
 # * trans - type of physics, e.g., compflow, transport
 # * reord - perform PE-locality mesh node reordering during setup
-# * alecg - discontinuous Galerkin discretization, e.g., alecg, diagcg, ...
+# * riecg - discretization type, e.g., riecg, ...
 # * u0.8 - Non-zero virtualization u = 0.8
 # * migr - Use migration

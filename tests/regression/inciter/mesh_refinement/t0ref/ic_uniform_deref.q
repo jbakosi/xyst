@@ -6,39 +6,39 @@ title "Initial uniform mesh refinement"
 
 inciter
 
-  nstep 1    # Max number of time steps
-  cfl   0.2   # CFL coefficient
-  ttyi 1      # TTY output interval
-
-  scheme diagcg
-
-  fct true
+  nstep 3     # Max number of time steps
+  cfl   0.8   # CFL coefficient
+  ttyi  1     # TTY output interval
 
   partitioning
     algorithm mj
   end
 
-  transport
-    depvar c
-    physics advection
-    problem slot_cyl
-#    bc_dirichlet
-#      sideset 1 2 3 end
-#    end
+  problem slot_cyl
+
+  compflow
+    depvar u
+    material
+      gamma 1.66666666666667 end
+    end
+    bc_dirichlet
+      sideset 1 1 1 1 1 1 1 end
+      sideset 2 1 1 1 1 1 1 end
+      sideset 3 1 1 1 1 1 1 end
+      sideset 4 1 1 1 1 1 0 end
+      sideset 5 1 1 1 1 1 1 end
+      sideset 6 1 1 1 1 1 0 end
+    end
   end
 
   amr
     t0ref true
-    dtref false
-    dtfreq 5
-
     initial ic
     initial uniform_derefine
     initial ic
     initial uniform
-    refvar c end
+    refvar u6 end
     error hessian
-
   end
 
   field_output

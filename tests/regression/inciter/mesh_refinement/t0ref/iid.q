@@ -33,11 +33,11 @@ inciter
 
   amr
     t0ref true
-    initial coords
-    initial coords
-    coords
-      x- 0.5
-    end
+    initial ic
+    initial ic
+    initial uniform_derefine
+    refvar u6 end
+    error hessian
   end
 
   field_output

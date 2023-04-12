@@ -6,7 +6,6 @@
 #            2016-2018 Los Alamos National Security, LLC.,
 #            2019-2021 Triad National Security, LLC.
 #            2022-2023 J. Bakosi
-#            2022-2023 J. Bakosi
 #            All rights reserved. See the LICENSE file for details.
 # \brief     Install xyst external libraries ready for CI
 # \details
@@ -35,8 +34,8 @@ FROM debian:bullseye
 RUN apt-get update -y && apt-get install -y git autoconf libtool-bin bzip2 cmake g++ clang gmsh libblas-dev liblapack-dev libboost-dev tao-pegtl-dev zlib1g-dev
 
 # Install OpenMPI
-ADD https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.4.tar.bz2 /openmpi/
-RUN cd /openmpi/ && tar xjf openmpi-4.1.4.tar.bz2 && cd openmpi-4.1.4 && ./configure CC=clang CXX=clang++ CLFAGS=-fPIC --disable-mpi-fortran --enable-shared --enable-static --prefix=/opt/openmpi && make -sj$(grep -c processor /proc/cpuinfo) install
+ADD https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.0.tar.bz2 /openmpi/
+RUN cd /openmpi/ && tar xjf openmpi-4.1.0.tar.bz2 && cd openmpi-4.1.0 && ./configure CC=clang CXX=clang++ --prefix=/opt/openmpi && make -sj$(grep -c processor /proc/cpuinfo) install
 ENV CC /opt/openmpi/bin/mpicc
 ENV CXX /opt/openmpi/bin/mpicxx
 ENV PATH /opt/openmpi/bin:$PATH

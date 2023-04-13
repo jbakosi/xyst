@@ -240,7 +240,6 @@ Transporter::createPartitioner()
     , CkCallback( CkReductionTarget(Transporter,partitioned), thisProxy )
     , CkCallback( CkReductionTarget(Transporter,distributed), thisProxy )
     , CkCallback( CkReductionTarget(Transporter,refinserted), thisProxy )
-    , CkCallback( CkReductionTarget(Transporter,refined), thisProxy )
   }};
 
   // Create refiner callbacks (order important)

@@ -26,7 +26,6 @@ using PartitionerCallback =
     , tag::partitioned,    CkCallback
     , tag::distributed,    CkCallback
     , tag::refinserted,    CkCallback
-    , tag::refined,        CkCallback
   > >;
 
 using RefinerCallback =

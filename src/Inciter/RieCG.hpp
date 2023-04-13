@@ -119,7 +119,6 @@ class RieCG : public CBase_RieCG {
       const std::unordered_map< std::size_t, tk::UnsMesh::Edge >& addedNodes,
       const std::unordered_map< std::size_t, std::size_t >& addedTets,
       const std::set< std::size_t >& removedNodes,
-      const std::unordered_map< std::size_t, std::size_t >& amrNodeMap,
       const tk::NodeCommMap& nodeCommMap,
       const std::map< int, std::vector< std::size_t > >& bface,
       const std::map< int, std::vector< std::size_t > >& bnode,
@@ -128,9 +127,6 @@ class RieCG : public CBase_RieCG {
     //! Const-ref access to current solution
     //! \return Const-ref to current solution
     const tk::Fields& solution() const { return m_u; }
-
-    //! Resizing data sutrctures after mesh refinement has been completed
-    void resized();
 
     //! Compute integral quantities for output
     void integrals();
@@ -159,7 +155,6 @@ class RieCG : public CBase_RieCG {
       p | m_nbeint;
       p | m_ndeint;
       p | m_ngrad;
-      p | m_ncomp;
       p | m_bnode;
       p | m_bface;
       p | m_triinpoel;
@@ -229,8 +224,6 @@ class RieCG : public CBase_RieCG {
     std::size_t m_ndeint;
     //! Counter for receiving gradients
     std::size_t m_ngrad;
-    //! Number of scalar components (flow:5 + transported scalars)
-    std::size_t m_ncomp;
     //! Boundary node lists mapped to side set ids used in the input file
     std::map< int, std::vector< std::size_t > > m_bnode;
     //! Boundary face lists mapped to side set ids used in the input file

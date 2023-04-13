@@ -56,11 +56,11 @@ RieCG::RieCG( const CProxy_Discretization& disc,
   m_nbeint( 0 ),
   m_ndeint( 0 ),
   m_ngrad( 0 ),
-  m_ncomp( g_inputdeck.get< tag::component, tag::compflow >()[0] ),
   m_bnode( bnode ),
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
-  m_u( Disc()->Gid().size(), m_ncomp ),
+  m_u( Disc()->Gid().size(),
+       g_inputdeck.get< tag::component, tag::compflow >()[0] ),
   m_un( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
   m_grad( m_u.nunk(), m_u.nprop()*3 ),
@@ -997,7 +997,7 @@ RieCG::refine( const std::vector< tk::real >& l2res )
 
     d->refined() = 0;
     feop_complete();
-    resized();
+    resize_complete();
 
   }
 }
@@ -1012,7 +1012,6 @@ RieCG::resizePostAMR(
   const std::unordered_map< std::size_t, tk::UnsMesh::Edge >& addedNodes,
   const std::unordered_map< std::size_t, std::size_t >& /*addedTets*/,
   const std::set< std::size_t >& removedNodes,
-  const std::unordered_map< std::size_t, std::size_t >& amrNodeMap,
   const tk::NodeCommMap& nodeCommMap,
   const std::map< int, std::vector< std::size_t > >& bface,
   const std::map< int, std::vector< std::size_t > >& bnode,
@@ -1038,7 +1037,12 @@ RieCG::resizePostAMR(
   ++d->Itr();    // Increase number of iterations with a change in the mesh
 
   // Resize mesh data structures after mesh refinement
-  d->resizePostAMR( chunk, coord, amrNodeMap, nodeCommMap, removedNodes );
+  d->resizePostAMR( chunk, coord, nodeCommMap, removedNodes );
+
+  Assert(coord[0].size() == m_u.nunk()-removedNodes.size()+addedNodes.size(),
+    "Incorrect vector length post-AMR: expected length after resizing = " +
+    std::to_string(coord[0].size()) + ", actual unknown vector length = " +
+    std::to_string(m_u.nunk()-removedNodes.size()+addedNodes.size()));
 
   // Remove newly removed nodes from solution vectors
   m_u.rm(removedNodes);
@@ -1071,15 +1075,6 @@ RieCG::resizePostAMR(
               CkCallback(CkReductionTarget(Transporter,resized), d->Tr()) );
 }
 //! [Resize]
-
-void
-RieCG::resized()
-// *****************************************************************************
-// Resizing data sutrctures after mesh refinement has been completed
-// *****************************************************************************
-{
-  resize_complete();
-}
 
 void
 RieCG::writeFields( CkCallback cb )

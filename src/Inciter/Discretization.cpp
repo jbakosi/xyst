@@ -109,9 +109,6 @@ Discretization::Discretization(
   // Get ready for computing/communicating nodal volumes
   startvol();
 
-  // Generate chare-boundary node-id map
-  m_bid = genBid();
-
   // Find host elements of user-specified points where time histories are
   // saved, and save the shape functions evaluated at the point locations
   const auto& pt = g_inputdeck.get< tag::history, tag::point >();
@@ -156,74 +153,28 @@ Discretization::genBid()
   return tk::assignLid( c );
 }
 
-std::vector< std::size_t >
-Discretization::bndel() const
-// *****************************************************************************
-// Find elements along our mesh chunk boundary
-//! \return List of { element id, local node id } to contribute at chare
-//!   boundaries
-// *****************************************************************************
-{
-  // Lambda to find out if a mesh node is shared with another chare
-  auto shared = [this]( std::size_t i ){
-    for (const auto& [c,n] : m_nodeCommMap)
-      if (n.find(i) != end(n)) return true;
-    return false;
-  };
-
-  // Find elements along our mesh chunk boundary
-  std::vector< std::size_t > chbndel;
-  for (std::size_t n=0; n<m_inpoel.size(); ++n)
-    if (shared( m_gid[ m_inpoel[n] ] )) chbndel.push_back( n/4 );
-  tk::unique( chbndel );
-
-  // generate { element id, local node id } pairs for chare boundaries
-  std::vector< std::size_t > en;
-
-  for (auto e : chbndel) {
-    for (std::size_t a=0; a<4; ++a) {
-      auto i = m_bid.find( m_gid[ m_inpoel[e*4+a] ] );
-      if (i != end(m_bid)) {            // if boundary element node contributes
-        en.push_back( e );              // store element id
-        en.push_back( i->second );      // store local node id to contribute to
-      }
-    }
-  }
-
-  return en;
-}
-
 void
 Discretization::resizePostAMR(
   const tk::UnsMesh::Chunk& chunk,
   const tk::UnsMesh::Coords& coord,
-  const std::unordered_map< std::size_t, std::size_t >& /*amrNodeMap*/,
   const tk::NodeCommMap& nodeCommMap,
   const std::set< std::size_t >& /*removedNodes*/ )
 // *****************************************************************************
 //  Resize mesh data structures after mesh refinement
 //! \param[in] chunk New mesh chunk (connectivity and global<->local id maps)
 //! \param[in] coord New mesh node coordinates
-//! \param[in] amrNodeMap Node id map after amr (local ids)
 //! \param[in] nodeCommMap New node communication map
 //! \param[in] removedNodes Newly removed mesh node local ids
 // *****************************************************************************
 {
-  m_el = chunk;         // updates m_inpoel, m_gid, m_lid
-  m_nodeCommMap.clear();
-  m_nodeCommMap = nodeCommMap;        // update node communication map
+  m_el = chunk;                 // updates m_inpoel, m_gid, m_lid
+  m_nodeCommMap = nodeCommMap;
 
   // Update mesh volume container size
   m_vol.resize( m_gid.size(), 0.0 );
 
-  // Regenerate chare-boundary node ids map
-  m_bid = genBid();
-
   // update mesh node coordinates
   m_coord = coord;
-
-  // we are no longer during setup
-  m_initial = 0;
 }
 
 void

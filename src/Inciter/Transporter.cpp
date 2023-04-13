@@ -853,7 +853,7 @@ Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
   if (initial > 0.0)   // during initialization
     m_discretization[ meshid ].stat( v );
   else                  // during AMR
-    m_riecg[ meshid ].resized();
+    m_riecg[ meshid ].resize_complete();
 }
 
 void

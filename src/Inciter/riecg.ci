@@ -43,7 +43,6 @@ module riecg {
                                   std::vector< tk::real > >& ingrad );
       entry void comrhs( const std::unordered_map< std::size_t,
                                  std::vector< tk::real > >& inrhs );
-      entry void resized();
       entry void feop();
       entry void step();
       entry void integrals();

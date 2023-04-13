@@ -91,7 +91,6 @@ class Discretization : public CBase_Discretization {
     void resizePostAMR(
       const tk::UnsMesh::Chunk& chunk,
       const tk::UnsMesh::Coords& coord,
-      const std::unordered_map< std::size_t, std::size_t >& amrNodeMap,
       const tk::NodeCommMap& nodeCommMap,
       const std::set< std::size_t >& removedNodes );
 
@@ -204,10 +203,6 @@ class Discretization : public CBase_Discretization {
       return m_refiner[ thisIndex ].ckLocal();
     }
 
-    //! Boundary node ids accessor as const-ref
-    const std::unordered_map< std::size_t, std::size_t >& Bid() const
-    { return m_bid; }
-
     //! Node communication map accessor as const-ref
     const tk::NodeCommMap& NodeCommMap() const { return m_nodeCommMap; }
 
@@ -312,9 +307,6 @@ class Discretization : public CBase_Discretization {
       return nodes;
     }
 
-    //! Find elements along our mesh chunk boundary
-    std::vector< std::size_t > bndel() const;
-
     //! Decide if field output iteration count interval is hit
     bool fielditer() const;
     //! Decide if field output physics time interval is hit
@@ -382,7 +374,6 @@ class Discretization : public CBase_Discretization {
       p | m_volc;
       p | m_vol0;
       p | m_boxvol;
-      p | m_bid;
       p | m_timer;
       p | m_refined;
       p( reinterpret_cast<char*>(&m_prevstatus), sizeof(Clock::time_point) );
@@ -490,10 +481,6 @@ class Discretization : public CBase_Discretization {
     std::vector< tk::real > m_vol0;
     //! Volume of user-defined box IC
     tk::real m_boxvol;
-    //! \brief Local chare-boundary mesh node IDs at which we receive
-    //!   contributions associated to global mesh node IDs of elements we
-    //!   contribute to
-    std::unordered_map< std::size_t, std::size_t > m_bid;
     //! Timer measuring a time step
     tk::Timer m_timer;
     //! 1 if mesh was refined in a time step, 0 if it was not

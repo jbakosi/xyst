@@ -23,14 +23,13 @@ module discretization {
   namespace inciter {
 
     array [1D] Discretization {
-      entry Discretization(
-        std::size_t meshid,
-        const CProxy_Transporter& transporter,
-        const tk::CProxy_MeshWriter& meshwriter,
-        const tk::UnsMesh::CoordMap& coordmap,
-        const tk::UnsMesh::Chunk& el,
-        const tk::CommMaps& msum,
-        int nchare );
+      entry Discretization( std::size_t meshid,
+                            const CProxy_Transporter& transporter,
+                            const tk::CProxy_MeshWriter& meshwriter,
+                            const tk::UnsMesh::CoordMap& coordmap,
+                            const tk::UnsMesh::Chunk& el,
+                            const tk::CommMaps& msum,
+                            int nchare );
       initnode void registerReducers();
       entry void vol();
       entry void comvol( const std::vector< std::size_t >& gid,

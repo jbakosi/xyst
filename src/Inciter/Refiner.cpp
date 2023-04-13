@@ -1072,7 +1072,7 @@ Refiner::next()
 
     // Send new mesh, solution, and communication data back to PDE worker
     m_riecg[ thisIndex ].ckLocal()->resizePostAMR( m_ginpoel,
-      m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes, m_amrNodeMap,
+      m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes,
       m_nodeCommMap, m_bface, m_bnode, m_triinpoel );
 
   } else if (m_mode == RefMode::OUTREF) {
@@ -1612,7 +1612,7 @@ Refiner::newVolMesh( const std::unordered_set< std::size_t >& old,
   }
 
   // update the node map by removing the derefined nodes
-  if (m_mode == RefMode::DTREF && not m_removedNodes.empty()) {
+  if (m_mode == RefMode::DTREF && m_removedNodes.size() > 0) {
     // remove derefined nodes
     size_t remCount = 0;
     size_t origSize = nodeVec.size();

@@ -136,8 +136,8 @@ RieCG::setupBC()
       for (auto p : n->second) {
         auto& m = dirbcset[p];
         if (m.empty()) m.resize( ncomp, 0 );
-        for (std::size_t c=1; c<mask.size(); ++c)
-          if (!m[c-1]) m[c-1] = mask[c];  // overwrite mask if 0 -> 1
+        for (std::size_t c=0; c<ncomp; ++c)
+          if (!m[c]) m[c] = mask[c+1];  // overwrite mask if 0 -> 1
       }
   }
 

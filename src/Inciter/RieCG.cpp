@@ -1199,8 +1199,8 @@ RieCG::writeFields( CkCallback cb )
 
   // Send mesh and fields data (solution dump) for output to file
   d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,lid),
-            m_triinpoel, {}, nodefieldnames, nodesurfnames, {}, nodefields,
-            nodesurfs, cb );
+            m_triinpoel, {}, nodefieldnames, {}, nodesurfnames,
+            {}, nodefields, {}, nodesurfs, cb );
 }
 
 void

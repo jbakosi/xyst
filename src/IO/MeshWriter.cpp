@@ -66,9 +66,11 @@ MeshWriter::write(
   const std::vector< std::size_t >& triinpoel,
   const std::vector< std::string >& elemfieldnames,
   const std::vector< std::string >& nodefieldnames,
+  const std::vector< std::string >& elemsurfnames,
   const std::vector< std::string >& nodesurfnames,
   const std::vector< std::vector< tk::real > >& elemfields,
   const std::vector< std::vector< tk::real > >& nodefields,
+  const std::vector< std::vector< tk::real > >& elemsurfs,
   const std::vector< std::vector< tk::real > >& nodesurfs,
   const std::set< int >& outsets,
   CkCallback c )
@@ -94,9 +96,11 @@ MeshWriter::write(
 //!   mesh chunk with local ids
 //! \param[in] elemfieldnames Names of element fields to be output to file
 //! \param[in] nodefieldnames Names of node fields to be output to file
+//! \param[in] elemsurfnames Names of eleme surface fields to be output to file
 //! \param[in] nodesurfnames Names of node surface fields to be output to file
 //! \param[in] elemfields Field data in mesh elements to output to file
 //! \param[in] nodefields Field data in mesh nodes to output to file
+//! \param[in] elemsurfs Surface field data in mesh elements to output to file
 //! \param[in] nodesurfs Surface field data in mesh nodes to output to file
 //! \param[in] outsets Unique set of surface side set ids along which to save
 //!   solution field variables
@@ -136,6 +140,7 @@ MeshWriter::write(
             // https://www.paraview.org/Wiki/Restarted_Simulation_Readers.
             es.writeMesh< 3 >( std::vector< std::size_t >{1,2,3},
               UnsMesh::Coords{{ {{0,0,0}}, {{0,0,0}}, {{0,0,0}} }} );
+            es.writeElemVarNames( elemsurfnames );
             es.writeNodeVarNames( nodesurfnames );
             continue;
           }
@@ -160,6 +165,7 @@ MeshWriter::write(
             ++j;
           }
           es.writeMesh< 3 >( inp, scoord );
+          es.writeElemVarNames( elemsurfnames );
           es.writeNodeVarNames( nodesurfnames );
         }
 
@@ -181,7 +187,9 @@ MeshWriter::write(
 
         // Write surface node variable fields
         std::size_t j = 0;
+        std::size_t k = 0;
         auto nvar = static_cast< int >( nodesurfnames.size() ) ;
+        auto nevar = static_cast< int >( elemsurfnames.size() ) ;
         for (auto s : outsets) {
           auto sf = filename( basefilename, meshid, itr, chareid, s );
           ExodusIIMeshWriter es( sf, ExoWriter::OPEN );
@@ -193,10 +201,13 @@ MeshWriter::write(
             // multiple files. See also
             // https://www.paraview.org/Wiki/Restarted_Simulation_Readers.
             for (int i=1; i<=nvar; ++i) es.writeNodeScalar( itf, i, {0,0,0} );
+            for (int i=1; i<=nevar; ++i) es.writeElemScalar( itf, i, {0} );
             continue;
           }
           for (int i=1; i<=nvar; ++i)
             es.writeNodeScalar( itf, i, nodesurfs[j++] );
+          for (int i=1; i<=nevar; ++i)
+            es.writeElemScalar( itf, i, elemsurfs[k++] );
         }
 
       }

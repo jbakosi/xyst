@@ -520,9 +520,11 @@ Discretization::write(
   const std::vector< std::size_t >& triinpoel,
   const std::vector< std::string>& elemfieldnames,
   const std::vector< std::string>& nodefieldnames,
+  const std::vector< std::string>& elemsurfnames,
   const std::vector< std::string>& nodesurfnames,
   const std::vector< std::vector< tk::real > >& elemfields,
   const std::vector< std::vector< tk::real > >& nodefields,
+  const std::vector< std::vector< tk::real > >& elemsurfs,
   const std::vector< std::vector< tk::real > >& nodesurfs,
   CkCallback c )
 // *****************************************************************************
@@ -537,9 +539,11 @@ Discretization::write(
 //!   mesh chunk
 //! \param[in] elemfieldnames Names of element fields to be output to file
 //! \param[in] nodefieldnames Names of node fields to be output to file
+//! \param[in] elemsurfnames Names of elem surface fields to be output to file
 //! \param[in] nodesurfnames Names of node surface fields to be output to file
 //! \param[in] elemfields Field data in mesh elements to output to file
 //! \param[in] nodefields Field data in mesh nodes to output to file
+//! \param[in] elemsurfs Surface field data in mesh elements to output to file
 //! \param[in] nodesurfs Surface field data in mesh nodes to output to file
 //! \param[in] c Function to continue with after the write
 //! \details Since m_meshwriter is a Charm++ chare group, it never migrates and
@@ -575,8 +579,8 @@ Discretization::write(
     write( m_meshid, meshoutput, fieldoutput, m_itr, m_itf, m_t, thisIndex,
            g_inputdeck.get< tag::cmd, tag::io, tag::output >(),
            inpoel, coord, bface, bnode, triinpoel, elemfieldnames,
-           nodefieldnames, nodesurfnames, elemfields, nodefields, nodesurfs,
-           g_inputdeck.fieldoutsets(), c );
+           nodefieldnames, elemsurfnames, nodesurfnames, elemfields, nodefields,
+           elemsurfs, nodesurfs, g_inputdeck.fieldoutsets(), c );
 }
 
 void

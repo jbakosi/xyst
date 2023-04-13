@@ -21,34 +21,6 @@
 
 using tk::MeshWriter;
 
-MeshWriter::MeshWriter( ctr::FieldFileType filetype,
-                        bool benchmark,
-                        std::size_t nmesh ) :
-  m_filetype( filetype ),
-  m_benchmark( benchmark ),
-  m_nchare( 0 ),
-  m_nmesh( nmesh )
-// *****************************************************************************
-//  Constructor: set some defaults that stay constant at all times
-//! \param[in] filetype Output file format type
-//! \param[in] benchmark True of benchmark mode. No field output happens in
-//!   benchmark mode. This (and associated if tests) are here so client code
-//!   does not have to deal with this.
-//! \param[in] nmesh Total number of meshes
-// *****************************************************************************
-{
-}
-
-void
-MeshWriter::nchare( int n )
-// *****************************************************************************
-//  Set the total number of chares
-//! \param[in] n Total number of chares across the whole problem
-// *****************************************************************************
-{
-  m_nchare = n;
-}
-
 void
 MeshWriter::write(
   std::size_t meshid,
@@ -107,112 +79,102 @@ MeshWriter::write(
 //! \param[in] c Function to continue with after the write
 // *****************************************************************************
 {
-  if (!m_benchmark) {
+  if (m_benchmark) { c.send(); return; }
 
-    // Generate filenames for volume and surface field output
-    auto vf = filename( basefilename, meshid, itr, chareid );
+  // Generate filenames for volume and surface field output
+  auto vf = filename( basefilename, meshid, itr, chareid );
   
-    if (meshoutput) {
-      if (m_filetype == ctr::FieldFileType::EXODUSII) {
-
-        // Write volume mesh and field names
-        ExodusIIMeshWriter ev( vf, ExoWriter::CREATE );
-        // Write chare mesh (do not write side sets in parallel)
-        if (m_nchare == 1) {
-          ev.writeMesh( tk::UnsMesh( inpoel, coord, bnode ) );
-        } else {
-          ev.writeMesh< 4 >( inpoel, coord );
-        }
-        ev.writeElemVarNames( elemfieldnames );
-        Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
-        ev.writeNodeVarNames( nodefieldnames );
-
-        // Write surface meshes and surface variable field names
-        for (auto s : outsets) {
-          auto sf = filename( basefilename, meshid, itr, chareid, s );
-          ExodusIIMeshWriter es( sf, ExoWriter::CREATE );
-          auto b = bface.find(s);
-          if (b == end(bface)) {
-            // If a side set does not exist on a chare, write out a
-            // connectivity for a single triangle with its node coordinates of
-            // zero. This is so the paraview series reader can load side sets
-            // distributed across multiple files. See also
-            // https://www.paraview.org/Wiki/Restarted_Simulation_Readers.
-            es.writeMesh< 3 >( std::vector< std::size_t >{1,2,3},
-              UnsMesh::Coords{{ {{0,0,0}}, {{0,0,0}}, {{0,0,0}} }} );
-            es.writeElemVarNames( elemsurfnames );
-            es.writeNodeVarNames( nodesurfnames );
-            continue;
-          }
-          std::vector< std::size_t > nodes;
-          for (auto f : b->second) {
-            nodes.push_back( triinpoel[f*3+0] );
-            nodes.push_back( triinpoel[f*3+1] );
-            nodes.push_back( triinpoel[f*3+2] );
-          }
-          auto [inp,gid,lid] = tk::global2local( nodes );
-          tk::unique( nodes );
-          auto nnode = nodes.size();
-          UnsMesh::Coords scoord;
-          scoord[0].resize( nnode );
-          scoord[1].resize( nnode );
-          scoord[2].resize( nnode );
-          std::size_t j = 0;
-          for (auto i : nodes) {
-            scoord[0][j] = coord[0][i];
-            scoord[1][j] = coord[1][i];
-            scoord[2][j] = coord[2][i];
-            ++j;
-          }
-          es.writeMesh< 3 >( inp, scoord );
-          es.writeElemVarNames( elemsurfnames );
-          es.writeNodeVarNames( nodesurfnames );
-        }
-
-      }
+  if (meshoutput) {
+    // Write volume mesh and field names
+    ExodusIIMeshWriter ev( vf, ExoWriter::CREATE );
+    // Write chare mesh (do not write side sets in parallel)
+    if (m_nchare == 1) {
+      ev.writeMesh( tk::UnsMesh( inpoel, coord, bnode ) );
+    } else {
+      ev.writeMesh< 4 >( inpoel, coord );
     }
+    ev.writeElemVarNames( elemfieldnames );
+    Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
+    ev.writeNodeVarNames( nodefieldnames );
 
-    if (fieldoutput) {
-      if (m_filetype == ctr::FieldFileType::EXODUSII) {
-
-        // Write volume variable fields
-        ExodusIIMeshWriter ev( vf, ExoWriter::OPEN );
-        ev.writeTimeStamp( itf, time );
-        // Write volume element variable fields
-        int varid = 0;
-        for (const auto& v : elemfields) ev.writeElemScalar( itf, ++varid, v );
-        // Write volume node variable fields
-        varid = 0;
-        for (const auto& v : nodefields) ev.writeNodeScalar( itf, ++varid, v );
-
-        // Write surface node variable fields
-        std::size_t j = 0;
-        std::size_t k = 0;
-        auto nvar = static_cast< int >( nodesurfnames.size() ) ;
-        auto nevar = static_cast< int >( elemsurfnames.size() ) ;
-        for (auto s : outsets) {
-          auto sf = filename( basefilename, meshid, itr, chareid, s );
-          ExodusIIMeshWriter es( sf, ExoWriter::OPEN );
-          es.writeTimeStamp( itf, time );
-          if (bface.find(s) == end(bface)) {
-            // If a side set does not exist on a chare, write out a
-            // a node field for a single triangle with zeros. This is so the
-            // paraview series reader can load side sets distributed across
-            // multiple files. See also
-            // https://www.paraview.org/Wiki/Restarted_Simulation_Readers.
-            for (int i=1; i<=nvar; ++i) es.writeNodeScalar( itf, i, {0,0,0} );
-            for (int i=1; i<=nevar; ++i) es.writeElemScalar( itf, i, {0} );
-            continue;
-          }
-          for (int i=1; i<=nvar; ++i)
-            es.writeNodeScalar( itf, i, nodesurfs[j++] );
-          for (int i=1; i<=nevar; ++i)
-            es.writeElemScalar( itf, i, elemsurfs[k++] );
-        }
-
+    // Write surface meshes and surface variable field names
+    for (auto s : outsets) {
+      auto sf = filename( basefilename, meshid, itr, chareid, s );
+      ExodusIIMeshWriter es( sf, ExoWriter::CREATE );
+      auto b = bface.find(s);
+      if (b == end(bface)) {
+        // If a side set does not exist on a chare, write out a
+        // connectivity for a single triangle with its node coordinates of
+        // zero. This is so the paraview series reader can load side sets
+        // distributed across multiple files. See also
+        // https://www.paraview.org/Wiki/Restarted_Simulation_Readers.
+        es.writeMesh< 3 >( std::vector< std::size_t >{1,2,3},
+          UnsMesh::Coords{{ {{0,0,0}}, {{0,0,0}}, {{0,0,0}} }} );
+        es.writeElemVarNames( elemsurfnames );
+        es.writeNodeVarNames( nodesurfnames );
+        continue;
       }
+      std::vector< std::size_t > nodes;
+      for (auto f : b->second) {
+        nodes.push_back( triinpoel[f*3+0] );
+        nodes.push_back( triinpoel[f*3+1] );
+        nodes.push_back( triinpoel[f*3+2] );
+      }
+      auto [inp,gid,lid] = tk::global2local( nodes );
+      tk::unique( nodes );
+      auto nnode = nodes.size();
+      UnsMesh::Coords scoord;
+      scoord[0].resize( nnode );
+      scoord[1].resize( nnode );
+      scoord[2].resize( nnode );
+      std::size_t j = 0;
+      for (auto i : nodes) {
+        scoord[0][j] = coord[0][i];
+        scoord[1][j] = coord[1][i];
+        scoord[2][j] = coord[2][i];
+        ++j;
+      }
+      es.writeMesh< 3 >( inp, scoord );
+      es.writeElemVarNames( elemsurfnames );
+      es.writeNodeVarNames( nodesurfnames );
     }
+  }
 
+  if (fieldoutput) {
+    // Write volume variable fields
+    ExodusIIMeshWriter ev( vf, ExoWriter::OPEN );
+    ev.writeTimeStamp( itf, time );
+    // Write volume element variable fields
+    int varid = 0;
+    for (const auto& v : elemfields) ev.writeElemScalar( itf, ++varid, v );
+    // Write volume node variable fields
+    varid = 0;
+    for (const auto& v : nodefields) ev.writeNodeScalar( itf, ++varid, v );
+
+    // Write surface node variable fields
+    std::size_t j = 0;
+    std::size_t k = 0;
+    auto nvar = static_cast< int >( nodesurfnames.size() ) ;
+    auto nevar = static_cast< int >( elemsurfnames.size() ) ;
+    for (auto s : outsets) {
+      auto sf = filename( basefilename, meshid, itr, chareid, s );
+      ExodusIIMeshWriter es( sf, ExoWriter::OPEN );
+      es.writeTimeStamp( itf, time );
+      if (bface.find(s) == end(bface)) {
+        // If a side set does not exist on a chare, write out a
+        // a node field for a single triangle with zeros. This is so the
+        // paraview series reader can load side sets distributed across
+        // multiple files. See also
+        // https://www.paraview.org/Wiki/Restarted_Simulation_Readers.
+        for (int i=1; i<=nvar; ++i) es.writeNodeScalar( itf, i, {0,0,0} );
+        for (int i=1; i<=nevar; ++i) es.writeElemScalar( itf, i, {0} );
+        continue;
+      }
+      for (int i=1; i<=nvar; ++i)
+        es.writeNodeScalar( itf, i, nodesurfs[j++] );
+      for (int i=1; i<=nevar; ++i)
+        es.writeElemScalar( itf, i, elemsurfs[k++] );
+    }
   }
 
   c.send();

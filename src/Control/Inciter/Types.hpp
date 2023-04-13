@@ -25,7 +25,6 @@
 #include "Inciter/Options/AMRError.hpp"
 #include "Options/PartitioningAlgorithm.hpp"
 #include "Options/TxtFloatFormat.hpp"
-#include "Options/FieldFile.hpp"
 #include "Options/Error.hpp"
 #include "Options/UserTable.hpp"
 #include "PUPUtil.hpp"

@@ -20,6 +20,7 @@
   #pragma clang diagnostic ignored "-Wundef"
   #pragma clang diagnostic ignored "-Wheader-hygiene"
   #pragma clang diagnostic ignored "-Wdocumentation"
+  #pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
   #pragma clang diagnostic ignored "-Wunused-parameter"
   #pragma clang diagnostic ignored "-Wunused-private-field"
   #pragma clang diagnostic ignored "-Wold-style-cast"
@@ -50,6 +51,7 @@
   #pragma clang diagnostic ignored "-Wunused-template"
   #pragma clang diagnostic ignored "-Wsuggest-override"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
+  #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wcast-qual"

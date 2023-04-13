@@ -22,7 +22,6 @@
 #include <map>
 
 #include "Types.hpp"
-#include "Options/FieldFile.hpp"
 #include "Centering.hpp"
 #include "UnsMesh.hpp"
 
@@ -34,23 +33,32 @@ namespace tk {
 class MeshWriter : public CBase_MeshWriter {
 
   public:
-    //! Constructor: set some defaults that stay constant at all times
-    MeshWriter( ctr::FieldFileType filetype,
-                bool benchmark,
-                std::size_t nmesh );
 
     #if defined(__clang__)
       #pragma clang diagnostic push
       #pragma clang diagnostic ignored "-Wundefined-func-template"
     #endif
+
+    //! Constructor: set some defaults that stay constant at all times
+    //! \param[in] benchmark True of benchmark mode. No field output happens in
+    //!   benchmark mode. This (and associated if tests) are here so client code
+    //!   does not have to deal with this.
+    //! \param[in] nmesh Total number of meshes
+    MeshWriter( bool benchmark, std::size_t nmesh ) :
+      m_benchmark( benchmark ),
+      m_nchare( 0 ),
+      m_nmesh( nmesh ) {}
+
     //! Migrate constructor
     explicit MeshWriter( CkMigrateMessage* m ) : CBase_MeshWriter( m ) {}
+
     #if defined(__clang__)
       #pragma clang diagnostic pop
     #endif
 
     //! Set the total number of chares
-    void nchare( int n );
+    //! \param[in] n Total number of chares across the whole problem
+    void nchare( int n ) { m_nchare = n; }
 
     //! Output unstructured mesh into file
     void write( std::size_t meshid,
@@ -84,8 +92,6 @@ class MeshWriter : public CBase_MeshWriter {
     //! \note This is a Charm++ group, pup() is thus only for
     //!    checkpoint/restart.
     void pup( PUP::er &p ) override {
-      p | m_filetype;
-      p | m_bndCentering;
       p | m_benchmark;
       p | m_nchare;
       p | m_nmesh;
@@ -97,10 +103,6 @@ class MeshWriter : public CBase_MeshWriter {
     //@}
 
   private:
-    //! Output file format type
-    ctr::FieldFileType m_filetype;
-    //! Centering to identify what boundary data to write.
-    Centering m_bndCentering;
     //! True if benchmark mode
     bool m_benchmark;
     //! Total number chares across the whole problem

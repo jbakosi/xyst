@@ -309,9 +309,7 @@ Transporter::createPartitioner()
     // Create MeshWriter chare group for mesh
     m_meshwriter.push_back(
       tk::CProxy_MeshWriter::ckNew(
-        tk::ctr::FieldFileType::EXODUSII,
-        g_inputdeck.get< tag::cmd, tag::benchmark >(),
-        m_input.size() ) );
+        g_inputdeck.get< tag::cmd, tag::benchmark >(), m_input.size() ) );
 
     // Create mesh partitioner Charm++ chare nodegroup for all meshes
     m_partitioner.push_back(

@@ -16,16 +16,13 @@
 
 module meshwriter {
 
-  include "Options/FieldFile.hpp";
   include "UnsMesh.hpp";
 
   namespace tk {
 
     group [migratable] MeshWriter {
 
-      entry MeshWriter( ctr::FieldFileType filetype,
-                        bool benchmark,
-                        std::size_t nmesh );
+      entry MeshWriter( bool benchmark, std::size_t nmesh );
 
       entry void nchare( int n );
 

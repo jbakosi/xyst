@@ -1095,10 +1095,7 @@ RieCG::writeFields( CkCallback cb )
 //! \param[in] cb Function to continue with after the write
 // *****************************************************************************
 {
-  if (g_inputdeck.get< tag::cmd, tag::benchmark >()) {
-    cb.send();
-    return;
-  }
+  if (g_inputdeck.get< tag::cmd, tag::benchmark >()) { cb.send(); return; }
 
   auto d = Disc();
   auto ncomp = m_u.nprop();

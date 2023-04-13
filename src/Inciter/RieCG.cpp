@@ -142,6 +142,7 @@ RieCG::setupBC()
   }
 
   // Compile streamable list of nodes + Dirichlet BC components mask
+  tk::destroy( m_dirbcmasks );
   for (const auto& [p,mask] : dirbcset) {
     m_dirbcmasks.push_back( p );
     m_dirbcmasks.insert( end(m_dirbcmasks), begin(mask), end(mask) );
@@ -160,7 +161,8 @@ RieCG::setupBC()
     ErrChk( pbc_r.size() == pbc_set.size(), "Pressure BC density unspecified" );
     const auto& pbc_p = g_inputdeck.get< param, compflow, pressure_pressure >();
     ErrChk( pbc_p.size() == pbc_set.size(), "Pressure BC pressure unspecified" );
-
+    tk::destroy( m_prebcnodes );
+    tk::destroy( m_prebcvals );
     for (const auto& [s,n] : pre) {
       m_prebcnodes.insert( end(m_prebcnodes), begin(n), end(n) );
       for (std::size_t p=0; p<pbc_set.size(); ++p) {
@@ -174,10 +176,9 @@ RieCG::setupBC()
         }
       }
     }
+    ErrChk( m_prebcnodes.size()*2 == m_prebcvals.size(),
+            "Pressure BC data incomplete" );
   }
-
-  ErrChk( m_prebcnodes.size()*2 == m_prebcvals.size(),
-          "Pressure BC data incomplete" );
 
 
   // Query symmetry BC nodes associated to side sets
@@ -186,8 +187,10 @@ RieCG::setupBC()
   auto far = d->bcnodes< bc, tag::farfield >( m_bface, m_triinpoel );
 
   // Generate unique set of symmetry BC nodes
+  tk::destroy( m_symbcnodeset );
   for (const auto& [s,n] : sym) m_symbcnodeset.insert( begin(n), end(n) );
   // Generate unique set of farfield BC nodes
+  tk::destroy( m_farbcnodeset );
   for (const auto& [s,n] : far) m_farbcnodeset.insert( begin(n), end(n) );
 
   // If farfield BC is set on a node, will not also set symmetry BC
@@ -542,6 +545,7 @@ RieCG::merge()
   }
   for (auto& [s,n] : surfintnodes) tk::unique( n );
   // Prepare surface integral data
+  tk::destroy( m_surfint );
   const auto& gid = Disc()->Gid();
   for (auto&& [s,n] : surfintnodes) {
     auto& sint = m_surfint[s];  // associate set id
@@ -598,6 +602,8 @@ RieCG::merge()
   // Convert symmetry BC data to streamable data structures
   const auto& sbc =
     g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::symmetry >();
+  tk::destroy( m_symbcnodes );
+  tk::destroy( m_symbcnorms );
   for (auto p : m_symbcnodeset) {
     for (const auto& s : sbc[0]) {
       auto m = m_bnorm.find(s);
@@ -617,6 +623,8 @@ RieCG::merge()
   // Convert farfield BC data to streamable data structures
   const auto& fbc =
     g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::farfield >();
+  tk::destroy( m_farbcnodes );
+  tk::destroy( m_farbcnorms );
   for (auto p : m_farbcnodeset) {
     for (const auto& s : fbc[0]) {
       auto n = m_bnorm.find(s);
@@ -634,13 +642,16 @@ RieCG::merge()
   tk::destroy( m_farbcnodeset );
   tk::destroy( m_bnorm );
 
+  // Enforce boundary conditions using (re-)computed boundary data
+  BC();
+
   if (Disc()->Initial()) {
     // Enforce boundary conditions on initial conditions
     BC();
     // Output initial conditions to file
     writeFields( CkCallback(CkIndex_RieCG::start(), thisProxy[thisIndex]) );
   } else {
-    //feop_complete();
+    feop_complete();
   }
 }
 //! [Merge normals and continue]
@@ -1045,9 +1056,10 @@ RieCG::resizePostAMR(
     std::to_string(m_u.nunk()-removedNodes.size()+addedNodes.size()));
 
   // Remove newly removed nodes from solution vectors
-  m_u.rm(removedNodes);
-  m_un.rm(removedNodes);
-  m_rhs.rm(removedNodes);
+  m_u.rm( removedNodes );
+  m_un.rm( removedNodes );
+  m_rhs.rm( removedNodes );
+  m_grad.rm( removedNodes );
 
   // Resize auxiliary solution vectors
   auto npoin = coord[0].size();
@@ -1068,7 +1080,7 @@ RieCG::resizePostAMR(
   // Update physical-boundary node-, face-, and element lists
   m_bnode = bnode;
   m_bface = bface;
-  m_triinpoel = triinpoel;
+  m_triinpoel = tk::remap( triinpoel, d->Lid() );
 
   auto meshid = d->MeshId();
   contribute( sizeof(std::size_t), &meshid, CkReduction::nop,

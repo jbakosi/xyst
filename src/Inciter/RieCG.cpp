@@ -986,9 +986,9 @@ RieCG::refine( const std::vector< tk::real >& l2res )
   // if t>0 refinement enabled and we hit the frequency
   if (dtref && !(d->It() % dtfreq)) {   // refine
 
+    d->refined() = 1;
     d->startvol();
     d->Ref()->dtref( m_bface, m_bnode, m_triinpoel );
-    d->refined() = 1;
 
     // Activate SDAG waits for re-computing the integrals
     thisProxy[ thisIndex ].wait4int();
@@ -1084,114 +1084,111 @@ RieCG::writeFields( CkCallback cb )
 // *****************************************************************************
 {
   if (g_inputdeck.get< tag::cmd, tag::benchmark >()) {
-
     cb.send();
-
-  } else {
-
-    auto d = Disc();
-    auto ncomp = m_u.nprop();
-
-    // Field output
-
-    std::vector< std::string > nodefieldnames
-      {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
-
-    using tk::operator/=;
-    auto r = m_u.extract( 0, 0 );
-    auto u = m_u.extract( 1, 0 );  u /= r;
-    auto v = m_u.extract( 2, 0 );  v /= r;
-    auto w = m_u.extract( 3, 0 );  w /= r;
-    auto e = m_u.extract( 4, 0 );  e /= r;
-    std::vector< tk::real > p( m_u.nunk() );
-    for (std::size_t i=0; i<p.size(); ++i) {
-      auto ei = e[i] - 0.5*(u[i]*u[i] + v[i]*v[i] + w[i]*w[i]);
-      p[i] = eos::pressure( r[i], ei );
-    }
-
-    std::vector< std::vector< tk::real > > nodefields{
-      std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
-      std::move(p) };
-
-    for (std::size_t c=0; c<ncomp-5; ++c) {
-      nodefieldnames.push_back( "c" + std::to_string(c) );
-      nodefields.push_back( m_u.extract( 5+c, 0 ) );
-    }
-
-    // query function to evaluate analytic solution (if defined)
-    auto sol = problems::SOL();
-
-    if (sol) {
-      const auto& coord = d->Coord();
-      const auto& x = coord[0];
-      const auto& y = coord[1];
-      const auto& z = coord[2];
-      auto an = m_u;
-      std::vector< tk::real > ap( m_u.nunk() );
-      for (std::size_t i=0; i<an.nunk(); ++i) {
-        auto s = sol( x[i], y[i], z[i], d->T() );
-        s[1] /= s[0];
-        s[2] /= s[0];
-        s[3] /= s[0];
-        s[4] = s[4] / s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
-        ap[i] = eos::pressure( s[0], s[4] );
-        for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
-      }
-      for (std::size_t c=0; c<5; ++c) {
-        nodefieldnames.push_back( nodefieldnames[c] + "_analytic" );
-        nodefields.push_back( an.extract( c, 0 ) );
-      }
-      nodefieldnames.push_back( nodefieldnames[5] + "_analytic" );
-      nodefields.push_back( std::move(ap) );
-      for (std::size_t c=0; c<ncomp-5; ++c) {
-        nodefieldnames.push_back( nodefieldnames[6+c] + "_analytic" );
-        nodefields.push_back( an.extract( 5+c, 0 ) );
-      }
-    }
-
-    Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
-
-    // Surface output
-
-    std::vector< std::string > nodesurfnames
-      {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
-
-    for (std::size_t c=1; c<ncomp-5; ++c) {
-      nodesurfnames.push_back( "c" + std::to_string(c) );
-    }
-
-    std::vector< std::vector< tk::real > > nodesurfs;
-
-    const auto& lid = d->Lid();
-    auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
-    for (auto sideset : g_inputdeck.fieldoutsets()) {
-      auto b = bnode.find(sideset);
-      if (b == end(bnode)) continue;
-      const auto& nodes = b->second;
-      auto i = nodesurfs.size();
-      nodesurfs.insert( end(nodesurfs), ncomp + 1,
-                        std::vector< tk::real >( nodes.size() ) );
-      std::size_t j = 0;
-      for (auto n : nodes) {
-        const auto s = m_u[n];
-        nodesurfs[i+0][j] = s[0];
-        nodesurfs[i+1][j] = s[1]/s[0];
-        nodesurfs[i+2][j] = s[2]/s[0];
-        nodesurfs[i+3][j] = s[3]/s[0];
-        nodesurfs[i+4][j] = s[4]/s[0];
-        auto ei = s[4]/s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
-        nodesurfs[i+5][j] = eos::pressure( s[0], ei );
-        for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+1+c][j] = s[5+c];
-        ++j;
-      } 
-    }   
-
-    // Send mesh and fields data (solution dump) for output to file
-    d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,lid),
-              m_triinpoel, {}, nodefieldnames, nodesurfnames, {}, nodefields,
-              nodesurfs, cb );
-
+    return;
   }
+
+  auto d = Disc();
+  auto ncomp = m_u.nprop();
+
+  // Field output
+
+  std::vector< std::string > nodefieldnames
+    {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
+
+  using tk::operator/=;
+  auto r = m_u.extract( 0, 0 );
+  auto u = m_u.extract( 1, 0 );  u /= r;
+  auto v = m_u.extract( 2, 0 );  v /= r;
+  auto w = m_u.extract( 3, 0 );  w /= r;
+  auto e = m_u.extract( 4, 0 );  e /= r;
+  std::vector< tk::real > p( m_u.nunk() );
+  for (std::size_t i=0; i<p.size(); ++i) {
+    auto ei = e[i] - 0.5*(u[i]*u[i] + v[i]*v[i] + w[i]*w[i]);
+    p[i] = eos::pressure( r[i], ei );
+  }
+
+  std::vector< std::vector< tk::real > > nodefields{
+    std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
+    std::move(p) };
+
+  for (std::size_t c=0; c<ncomp-5; ++c) {
+    nodefieldnames.push_back( "c" + std::to_string(c) );
+    nodefields.push_back( m_u.extract( 5+c, 0 ) );
+  }
+
+  // query function to evaluate analytic solution (if defined)
+  auto sol = problems::SOL();
+
+  if (sol) {
+    const auto& coord = d->Coord();
+    const auto& x = coord[0];
+    const auto& y = coord[1];
+    const auto& z = coord[2];
+    auto an = m_u;
+    std::vector< tk::real > ap( m_u.nunk() );
+    for (std::size_t i=0; i<an.nunk(); ++i) {
+      auto s = sol( x[i], y[i], z[i], d->T() );
+      s[1] /= s[0];
+      s[2] /= s[0];
+      s[3] /= s[0];
+      s[4] = s[4] / s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
+      ap[i] = eos::pressure( s[0], s[4] );
+      for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
+    }
+    for (std::size_t c=0; c<5; ++c) {
+      nodefieldnames.push_back( nodefieldnames[c] + "_analytic" );
+      nodefields.push_back( an.extract( c, 0 ) );
+    }
+    nodefieldnames.push_back( nodefieldnames[5] + "_analytic" );
+    nodefields.push_back( std::move(ap) );
+    for (std::size_t c=0; c<ncomp-5; ++c) {
+      nodefieldnames.push_back( nodefieldnames[6+c] + "_analytic" );
+      nodefields.push_back( an.extract( 5+c, 0 ) );
+    }
+  }
+
+  Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
+
+  // Surface output
+
+  std::vector< std::string > nodesurfnames
+    {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
+
+  for (std::size_t c=1; c<ncomp-5; ++c) {
+    nodesurfnames.push_back( "c" + std::to_string(c) );
+  }
+
+  std::vector< std::vector< tk::real > > nodesurfs;
+
+  const auto& lid = d->Lid();
+  auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
+  for (auto sideset : g_inputdeck.fieldoutsets()) {
+    auto b = bnode.find(sideset);
+    if (b == end(bnode)) continue;
+    const auto& nodes = b->second;
+    auto i = nodesurfs.size();
+    nodesurfs.insert( end(nodesurfs), ncomp + 1,
+                      std::vector< tk::real >( nodes.size() ) );
+    std::size_t j = 0;
+    for (auto n : nodes) {
+      const auto s = m_u[n];
+      nodesurfs[i+0][j] = s[0];
+      nodesurfs[i+1][j] = s[1]/s[0];
+      nodesurfs[i+2][j] = s[2]/s[0];
+      nodesurfs[i+3][j] = s[3]/s[0];
+      nodesurfs[i+4][j] = s[4]/s[0];
+      auto ei = s[4]/s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
+      nodesurfs[i+5][j] = eos::pressure( s[0], ei );
+      for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+1+c][j] = s[5+c];
+      ++j;
+    }
+  }
+
+  // Send mesh and fields data (solution dump) for output to file
+  d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,lid),
+            m_triinpoel, {}, nodefieldnames, nodesurfnames, {}, nodefields,
+            nodesurfs, cb );
 }
 
 void

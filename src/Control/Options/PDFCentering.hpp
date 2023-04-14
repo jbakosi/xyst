@@ -10,8 +10,7 @@
   \details   PDF output file centering type options
 */
 // *****************************************************************************
-#ifndef PDFCenteringOptions_h
-#define PDFCenteringOptions_h
+#pragma once
 
 #include <brigand/sequences/list.hpp>
 
@@ -57,5 +56,3 @@ class PDFCentering : public tk::Toggle< PDFCenteringType > {
 
 } // ctr::
 } // tk:::
-
-#endif // PDFCenteringOptions_h

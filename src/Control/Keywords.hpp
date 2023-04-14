@@ -232,177 +232,6 @@ struct helpkw_info {
 };
 using helpkw = keyword< helpkw_info, TAOCPP_PEGTL_STRING("helpkw") >;
 
-struct txt_info {
-  static std::string name() { return "txt"; }
-  static std::string shortDescription() { return
-    "Select ASCII output for outputing PDFs"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the text
-    output file type of a requested probability density function (PDF) within
-    a pdfs ... end block. Example: "filetype txt", which selects text-file
-    output. Valid options are 'txt', 'gmshtxt', 'gmshbin', and 'exodusii'.
-    For more info on the structure of the pdfs ... end block, see
-    doc/pages/statistics_output.dox.)"; }
-};
-using txt = keyword< txt_info, TAOCPP_PEGTL_STRING("txt") >;
-
-struct gmshtxt_info {
-  static std::string name() { return "gmshtxt"; }
-  static std::string shortDescription() { return
-    "Select Gmsh ASCII output for outputing PDFs"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the ASCII
-    (text) output file type readable by Gmsh of a requested probability
-    density function (PDF) within a pdfs ... end block. Example: "filetype
-    gmshtxt", which selects Gmsh ASCII file output. Valid options are 'txt',
-    'gmshtxt', 'gmshbin', and 'exodusii'. For more info on the structure of
-    the pdfs ... end block, see doc/pages/statistics_output.dox. For more
-    info on Gmsh, see http://www.geuz.org/gmsh.)"; }
-};
-using gmshtxt = keyword< gmshtxt_info, TAOCPP_PEGTL_STRING("gmshtxt") >;
-
-struct gmshbin_info {
-  static std::string name() { return "gmshbin"; }
-  static std::string shortDescription() { return
-    "Select Gmsh binary output for outputing PDFs"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the
-    binary output file type readable by Gmsh of a requested probability
-    density function (PDF) within a pdfs ... end block. Example: "filetype
-    gmshbin", which selects Gmsh binary file output. Valid options are 'txt',
-    'gmshtxt', 'gmshbin', and 'exodusii'. For more info on the structure of
-    the pdfs ... end block, see doc/pages/statistics_output.dox. For more
-    info on Gmsh, see http://www.geuz.org/gmsh.)"; }
-};
-using gmshbin = keyword< gmshbin_info, TAOCPP_PEGTL_STRING("gmshbin") >;
-
-struct exodusii_info {
-  static std::string name() { return "exo"; }
-  static std::string shortDescription() { return
-    "Select ExodusII output"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the
-    ExodusII output file type readable by, e.g., ParaView of either a requested
-    probability density function (PDF) within a pdfs ... end block or for
-    mesh-based field output in a field_output ... end block. Example:
-    "filetype exodusii", which selects ExodusII file output. For more info on
-    ExodusII, see http://sourceforge.net/projects/exodusii.)";
-  }
-};
-using exodusii = keyword< exodusii_info, TAOCPP_PEGTL_STRING("exodusii") >;
-
-struct root_info {
-  static std::string name() { return "root"; }
-  static std::string shortDescription() { return
-    "Select Root output"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the Root output file type readable by the
-    Root framework from CERN for mesh-based field output in a field_output ...
-    end block. Example: "filetype root", which selects the root file output
-    format. For more info on Root, see https://root.cern.ch.)";
-  }
-};
-using root = keyword< root_info, TAOCPP_PEGTL_STRING("root") >;
-
-struct filetype_info {
-  static std::string name() { return "filetype"; }
-  static std::string shortDescription() { return
-    "Select output file type"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to specify the output file type of a requested
-    probability density function (PDF) within a pdfs ... end block or for
-    mesh-based field output in a field_output ... end block. Example:
-    "filetype exodusii", which selects ExodusII output. Valid options depend on
-    which block the keyword is used: in a pdfs ... end the valid choices are
-    'txt', 'gmshtxt', 'gmshbin', and 'exodusii', in a field_output ... end
-    block the valid choices are 'exodusii' and 'root'.)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-    static std::string choices() {
-      return '\'' + txt::string() + "\' | \'"
-                  + gmshtxt::string() + "\' | \'"
-                  + gmshbin::string() + "\' | \'"
-                  + root::string() + "\' | \'"
-                  + exodusii::string() + '\'';
-    }
-  };
-
-};
-using filetype = keyword< filetype_info, TAOCPP_PEGTL_STRING("filetype") >;
-
-struct overwrite_info {
-  static std::string name() { return "overwrite"; }
-  static std::string shortDescription() { return
-    "Select PDF output policy overwrite"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the
-    the 'overwrite' output file policy for requested probability density
-    functions (PDFs) within a pdfs ... end block. Example: "policy
-    overwrite", which selects the overwrite output file policy. The
-    overwrite policy overwrites the same output file containing a single time
-    step. Valid PDF policy options are 'overwrite', 'multiple', and
-    'evolution'. For more info on the structure of the pdfs ... end block,
-    see doc/pages/statistics_output.dox.)"; }
-};
-using overwrite = keyword< overwrite_info, TAOCPP_PEGTL_STRING("overwrite") >;
-
-struct multiple_info {
-  static std::string name() { return "multiple"; }
-  static std::string shortDescription() { return
-    "Select PDF output policy multiple"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select
-    the 'multiple' output file policy for requested probability density
-    functions (PDFs) within a pdfs ... end block. Example: "policy
-    multiple", which selects the multiple output file policy. The
-    multiple policy output creates a new file for each time step. Valid PDF
-    policy options are 'overwrite', 'multiple', and 'evolution'. For more
-    info on the structure of the pdfs ... end block, see
-    doc/pages/statistics_output.dox.)"; }
-};
-using multiple = keyword< multiple_info, TAOCPP_PEGTL_STRING("multiple") >;
-
-struct evolution_info {
-  static std::string name() { return "evolution"; }
-  static std::string shortDescription() { return
-    "Select PDF output policy evolution"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select
-    the 'evolution' output file policy for requested probability density
-    functions (PDFs) within a pdfs ... end block. Example: "policy
-    evolution", which selects the evolution output file policy. The
-    evolution policy output appends new time step to the same output file for
-    each time instant, yielding a time evolution of data in a single file.
-    Valid PDF policy options are 'overwrite', 'multiple', and 'evolution'. For
-    more info on the structure of the pdfs ... end block, see
-    doc/pages/statistics_output.dox.)";
-  }
-};
-using evolution = keyword< evolution_info, TAOCPP_PEGTL_STRING("evolution") >;
-
-struct policy_info {
-  static std::string name() { return "policy"; }
-  static std::string shortDescription() { return
-    "Select PDF output file policy"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select
-    the output file policy for requested probability density functions
-    (PDFs) within a pdfs ... end block. Example: "policy overwrite", which
-    selects the overwrite output file policy. Valid options are 'overwrite',
-    'multiple', and 'evolution'. For more info on the structure of the
-    pdfs ... end block, see doc/pages/statistics_output.dox.)";
-  }
-  struct expect {
-    static std::string description() { return "string"; }
-    static std::string choices() {
-      return '\'' + overwrite::string() + "\' | \'"
-                  + multiple::string() + "\' | \'"
-                  + evolution::string() + '\'';
-    }
-  };
-};
-using pdf_policy = keyword< policy_info, TAOCPP_PEGTL_STRING("policy") >;
-
 struct txt_float_default_info {
   static std::string name() { return "default"; }
   static std::string shortDescription() { return
@@ -554,7 +383,6 @@ struct centering_info {
 };
 using pdf_centering = keyword< centering_info, TAOCPP_PEGTL_STRING("centering") >;
 
-
 struct nstep_info {
   static std::string name() { return "nstep"; }
   static std::string shortDescription() { return
@@ -641,98 +469,6 @@ struct cfl_info {
   };
 };
 using cfl = keyword< cfl_info, TAOCPP_PEGTL_STRING("cfl") >;
-
-struct dvcfl_info {
-  static std::string name() { return "dvCFL"; }
-  static std::string shortDescription() { return
-    "Set the volume-change Courant-Friedrichs-Lewy (CFL) coefficient"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to specify the volume-change (dV/dt) CFL coefficient
-    for variable-time-step-size simulations due to volume change in time in
-    arbitrary-Lagrangian-Eulerian (ALE) calculations. Setting 'dvcfl' only has
-    effect in ALE calculations and used together with 'cfl'. See also J. Waltz,
-    N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, A
-    three-dimensional finite element arbitrary Lagrangian–Eulerian method for
-    shock hydrodynamics on unstructured grids, Computers & Fluids, 92: 172-187,
-    2014.)";
-  }
-  struct expect {
-    using type = tk::real;
-    static constexpr type lower = 0.01;
-    static std::string description() { return "real"; }
-  };
-};
-using dvcfl = keyword< dvcfl_info, TAOCPP_PEGTL_STRING("dvcfl") >;
-
-struct vortmult_info {
-  static std::string name() { return "vortmult"; }
-  static std::string shortDescription() { return
-    "Configure vorticity multiplier for ALE mesh velocity"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to configure the multiplier for the vorticity term
-    in the mesh velocity smoother (mesh_velocity=fluid) or for the potential
-    gradient for the Helmholtz mesh velocity (mesh_velocity=helmholtz) for ALE
-    mesh motion. For 'fluid' this is coefficient c2 in Eq.(36) of Waltz,
-    Morgan, Canfield, Charest, Risinger, Wohlbier, A three-dimensional finite
-    element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on
-    unstructured grids, Computers & Fluids, 2014, and for 'helmholtz', this is
-    coefficient a1 in Eq.(23) of Bakosi, Waltz, Morgan, Improved ALE mesh
-    velocities for complex flows, International Journal for Numerical Methods
-    in Fluids, 2017. )";
-  }
-  struct expect {
-    using type = tk::real;
-    static constexpr type lower = 0.0;
-    static constexpr type upper = 1.0;
-    static std::string description() { return "real"; }
-  };
-};
-using vortmult = keyword< vortmult_info, TAOCPP_PEGTL_STRING("vortmult") >;
-
-struct meshvel_maxit_info {
-  static std::string name() {
-    return "mesh velocity linear solve max number of iterations"; }
-  static std::string shortDescription() { return
-    "Set the max number of iterations for the mesh velocity linear solve "
-    "for ALE"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to specify the maximum number of linear solver
-    iterations taken to converge the mesh velocity linear solve in
-    arbitrary-Lagrangian-Eulerian (ALE) calculations. See also J. Waltz,
-    N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, A
-    three-dimensional finite element arbitrary Lagrangian–Eulerian method for
-    shock hydrodynamics on unstructured grids, Computers & Fluids, 92: 172-187,
-    2014.)";
-  }
-  struct expect {
-    using type = std::size_t;
-    static std::string description() { return "int"; }
-  };
-};
-using meshvel_maxit =
-  keyword< meshvel_maxit_info, TAOCPP_PEGTL_STRING("maxit") >;
-
-struct meshvel_tolerance_info {
-  static std::string name() {
-    return "mesh velocity linear solve tolerance "; }
-  static std::string shortDescription() { return
-    "Set the tolerance for the mesh velocity linear solve for ALE"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to specify the tolerance to converge the mesh
-    velocity linear solve for in
-    arbitrary-Lagrangian-Eulerian (ALE) calculations. See also J. Waltz,
-    N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, A
-    three-dimensional finite element arbitrary Lagrangian–Eulerian method for
-    shock hydrodynamics on unstructured grids, Computers & Fluids, 92: 172-187,
-    2014.)";
-  }
-  struct expect {
-    using type = tk::real;
-    static std::string description() { return "real"; }
-  };
-};
-using meshvel_tolerance =
-  keyword< meshvel_tolerance_info, TAOCPP_PEGTL_STRING("tolerance") >;
 
 struct ncomp_info {
   static std::string name() { return "ncomp"; }
@@ -1149,170 +885,6 @@ struct depvar_info {
 };
 using depvar = keyword< depvar_info, TAOCPP_PEGTL_STRING("depvar") >;
 
-struct sde_rho2_info {
-  static std::string name() { return "rho2"; }
-  static std::string shortDescription() { return
-    R"(Set SDE parameter(s) rho2)"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to specify a vector of real numbers used to
-    parameterize a system of stochastic differential equations. Example:
-    "rho2 5.0 2.0 3.0 end". The length of the vector depends on the particular
-    type of SDE system and is controlled by the preceding keyword 'ncomp'.)"; }
-  struct expect {
-    using type = tk::real;
-    static std::string description() { return "real(s)"; }
-  };
-};
-using sde_rho2 = keyword< sde_rho2_info,  TAOCPP_PEGTL_STRING("rho2") >;
-
-struct sde_rho_info {
-  static std::string name() { return "rho"; }
-  static std::string shortDescription() { return
-    R"(Set SDE parameter(s) rho)"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to specify a vector of real numbers used to
-    parameterize a system of stochastic differential equations. Example:
-    "rho 5.0 2.0 3.0 end". The length of the vector depends on the particular
-    type of SDE system and is controlled by the preceding keyword 'ncomp'.)"; }
-  struct expect {
-    using type = tk::real;
-    static std::string description() { return "real(s)"; }
-  };
-};
-using sde_rho = keyword< sde_rho_info,  TAOCPP_PEGTL_STRING("rho") >;
-
-struct mean_gradient_info {
-  static std::string name() { return "Prescribed mean gradient"; }
-  static std::string shortDescription() { return
-    R"(Set prescribed mean gradient)"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to specify a vector of real numbers used to
-    parameterize a system of stochastic differential equations. Example:
-    "mean_gradient 1.0 1.0 0.0 end". One use of a mean gradient vector is to
-    specify a prescribed mean scalar gradient in 3 spatial directions for a
-    scalar transprot equation.)"; }
-  struct expect {
-    using type = tk::real;
-    static std::string description() { return "real(s)"; }
-  };
-};
-using mean_gradient = keyword< mean_gradient_info,
-  TAOCPP_PEGTL_STRING("mean_gradient") >;
-
-struct fullvar_info {
-  static std::string name() { return "full variable"; }
-  static std::string shortDescription() { return
-    "Select full variable (as the dependent variable) to solve for"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the full random (instantaneous) variable
-    as what quantity to solve for, i.e., use as the dependent variable, in,
-    e.g., a position or velocity model for a stochastic particle. This
-    configures how statistics must be interpreted.)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-  };
-};
-using fullvar = keyword< fullvar_info, TAOCPP_PEGTL_STRING("fullvar") >;
-
-struct fluctuation_info {
-  static std::string name() { return "fluctuation"; }
-  static std::string shortDescription() { return
-    "Select fluctuation (as the dependent variable) to solve for"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the fluctuation of a random variable as
-    what quantity to solve for, i.e., use as the dependent variable, e.g., in a
-    position or velocity model for a stochastic particle. This configures how
-    statistics must be interpreted.)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-  };
-};
-using fluctuation =
-  keyword< fluctuation_info, TAOCPP_PEGTL_STRING("fluctuation") >;
-
-struct product_info {
-  static std::string name() { return "product"; }
-  static std::string shortDescription() { return
-    "Select product (as the dependent variable) to solve for"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the product of multiple random variables
-    as what quantity to solve for, i.e., use as the dependent variable, e.g., in
-    a velocity model, solve for the product of the full density and the full
-    velocity, i.e., the full momentum, for a stochastic particle. This
-    configures how statistics must be interpreted.)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-  };
-};
-using product =
-  keyword< product_info, TAOCPP_PEGTL_STRING("product") >;
-
-struct fluctuating_momentum_info {
-  static std::string name() { return "fluctuating momentum"; }
-  static std::string shortDescription() { return
-    "Select fluctuating moment (as the dependent variable) to solve for"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select fluctuating moment as the dependent
-    variable. This is a very specific quantity and used in conjunction with the
-    Langevin equation for the velocity/momentum. The dependent variable is
-    phi_i^* = rho^* u_i - <rho^* u_i^*>, where the star superscript means a full
-    (i.e., not only a fluctuation about some mean) random variable, u_i is the
-    fluctuating velocity, u_i = u^*_i - <u_i^*>, and angle brackets denote the
-    ensemble average. This also configures how statistics must be
-    interpreted.)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-  };
-};
-using fluctuating_momentum = keyword< fluctuating_momentum_info,
-                               TAOCPP_PEGTL_STRING("fluctuating_momentum") >;
-
-struct solve_info {
-  static std::string name() { return "solve for"; }
-  static std::string shortDescription() { return
-    "Select dependent variable to solve for"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select an the quantity (the dependent variable)
-    to solve for in walker's position and/or velocity model. This configures how
-    statistics must be interpreted.)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-    static std::string choices() {
-      return '\'' + fullvar::string() + "\' | \'"
-                  + fluctuation::string() + "\' | \'"
-                  + product::string() + "\' | \'"
-                  + fluctuating_momentum::string() + '\'';
-    }
-  };
-};
-using solve = keyword< solve_info, TAOCPP_PEGTL_STRING("solve") >;
-
-struct position_info {
-  static std::string name() { return "position"; }
-  static std::string shortDescription() { return
-    "Introduce the (particle) position equation input block or coupling"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce a position ...
-    end block, used to specify the configuration of a system of deterministic or
-    stochastic differential equations, governing particle positions usually in
-    conjunction with velocity model, e.g, the Langevin, model. Note that the
-    random number generator r123_philox is automatically put on the list as a
-    selected RNG if no RNG is selected. Keywords allowed in a position ... end
-    block: )" +
-    std::string("\'")
-    + depvar::string()+ "\', \'"
-    + "velocity" + "\', \'"
-    + R"(For an example position ... end block, see
-    doc/html/walker_example_position.html. (2) To specify a dependent
-    variable (by a character) used to couple a differential equation system, in
-    which the 'position' keyword appears) to another labeled by a 'depvar'.
-    Note that this keyword can also be used as a keyword that selects position
-    in some other context-specific way, e.g., 'position' as opposed to
-    'velocity'.)";
-  }
-};
-using position = keyword< position_info, TAOCPP_PEGTL_STRING("position") >;
-
 struct control_info {
   static std::string name() { return "control"; }
   static std::string shortDescription()
@@ -1328,48 +900,6 @@ struct control_info {
   };
 };
 using control = keyword< control_info, TAOCPP_PEGTL_STRING("control") >;
-
-struct smallcrush_info {
-  static std::string name() { return "SmallCrush"; }
-  static std::string shortDescription() {
-    return "Select RNG battery SmallCrush"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce the description of the random number
-    generator test suite, i.e., battery, 'SmallCrush'. SmallCrush is a
-    battery of relatively small number, O(10), of tests, defined in TestU01,
-    a library for the empirical testing of random number generators. For more "
-    info, see http://www.iro.umontreal.ca/~simardr/testu01/tu01.html.)";
-  }
-};
-using smallcrush = keyword< smallcrush_info, TAOCPP_PEGTL_STRING("smallcrush") >;
-
-struct crush_info {
-  static std::string name() { return "Crush"; }
-  static std::string shortDescription() { return
-    "Select RNG battery Crush"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce the description of the random number
-    generator test suite, i.e., battery, 'Crush'. Crush is a suite of
-    stringent statistical tests, O(100), defined in TestU01, a library for
-    the empirical testing of random number generators. For more info, see
-    http://www.iro.umontreal.ca/~simardr/testu01/tu01.html.)";
-  }
-};
-using crush = keyword< crush_info, TAOCPP_PEGTL_STRING("crush") >;
-
-struct bigcrush_info {
-  static std::string name() { return "BigCrush"; }
-  static std::string shortDescription() { return
-    "Select RNG battery BigCrush"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to introduce the description of the random number
-    generator test suite, i.e., battery, 'BigCrush'. BigCrush is a
-    suite of very stringent statistical tests, O(100), defined in TestU01, a
-    library for the empirical testing of random number generators. For more
-    info, see http://www.iro.umontreal.ca/~simardr/testu01/tu01.html.)";
-  }
-};
-using bigcrush = keyword< bigcrush_info, TAOCPP_PEGTL_STRING("bigcrush") >;
 
 struct verbose_info {
   static std::string name() { return "verbose"; }
@@ -1697,49 +1227,6 @@ struct restart_info {
 };
 using restart = keyword< restart_info, TAOCPP_PEGTL_STRING("restart") >;
 
-struct l2_info {
-  static std::string name() { return "L2"; }
-  static std::string shortDescription() { return "Select the L2 norm"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to enable computing the L2 norm. Example:
-    "diagnostics error l2 end'.")"; }
-  struct expect {
-    static std::string description() { return "string"; }
-  };
-};
-using l2 = keyword< l2_info, TAOCPP_PEGTL_STRING("l2") >;
-
-struct linf_info {
-  static std::string name() { return "Linf"; }
-  static std::string shortDescription() { return
-    "Select the L_{infinity} norm"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to enable computing the L-infinity norm. Example:
-    "diagnostics error linf end'.")"; }
-  struct expect {
-    static std::string description() { return "string"; }
-  };
-};
-using linf = keyword< linf_info, TAOCPP_PEGTL_STRING("linf") >;
-
-struct error_info {
-  static std::string name() { return "error"; }
-  static std::string shortDescription() { return "Select an error norm"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select, i.e., turn on, the estimation of an
-    error norm. The keyword is used in a 'diagnostics ... end' block. Example:
-    "diagnostics error l2 end", which configures computation of the L2 norm.)";
-  }
-  struct expect {
-    static std::string description() { return "string"; }
-    static std::string choices() {
-      return '\'' + l2::string() + "\' | \'"
-                  + linf::string() + '\'';
-    }
-  };
-};
-using error = keyword< error_info, TAOCPP_PEGTL_STRING("error") >;
-
 struct diagnostics_cmd_info {
   static std::string name() { return "diagnostics"; }
   static std::string shortDescription()
@@ -1766,7 +1253,6 @@ struct diagnostics_info {
     + std::string("\'")
     + interval_iter::string() + "\' | \'"
     + txt_float_format::string() + "\' | \'"
-    + error::string() + "\' | \'"
     + precision::string() + "\'.";
   }
 };
@@ -2909,7 +2395,7 @@ struct amr_uniform_info {
 };
 using amr_uniform = keyword< amr_uniform_info, TAOCPP_PEGTL_STRING("uniform") >;
 
-struct amr_uniform_derefine_info {
+struct amr_uniform_deref_info {
   using code = Code< d >;
   static std::string name() { return "uniform derefine"; }
   static std::string shortDescription() { return
@@ -2917,10 +2403,10 @@ struct amr_uniform_derefine_info {
   static std::string longDescription() { return
     R"(This keyword is used to select uniform initial mesh de-refinement.)"; }
 };
-using amr_uniform_derefine =
-  keyword< amr_uniform_derefine_info, TAOCPP_PEGTL_STRING("uniform_derefine") >;
+using amr_uniform_deref =
+  keyword< amr_uniform_deref_info, TAOCPP_PEGTL_STRING("uniform_derefine") >;
 
-struct amr_initial_conditions_info {
+struct amr_initial_cond_info {
   using code = Code< i >;
   static std::string name() { return "initial conditions"; }
   static std::string shortDescription() { return
@@ -2929,8 +2415,8 @@ struct amr_initial_conditions_info {
     R"(This keyword is used to select initial-conditions-based initial mesh
        refinement.)"; }
 };
-using amr_initial_conditions =
-  keyword< amr_initial_conditions_info, TAOCPP_PEGTL_STRING("ic") >;
+using amr_initial_cond =
+  keyword< amr_initial_cond_info, TAOCPP_PEGTL_STRING("ic") >;
 
 struct amr_edgelist_info {
   using code = Code< e >;
@@ -2987,8 +2473,8 @@ struct amr_initial_info {
     static std::string description() { return "string"; }
     static std::string choices() {
       return '\'' + amr_uniform::string() + "\' | \'"
-                  + amr_uniform_derefine::string()  + "\' | \'"
-                  + amr_initial_conditions::string() + "\' | \'"
+                  + amr_uniform_deref::string()  + "\' | \'"
+                  + amr_initial_cond::string() + "\' | \'"
                   + amr_edgelist::string() + "\' | \'"
                   + amr_coords::string() + '\'';
     }

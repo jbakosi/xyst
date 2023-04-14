@@ -26,7 +26,6 @@
 #include "Tags.hpp"
 #include "StatCtr.hpp"
 #include "Options/TxtFloatFormat.hpp"
-#include "Options/Error.hpp"
 
 namespace tk {
 //! Toolkit general purpose grammar definition
@@ -126,19 +125,7 @@ namespace grm {
     SPONGEBCWRONG,      //!< Sponge BC incorrectly configured
     NONDISJOINTBC,      //!< Different BC types assigned to the same side set
     WRONGSIZE,          //!< Size of parameter vector incorrect
-    WRONGMESHMOTION,    //!< Error in mesh motion dimensions
-    STEADYALE,          //!< ALE + steady state not supported
     INCOMPLETEUSERFN,   //!< Incomplete user-defined function
-    HYDROTIMESCALES,    //!< Missing required hydrotimescales vector
-    HYDROPRODUCTIONS,   //!< Missing required hydroproductions vector
-    POSITION_DEPVAR,    //!< Missing required position model dependent variable
-    VELOCITY_DEPVAR,    //!< Missing required velocity model dependent variable
-    DISSIPATION_DEPVAR, //!< Missing required dissipation model dependent var
-    MIXMASSFRACBETA_DEPVAR,//!< Missing required mass fraction model dependent var
-    POSITION_MISSING,   //!< Missing required position model
-    VELOCITY_MISSING,   //!< Missing required velocity model
-    DISSIPATION_MISSING,//!< Missing required dissipation model
-    MIXDIR_RHO,         //!< MixDirichlet parameter vector rho inconsistent
     T0REFODD,           //!< AMR initref vector size is odd (must be even)
     T0REFNOOP,          //!< AMR t<0 refinement will be no-op
     DTREFNOOP,          //!< AMR t>0 refinement will be no-op
@@ -331,13 +318,6 @@ namespace grm {
       "to the same side set." },
     { MsgKey::WRONGSIZE, "Error in the preceding line or block. The size of "
       "the parameter vector is incorrect." },
-    { MsgKey::WRONGMESHMOTION, "Error in the preceding line or block. Mesh "
-      "motion dimension list can only involve the integers 0, 1, and 2, and "
-      "the size of the list of dimensions must be lower than 4 and larger "
-      "than 0." },
-    { MsgKey::STEADYALE, "Error in the preceding line or block. Arbitrary "
-      "Lagrangian-Eulerian mesh motion is not supported together with marching "
-      "to steady state." },
     { MsgKey::INCOMPLETEUSERFN, "Error in the preceding line or block. "
       "Incomplete user-defined function. This usually means the number of "
       "entries in list is either empty (i.e., the function is not defined) or "
@@ -345,37 +325,6 @@ namespace grm {
       "the correct number. For example, if a R->R^3 function is expected the "
       "number of descrete entries must be divisible by 4: one 'column' for "
       "the abscissa, and 3 for the ordinate." },
-    { MsgKey::HYDROTIMESCALES, "Error in the preceding line or block. "
-      "Specification of a 'hydrotimescales' vector missing." },
-    { MsgKey::HYDROPRODUCTIONS, "Error in the preceding line or block. "
-      "Specification of a 'hydroproductions' vector missing." },
-    { MsgKey::POSITION_DEPVAR, "Error in the preceding line or block. "
-      "Specification of a dependent variable, configured as a coupled position "
-      "model, is missing. Specify a dependent variable in an equation block "
-      "as, e.g., depvar x, then use 'position x' within the block in question, "
-      "e.g., velocity." },
-    { MsgKey::DISSIPATION_DEPVAR, "Error in the preceding line or block. "
-      "Specification of a dependent variable, configured as a coupled "
-      "dissipation model, is missing. Specify a dependent variable in an "
-      "equation block as, e.g., depvar x, then use 'dissipation x' within the "
-      "block in question, e.g., velocity." },
-    { MsgKey::MIXMASSFRACBETA_DEPVAR, "Error in the preceding line or block. "
-      "Specification of a dependent variable, configured as a coupled "
-      "mass fraction model, is missing. Specify a dependent variable in an "
-      "equation block as, e.g., depvar x, then use 'massfraction x' within the "
-      "block in question, e.g., velocity." },
-    { MsgKey::VELOCITY_DEPVAR, "Error in the preceding line or block. "
-      "Specification of a dependent variable, configured as a coupled velocity "
-      "model, is missing. Specify a dependent variable in an equation block "
-      "as, e.g., depvar u, then use 'velocity u' within the block in question, "
-      "e.g., position." },
-    { MsgKey::POSITION_MISSING, "Specification for a position model missing." },
-    { MsgKey::VELOCITY_MISSING, "Specification for a velocity model missing." },
-    { MsgKey::DISSIPATION_MISSING,
-      "Specification for a dissipation model missing." },
-    { MsgKey::MIXDIR_RHO,
-      "The MixDirichlet SDE parameter vector rho is inconsistent. Its size "
-      "must be ncomp-1 and must be listed in non-decreasing order." },
     { MsgKey::T0REFODD, "Error in the preceding line or block. "
       "The number of edge-nodes, marking edges as pairs of nodes, used for "
       "explicit tagging of edges for initial mesh refineoment is odd (it must "
@@ -1502,12 +1451,6 @@ namespace grm {
                                          store< tk::ctr::TxtFloatFormat,
                                                 tag::flformat,
                                                 tag::diag >,
-                                         pegtl::alpha >,
-                                process< use< kw::error >,
-                                         store_back_option< use,
-                                                            tk::ctr::Error,
-                                                            tag::diag,
-                                                            tag::error >,
                                          pegtl::alpha >,
                                 precision< use, tag::diag > > > {};
 

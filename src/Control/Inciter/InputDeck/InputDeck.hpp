@@ -43,7 +43,6 @@ using InputDeckMembers = brigand::list<
   , tag::sys,           std::map< tk::ctr::ncomp_t, tk::ctr::ncomp_t >
   , tag::output,        output_parameters
   , tag::param,         parameters
-  , tag::diag,          diagnostics
   , tag::error,         std::vector< std::string >
   , tag::history,       history
 >;
@@ -98,10 +97,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::mass
                                  , kw::density
                                  , kw::velocity
-                                 , kw::position
-                                 , kw::acceleration
-                                 , kw::fntype
-                                 , kw::fn
                                  , kw::move
                                  , kw::pressure
                                  , kw::energy
@@ -127,10 +122,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::material
                                  , kw::id
                                  , kw::eos
-                                 , kw::stiffenedgas
-                                 , kw::jwl
                                  , kw::mat_gamma
-                                 , kw::mat_pstiff
                                  , kw::mat_mu
                                  , kw::mat_cv
                                  , kw::mat_k
@@ -145,10 +137,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::pde_beta
                                  , kw::pde_p0
                                  , kw::cfl
-                                 , kw::vortmult
                                  , kw::mj
-                                 , kw::elem
-                                 , kw::node
                                  , kw::depvar
                                  , kw::nonlinear_energy_growth
                                  , kw::pde_betax
@@ -159,12 +148,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::pde_r0
                                  , kw::rayleigh_taylor
                                  , kw::taylor_green
-                                 , kw::filetype
-                                 , kw::exodusii
-                                 , kw::root
-                                 , kw::error
-                                 , kw::l2
-                                 , kw::linf
                                  , kw::pelocal_reorder
                                  , kw::steady_state
                                  , kw::residual
@@ -177,8 +160,8 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::amr_maxlevels
                                  , kw::amr_initial
                                  , kw::amr_uniform
-                                 , kw::amr_uniform_derefine
-                                 , kw::amr_initial_conditions
+                                 , kw::amr_uniform_deref
+                                 , kw::amr_initial_cond
                                  , kw::amr_coords
                                  , kw::amr_error
                                  , kw::amr_jump

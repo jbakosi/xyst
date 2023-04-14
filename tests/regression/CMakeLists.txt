@@ -37,6 +37,10 @@ include(add_regression_test)
 
 # Include regression test directories
 
+# UnitTest regression tests
+message(STATUS "Adding regression tests for ${UNITTEST_EXECUTABLE}")
+add_subdirectory(unittest/exec)
+
 # MeshConv regression tests
 message(STATUS "Adding regression tests for ${MESHCONV_EXECUTABLE}")
 if(GMSH_FOUND)
@@ -44,6 +48,7 @@ if(GMSH_FOUND)
 endif()
 add_subdirectory(meshconv/netgen_output)
 add_subdirectory(meshconv/exo_output)
+add_subdirectory(meshconv/exec)
 
 # Inciter regression tests
 message(STATUS "Adding regression tests for ${INCITER_EXECUTABLE}")

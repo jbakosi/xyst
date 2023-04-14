@@ -25,8 +25,8 @@ namespace ctr {
 
 //! Initial AMR types
 enum class AMRInitialType : uint8_t { UNIFORM
-                                    , UNIFORM_DEREFINE
-                                    , INITIAL_CONDITIONS
+                                    , UNIFORM_DEREF
+                                    , INITIAL_COND
                                     , EDGELIST
                                     , COORDINATES };
 
@@ -40,8 +40,8 @@ class AMRInitial : public tk::Toggle< AMRInitialType > {
   public:
     //! Valid expected choices to make them also available at compile-time
     using keywords = brigand::list< kw::amr_uniform
-                                  , kw::amr_uniform_derefine
-                                  , kw::amr_initial_conditions
+                                  , kw::amr_uniform_deref
+                                  , kw::amr_initial_cond
                                   , kw::amr_edgelist
                                   , kw::amr_coords >;
 
@@ -54,18 +54,14 @@ class AMRInitial : public tk::Toggle< AMRInitialType > {
         kw::amr_initial::name(),
         //! Enums -> names
         { { AMRInitialType::UNIFORM, kw::amr_uniform::name() },
-          { AMRInitialType::UNIFORM_DEREFINE,
-            kw::amr_uniform_derefine::name() },
-          { AMRInitialType::INITIAL_CONDITIONS,
-            kw::amr_initial_conditions::name() },
+          { AMRInitialType::UNIFORM_DEREF, kw::amr_uniform_deref::name() },
+          { AMRInitialType::INITIAL_COND, kw::amr_initial_cond::name() },
           { AMRInitialType::EDGELIST, kw::amr_edgelist::name() },
           { AMRInitialType::COORDINATES, kw::amr_coords::name() } },
         //! keywords -> Enums
         { { kw::amr_uniform::string(), AMRInitialType::UNIFORM },
-          { kw::amr_uniform_derefine::string(),
-            AMRInitialType::UNIFORM_DEREFINE },
-          { kw::amr_initial_conditions::string(),
-            AMRInitialType::INITIAL_CONDITIONS },
+          { kw::amr_uniform_deref::string(), AMRInitialType::UNIFORM_DEREF },
+          { kw::amr_initial_cond::string(), AMRInitialType::INITIAL_COND },
           { kw::amr_edgelist::string(), AMRInitialType::EDGELIST },
           { kw::amr_coords::string(), AMRInitialType::COORDINATES } } )
     {
@@ -98,9 +94,8 @@ class AMRInitial : public tk::Toggle< AMRInitialType > {
     //! Enums -> policy code
     std::map< AMRInitialType, std::string > policy {
         { AMRInitialType::UNIFORM, *kw::amr_uniform::code() }
-      , { AMRInitialType::UNIFORM_DEREFINE, *kw::amr_uniform_derefine::code() }
-      , { AMRInitialType::INITIAL_CONDITIONS,
-          *kw::amr_initial_conditions::code() }
+      , { AMRInitialType::UNIFORM_DEREF, *kw::amr_uniform_deref::code() }
+      , { AMRInitialType::INITIAL_COND, *kw::amr_initial_cond::code() }
       , { AMRInitialType::EDGELIST, *kw::amr_edgelist::code() }
       , { AMRInitialType::COORDINATES, *kw::amr_coords::code() }
     };

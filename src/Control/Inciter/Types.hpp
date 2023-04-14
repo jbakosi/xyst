@@ -25,8 +25,6 @@
 #include "Inciter/Options/AMRError.hpp"
 #include "Options/PartitioningAlgorithm.hpp"
 #include "Options/TxtFloatFormat.hpp"
-#include "Options/Error.hpp"
-#include "Options/UserTable.hpp"
 #include "PUPUtil.hpp"
 
 namespace inciter {
@@ -62,16 +60,6 @@ using amr = tk::TaggedTuple< brigand::list<
   , tag::zminus,  kw::amr_zminus::info::expect::type
   //! Refinement tagging edges with end-point coordinates higher than z coord
   , tag::zplus,  kw::amr_zplus::info::expect::type
-> >;
-
-//! A list of side sets moving with a user-defined function in time
-using moving_sides = tk::TaggedTuple< brigand::list<
-  //! List of side sets to move
-     tag::sideset, std::vector< kw::sideset::info::expect::type >
-  //! User-defined table (function) type
-  ,  tag::fntype,  tk::ctr::UserTableType
-  //! Functions x(t), y(t), and z(t) to move the side sets with
-  ,  tag::fn,      std::vector< tk::real >
 > >;
 
 //! Discretization parameters storage
@@ -189,11 +177,6 @@ using ios = tk::TaggedTuple< brigand::list<
   , tag::diag,      kw::diagnostics_cmd::info::expect::type
   , tag::particles, std::string                     //!< Particles filename
   , tag::restart,   kw::restart::info::expect::type //!< Restart dirname
-> >;
-
-//! Error/diagnostics output configuration
-using diagnostics = tk::TaggedTuple< brigand::list<
-  tag::error,       std::vector< tk::ctr::ErrorType > //!< Errors to compute
 > >;
 
 //! Box, given by coordinates, specifying physics variables

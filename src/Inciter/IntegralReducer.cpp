@@ -12,7 +12,6 @@
 // *****************************************************************************
 
 #include <memory>
-#include <iostream>     // NOT NEEDED
 
 #include "Integrals.hpp"
 #include "IntegralReducer.hpp"

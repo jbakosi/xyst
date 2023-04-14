@@ -41,6 +41,14 @@ add_regression_test(medit2exo ${MESHCONV_EXECUTABLE}
                     BIN_RESULT cube86.exo
                     BIN_DIFF_PROG_CONF exodiff.cfg)
 
+add_regression_test(medittrionly2exo ${MESHCONV_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES cube86_trionly.mesh
+                    ARGS -i cube86_trionly.mesh -o cube86_trionly.exo -v
+                    BIN_BASELINE cube86_trionly.exo.std
+                    BIN_RESULT cube86_trionly.exo
+                    BIN_DIFF_PROG_CONF exodiff.cfg)
+
 add_regression_test(gmshtxt2exo ${MESHCONV_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES box_24.txt.msh

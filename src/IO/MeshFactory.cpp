@@ -12,7 +12,6 @@
 // *****************************************************************************
 
 #include <string>
-#include <iostream>     // NOT NEEDED
 
 #include "MeshFactory.hpp"
 #include "MeshDetect.hpp"
@@ -143,16 +142,7 @@ writeUnsMesh( const tk::Print& print,
       tk::remap( mesh.z(), map );
 
     // If mesh has no tetrahedra elements, reorder based on triangle mesh if any
-    } else if (!mesh.triinpoel().empty()) {
-
-      auto& inpoel = mesh.triinpoel();
-      const auto psup = tk::genPsup( inpoel, 3, tk::genEsup( inpoel, 3 ) );
-      auto map = tk::renumber( psup );
-      tk::remap( inpoel, map );
-      tk::remap( mesh.x(), map );
-      tk::remap( mesh.y(), map );
-      tk::remap( mesh.z(), map );
-    }
+    } else Throw( "No tetrahedra in input mesh" );
 
     print.diagend( "done" );
     times.emplace_back( "Reorder mesh", t.dsec() );

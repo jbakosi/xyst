@@ -145,39 +145,6 @@ namespace grm {
   };
 
   //! Rule used to trigger action
-  template< class eq > struct check_transport : pegtl::success {};
-  //! \brief Set defaults and do error checking on the transport equation block
-  //! \details This is error checking that only the transport equation block
-  //!   must satisfy. Besides error checking we also set defaults here as
-  //!   this block is called when parsing of a transport...end block has
-  //!   just finished.
-  template< class eq >
-  struct action< check_transport< eq > > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      using inciter::deck::neq;
-      using tag::param;
-
-      // Error out if no dependent variable has been selected
-      auto& depvar = stack.template get< param, eq, tag::depvar >();
-      if (depvar.empty() || depvar.size() != neq.get< eq >())
-        Message< Stack, ERROR, MsgKey::NODEPVAR >( stack, in );
-
-      // If no number of components has been selected, default to 1
-      auto& ncomp = stack.template get< tag::component, eq >();
-      if (ncomp.empty() || ncomp.size() != neq.get< eq >())
-        ncomp.push_back( 1 );
-
-      // Error check Dirichlet boundary condition block for all transport eq
-      // configurations
-      const auto& bc =
-        stack.template get< param, eq, tag::bc, tag::dirichlet >();
-      for (const auto& s : bc)
-        if (s.empty()) Message< Stack, ERROR, MsgKey::BC_EMPTY >( stack, in );
-    }
-  };
-
-  //! Rule used to trigger action
   template< class Option, typename...tags >
   struct store_inciter_option : pegtl::success {};
   //! \brief Put option in state at position given by tags
@@ -758,32 +725,6 @@ namespace deck {
                          >,
            check_errors< tag::compflow, tk::grm::check_compflow > > {};
 
-  //! scalar transport
-  struct transport :
-         pegtl::if_must<
-           tk::grm::readkw< use< kw::transport >::pegtl_string >,
-           tk::grm::block< use< kw::end >,
-                           tk::grm::depvar< use,
-                                            tag::transport,
-                                            tag::depvar >,
-                           mesh< tag::transport >,
-                           tk::grm::component< use< kw::ncomp >,
-                                               tag::transport >,
-                           pde_parameter_vector< kw::pde_diffusivity,
-                                                 tag::transport,
-                                                 tag::diffusivity >,
-                           pde_parameter_vector< kw::pde_lambda,
-                                                 tag::transport,
-                                                 tag::lambda >,
-                           pde_parameter_vector< kw::pde_u0,
-                                                 tag::transport,
-                                                 tag::u0 >,
-                           pde_parameter_vector< kw::pde_source,
-                                                 tag::transport,
-                                                 tag::source >
-                         >,
-           check_errors< tag::transport, tk::grm::check_transport > > {};
-
   //! partitioning ... end block
   struct partitioning :
          pegtl::if_must<
@@ -949,7 +890,6 @@ namespace deck {
                            use< kw::end >,
                            discretization,
                            compflow,
-                           transport,
                            tk::grm::process<
                              use< kw::problem >,
                              tk::grm::store_inciter_option<

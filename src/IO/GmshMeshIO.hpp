@@ -16,8 +16,7 @@
 namespace tk {
 
 //! Identifiers of supported Gmsh elements
-enum GmshElemType { LIN = 1,
-                    TRI = 2,
+enum GmshElemType { TRI = 2,
                     TET = 4,
                     PNT = 15 };
 

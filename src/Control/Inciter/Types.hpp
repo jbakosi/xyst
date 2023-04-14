@@ -234,21 +234,6 @@ using mesh = tk::TaggedTuple< brigand::list<
   , tag::reference,   std::vector< char >
 > >;
 
-//! Transport equation parameters storage
-using TransportPDEParameters = tk::TaggedTuple< brigand::list<
-    tag::depvar,        std::vector< char >
-  , tag::mesh,          mesh
-  , tag::diffusivity,   std::vector< std::vector<
-                          kw::pde_diffusivity::info::expect::type > >
-  , tag::lambda,        std::vector< std::vector<
-                          kw::pde_lambda::info::expect::type > >
-  , tag::u0,            std::vector< std::vector<
-                          kw::pde_u0::info::expect::type > >
-  , tag::source,        std::vector< std::vector<
-                          kw::pde_source::info::expect::type > >
-  , tag::bc,            bc
-> >;
-
 //! Compressible flow equation parameters storage
 using CompFlowPDEParameters = tk::TaggedTuple< brigand::list<
     tag::depvar,        std::vector< char >
@@ -303,8 +288,7 @@ using CompFlowPDEParameters = tk::TaggedTuple< brigand::list<
 
 //! Parameters storage
 using parameters = tk::TaggedTuple< brigand::list<
-    tag::transport, TransportPDEParameters
-  , tag::compflow,  CompFlowPDEParameters
+    tag::compflow,  CompFlowPDEParameters
 > >;
 
 //! PEGTL location/position type to use throughout all of Inciter's parsers

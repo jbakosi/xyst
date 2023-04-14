@@ -53,9 +53,6 @@ class GmshMeshReader : public Reader {
     //! Read "$Elements--$EndElements" section
     void readElements( UnsMesh& mesh );
 
-    //! Read "$PhysicalNames--$EndPhysicalNames" section
-    void readPhysicalNames() __attribute__ ((noreturn));
-
     //! \brief Mesh ASCII type query
     //! \return true if member variable m_type indicates an ASCII mesh format
     bool isASCII() const {
@@ -76,7 +73,6 @@ class GmshMeshReader : public Reader {
     //! \brief Gmsh element types and their corrseponding number of nodes
     //! \details See Gmsh documentation for element ids as keys
     const std::map< int, int > m_elemNodes {
-      { GmshElemType::LIN,   2 },  // 2-node line
       { GmshElemType::TRI,   3 },  // 3-node triangle
       { GmshElemType::TET,   4 },  // 4-node tetrahedron
       { GmshElemType::PNT,   1 }   // 1-node point

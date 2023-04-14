@@ -48,8 +48,6 @@ GmshMeshReader::readMesh( UnsMesh& mesh )
       readNodes( mesh );
     else if ( s == "$Elements" )
       readElements( mesh );
-    else if ( s == "$PhysicalNames" )
-      readPhysicalNames();
   }
 }
 
@@ -242,9 +240,6 @@ GmshMeshReader::readElements( UnsMesh& mesh )
       }
       // Put in element connectivity for different types of elements
       switch ( elmtype ) {
-        case GmshElemType::LIN:
-          for (const auto& j : nodes) mesh.lininpoel().push_back( j );
-          break;
         case GmshElemType::TRI:
           for (const auto& j : nodes) mesh.triinpoel().push_back( j );
           break;
@@ -261,7 +256,6 @@ GmshMeshReader::readElements( UnsMesh& mesh )
   getline( m_inFile, s );  // finish reading the last line
 
   // Shift node IDs to start from zero (gmsh likes one-based node ids)
-  shiftToZero( mesh.lininpoel() );
   shiftToZero( mesh.triinpoel() );
   shiftToZero( mesh.tetinpoel() );
 
@@ -269,13 +263,4 @@ GmshMeshReader::readElements( UnsMesh& mesh )
   getline( m_inFile, s );
   ErrChk( s == "$EndElements",
           "'$EndElements' keyword is missing in file" + m_filename );
-}
-
-void
-GmshMeshReader::readPhysicalNames()
-// *****************************************************************************
-//  Read "$PhysicalNames--$EndPhysicalNames" section
-// *****************************************************************************
-{
-  Throw( "Mesh section '$PhysicalNames -- $EndPhysicalNames' not implemented" );
 }

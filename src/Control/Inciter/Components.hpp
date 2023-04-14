@@ -21,8 +21,7 @@ namespace ctr {
 
 //! Number of components storage for all systems of equations supported
 using ncomps = tk::ctr::ncomponents<
-   tag::transport
- , tag::compflow
+   tag::compflow
 >;
 
 } // ctr::

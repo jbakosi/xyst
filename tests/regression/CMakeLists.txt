@@ -14,7 +14,7 @@
 set(TEST_RUNNER ${CMAKE_SOURCE_DIR}/../cmake/test_runner.cmake)
 
 # Find gmsh executable
-find_package(Gmsh)
+find_package(Gmsh QUIET)
 if(NOT GMSH_FOUND)
   message(STATUS
          "Gmsh not found, will not configure meshconv tests with gmsh output")

@@ -75,34 +75,12 @@ Refiner::Refiner( std::size_t meshid,
   m_nref( 0 ),
   m_nbnd( 0 ),
   m_extra( 0 ),
-  m_ch(),
-  m_edgech(),
-  m_chedge(),
-  m_localEdgeData(),
-  m_remoteEdgeData(),
-  m_nodeCommMap(),
-  m_oldTets(),
-  m_addedNodes(),
-  m_addedTets(),
-  m_removedNodes(),
-  m_amrNodeMap(),
   m_oldntets( 0 ),
-  m_coarseBndFaces(),
-  m_coarseBndNodes(),
   m_rid( m_coord[0].size() ),
 //  m_oldrid(),
   m_lref( m_rid.size() ),
 //  m_oldparent(),
-  m_writeCallback(),
-  m_outref_ginpoel(),
-  m_outref_el(),
-  m_outref_coord(),
-  m_outref_addedNodes(),
-  m_outref_addedTets(),
-  m_outref_nodeCommMap(),
-  m_outref_bface(),
-  m_outref_bnode(),
-  m_outref_triinpoel()
+  m_writeCallback()
 // *****************************************************************************
 //  Constructor
 //! \param[in] meshid Mesh ID
@@ -278,33 +256,6 @@ Refiner::dtref( const std::map< int, std::vector< std::size_t > >& bface,
   m_bface = bface;
   m_bnode = bnode;
   m_triinpoel = tk::remap(triinpoel, m_gid);
-
-  start();
-}
-
-void
-Refiner::outref( const std::map< int, std::vector< std::size_t > >& bface,
-                 const std::map< int, std::vector< std::size_t > >& bnode,
-                 const std::vector< std::size_t >& triinpoel,
-                 CkCallback c,
-                 RefMode mode )
-// *****************************************************************************
-// Start mesh refinement (for field output)
-//! \param[in] bface Boundary-faces mapped to side set ids
-//! \param[in] bnode Boundary-node lists mapped to side set ids
-//! \param[in] triinpoel Boundary-face connectivity
-//! \param[in] c Function to continue with after the writing field output
-//! \param[in] mode Refinement mode
-// *****************************************************************************
-{
-  m_mode = mode;
-
-  m_writeCallback = c;
-
-  // Update boundary node lists
-  m_bface = bface;
-  m_bnode = bnode;
-  m_triinpoel = triinpoel;
 
   start();
 }
@@ -496,10 +447,6 @@ Refiner::refine()
 //!
 //!   During-timestepping (t>0, dtref) mesh refinement this is called once, as
 //!   we only do a single step during time stepping.
-//!
-//!   During field-output (outref) mesh refinement, this may be called multiple
-//!   times, depending the number of refinement levels needed for the field
-//!   output.
 // *****************************************************************************
 {
   // Free memory used for computing shared boundary edges
@@ -536,14 +483,6 @@ Refiner::refine()
       uniformRefine();
     else
       errorRefine();
-
-  } else if (m_mode == RefMode::OUTREF) {
-
-    uniformRefine();
-
-  } else if (m_mode == RefMode::OUTDEREF) {
-
-    uniformDeRefine();
 
   } else Throw( "RefMode not implemented" );
 
@@ -996,13 +935,11 @@ Refiner::perform()
   // Save old tets and their ids before performing refinement. Outref is always
   // followed by outderef, so to the outside world, the mesh is uchanged, thus
   // no update.
-  if (m_mode != RefMode::OUTREF && m_mode != RefMode::OUTDEREF) {
-    m_oldTets.clear();
-    for (const auto& [ id, tet ] : m_refiner.tet_store.tets) {
-      m_oldTets.insert( tet );
-    }
-    m_oldntets = m_oldTets.size();
+  m_oldTets.clear();
+  for (const auto& [ id, tet ] : m_refiner.tet_store.tets) {
+    m_oldTets.insert( tet );
   }
+  m_oldntets = m_oldTets.size();
 
   if (m_mode == RefMode::T0REF) {
 
@@ -1074,27 +1011,6 @@ Refiner::next()
     m_riecg[ thisIndex ].ckLocal()->resizePostAMR( m_ginpoel,
       m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes,
       m_nodeCommMap, m_bface, m_bnode, m_triinpoel );
-
-  } else if (m_mode == RefMode::OUTREF) {
-
-    // Store field output mesh
-    m_outref_ginpoel = m_ginpoel;
-    m_outref_el = m_el;
-    m_outref_coord = m_coord;
-    m_outref_addedNodes = m_addedNodes;
-    m_outref_addedTets = m_addedTets;
-    m_outref_nodeCommMap = m_nodeCommMap;
-    m_outref_bface = m_bface;
-    m_outref_bnode = m_bnode;
-    m_outref_triinpoel = m_triinpoel;
-
-    // Derefine mesh to the state previous to field output
-    outref( m_outref_bface, m_outref_bnode, m_outref_triinpoel, m_writeCallback,
-            RefMode::OUTDEREF );
-
-  } else if (m_mode == RefMode::OUTDEREF) {
-
-    //  TODO remove this
 
   } else Throw( "RefMode not implemented" );
 }
@@ -1249,14 +1165,6 @@ Refiner::solution( std::size_t npoin,
     // Query current solution
     u = m_riecg[ thisIndex ].ckLocal()->solution();
  
-  } else if (m_mode == RefMode::OUTREF) {
-
-
-
-  } else if (m_mode == RefMode::OUTDEREF) {
-
-
-
   } else Throw( "RefMode not implemented" );
 
   return u;
@@ -1478,9 +1386,7 @@ Refiner::updateMesh()
   for (auto r : ref) if (old.find(r) == end(old)) m_lref[r] = l++;
 
   // Get nodal communication map from Discretization worker
-  if ( m_mode == RefMode::DTREF ||
-       m_mode == RefMode::OUTREF ||
-       m_mode == RefMode::OUTDEREF ) {
+  if ( m_mode == RefMode::DTREF) {
     m_nodeCommMap = m_disc[ thisIndex ].ckLocal()->NodeCommMap();
   }
 
@@ -1502,7 +1408,7 @@ Refiner::updateMesh()
   newBndMesh( ref );
 
   // Augment node communication map with newly added nodes on chare-boundary
-  if (m_mode == RefMode::DTREF || m_mode == RefMode::OUTREF) {
+  if (m_mode == RefMode::DTREF) {
     for (const auto& [ neighborchare, edges ] : m_remoteEdges) {
       auto& nodes = tk::ref_find( m_nodeCommMap, neighborchare );
       for (const auto& e : edges) {

@@ -542,25 +542,6 @@ Transporter::matched( std::size_t summeshid,
                     std::to_string(m_ncit[meshid]) },
                   false );
 
-    } else if (refmode == Refiner::RefMode::OUTREF) {
-
-      print.diag( { "meshid", "outref", "nref", "nderef", "ncorr" },
-                  { std::to_string(meshid),
-                    std::to_string(++m_noutrefit[meshid]),
-                    std::to_string(nref),
-                    std::to_string(nderef),
-                    std::to_string(m_ncit[meshid]) }, false );
-
-    } else if (refmode == Refiner::RefMode::OUTDEREF) {
-
-      print.diag( { "meshid", "outderef", "nref", "nderef", "ncorr" },
-                  { std::to_string(meshid),
-                    std::to_string(++m_noutderefit[meshid]),
-                    std::to_string(nref),
-                    std::to_string(nderef),
-                    std::to_string(m_ncit[meshid]) },
-                  false );
-
     } else Throw( "RefMode not implemented" );
 
     m_ncit[meshid] = 0;

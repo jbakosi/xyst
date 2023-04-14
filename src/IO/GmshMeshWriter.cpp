@@ -123,13 +123,8 @@ GmshMeshWriter::writeElements( const UnsMesh& mesh )
   m_outFile << "$Elements" << std::endl;
 
   // Write out number of elements
-  m_outFile << mesh.lininpoel().size()/2 +
-               mesh.triinpoel().size()/3 +
-               mesh.tetinpoel().size()/4
+  m_outFile << mesh.triinpoel().size()/3 + mesh.tetinpoel().size()/4
             << std::endl;
-
-  // Write out line element ids and connectivity (node list)
-  writeElemBlock( 2, GmshElemType::LIN, mesh.lininpoel() );
 
   // Write out triangle element ids and connectivity (node list)
   writeElemBlock( 3, GmshElemType::TRI, mesh.triinpoel() );

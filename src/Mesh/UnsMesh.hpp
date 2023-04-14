@@ -122,15 +122,13 @@ class UnsMesh {
     /** @name Constructors */
     ///@{
     //! Constructor without initializing anything
-    explicit UnsMesh() : m_graphsize(0), m_lininpoel(), m_triinpoel(),
+    explicit UnsMesh() : m_graphsize(0), m_triinpoel(),
       m_tetinpoel(), m_x(), m_y(), m_z() {}
 
     //! Constructor copying over element connectivity
     explicit UnsMesh( const std::vector< std::size_t >& tetinp ) :
       m_graphsize( graphsize( tetinp ) ),
-      m_lininpoel(), m_triinpoel(),
-      m_tetinpoel( tetinp ),
-      m_x(), m_y(), m_z()
+      m_tetinpoel( tetinp )
     {
       Assert( m_tetinpoel.size()%4 == 0,
               "Size of tetinpoel must be divisible by 4" );
@@ -139,9 +137,7 @@ class UnsMesh {
     //! Constructor swallowing element connectivity
     explicit UnsMesh( std::vector< std::size_t >&& tetinp ) :
       m_graphsize( graphsize( tetinp ) ),
-      m_lininpoel(), m_triinpoel(),
-      m_tetinpoel( std::move(tetinp) ),
-      m_x(), m_y(), m_z()
+      m_tetinpoel( std::move(tetinp) )
     {
       Assert( m_tetinpoel.size()%4 == 0,
               "Size of tetinpoel must be divisible by 4" );
@@ -153,7 +149,6 @@ class UnsMesh {
                       const std::vector< real >& Y,
                       const std::vector< real >& Z ) :
       m_graphsize( graphsize( tetinp ) ),
-      m_lininpoel(), m_triinpoel(),
       m_tetinpoel( tetinp ),
       m_x( X ),
       m_y( Y ),
@@ -168,7 +163,6 @@ class UnsMesh {
     explicit UnsMesh( const std::vector< std::size_t >& tetinp,
                       const Coords& coord ) :
       m_graphsize( graphsize( tetinp ) ),
-      m_lininpoel(), m_triinpoel(),
       m_tetinpoel( tetinp ),
       m_x( coord[0] ),
       m_y( coord[1] ),
@@ -188,9 +182,7 @@ class UnsMesh {
       const std::vector< std::vector< std::vector< tk::real > > >&
         nodevars = {} ) :
       m_graphsize( graphsize( triinp ) ),
-      m_lininpoel(),
       m_triinpoel( triinp ),
-      m_tetinpoel(),
       m_x( coord[0] ),
       m_y( coord[1] ),
       m_z( coord[2] ),
@@ -208,7 +200,6 @@ class UnsMesh {
                       std::vector< real >&& Y,
                       std::vector< real >&& Z ) :
       m_graphsize( graphsize( tetinp ) ),
-      m_lininpoel(), m_triinpoel(),
       m_tetinpoel( std::move(tetinp) ),
       m_x( std::move(X) ),
       m_y( std::move(Y) ),
@@ -222,7 +213,6 @@ class UnsMesh {
     //!   coordinates
     explicit UnsMesh( std::vector< std::size_t >&& tetinp, Coords&& coord ) :
       m_graphsize( graphsize( tetinp ) ),
-      m_lininpoel(), m_triinpoel(),
       m_tetinpoel( std::move(tetinp) ),
       m_x( std::move(coord[0]) ),
       m_y( std::move(coord[1]) ),
@@ -240,7 +230,6 @@ class UnsMesh {
       const std::vector< std::size_t >& triinp,
       const std::map< int, std::vector< std::size_t > >& fid ) :
       m_graphsize( graphsize( tetinp ) ),
-      m_lininpoel(),
       m_triinpoel( triinp ),
       m_tetinpoel( tetinp ),
       m_x( coord[0] ),
@@ -261,8 +250,6 @@ class UnsMesh {
       const Coords& coord,
       const std::map< int, std::vector< std::size_t > >& bn ) :
       m_graphsize( graphsize( tetinp ) ),
-      m_lininpoel(),
-      m_triinpoel(),
       m_tetinpoel( tetinp ),
       m_x( coord[0] ),
       m_y( coord[1] ),
@@ -298,20 +285,13 @@ class UnsMesh {
 
     //! Total number of elements accessor
     std::size_t nelem() const noexcept {
-      return m_lininpoel.size()/2 + m_triinpoel.size()/3 + m_tetinpoel.size()/4;
+      return m_triinpoel.size()/3 + m_tetinpoel.size()/4;
     }
 
     //! Number of element blocks accessor
     std::size_t neblk() const noexcept {
       return !m_triinpoel.empty() + !m_tetinpoel.empty();
     }
-
-    /** @name Line elements connectivity accessors */
-    ///@{
-    const std::vector< std::size_t >& lininpoel() const noexcept
-    { return m_lininpoel; }
-    std::vector< std::size_t >& lininpoel() noexcept { return m_lininpoel; }
-    ///@}
 
     /** @name Triangle elements connectivity accessors */
     ///@{
@@ -384,7 +364,6 @@ class UnsMesh {
     std::size_t m_graphsize;
 
     //! Element connectivity
-    std::vector< std::size_t > m_lininpoel;     //!< Line connectivity
     std::vector< std::size_t > m_triinpoel;     //!< Triangle connectivity
     std::vector< std::size_t > m_tetinpoel;     //!< Tetrahedron connectivity
 

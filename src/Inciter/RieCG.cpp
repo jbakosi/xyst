@@ -1035,7 +1035,6 @@ RieCG::resizePostAMR(
 //! \param[in] addedNodes Newly added mesh nodes and their parents (local ids)
 //! \param[in] addedTets Newly added mesh cells and their parents (local ids)
 //! \param[in] removedNodes Newly removed mesh node local ids
-//! \param[in] amrNodeMap Node id map after amr (local ids)
 //! \param[in] nodeCommMap New node communication map
 //! \param[in] bface Boundary-faces mapped to side set ids
 //! \param[in] bnode Boundary-node lists mapped to side set ids

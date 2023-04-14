@@ -129,9 +129,6 @@ subdirectories mirrored.
 @dir tests/unit/IO
 @brief Unit tests for subdirectory _IO_
 
-@dir tests/unit/LoadBalance
-@brief Unit tests for subdirectory _LoadBalance_
-
 @dir tests/unit/Mesh
 @brief Unit tests for subdirectory _Mesh_
 

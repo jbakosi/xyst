@@ -52,7 +52,7 @@ if (PYTHONINTERP_FOUND)
 
 endif()
 
-find_package(LATEX)
+find_package(LATEX QUIET)
 
 FIND_PROGRAM(MCSS_DOX2HTML5 NAMES dox2html5.py
                             PATHS ${MCSS_ROOT} $ENV{MCSS_ROOT}

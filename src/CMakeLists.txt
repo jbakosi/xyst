@@ -195,7 +195,7 @@ endif()
 message(STATUS "Git sha1: ${GIT_HEAD_SHA1}")
 
 # Find Python: required for code coverage (fastcov) and doc (m.css)
-find_package(PythonInterp 3.6)
+find_package(PythonInterp 3.6 QUIET)
 
 # Attempt to find tools required for code coverage analysis
 include(DetectCodeCoverage)
@@ -304,8 +304,8 @@ add_subdirectory(${REGRESSION_DIR}
                  EXCLUDE_FROM_ALL)
 
 # Configure building documentation and web page
-find_package(Doxygen 1.8.15)
-find_package(MCSS)
+find_package(Doxygen 1.8.15 QUIET)
+find_package(MCSS QUIET)
 if (DOXYGEN_FOUND AND MCSS_FOUND AND PYTHONINTERP_FOUND AND PYGMENTS_FOUND AND
     JINJA2_FOUND AND LATEX_FOUND)
 

@@ -82,9 +82,11 @@ FUNCTION(SETUP_TARGET_FOR_ALL_COVERAGE path targetname unittestrunner
             ${CMAKE_BINARY_DIR}
     # Generate HTML report
     COMMAND ${GENHTML} --legend --rc genhtml_branch_coverage=1 --demangle-cpp --css-file xyst.gcov.css --ignore-errors source --html-prolog xyst.lcov.prolog --title "${GIT_SHA1}" -o ${OUTPUT} ${OUTPUT}.info
-    # Customize page headers in generated html to own
+    # Customize page headers in generated html
     COMMAND find ${OUTPUT} -type f -exec ${SED} -i "s/LCOV - code coverage report/Xyst test code coverage report/g" {} +
     COMMAND find ${OUTPUT} -type f -exec ${SED} -i "s/<td class=\"headerItem\">Test:<\\/td>/<td class=\"headerItem\">Commit:<\\/td>/g" {} +
+    COMMAND find ${OUTPUT} -type f -exec ${SED} -i "s/test_coverage.info/<a href=\"https:\\/\\/codeberg.org\\/xyst\\/xyst\\/commit\\/${GIT_HEAD_SHA1}\">${GIT_HEAD_SHA1}<\\/a>/g" {} +
+    COMMAND find ${OUTPUT} -type f -exec ${SED} -i "s/\\/home\\/jbakosi\\/code\\/xyst\\/build\\/gnu\\/Main/build\\/Main/g" {} +
     # Cleanup intermediate data
     COMMAND ${CMAKE_COMMAND} -E remove ${OUTPUT}.info
     # Set work directory for target

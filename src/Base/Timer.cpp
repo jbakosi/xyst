@@ -53,10 +53,10 @@ Timer::eta( tk::real term, tk::real time, uint64_t nstep, uint64_t it,
 //! \param[in] time Current time
 //! \param[in] nstep Max number of time steps to take
 //! \param[in] it Current iteration count
-//! \oaram[in] res0 Residual at previous call (during convergence to steady
+//! \param[in] res0 Residual at previous call (during convergence to steady
 //!   state)
-//! \oaram[in] res Current residual (during convergence to steady state)
-//! \oaram[in] rest Target residual (during convergence to steady state)
+//! \param[in] res Current residual (during convergence to steady state)
+//! \param[in] rest Target residual (during convergence to steady state)
 //! \param[out] elapsedWatch Elapsed time in h:m:s
 //! \param[out] estimatedWatch Estimated time for accomplishmet in h:m:s
 // *****************************************************************************

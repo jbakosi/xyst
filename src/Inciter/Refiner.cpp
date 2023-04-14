@@ -519,9 +519,9 @@ Refiner::refine()
       auto r = m_initref.back();    // consume (reversed) list from its back
       if (r == ctr::AMRInitialType::UNIFORM)
         uniformRefine();
-      else if (r == ctr::AMRInitialType::UNIFORM_DEREFINE)
+      else if (r == ctr::AMRInitialType::UNIFORM_DEREF)
         uniformDeRefine();
-      else if (r == ctr::AMRInitialType::INITIAL_CONDITIONS)
+      else if (r == ctr::AMRInitialType::INITIAL_COND)
         errorRefine();
       else if (r == ctr::AMRInitialType::COORDINATES)
         coordRefine();
@@ -1009,7 +1009,7 @@ Refiner::perform()
     // Refine mesh based on next initial refinement type
     if (!m_initref.empty()) {
       auto r = m_initref.back();    // consume (reversed) list from its back
-      if (r == ctr::AMRInitialType::UNIFORM_DEREFINE)
+      if (r == ctr::AMRInitialType::UNIFORM_DEREF)
         m_refiner.perform_derefinement();
       else
         m_refiner.perform_refinement();

@@ -23,7 +23,7 @@ if(CPPCHECK AND CPPCHECK_HTMLREPORT)
     ADD_CUSTOM_TARGET(cppcheck-xml
       # Run cppcheck static analysis
       COMMAND ${CPPCHECK} --inline-suppr --enable=all --force
-              --xml --xml-version=2 -j${PROCESSOR_COUNT}
+              --xml --xml-version=2 #-j${PROCESSOR_COUNT}
               -I${PROJECT_SOURCE_DIR}/Base
               -I${PROJECT_SOURCE_DIR}/Control
               -I${PROJECT_SOURCE_DIR}/NoWarning

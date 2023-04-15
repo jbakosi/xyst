@@ -356,29 +356,20 @@ class Print {
     {
       stream<s>() << m_charestate_frame_fmt %
                      "\n>>> =========== CHARE STATE ==========\n>>>";
-      // Group state by chare id
-      std::map< int, std::vector< ChareState > > sorted_state;
+      // Sort by and list in the order of timestamp
+      std::map< tk::real, std::vector< ChareState > > sorted_state;
       for (const auto& p : state)
         for (const auto& i : p.second)
-          sorted_state[ i.get< tag::id >() ].push_back( i );
-      // Sort states by time stamp
-      for (auto& p : sorted_state)
-        std::sort( begin(p.second), end(p.second),
-                   []( const ChareState& a, const ChareState& b )
-                     { return a.get< tag::time >() < b.get< tag::time >(); } );
-      // Output states
-      std::size_t q = 0;
+          sorted_state[ i.get< tag::time >() ].push_back( i );
       for (const auto& p : sorted_state) {
         for (const auto& i : p.second) {
-          stream<s>() << m_charestate_fmt % i.get< tag::ch >()
-                                          % p.first
-                                          % i.get< tag::fn >()
+          stream<s>() << m_charestate_fmt % p.first
                                           % i.get< tag::pe >()
-                                          % i.get< tag::it >()
-                                          % i.get< tag::time >();
+                                          % i.get< tag::ch >()
+                                          % i.get< tag::id >()
+                                          % i.get< tag::fn >()
+                                          % i.get< tag::data >();
         }
-        if (++q != sorted_state.size())
-           stream<s>() << m_charestate_frame_fmt % "";
       }
       stream<s>() << m_charestate_frame_fmt %
                      "\n>>> ======= END OF CHARE STATE =======\n>>>";
@@ -653,8 +644,7 @@ ____  ___                __    __      _____                .__    _________
     mutable format m_inprog_diag_fmt = format("Xyst> %s: %s");
     mutable format m_inprog_extra_diag_fmt = format(", %s: %s");
     mutable format m_charestate_frame_fmt = format(">>> %s\n");
-    mutable format m_charestate_fmt =
-              format(">>> %s(%d)::%|-15| PE:%|-4| it:%|-5| t:%f\n");
+    mutable format m_charestate_fmt = format(">>> t:%f PE:%d %s(%d)::%s: %s\n");
     mutable format m_diag_end_fmt = format("%s\n");
     mutable format m_progress_fmt = format("%s");
     mutable format m_help_title_fmt = format("\n%s %s\n");

@@ -38,11 +38,13 @@
 #include "Integrals.hpp"
 #include "Callback.hpp"
 #include "Problems.hpp"
+#include "ChareStateCollector.hpp"
 
 #include "NoWarning/inciter.decl.h"
 #include "NoWarning/partitioner.decl.h"
 
 extern CProxy_Main mainProxy;
+extern tk::CProxy_ChareStateCollector stateProxy;
 
 namespace inciter {
 
@@ -330,6 +332,11 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
 //!    compute nodes)
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->insert( "Transporter", "load", 0, CkMyPe() );
+  }
+
   meshid /= static_cast< std::size_t >( CkNumNodes() );
   Assert( meshid < m_nelem.size(), "MeshId indexing out" );
   m_nelem[meshid] = nelem;
@@ -1037,6 +1044,12 @@ Transporter::diagnostics( CkReductionMsg* msg )
 
   Assert( ncomp > 0, "Number of scalar components must be positive");
   Assert( d.size() == NUMDIAG, "Diagnostics vector size mismatch" );
+
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->insert( "Transporter", "diagnostics",
+      0, CkMyPe(), d[ITER][0] );
+  }
 
   for (std::size_t i=0; i<d.size(); ++i)
      Assert( d[i].size() == ncomp, "Size mismatch at final stage of "

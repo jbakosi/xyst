@@ -30,6 +30,9 @@
 #include "Problems.hpp"
 #include "EOS.hpp"
 #include "BC.hpp"
+#include "ChareStateCollector.hpp"
+
+extern tk::CProxy_ChareStateCollector stateProxy;
 
 namespace inciter {
 
@@ -76,6 +79,12 @@ RieCG::RieCG( const CProxy_Discretization& disc,
 //! \param[in] triinpoel Boundary-face connectivity where BCs set (global ids)
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "RieCG", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   usesAtSync = true;    // enable migration at AtSync
 
   auto d = Disc();
@@ -115,6 +124,12 @@ RieCG::setupBC()
 // Prepare boundary condition data structures
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "setupBC", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   using inciter::g_inputdeck; using tag::param; using tag::compflow;
   using tag::bc; using tag::pressure_density; using tag::pressure_pressure;
 
@@ -203,6 +218,12 @@ RieCG::feop()
 // Start (re-)computing finite element domain and boundary operators
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "feop", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
 
   // Prepare boundary conditions data structures
@@ -237,6 +258,12 @@ RieCG::bndint()
 //! Compute local contributions to boundary normals and integrals
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "bndint", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
   const auto& coord = d->Coord();
   const auto& gid = d->Gid();
@@ -315,6 +342,12 @@ RieCG::domint()
 //! Compute local contributions to domain edge integrals
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "domint", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
 
   const auto& gid = d->Gid();
@@ -364,6 +397,12 @@ RieCG::comnorm( const decltype(m_bnorm)& inbnd )
 //! \param[in] inbnd Incoming partial sums of boundary point normals
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "comnorm", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   // Buffer up incoming boundary point normal vector contributions
   for (const auto& [s,b] : inbnd) {
     auto& bndnorm = m_bnormc[s];
@@ -405,18 +444,29 @@ RieCG::ResumeFromSync()
 //!   this function does not affect whether or not we block on LB.
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "ResumeFromSync", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   if (Disc()->It() == 0) Throw( "it = 0 in ResumeFromSync()" );
 
   if (!g_inputdeck.get< tag::cmd, tag::nonblocking >()) next();
 }
 
-//! [setup]
 void
 RieCG::setup()
 // *****************************************************************************
 // Start setup for solution
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "setup", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
 
   // Set initial conditions
@@ -436,7 +486,6 @@ RieCG::setup()
     d->histheader( std::move(var) );
   }
 }
-//! [setup]
 
 void
 RieCG::box( tk::real v )
@@ -445,6 +494,12 @@ RieCG::box( tk::real v )
 //! \param[in] v Total volume within user-specified box
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "box", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   // Store user-defined box IC volume
   Disc()->Boxvol() = v;
 
@@ -452,13 +507,18 @@ RieCG::box( tk::real v )
   feop();
 }
 
-//! [start]
 void
 RieCG::start()
 // *****************************************************************************
 // Start time stepping
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "start", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   // Set flag that indicates that we are now during time stepping
   Disc()->Initial( 0 );
   // Start timer measuring time stepping wall clock time
@@ -468,15 +528,19 @@ RieCG::start()
   // Continue to first time step
   next();
 }
-//! [start]
 
-//! [Merge normals and continue]
 void
 RieCG::merge()
 // *****************************************************************************
 // Combine own and communicated portions of the integrals
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "merge", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   const auto& lid = Disc()->Lid();
 
   // Combine own and communicated contributions to boundary point normals
@@ -654,7 +718,6 @@ RieCG::merge()
     feop_complete();
   }
 }
-//! [Merge normals and continue]
 
 void
 RieCG::BC()
@@ -669,6 +732,12 @@ RieCG::BC()
 //!   latter, in finite volume methods.
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "BC", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
   const auto& coord = d->Coord();
 
@@ -692,6 +761,12 @@ RieCG::next()
 // Continue to next time step
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "next", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   dt();
 }
 
@@ -701,6 +776,12 @@ RieCG::dt()
 // Compute time step size
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "dt", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   tk::real mindt = std::numeric_limits< tk::real >::max();
 
   auto const_dt = g_inputdeck.get< tag::discr, tag::dt >();
@@ -716,7 +797,6 @@ RieCG::dt()
 
   } else {      // compute dt based on CFL
 
-    //! [Find the minimum dt across all PDEs integrated]
     if (g_inputdeck.get< tag::discr, tag::steady_state >()) {
 
       // compute new dt for each mesh point
@@ -731,11 +811,9 @@ RieCG::dt()
       mindt = physics::dt( d->Vol(), m_u );
 
     }
-    //! [Find the minimum dt across all PDEs integrated]
 
   }
 
-  //! [Advance]
   // Actiavate SDAG waits for next time step stage
   thisProxy[ thisIndex ].wait4grad();
   thisProxy[ thisIndex ].wait4rhs();
@@ -743,7 +821,6 @@ RieCG::dt()
   // Contribute to minimum dt across all chares and advance to next step
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
               CkCallback(CkReductionTarget(RieCG,advance), thisProxy) );
-  //! [Advance]
 }
 
 void
@@ -753,6 +830,12 @@ RieCG::advance( tk::real newdt )
 //! \param[in] newdt The smallest dt across the whole problem
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "advance", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   // Set new time step size
   if (m_stage == 0) Disc()->setdt( newdt );
 
@@ -766,6 +849,12 @@ RieCG::grad()
 // Compute gradients for next time step
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "grad", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
   const auto& lid = d->Lid();
 
@@ -799,6 +888,12 @@ RieCG::comgrad(
 //!   work on m_grad and m_gradc is overlapped. The two are combined in rhs().
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "comgrad", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   using tk::operator+=;
   for (const auto& [g,r] : ingrad) m_gradc[g] += r;
 
@@ -815,6 +910,12 @@ RieCG::rhs()
 // Compute right-hand side of transport equations
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "rhs", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
   const auto& lid = d->Lid();
 
@@ -874,6 +975,12 @@ RieCG::comrhs(
 //!   are combined in solve().
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "comrhs", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   using tk::operator+=;
   for (const auto& [g,r] : inrhs) m_rhsc[g] += r;
 
@@ -890,6 +997,12 @@ RieCG::solve()
 //  Advance systems of equations
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "solve", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
   const auto lid = d->Lid();
 
@@ -961,7 +1074,6 @@ RieCG::solve()
   }
 }
 
-//! [Refine]
 void
 RieCG::refine( const std::vector< tk::real >& l2res )
 // *****************************************************************************
@@ -970,6 +1082,12 @@ RieCG::refine( const std::vector< tk::real >& l2res )
 //!   computed across the whole problem
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "refine", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
 
   if (g_inputdeck.get< tag::discr, tag::steady_state >()) {
@@ -1012,9 +1130,7 @@ RieCG::refine( const std::vector< tk::real >& l2res )
 
   }
 }
-//! [Refine]
 
-//! [Resize]
 void
 RieCG::resizePostAMR(
   const std::vector< std::size_t >& /*ginpoel*/,
@@ -1041,6 +1157,12 @@ RieCG::resizePostAMR(
 //! \param[in] triinpoel Boundary-face connectivity
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "resizePostAMR", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
 
   d->Itf() = 0;  // Zero field output iteration count if AMR
@@ -1085,7 +1207,6 @@ RieCG::resizePostAMR(
   contribute( sizeof(std::size_t), &meshid, CkReduction::nop,
               CkCallback(CkReductionTarget(Transporter,resized), d->Tr()) );
 }
-//! [Resize]
 
 void
 RieCG::writeFields( CkCallback cb )
@@ -1094,6 +1215,12 @@ RieCG::writeFields( CkCallback cb )
 //! \param[in] cb Function to continue with after the write
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "writeFields", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   if (g_inputdeck.get< tag::cmd, tag::benchmark >()) { cb.send(); return; }
 
   auto d = Disc();
@@ -1205,6 +1332,12 @@ RieCG::out()
 // Output mesh field data
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "out", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
 
   // Time history
@@ -1247,6 +1380,12 @@ RieCG::integrals()
 // Compute integral quantities for output
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "integrals", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
 
   if (d->intiter() or d->inttime() or d->intrange()) {
@@ -1283,6 +1422,12 @@ RieCG::stage()
 // Evaluate whether to continue with next time step stage
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "stage", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   // Increment Runge-Kutta stage counter
   ++m_stage;
 
@@ -1298,6 +1443,12 @@ RieCG::evalLB( int nrestart )
 //! \param[in] nrestart Number of times restarted
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "evalLB", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
 
   // Detect if just returned from a checkpoint and if so, zero timers and
@@ -1326,6 +1477,12 @@ RieCG::evalRestart()
 // Evaluate whether to save checkpoint/restart
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "evalRestart", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
 
   const auto rsfreq = g_inputdeck.get< tag::cmd, tag::rsfreq >();
@@ -1350,6 +1507,12 @@ RieCG::step()
 // Evaluate whether to continue with next time step
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "step", thisIndex, CkMyPe(), Disc()->It() );
+  }
+
   auto d = Disc();
 
   // Output one-liner status report to screen

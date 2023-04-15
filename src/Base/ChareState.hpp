@@ -24,11 +24,11 @@ namespace tk {
 //! Chare state
 using ChareState = TaggedTuple< brigand::list<
     tag::ch,   std::string   // chare name
+  , tag::fn,   std::string   // function name
   , tag::id,   int           // thisIndex
   , tag::pe,   int           // PE
-  , tag::it,   uint64_t      // iteration count
-  , tag::fn,   std::string   // member function name
-  , tag::time, tk::real      // time stamp
+  , tag::time, tk::real      // wall-clock time stamp
+  , tag::data, std::string   // data attached to entry
 > >;
 
 } // tk::

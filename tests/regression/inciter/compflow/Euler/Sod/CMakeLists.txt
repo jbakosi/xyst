@@ -132,6 +132,13 @@ add_regression_test(compflow_euler_sod_parsurf ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     LABELS riecg)
 
+add_regression_test(compflow_euler_sod_charestate ${INCITER_EXECUTABLE}
+                    NUMPES 2 PPN 1
+                    INPUTFILES sod_surf_rcb.q rectangle_01_1.5k.exo
+                    ARGS -c sod_surf_rcb.q -i rectangle_01_1.5k.exo -v -S
+                    EXTRA_PASS_REGEXP "END OF CHARE STATE"
+                    LABELS riecg)
+
 # Parallel + virtualization + migration
 
 add_regression_test(compflow_euler_sod_u0.8_migr

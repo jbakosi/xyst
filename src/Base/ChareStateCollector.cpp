@@ -41,21 +41,6 @@ ChareStateCollector::registerReducers()
 }
 
 void
-ChareStateCollector::insert( const std::string& ch, int id, int pe, uint64_t it,
-                             const std::string& fn )
-// *****************************************************************************
-//  Insert new state entry
-//! \param[in] ch Chare name
-//! \param[in] id Chare thisIndex
-//! \param[in] pe Chare PE happens to reside on
-//! \param[in] it Iteration count
-//! \param[in] fn Chare member function name
-// *****************************************************************************
-{
-  m_state.push_back( ChareState{{ ch, id, pe, it, fn, m_timer.dsec() }} );
-}
-
-void
 ChareStateCollector::collect( bool error, CkCallback cb )
 // *****************************************************************************
 //  Collect chare state

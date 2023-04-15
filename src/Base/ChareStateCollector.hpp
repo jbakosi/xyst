@@ -49,8 +49,21 @@ class ChareStateCollector : public CBase_ChareStateCollector {
     static void registerReducers();
 
     //! Insert new state entry
-    void insert( const std::string& ch, int id, int pe, uint64_t it,
-                 const std::string& fn );
+    //! \param[in] ch Chare name
+    //! \param[in] fn Chare member function name
+    //! \param[in] id Chare thisIndex
+    //! \param[in] pe Chare PE happens to reside on
+    //! \param[in] data Entry data
+    template< typename Data = int >
+    void insert( const std::string& ch,
+                 const std::string& fn,
+                 int id,
+                 int pe,
+                 const Data& data = Data() )
+    {
+      m_state.push_back( ChareState{{ ch, fn, id, pe, m_timer.dsec(),
+                                      std::to_string(data) }} );
+    }
 
     //! Collect chare state
     void collect( bool error, CkCallback cb );

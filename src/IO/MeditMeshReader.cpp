@@ -47,7 +47,6 @@ MeditMeshReader::readMesh( UnsMesh& mesh )
       //std::cout << "ntri: " << nel << '\n';
       ErrChk( nel > 0, "Number of triangles (surface elements) must be greater "
                        "than zero in file " + m_filename );
-      std::map< int, std::vector< std::size_t > > m_bface;
       for (int i=0; i<nel; ++i) {
         int tag;
         std::array< std::size_t, 3 > n;

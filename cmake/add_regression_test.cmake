@@ -442,7 +442,6 @@ function(ADD_REGRESSION_TEST test_name executable)
 
   # Add extra tests properties if defined
   if (ARG_SKIP_RETURN_CODE)
-    message("e added: ${ARG_SKIP_RETURN_CODE}")
     set_property(TEST ${test_name} PROPERTY SKIP_RETURN_CODE)
   else()
     list(APPEND fail_regexp "CMake Error")

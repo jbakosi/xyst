@@ -24,3 +24,10 @@ add_regression_test(helpkw ${INCITER_EXECUTABLE}
                     ARGS --helpkw compflow
                     EXTRA_PASS_REGEXP "inciter control file keyword"
                     LABELS inciter)
+
+add_regression_test(unrecognized ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    ARGS --nosucharg
+                    EXTRA_PASS_REGEXP "Unknown keyword"
+                    SKIP_RETURN_CODE true
+                    LABELS inciter)

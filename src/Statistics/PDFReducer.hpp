@@ -19,8 +19,6 @@
 #include "NoWarning/charm++.hpp"
 
 #include "UniPDF.hpp"
-#include "BiPDF.hpp"
-#include "TriPDF.hpp"
 
 namespace tk {
 
@@ -32,16 +30,6 @@ serialize( std::size_t meshid, const std::vector< tk::UniPDF >& u );
 //!    across PEs
 CkReductionMsg*
 mergeUniPDFs( int nmsg, CkReductionMsg **msgs );
-
-//! Serialize vectors of PDFs to raw memory stream
-std::pair< int, std::unique_ptr<char[]> >
-serialize( const std::vector< tk::UniPDF >& u,
-           const std::vector< tk::BiPDF >& b,
-           const std::vector< tk::TriPDF >& t );
-
-//! Charm++ custom reducer for merging PDFs during reduction across PEs
-CkReductionMsg*
-mergePDF( int nmsg, CkReductionMsg **msgs );
 
 } // tk::
 

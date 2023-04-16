@@ -43,9 +43,6 @@ class Reader {
     //! Return first line (for detection of file type based on header)
     std::string firstline();
 
-    //! Read file and return a string for each line
-    std::vector< std::string > lines();
-
     //! Read a given line from file
     std::string line( std::size_t lineNum );
 

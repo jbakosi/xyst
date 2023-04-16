@@ -101,19 +101,6 @@ Reader::firstline()
   return s;
 }
 
-std::vector< std::string >
-Reader::lines()
-// *****************************************************************************
-// Read file and return a string for each line
-//! \return A std::vector< std::string >, a string for each line of a file.
-// *****************************************************************************
-{
-  std::string s;
-  std::vector< std::string > ls;
-  while ( std::getline( m_inFile, s ) ) ls.push_back( s );
-  return ls;
-}
-
 std::string
 Reader::line( std::size_t lineNum )
 // *****************************************************************************

@@ -21,8 +21,6 @@
 #include "Macro.hpp"
 #include "Writer.hpp"
 #include "UniPDF.hpp"
-#include "BiPDF.hpp"
-#include "TriPDF.hpp"
 #include "StatCtr.hpp"
 #include "Options/PDFCentering.hpp"
 #include "Options/TxtFloatFormat.hpp"
@@ -41,36 +39,6 @@ class PDFWriter : public tk::Writer {
 
     //! Write univariate PDF to text file
     void writeTxt( const UniPDF& pdf, const tk::ctr::PDFInfo& info ) const;
-
-    //! Write bivariate PDF to text file
-    void writeTxt( const BiPDF& pdf, const tk::ctr::PDFInfo& info ) const;
-
-    //! Write trivariate PDF to text file
-    void writeTxt( const TriPDF& pdf, const tk::ctr::PDFInfo& info ) const;
-
-    //! Write bivariate PDF to gmsh (text) file format
-    void writeGmshTxt( const BiPDF& pdf, const tk::ctr::PDFInfo& info,
-                       ctr::PDFCenteringType centering ) const;
-
-    //! Write trivariate PDF to gmsh (text) file format
-    void writeGmshTxt( const TriPDF& pdf, const tk::ctr::PDFInfo& info,
-                       ctr::PDFCenteringType centering ) const;
-
-    //! Write bivariate PDF to gmsh (binary) file format
-    void writeGmshBin( const BiPDF& pdf, const tk::ctr::PDFInfo& info,
-                       ctr::PDFCenteringType centering ) const;
-
-    //! Write trivariate PDF to gmsh (binary) file format
-    void writeGmshBin( const TriPDF& pdf, const tk::ctr::PDFInfo& info,
-                       ctr::PDFCenteringType centering ) const;
-
-    //! Write bivariate PDF to Exodus II file format
-    void writeExodusII( const BiPDF& pdf, const tk::ctr::PDFInfo& info,
-                        ctr::PDFCenteringType centering ) const;
-
-    //! Write trivariate PDF to Exodus II file format
-    void writeExodusII( const TriPDF& pdf, const tk::ctr::PDFInfo& info,
-                        ctr::PDFCenteringType centering ) const;
 
   private:
     //! Assert the number of sample space dimensions given
@@ -91,17 +59,6 @@ class PDFWriter : public tk::Writer {
                 std::to_string( size*2 ) +" real numbers: minx, maxx, ..." );
     }
 
-    // Create Exodus II file
-    int createExFile() const;
-
-    // Write Exodus II file header
-    void writeExHdr( int outFileId, int nnode, int nelem ) const;
-
-    // Output probability density function as Exodus II results field
-    void writeExVar( int exoFile,
-                     ctr::PDFCenteringType centering,
-                     const std::vector< tk::real >& probability ) const;
-
     //! Query extents and other metadata of univariate PDF sample space
     void extents( const UniPDF& pdf,
                   const std::vector< tk::real >& uext,
@@ -111,37 +68,6 @@ class PDFWriter : public tk::Writer {
                   tk::real& binsize,
                   std::array< long, 2*UniPDF::dim >& ext,
                   std::vector< tk::real >& outpdf ) const;
-
-    //! Query extents and other metadata of bivariate PDF sample space
-    void extents( const BiPDF& pdf,
-                  const std::vector< tk::real >& uext,
-                  std::size_t& nbix,
-                  std::size_t& nbiy,
-                  tk::real& xmin,
-                  tk::real& xmax,
-                  tk::real& ymin,
-                  tk::real& ymax,
-                  std::array< tk::real, BiPDF::dim >& binsize,
-                  std::array< long, 2*BiPDF::dim >& ext,
-                  std::vector< tk::real >& outpdf,
-                  ctr::PDFCenteringType centering ) const;
-
-    //! Query extents and other metadata of trivariate PDF sample space
-    void extents( const TriPDF& pdf,
-                  const std::vector< tk::real >& uext,
-                  std::size_t& nbix,
-                  std::size_t& nbiy,
-                  std::size_t& nbiz,
-                  tk::real& xmin,
-                  tk::real& xmax,
-                  tk::real& ymin,
-                  tk::real& ymax,
-                  tk::real& zmin,
-                  tk::real& zmax,
-                  std::array< tk::real, TriPDF::dim >& binsize,
-                  std::array< long, 2*TriPDF::dim >& ext,
-                  std::vector< tk::real >& outpdf,
-                  ctr::PDFCenteringType centering ) const;
 };
 
 } // tk::

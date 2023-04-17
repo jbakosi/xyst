@@ -82,7 +82,7 @@ ic( tk::real, tk::real, tk::real, tk::real )
 
 } // userdef::
 
-namespace nonlinear_energy_growth {
+namespace nonlin_ener_growth {
 
 static std::vector< tk::real >
 ic( tk::real x, tk::real y, tk::real z, tk::real t )
@@ -186,7 +186,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
   return s;
 }
 
-} // nonlinear_energy_growth::
+} // nonlin_ener_growth::
 
 namespace rayleigh_taylor {
 
@@ -688,8 +688,8 @@ IC()
 
   if (problem == ProblemType::USER_DEFINED)
     ic = userdef::ic;
-  else if (problem == ProblemType::NONLINEAR_ENERGY_GROWTH)
-    ic = nonlinear_energy_growth::ic;
+  else if (problem == ProblemType::NONLIN_ENER_GROWTH)
+    ic = nonlin_ener_growth::ic;
   else if (problem == ProblemType::RAYLEIGH_TAYLOR)
     ic = rayleigh_taylor::ic;
   else if (problem == ProblemType::SEDOV)
@@ -774,8 +774,8 @@ SRC()
 
   using ProblemType = inciter::ctr::ProblemType;
 
-  if (problem == ProblemType::NONLINEAR_ENERGY_GROWTH)
-    src = nonlinear_energy_growth::src;
+  if (problem == ProblemType::NONLIN_ENER_GROWTH)
+    src = nonlin_ener_growth::src;
   else if (problem == ProblemType::RAYLEIGH_TAYLOR)
     src = rayleigh_taylor::src;
   else if (problem == ProblemType::TAYLOR_GREEN)

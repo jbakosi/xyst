@@ -139,7 +139,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::cfl
                                  , kw::mj
                                  , kw::depvar
-                                 , kw::nonlinear_energy_growth
+                                 , kw::nonlin_ener_growth
                                  , kw::pde_betax
                                  , kw::pde_betay
                                  , kw::pde_betaz

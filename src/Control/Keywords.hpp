@@ -1463,7 +1463,7 @@ struct vortical_flow_info {
 using vortical_flow =
   keyword< vortical_flow_info, TAOCPP_PEGTL_STRING("vortical_flow") >;
 
-struct nonlinear_energy_growth_info {
+struct nonlin_ener_growth_info {
   using code = Code< N >;
   static std::string name() { return "Nonlinear energy growth"; }
   static std::string shortDescription() { return
@@ -1481,8 +1481,8 @@ struct nonlinear_energy_growth_info {
     static std::string description() { return "string"; }
   };
 };
-using nonlinear_energy_growth =
-  keyword< nonlinear_energy_growth_info,
+using nonlin_ener_growth =
+  keyword< nonlin_ener_growth_info,
            TAOCPP_PEGTL_STRING("nonlinear_energy_growth") >;
 
 struct rayleigh_taylor_info {
@@ -1602,7 +1602,7 @@ struct problem_info {
                   + point_src::string() + "\' | \'"
                   + slot_cyl::string() + "\' | \'"
                   + vortical_flow::string() + "\' | \'"
-                  + nonlinear_energy_growth::string() + "\' | \'"
+                  + nonlin_ener_growth::string() + "\' | \'"
                   + rayleigh_taylor::string() + "\' | \'"
                   + taylor_green::string() + "\' | \'"
                   + sod::string() + "\' | \'"

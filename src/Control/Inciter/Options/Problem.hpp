@@ -27,7 +27,7 @@ namespace ctr {
 enum class ProblemType : uint8_t { USER_DEFINED
                                  , VORTICAL_FLOW
                                  , TAYLOR_GREEN
-                                 , NONLINEAR_ENERGY_GROWTH
+                                 , NONLIN_ENER_GROWTH
                                  , RAYLEIGH_TAYLOR
                                  , SOD
                                  , ROTATED_SOD
@@ -48,7 +48,7 @@ class Problem : public tk::Toggle< ProblemType > {
     using keywords = tk::unique_codes< kw::user_defined
                                      , kw::vortical_flow
                                      , kw::taylor_green
-                                     , kw::nonlinear_energy_growth
+                                     , kw::nonlin_ener_growth
                                      , kw::rayleigh_taylor
                                      , kw::sod
                                      , kw::rotated_sod
@@ -69,8 +69,7 @@ class Problem : public tk::Toggle< ProblemType > {
         { { ProblemType::USER_DEFINED, kw::user_defined::name() }
         , { ProblemType::VORTICAL_FLOW, kw::vortical_flow::name() }
         , { ProblemType::TAYLOR_GREEN, kw::taylor_green::name() }
-        , { ProblemType::NONLINEAR_ENERGY_GROWTH,
-            kw::nonlinear_energy_growth::name() }
+        , { ProblemType::NONLIN_ENER_GROWTH, kw::nonlin_ener_growth::name()}
         , { ProblemType::RAYLEIGH_TAYLOR, kw::rayleigh_taylor::name() }
         , { ProblemType::SOD, kw::sod::name() }
         , { ProblemType::ROTATED_SOD, kw::rotated_sod::name() }
@@ -83,8 +82,7 @@ class Problem : public tk::Toggle< ProblemType > {
         { { kw::user_defined::string(), ProblemType::USER_DEFINED }
         , { kw::vortical_flow::string(), ProblemType::VORTICAL_FLOW }
         , { kw::taylor_green::string(), ProblemType::TAYLOR_GREEN }
-        , { kw::nonlinear_energy_growth::string(),
-            ProblemType::NONLINEAR_ENERGY_GROWTH }
+        , { kw::nonlin_ener_growth::string(), ProblemType::NONLIN_ENER_GROWTH }
         , { kw::rayleigh_taylor::string(), ProblemType::RAYLEIGH_TAYLOR }
         , { kw::sod::string(), ProblemType::SOD }
         , { kw::rotated_sod::string(), ProblemType::ROTATED_SOD }
@@ -125,8 +123,7 @@ class Problem : public tk::Toggle< ProblemType > {
         { ProblemType::USER_DEFINED, *kw::user_defined::code() }
       , { ProblemType::VORTICAL_FLOW, *kw::vortical_flow::code() }
       , { ProblemType::TAYLOR_GREEN, *kw::taylor_green::code() }
-      , { ProblemType::NONLINEAR_ENERGY_GROWTH,
-          *kw::nonlinear_energy_growth::code() }
+      , { ProblemType::NONLIN_ENER_GROWTH, *kw::nonlin_ener_growth::code() }
       , { ProblemType::RAYLEIGH_TAYLOR, *kw::rayleigh_taylor::code() }
       , { ProblemType::SOD, *kw::sod::code() }
       , { ProblemType::ROTATED_SOD, *kw::rotated_sod::code() }

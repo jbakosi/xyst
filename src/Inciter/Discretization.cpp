@@ -136,23 +136,6 @@ Discretization::Discretization(
 
 }
 
-std::unordered_map< std::size_t, std::size_t >
-Discretization::genBid()
-// *****************************************************************************
-// Generate chare-boundary node id map
-//! \return Local chare-boundary mesh node IDs at which we receive contributions
-//!  associated to global mesh node IDs of elements we contribute to
-// *****************************************************************************
-{
-  // Count the number of mesh nodes at which we receive data from other chares
-  // and compute map associating boundary-chare node ID to global node ID
-  std::vector< std::size_t > c( tk::sumvalsize( m_nodeCommMap ) );
-  std::size_t j = 0;
-  for (const auto& [ch,n] : m_nodeCommMap) for (auto i : n) c[j++] = i;
-  tk::unique( c );
-  return tk::assignLid( c );
-}
-
 void
 Discretization::resizePostAMR(
   const tk::UnsMesh::Chunk& chunk,

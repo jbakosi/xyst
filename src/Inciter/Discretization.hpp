@@ -498,9 +498,6 @@ class Discretization : public CBase_Discretization {
     //! Residual at previous ETA calcuation (during convergence to steady state)
     tk::real m_res0;
 
-    //! Generate chare-boundary node id map
-    std::unordered_map< std::size_t, std::size_t > genBid();
-
     //! Set mesh coordinates based on coordinates map
     tk::UnsMesh::Coords setCoord( const tk::UnsMesh::CoordMap& coordmap );
 };

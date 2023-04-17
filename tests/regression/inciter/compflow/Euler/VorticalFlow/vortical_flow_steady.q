@@ -7,7 +7,7 @@ title "Euler equations computing vortical flow"
 inciter
 
   nstep 10
-  ttyi 10
+  ttyi 1
   cfl 0.8
 
   partitioning

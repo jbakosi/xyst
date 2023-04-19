@@ -8,7 +8,8 @@ inciter
 
   nstep 50
   ttyi 10
-  cfl 0.0
+  cfl 0.5
+  dt 0.01
 
   partitioning
     algorithm mj

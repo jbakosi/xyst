@@ -40,6 +40,7 @@ endfunction()
 #                      [POSTPROCESS_PROG exec]
 #                      [POSTPROCESS_PROG_ARGS arg1 arg2 ...]
 #                      [POSTPROCESS_PROG_OUTPUT file]
+#                      [EXCLUSIVE_PASS_REGEXP regexp]
 #                      [EXTRA_PASS_REGEXP extra_pass_regexp]
 #                      [EXTRA_FAIL_REGEXP extra_fail_regexp]
 #
@@ -116,6 +117,8 @@ endfunction()
 # POSTPROCESS_PROG_OUTPUT file - Filename to save the results of the
 # postprocessor program. Default: "".
 #
+# EXCLUSIVE_PASS_REGEXP regexp - Consider only this pass regular expression
+#
 # EXTRA_PASS_REGEXP extra_pass_regexp - Extra pass regular expression
 #
 # EXTRA_FAIL_REGEXP extra_fail_regexp - Extra fail regular expression
@@ -126,7 +129,7 @@ function(ADD_REGRESSION_TEST test_name executable)
   set(oneValueArgs NUMPES PPN TEXT_DIFF_PROG BIN_DIFF_PROG
                    POSTPROCESS_PROG POSTPROCESS_PROG_OUTPUT
                    CHECKPOINT EXTRA_PASS_REGEXP EXTRA_FAIL_REGEXP
-                   SKIP_RETURN_CODE)
+                   EXCLUSIVE_PASS_REGEXP SKIP_RETURN_CODE)
   set(multiValueArgs INPUTFILES ARGS TEXT_BASELINE TEXT_RESULT BIN_BASELINE
                      BIN_RESULT LABELS POSTPROCESS_PROG_ARGS BIN_DIFF_PROG_ARGS
                      TEXT_DIFF_PROG_ARGS TEXT_DIFF_PROG_CONF BIN_DIFF_PROG_CONF)
@@ -421,6 +424,10 @@ function(ADD_REGRESSION_TEST test_name executable)
   endif()
   # add extra pass regexp
   list(APPEND pass_regexp "${ARG_EXTRA_PASS_REGEXP}")
+  # optionally override pass regular expression by exclusive one
+  if (ARG_EXCLUSIVE_PASS_REGEXP)
+    set(pass_regexp ${ARG_EXCLUSIVE_PASS_REGEXP})
+  endif()
 
   # build fail regular expression list for test
   set(fail_regexp "")

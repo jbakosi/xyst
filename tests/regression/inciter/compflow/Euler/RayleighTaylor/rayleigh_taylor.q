@@ -29,7 +29,7 @@ inciter
     end
     bc_dirichlet
       sideset 1 1 1 1 1 1 end
-      sideset 2 1 1 1 1 1 end 
+      sideset 2 1 1 1 1 1 end
       sideset 3 1 1 1 1 1 end
       sideset 4 1 1 1 1 1 end
       sideset 5 1 1 1 1 1 end

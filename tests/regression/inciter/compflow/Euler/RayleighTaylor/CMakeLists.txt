@@ -44,6 +44,13 @@ add_regression_test(compflow_euler_rayleigh_taylor_nocfl ${INCITER_EXECUTABLE}
                     SKIP_RETURN_CODE true
                     LABELS riecg)
 
+add_regression_test(compflow_euler_rayleigh_taylor_muldt ${INCITER_EXECUTABLE}
+                    NUMPES 4
+                    INPUTFILES rayleigh_taylor_muldt.q unitcube_1k.exo
+                    ARGS -c rayleigh_taylor_muldt.q -i unitcube_1k.exo -v
+                    EXCLUSIVE_PASS_REGEXP "Multiple time step calculation"
+                    LABELS riecg)
+
 # Serial, non-stationary
 
 add_regression_test(compflow_euler_rayleigh_taylor ${INCITER_EXECUTABLE}

@@ -233,8 +233,9 @@ namespace grm {
       "incorrect, whose size must equal the number of material-ids set by "
       "keyword 'id' in that 'material ... end' sub-block." },
     { MsgKey::NODT, "No time step calculation policy has been selected in the "
-      "preceeding block. Use keyword 'dt' to set a constant or 'cfl' to set an "
-       "adaptive time step size calculation policy." },
+      "preceeding block or CFL not defined or out of bounds. Use keyword 'dt' "
+       "to set a constant or 'cfl' to set an adaptive time step size "
+       "calculation policy." },
     { MsgKey::MULDT, "Multiple time step calculation policies has been "
       "selected in the preceeding block. Use either keyword 'dt' to set a "
       "constant or 'cfl' to set an adaptive time step size calculation policy. "

@@ -36,6 +36,14 @@ add_regression_test(compflow_euler_rayleigh_taylor_st ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
+add_regression_test(compflow_euler_rayleigh_taylor_nocfl ${INCITER_EXECUTABLE}
+                    NUMPES 4
+                    INPUTFILES rayleigh_taylor_nocfl.q unitcube_1k.exo
+                    ARGS -c rayleigh_taylor_nocfl.q -i unitcube_1k.exo -v
+                    EXTRA_PASS_REGEXP "No time step calculation policy"
+                    SKIP_RETURN_CODE true
+                    LABELS riecg)
+
 # Serial, non-stationary
 
 add_regression_test(compflow_euler_rayleigh_taylor ${INCITER_EXECUTABLE}

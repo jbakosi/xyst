@@ -81,11 +81,10 @@ MeshConvDriver::execute() const
     auto dot2 = m_input.find_last_of( '.', dot1-1 );
     auto nfile_str = m_input.substr( dot2+1, dot1-dot2-1  );
     std::stringstream ss( nfile_str );
-    if (nfile_str.empty())
-      Throw( "The percent sign must be followed by an "
-             "integer, the number of files to aggregate" );
     std::size_t nfile;
     ss >> nfile;
+    ErrChk( nfile > 0, "The percent sign must be preceded by an integer, as in "
+              "'.<nfile>.%', with <nfile> the number of files to aggregate" );
     m_print.diag( "Aggregating " + std::to_string(nfile) +
                   " files from base filename: '" + input_basename +'\'' );
 

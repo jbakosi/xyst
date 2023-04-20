@@ -53,20 +53,8 @@ InciterDriver::InciterDriver( const ctr::CmdLine& cmdline, int nrestart )
                cmdline.get< tag::benchmark >() ? "on" : "off" );
   print.item( "On-screen feedback, -" + *kw::feedback::alias(),
                cmdline.get< tag::feedback >() ? "on" : "off" );
-
-  auto lbfreq = cmdline.get< tag::lbfreq >();
-  if ( lbfreq < kw::lbfreq::info::expect::lower ||
-       lbfreq > kw::lbfreq::info::expect::upper ) {
-    Throw( "Load-balancing frequency should be greater than 0." );
-  }
   print.item( "Load-balancing frequency, -" + *kw::lbfreq::alias(),
                std::to_string(cmdline.get< tag::lbfreq >()) );
-
-  auto rsfreq = cmdline.get< tag::rsfreq >();
-  if ( rsfreq < kw::rsfreq::info::expect::lower ||
-       rsfreq > kw::rsfreq::info::expect::upper ) {
-    Throw( "Checkpoint/restart frequency should be greater than 0." );
-  }
   print.item( "Checkpoint/restart frequency, -" + *kw::rsfreq::alias(),
                std::to_string(cmdline.get< tag::rsfreq >()) );
 

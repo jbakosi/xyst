@@ -110,6 +110,12 @@ add_regression_test(stitchexo2exo ${MESHCONV_EXECUTABLE}
                     BIN_RESULT out.exo
                     BIN_DIFF_PROG_CONF exodiff_stitch.cfg)
 
+add_regression_test(percent ${MESHCONV_EXECUTABLE}
+                    NUMPES 1
+                    ARGS -i out-surf.1.e-s.0.blah.% -o out.exo -v
+                    EXTRA_PASS_REGEXP "percent sign"
+                    SKIP_RETURN_CODE true)
+
 # With reordering
 
 add_regression_test(asc2reordexo ${MESHCONV_EXECUTABLE}

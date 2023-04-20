@@ -343,7 +343,8 @@ else() # Test command ran successfully, attempt to do diffs
         execute_process(COMMAND ${bin_diff_command} RESULT_VARIABLE ERR
                         ERROR_VARIABLE ERROR_OUT OUTPUT_VARIABLE BINDIFF_OUT)
         string(REPLACE "\n" "\n   " BINDIFF_OUT "${BINDIFF_OUT}")
-        message(FATAL_ERROR "\n   Binary diff command \n\n   ${bin_diff_command_string}\n\n   failed with output:\n   ${BINDIFF_OUT}")
+        string(REPLACE "\n" "\n   " ERROR_OUT "${ERROR_OUT}")
+        message(FATAL_ERROR "\n   Binary diff command \n\n   ${bin_diff_command_string}\n\n   failed with output:\n   ${BINDIFF_OUT} ${ERROR_OUT}")
       endif()
 
     endforeach(baseline)

@@ -17,9 +17,9 @@ pipeline:
     image: jbakosi/${IMAGE}
     #pull: true
     commands:
-     - mkdir build && cd build && cmake -DSMP=${SMP} -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DTPL_DIR=${TPL_DIR} -DRUNNER_ARGS="--allow-run-as-root --bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=${POSTFIX_RUNNER_ARGS} ../src && make -sj2
+     - mkdir build && cd build && cmake -DSMP=${SMP} -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DTPL_DIR=${TPL_DIR} -DRUNNER_ARGS="--allow-run-as-root --bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=${POSTFIX_RUNNER_ARGS} ../src && make -sj2 meshconv
 
   test:
     image: jbakosi/${IMAGE}
     commands:
-      - cd build && mpirun --allow-run-as-root -n 2 Main/unittest -v -q && ctest -j2 --output-on-failure
+      - cd build && mpirun --allow-run-as-root -n 2 Main/unittest -v -q && ctest -j2 --output-on-failure -L meshconv

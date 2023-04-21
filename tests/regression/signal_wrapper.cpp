@@ -3,8 +3,13 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-int main( int, char** argv )
+int main( int argc, char** argv )
 {
+  if (argc < 3) {
+    printf( "Min 2 args required: SIGNUM <executable> <executable-args> ...\n" );
+    return EXIT_FAILURE;
+  }
+
   int expected = atoi( argv[1] );
   printf( "SignalWrapper> Expecting signal: %d\n", expected );
 

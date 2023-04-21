@@ -32,3 +32,11 @@ add_regression_test(transport_canyon_farfield ${INCITER_EXECUTABLE}
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
+
+add_regression_test(transport_canyon_histwrongsize ${INCITER_EXECUTABLE}
+                    NUMPES 2 PPN 1
+                    INPUTFILES canyon_wrongsize.q canyon.exo
+                    ARGS -c canyon_wrongsize.q -i canyon.exo -v
+                    EXTRA_PASS_REGEXP "size of the parameter vector is incorrect"
+                    SKIP_RETURN_CODE true
+                    LABELS riecg)

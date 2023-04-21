@@ -93,8 +93,8 @@ class Print {
     //! \return The internal stream buffer of the stream
     template< Style s = VERBOSE >
     std::streambuf* reset( std::streambuf* buf ) {
-      if (stream<s>().rdbuf() == std::cout.rdbuf())
-        m_qstream << "Warning: overwriting std::cout! Doing as requested...\n";
+      Assert( stream<s>().rdbuf() != std::cout.rdbuf(),
+              "Warning: overwriting std::cout!" );
       return stream<s>().rdbuf( buf );
     }
 

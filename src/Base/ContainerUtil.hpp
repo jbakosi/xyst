@@ -251,13 +251,8 @@ void erase_if( Container& items, const Predicate& predicate ) {
 template< class T >
 void concat( std::vector< T >&& src, std::vector< T >& dst )
 {
-  if (dst.empty())
-    dst = std::move(src);
-  else {
-    dst.reserve( dst.size() + src.size() );
-    std::move( std::begin(src), std::end(src), std::back_inserter(dst) );
-    src.clear();
-  }
+  Assert( dst.empty(), "Dest vector must be empty to concat" );
+  dst = std::move(src);
 }
 
 //! Overwrite vectors of pair< bool, tk::real >

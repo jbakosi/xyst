@@ -19,6 +19,7 @@
 #include <cmath>
 
 #include "Timer.hpp"
+#include "Exception.hpp"
 
 using tk::Timer;
 
@@ -65,49 +66,43 @@ Timer::eta( tk::real term, tk::real time, uint64_t nstep, uint64_t it,
 
   Dsec elapsed, estimated;
 
-  if (it == 0) {
+  Assert( it > 0, "it == 0" );
 
-    // First iteration, just return zero
-    elapsed = estimated = clock::duration::zero();
+ tk::real eps = std::numeric_limits< real >::epsilon();
 
-  } else {
+ // Compute time difference between start and now in seconds
+ elapsed = clock::now() - m_start;
 
-    tk::real eps = std::numeric_limits< real >::epsilon();
+ if (rest > eps) {
 
-    // Compute time difference between start and now in seconds
-    elapsed = clock::now() - m_start;
+   if (res0 > eps && res > eps) {
+     // Estimate time until convergence to steady state (assume log-lin fn)
+     using std::log;
+     auto d = log(res0/res);
+     Dsec recent_elapsed = clock::now() - m_prev;
+     Dsec est_res = std::abs(d) > eps ?
+                    recent_elapsed * log(res/rest) / d :
+                    Dsec(0);
 
-    if (rest > eps) {
-
-      if (res0 > eps && res > eps) {
-        // Estimate time until convergence to steady state (assume log-lin fn)
-        using std::log;
-        auto d = log(res0/res);
-        Dsec recent_elapsed = clock::now() - m_prev;
-        Dsec est_res = std::abs(d) > eps ?
-                       recent_elapsed * log(res/rest) / d :
-                       Dsec(0);
-
-        // Ignore negative estimates (temporarily non-decreasing residual)
-        estimated = std::max( Dsec(0), est_res );
-        m_prev = clock::now();
-      }
+     // Ignore negative estimates (temporarily non-decreasing residual)
+     estimated = std::max( Dsec(0), est_res );
+     m_prev = clock::now();
+   }
 
 
-    } else {
+ } else {
 
-      // Estimate time until nstep in seconds (assume lin-lin fn)
-      Dsec est_nstep = elapsed * static_cast<tk::real>(nstep-it) / it;
-      // Estimate time until term in seconds (assume lin-lin fn)
-      tk::real large = std::numeric_limits< real >::max() - 1;
-      Dsec est_term = std::abs(time) > eps && term < large ?
-                      elapsed * (term-time) / time :
-                      est_nstep;
+   // Estimate time until nstep in seconds (assume lin-lin fn)
+   Dsec est_nstep = elapsed * static_cast<tk::real>(nstep-it) / it;
+   // Estimate time until term in seconds (assume lin-lin fn)
+   tk::real large = std::numeric_limits< real >::max() - 1;
+   Dsec est_term = std::abs(time) > eps && term < large ?
+                   elapsed * (term-time) / time :
+                   est_nstep;
 
-      // Time stepping will stop at term or nstep, whichever is sooner
-      estimated = std::min( est_term, est_nstep );
-    }
-  }
+   // Time stepping will stop at term or nstep, whichever is sooner
+   estimated = std::min( est_term, est_nstep );
+ }
 
   // Put elapsed time in watch as hours:minutes:seconds
   elapsedWatch.hrs = duration_cast< hours >( elapsed );

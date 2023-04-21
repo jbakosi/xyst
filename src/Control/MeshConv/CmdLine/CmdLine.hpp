@@ -39,6 +39,7 @@ using CmdLineMembers = brigand::list<
   , tag::quiescence, bool
   , tag::trace,      bool
   , tag::version,    bool
+  , tag::signal,     int
   , tag::cmdinfo,    tk::ctr::HelpFactory
   , tag::ctrinfo,    tk::ctr::HelpFactory
   , tag::helpkw,     tk::ctr::HelpKw
@@ -66,6 +67,7 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
                                      , kw::quiescence
                                      , kw::trace
                                      , kw::version
+                                     , kw::raise_signal
                                      >;
 
     //! Set of tags to ignore when printing this CmdLine

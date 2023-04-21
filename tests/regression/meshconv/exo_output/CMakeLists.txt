@@ -110,6 +110,14 @@ add_regression_test(stitchexo2exo ${MESHCONV_EXECUTABLE}
                     BIN_RESULT out.exo
                     BIN_DIFF_PROG_CONF exodiff_stitch.cfg)
 
+add_regression_test(asc2reordexo ${MESHCONV_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES cube_coarse.asc_mesh
+                    ARGS -i cube_coarse.asc_mesh -o cube_coarse_reord.exo -v -r
+                    BIN_BASELINE cube_coarse_reord.exo.std
+                    BIN_RESULT cube_coarse_reord.exo
+                    BIN_DIFF_PROG_CONF exodiff.cfg)
+
 if(EXCEPTIONS_WRITE_TO_CERR)
   add_regression_test(percent ${MESHCONV_EXECUTABLE}
                       NUMPES 1
@@ -118,12 +126,20 @@ if(EXCEPTIONS_WRITE_TO_CERR)
                       SKIP_RETURN_CODE true)
 endif()
 
-# With reordering
-
-add_regression_test(asc2reordexo ${MESHCONV_EXECUTABLE}
+add_regression_test(signal_unhandled ${MESHCONV_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES cube_coarse.asc_mesh
-                    ARGS -i cube_coarse.asc_mesh -o cube_coarse_reord.exo -v -r
-                    BIN_BASELINE cube_coarse_reord.exo.std
-                    BIN_RESULT cube_coarse_reord.exo
-                    BIN_DIFF_PROG_CONF exodiff.cfg)
+                    ARGS -i cube_coarse.asc_mesh -o cube_coarse_reord.exo -v
+                         --raise_signal 7
+                    EXPECT_SIGNAL 7
+                    EXCLUSIVE_PASS_REGEXP "handled signal: 7"
+                    SKIP_RETURN_CODE true)
+
+add_regression_test(signal_handled ${MESHCONV_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES cube_coarse.asc_mesh
+                    ARGS -i cube_coarse.asc_mesh -o cube_coarse_reord.exo -v
+                         --raise_signal 6
+                    EXPECT_SIGNAL 6
+                    EXCLUSIVE_PASS_REGEXP "handled signal: 6"
+                    SKIP_RETURN_CODE true)

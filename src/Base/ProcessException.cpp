@@ -72,8 +72,8 @@ signalHandler( int signum )
   // Get and display backtrace
   tk::Exception("Signal caught").handleException();
 
-  // Tell the runtime system to exit with a nonzero exit code
-  CkExit(1);
+  // Pass the signual number to the runtime system to use as exit code
+  CkExit( signum );
 }
 
 int
@@ -97,9 +97,7 @@ setSignalHandlers()
   signal( SIGSEGV, tk::signalHandler );
   signal( SIGTERM, tk::signalHandler );
 
-  #if !defined(__APPLE__) && !defined(HOST_OS_ALPINE)
   feenableexcept( FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW );
-  #endif
 
   return 0;
 }

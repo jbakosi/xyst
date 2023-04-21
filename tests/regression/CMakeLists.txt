@@ -32,6 +32,10 @@ if (ENABLE_VALGRIND)
   endif()
 endif()
 
+# configure helper executable to test signals from executables
+add_executable(signal_wrapper signal_wrapper.cpp)
+set(SIGNAL_WRAPPER "${CMAKE_CURRENT_BINARY_DIR}/signal_wrapper")
+
 # Include function used to add regression tests
 include(add_regression_test)
 

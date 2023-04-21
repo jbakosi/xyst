@@ -110,7 +110,7 @@ class Main : public CBase_Main {
     void execute() {
       try {
         m_timestamp.emplace_back("Migrate global-scope data", m_timer[1].hms());
-        m_driver.execute();
+        m_driver.execute( m_cmdline.get< tag::signal >() );
       } catch (...) { tk::processExceptionCharm(); }
     }
 

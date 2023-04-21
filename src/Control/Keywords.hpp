@@ -1033,6 +1033,17 @@ struct version_info {
 };
 using version = keyword< version_info, TAOCPP_PEGTL_STRING("version") >;
 
+struct raise_signal_info {
+  static std::string name() { return "Raise signal (for testing)"; }
+  static std::string shortDescription() { return "Raise signal"; }
+  static std::string longDescription() { return
+    R"(This keyword is used to test signal handling.)";
+  }
+  using alias = Alias< I >;
+};
+using raise_signal = keyword< raise_signal_info,
+                              TAOCPP_PEGTL_STRING("raise_signal") >;
+
 struct trace_info {
   static std::string name() { return "trace"; }
   static std::string shortDescription()

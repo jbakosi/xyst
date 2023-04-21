@@ -1053,29 +1053,29 @@ namespace grm {
   };
 
   //! Rule used to trigger action
-  template< class keyword, typename tag, typename... tags >
+  template< class keyword, typename... tags >
   struct check_lower_bound : pegtl::success {};
   //! Check if value is larger than lower bound
-  template< class keyword, typename tag, typename... tags >
-  struct action< check_lower_bound< keyword, tag, tags... > > {
+  template< class keyword, typename... tags >
+  struct action< check_lower_bound< keyword, tags... > > {
     template< typename Input, typename Stack >
     static void apply( const Input& in, Stack& stack ) {
       auto lower = keyword::info::expect::lower;
-      auto val = stack.template get< tag, tags... >();
+      auto val = stack.template get< tags... >();
       if (val < lower) Message< Stack, ERROR, MsgKey::BOUNDS >( stack, in );
     }
   };
 
   //! Rule used to trigger action
-  template< class keyword, typename tag, typename... tags >
+  template< class keyword, typename... tags >
   struct check_upper_bound : pegtl::success {};
   //! Check if value is lower than upper bound
-  template< class keyword, typename tag, typename... tags >
-  struct action< check_upper_bound< keyword, tag, tags... > > {
+  template< class keyword, typename... tags >
+  struct action< check_upper_bound< keyword, tags... > > {
     template< typename Input, typename Stack >
     static void apply( const Input& in, Stack& stack ) {
       auto upper = keyword::info::expect::upper;
-      auto val = stack.template get< tag, tags... >();
+      auto val = stack.template get< tags... >();
       if (val > upper) Message< Stack, ERROR, MsgKey::BOUNDS >( stack, in );
     }
   };
@@ -1332,18 +1332,18 @@ namespace grm {
   //! \brief Process command line 'keyword' and call its 'insert' action if
   //!   matches 'kw_type'
   template< template< class > class use, class keyword, class insert,
-            class kw_type, class tag, class... tags >
+            class kw_type, class... tags >
   struct process_cmd :
          pegtl::if_must<
            readcmd< use< keyword > >,
            scan< pegtl::sor< kw_type, msg< ERROR, MsgKey::MISSING > >, insert >,
            typename std::conditional<
              tk::HasVar_expect_lower< typename keyword::info >::value,
-             check_lower_bound< keyword, tag, tags... >,
+             check_lower_bound< keyword, tags... >,
              pegtl::success >::type,
            typename std::conditional<
              tk::HasVar_expect_upper< typename keyword::info >::value,
-             check_upper_bound< keyword, tag, tags... >,
+             check_upper_bound< keyword, tags... >,
              pegtl::success >::type > {};
 
   //! Process command line switch 'keyword'

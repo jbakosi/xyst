@@ -11,12 +11,15 @@
 */
 // *****************************************************************************
 
+#include <csignal>
+
 #include "Types.hpp"
 #include "Tags.hpp"
 #include "MeshConvDriver.hpp"
 #include "MeshFactory.hpp"
 #include "TaggedTupleDeepPrint.hpp"
 #include "Writer.hpp"
+#include "ProcessException.hpp"
 
 #include "NoWarning/meshconv.decl.h"
 
@@ -50,12 +53,16 @@ MeshConvDriver::MeshConvDriver( const ctr::CmdLine& cmdline, int ) :
 }
 
 void
-MeshConvDriver::execute() const
+MeshConvDriver::execute( int sig ) const
 // *****************************************************************************
 //  Execute: Convert mesh file
+//! \param[in] sig Optional signal to raise (for testing)
 // *****************************************************************************
 {
   m_print.endsubsection();
+
+  // Raise signal (for testing) if requested
+  if (sig) std::raise( sig );
 
   std::vector< std::pair< std::string, tk::real > > times;
 

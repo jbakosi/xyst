@@ -29,7 +29,7 @@ class MeshConvDriver {
     explicit MeshConvDriver( const ctr::CmdLine& cmdline, int );
 
     //! Execute
-    void execute() const;
+    void execute( int sig ) const;
 
   private:
     const tk::Print m_print;            //!< Pretty printer

@@ -43,6 +43,7 @@ endfunction()
 #                      [EXCLUSIVE_PASS_REGEXP regexp]
 #                      [EXTRA_PASS_REGEXP extra_pass_regexp]
 #                      [EXTRA_FAIL_REGEXP extra_fail_regexp]
+#                      [EXPECT_SIGNAL int]
 #
 # Mandatory arguments:
 # --------------------
@@ -123,13 +124,15 @@ endfunction()
 #
 # EXTRA_FAIL_REGEXP extra_fail_regexp - Extra fail regular expression
 #
+# EXPECT_SIGNAL <int> - Expect to crash with signal <int>
+#
 # ##############################################################################
 function(ADD_REGRESSION_TEST test_name executable)
 
   set(oneValueArgs NUMPES PPN TEXT_DIFF_PROG BIN_DIFF_PROG
                    POSTPROCESS_PROG POSTPROCESS_PROG_OUTPUT
                    CHECKPOINT EXTRA_PASS_REGEXP EXTRA_FAIL_REGEXP
-                   EXCLUSIVE_PASS_REGEXP SKIP_RETURN_CODE)
+                   EXCLUSIVE_PASS_REGEXP SKIP_RETURN_CODE EXPECT_SIGNAL)
   set(multiValueArgs INPUTFILES ARGS TEXT_BASELINE TEXT_RESULT BIN_BASELINE
                      BIN_RESULT LABELS POSTPROCESS_PROG_ARGS BIN_DIFF_PROG_ARGS
                      TEXT_DIFF_PROG_ARGS TEXT_DIFF_PROG_CONF BIN_DIFF_PROG_CONF)
@@ -371,6 +374,12 @@ function(ADD_REGRESSION_TEST test_name executable)
     string(REPLACE ";" " " POSTFIX_RUNNER_ARGS "${POSTFIX_RUNNER_ARGS}")
   endif()
 
+  set(EXECUTABLE "${CMAKE_BINARY_DIR}/Main/${executable}")
+  # Wrap in signal handler if signal is expected
+  if (ARG_EXPECT_SIGNAL)
+    set(EXECUTABLE "${SIGNAL_WRAPPER} ${ARG_EXPECT_SIGNAL} ${EXECUTABLE}")
+  endif()
+
   # Add the test. See test_runner.cmake for documentation of the arguments.
   add_test(NAME ${test_name}
            COMMAND ${CMAKE_COMMAND}
@@ -383,7 +392,7 @@ function(ADD_REGRESSION_TEST test_name executable)
            -DRUNNER_NCPUS_ARG=${RUNNER_NCPUS_ARG}
            -DRUNNER_ARGS=${RUNNER_ARGS}
            -DPOSTFIX_RUNNER_ARGS=${POSTFIX_RUNNER_ARGS}
-           -DTEST_EXECUTABLE=${CMAKE_BINARY_DIR}/Main/${executable}
+           -DTEST_EXECUTABLE=${EXECUTABLE}
            -DTEST_EXECUTABLE_ARGS=${ARGUMENTS}
            -DTEST_LABELS=${ARG_LABELS}
            -DNUMPES=${REQUESTED_NUMPES}

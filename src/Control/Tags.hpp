@@ -24,6 +24,7 @@ struct io { static std::string name() { return "io"; } };
 struct quiescence { static std::string name() { return "quiescence"; } };
 struct trace { static std::string name() { return "trace"; } };
 struct version { static std::string name() { return "version"; } };
+struct signal { static std::string name() { return "signal"; } };
 struct license { static std::string name() { return "license"; } };
 struct input { static std::string name() { return "input"; } };
 struct output { static std::string name() { return "output"; } };

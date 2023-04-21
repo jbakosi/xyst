@@ -300,8 +300,7 @@ add_subdirectory(Main)
 # Configure regression tests
 enable_testing()
 add_subdirectory(${REGRESSION_DIR}
-                 ${CMAKE_BINARY_DIR}/tests
-                 EXCLUDE_FROM_ALL)
+                 ${CMAKE_BINARY_DIR}/tests)
 
 # Configure building documentation and web page
 find_package(Doxygen 1.8.15 QUIET)

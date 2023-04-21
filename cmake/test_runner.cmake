@@ -38,7 +38,6 @@ message("  TEST_NAME (name of test)                                    : ${TEST_
 message("  WORKDIR (test run directory)                                : ${WORKDIR}")
 message("  USE_VALGRIND (true if we use valgrind)                      : ${USE_VALGRIND}")
 message("  VALGRIND (valgrind executable)                              : ${VALGRIND}")
-message("  RUNNER_REQUIRED (true if an executable runner is required)  : ${RUNNER_REQUIRED}")
 message("  RUNNER (used to run parallel and serial jobs inside cmake)  : ${RUNNER}")
 message("  RUNNER_NCPUS_ARG (used to specify the number of CPUs)       : ${RUNNER_NCPUS_ARG}")
 message("  CHARM_SMP (true/false indicating Charm++ SMP mode)          : ${CHARM_SMP}")
@@ -163,9 +162,6 @@ else() # Test command ran successfully, attempt to do diffs
     foreach(baseline IN LISTS TEXT_BASELINE)
 
       list(GET TEXT_RESULT ${b} result)
-      if (RUNNER_REQUIRED)
-        set(runner_prefix ${RUNNER} ${RUNNER_NCPUS_ARG} 1 ${RUNNER_ARGS})
-      endif()
 
      if (nconf EQUAL 1)
         list(GET TEXT_DIFF_PROG_CONF 0 conf)
@@ -173,8 +169,7 @@ else() # Test command ran successfully, attempt to do diffs
         list(GET TEXT_DIFF_PROG_CONF ${b} conf)
       endif()
 
-      set(text_diff_command ${runner_prefix}
-                            ${TEXT_DIFF_PROG} ${TEXT_DIFF_PROG_ARGS}
+      set(text_diff_command ${TEXT_DIFF_PROG} ${TEXT_DIFF_PROG_ARGS}
                             -b -t ${TEST_NAME}
                             ${baseline} ${result} ${conf})
       string(REPLACE ";" " " text_diff_command_string "${text_diff_command}")
@@ -210,11 +205,6 @@ else() # Test command ran successfully, attempt to do diffs
     list(LENGTH BIN_DIFF_PROG_CONF nconf)
     if (NOT nconf EQUAL nresult AND NOT nconf EQUAL 1)
       message(FATAL_ERROR "Number of bin-diff-prog conf files (${nconf}) should either be 1 or it must equal the number of results (${nresult}).")
-    endif()
-
-    # Set runner for bindiff prog
-    if (RUNNER_REQUIRED)
-      set(runner_prefix ${RUNNER} ${RUNNER_NCPUS_ARG} 1 ${RUNNER_ARGS})
     endif()
 
     # Do binary diff(s) multiple times diffing baseline and result.
@@ -299,7 +289,7 @@ else() # Test command ran successfully, attempt to do diffs
         endif()
         #message("Diffing baseline ${b} (${baseline}) with result ${r} (${result})")
 
-        set(bin_diff_command ${runner_prefix} ${BIN_DIFF_PROG} ${BIN_DIFF_PROG_ARGS} -f ${conf} ${baseline} ${result})
+        set(bin_diff_command ${BIN_DIFF_PROG} ${BIN_DIFF_PROG_ARGS} -f ${conf} ${baseline} ${result})
         string(REPLACE ";" " " bin_diff_command_string "${bin_diff_command}")
         #message("Running binary diff command: '${bin_diff_command_string}'")
         execute_process(COMMAND ${bin_diff_command} RESULT_VARIABLE ERROR

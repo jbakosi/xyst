@@ -387,7 +387,6 @@ function(ADD_REGRESSION_TEST test_name executable)
            -DUSE_VALGRIND=${USE_VALGRIND}
            -DVALGRIND=${VALGRIND}
            -DWORKDIR=${workdir}
-           -DRUNNER_REQUIRED=${RUNNER_REQUIRED}
            -DRUNNER=${RUNNER}
            -DRUNNER_NCPUS_ARG=${RUNNER_NCPUS_ARG}
            -DRUNNER_ARGS=${RUNNER_ARGS}

@@ -377,7 +377,8 @@ function(ADD_REGRESSION_TEST test_name executable)
   set(EXECUTABLE "${CMAKE_BINARY_DIR}/Main/${executable}")
   # Wrap in signal handler if signal is expected
   if (ARG_EXPECT_SIGNAL)
-    set(EXECUTABLE "${SIGNAL_WRAPPER} ${ARG_EXPECT_SIGNAL} ${EXECUTABLE}")
+    set(ARGUMENTS "${ARG_EXPECT_SIGNAL} ${EXECUTABLE} ${ARGUMENTS}")
+    set(EXECUTABLE ${SIGNAL_WRAPPER})
   endif()
 
   # Add the test. See test_runner.cmake for documentation of the arguments.

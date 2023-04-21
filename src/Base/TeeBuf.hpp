@@ -82,12 +82,10 @@ class basic_teebuf : public std::basic_streambuf< charT, traits > {
       int_type c = this->overflow(traits_type::eof());
 
       // checking return for eof.
-      if (traits_type::eq_int_type(c, traits_type::eof()))
-          return -1;
+      if (traits_type::eq_int_type(c, traits_type::eof())) return -1;
 
       // flush m_sbuf1 and m_sbuf2
-      if (m_sbuf1->pubsync() == -1 || m_sbuf2->pubsync() == -1)
-          return -1;
+      if (m_sbuf1->pubsync() == -1 || m_sbuf2->pubsync() == -1) return -1;
 
       return 0;
     }

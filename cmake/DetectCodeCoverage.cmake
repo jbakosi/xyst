@@ -19,26 +19,31 @@ find_program( SED sed )
 
 # Code coverage analysis only supported if all prerequisites found and the user
 # has requested it via the cmake variable COVERAGE=on.
-if ( COVERAGE AND
-     GCOV AND
-     FASTCOV AND
-     GENHTML AND
-     SED AND
-     CMAKE_CXX_COMPILER_ID STREQUAL "GNU" )
+if (COVERAGE)
 
-  message(STATUS "Code coverage analysis enabled with compiler:${CMAKE_CXX_COMPILER_ID}, gcov:${GCOV}, fastcov:${FASTCOV}, genhtml:${GENHTML}, sed:${SED}")
+  if (GCOV AND FASTCOV AND GENHTML AND SED AND
+      CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  
+    message(STATUS "Code coverage analysis enabled")
+    #message("Compiler:${CMAKE_CXX_COMPILER_ID}, gcov:${GCOV}, fastcov:${FASTCOV}, genhtml:${GENHTML}, sed:${SED}")
+  
+    # Enable code coverage analysis.
+    SET(CODE_COVERAGE ON)
+  
+    # Make flag enabling code coverage analysis available in parent cmake scope
+    MARK_AS_ADVANCED(CODE_COVERAGE)
+  
+    # Only include code coverage cmake functions if all prerequsites are met
+    include(CodeCoverage)
 
-  # Enable code coverage analysis.
-  SET(CODE_COVERAGE ON)
+  else()
 
-  # Make flag enabling code coverage analysis available in parent cmake scope
-  MARK_AS_ADVANCED(CODE_COVERAGE)
+    message(STATUS "Not all prerequisites found: compiler (must be GNU):${CMAKE_CXX_COMPILER_ID}, and the following must be found: gcov:${GCOV}, fastcov:${FASTCOV}, genhtml:${GENHTML}, sed:${SED}")
 
-  # Only include code coverage cmake functions if all prerequsites are met
-  include(CodeCoverage)
+  endif()
 
 else()
 
-  message(STATUS "Code coverage analysis disabled. Not all prerequisites found: COVERAGE (must be true):${COVERAGE}, compiler (must be GNU):${CMAKE_CXX_COMPILER_ID}, and the following must be found: gcov:${GCOV}, fastcov:${FASTCOV}, genhtml:${GENHTML}, sed:${SED}")
+  message(STATUS "Code coverage analysis disabled. Enable by -DCOVERAGE=on")
 
 endif()

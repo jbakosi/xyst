@@ -3,6 +3,7 @@
 
 \section inciter_examples Inciter
   - \subpage inciter_example_vortical_flow
+  - \subpage inciter_example_taylor_green
   - \subpage inciter_example_sedov
   - \subpage inciter_example_sedov_lb
   - \subpage inciter_example_onera

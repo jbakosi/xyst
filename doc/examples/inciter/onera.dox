@@ -107,7 +107,7 @@ end
 of the numerically computed 3D fields as
 
 @code{.bash}
-paraview out.0
+paraview out.e-s.0.32.0
 @endcode
 
 Results only on the wing surface can be visualized by first stitching the

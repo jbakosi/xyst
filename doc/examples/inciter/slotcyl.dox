@@ -158,7 +158,7 @@ end
 of the numerically computed fields as
 
 @code{.bash}
-paraview out.0
+paraview out.e-s.0.32.0
 @endcode
 
 @section inciter_example_slotcyl_results Results

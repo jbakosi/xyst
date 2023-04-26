@@ -93,7 +93,7 @@ end
 of the numerically computed fields as
 
 @code{.bash}
-paraview out.0
+paraview out.e-s.0.32.0
 @endcode
 
 The initial and final velocity, pressure, and total energy are depicted below.
@@ -159,7 +159,7 @@ p = \frac{ \log \left| \left| \varepsilon \right| \right|_1^{m+1} - \log \left|
 where m is a mesh index. As expected, the asymptotic convergence of the
 computed numerical solution in all variables approaches 2.
 
-@section References
+@section inciter_example_vortical_flow_refs References
 
 @m_div{m-text m-noindent}
 [1] J. Waltz, N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, [A three-dimensional finite element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured grids](https://doi.org/10.1016/j.compfluid.2013.12.021), Computers & Fluids, 92: 172-187, 2014.

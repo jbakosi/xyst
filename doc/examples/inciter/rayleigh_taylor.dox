@@ -1,0 +1,174 @@
+/*!
+  \page      inciter_example_rayleigh_taylor Inciter: Rayleigh-Taylor unstable configuration
+
+This example uses @ref inciter_riecg in @ref inciter_main to compute a problem
+whose analytic solution is known, therefore it can be used to verify the
+accuracy of the numerical method and the correctness of the software
+implementation.
+
+The purpose of this test case is to assess time dependent fluid motion in the
+presence of Rayleigh-Taylor unstable conditions, i.e., opposing density and
+pressure gradients. The derivation of this test problem is given in [1]. 
+
+@section inciter_example_rayleigh_taylor_setup Problem setup
+
+The simulation domain is a cube centered around the point {0,0,0}. The initial
+conditions are sampled from the analytic solution at t=0. We set Dirichlet
+boundary conditions on the sides of the cube, sampling the analytic solution.
+The numerical solution is time-dependent. The simulation was run for a single
+time unit computing the numerical errors during time stepping and the errors at
+t=1 are used to assess the convergence rate. A time step of 0.001 was used for
+the coarsest mesh and was successively halved for the finer meshes.
+
+To estimate the order of convergence, the numerical solution is computed using
+three different meshes, whose properties of are tabulated below, where h is the
+average edge length.
+       Mesh     | Points    | Tetrahedra   | h
+       :------: | --------: | -----------: | --------:
+           750K |  132,651  |    750,000   | 0.02
+             6M | 1,030,301 |  6,000,000   | 0.01
+            48M | 8,120,601 | 48,000,000   | 0.005
+
+@note For the meshes, contact us using the link at the bottom of the page.
+
+@section inciter_example_rayleigh_taylor_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [f141902](https://codeberg.org/xyst/xyst/commit/f141902b9746b44deb866869946be99860dbe3c5) and the control file below.
+
+@section inciter_example_rayleigh_taylor_control Control file
+
+@code{.bash}
+# vim: filetype=sh:
+# This is a comment
+# Keywords are case-sensitive
+
+title "Euler equations computing non-stationary Rayleigh-Taylor"
+
+inciter
+
+  #nstep 5
+  term 1.0
+  ttyi 10
+
+  dt 0.001      # 750K
+  #dt 0.0005    #   6M
+  #dt 0.00025   #  48M
+
+  partitioning
+    algorithm rcb
+  end
+
+  problem rayleigh_taylor
+  compflow
+    depvar u
+    alpha 1.0
+    betax 1.0
+    betay 1.0
+    betaz 1.0
+    p0 1.0
+    r0 1.0
+    kappa 1.0
+    material
+      # =5/3 ratio of specific heats
+      gamma 1.66666666666667 end
+    end
+    bc_dirichlet
+      sideset 1 1 1 1 1 1 end
+      sideset 2 1 1 1 1 1 end
+      sideset 3 1 1 1 1 1 end
+      sideset 4 1 1 1 1 1 end
+      sideset 5 1 1 1 1 1 end
+      sideset 6 1 1 1 1 1 end
+    end
+  end
+
+  field_output
+    interval 1000
+  end
+
+  diagnostics
+    interval 1
+    format scientific
+     precision 12
+  end
+
+end
+@endcode
+
+@section inciter_example_rayleigh_taylor_run Run using the 750K mesh on 32 CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -v -i unitcube_750K.exo -c rayleigh_taylor.q
+@endcode
+
+@section inciter_example_rayleigh_taylor_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed fields as
+
+@code{.bash}
+paraview out.e-s.0.32.0
+@endcode
+
+The figures below depict the velocity field at the surface at different
+simulation times, showing the reversal of the velocity components in time,
+indicating the spatial and temporal dynamics of the velocity field.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/rt_xvelocity_t=0.png"/>
+<img src="images/rt_xvelocity_t=05.png"/>
+<img src="images/rt_xvelocity_t=1.png"/>
+<img src="images/rt_yvelocity_t=0.png"/>
+<img src="images/rt_yvelocity_t=05.png"/>
+<img src="images/rt_yvelocity_t=1.png"/>
+<img src="images/rt_zvelocity_t=0.png"/>
+<img src="images/rt_zvelocity_t=05.png"/>
+<img src="images/rt_zvelocity_t=1.png"/>
+@m_enddiv
+
+The figures below show the density, pressure, energy, and velocity on the
+surface at the final simulation time.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/rt_density.png"/>
+<img src="images/rt_pressure.png"/>
+<img src="images/rt_energy.png"/>
+<img src="images/rt_velocity.png"/>
+@m_enddiv
+
+@section inciter_example_rayleigh_taylor_error Numerical errors and convergence rate
+                 
+The table below shows the numerical L1 errors of the flow quantities computed.
+The L1 error is computed as
+\f[
+\left| \left| \varepsilon \right| \right|_1 = \frac{\sum_{v=1}^n V^v \left|
+\hat{U}^v - U^{v} \right|} {\sum_{v=1}^n V^v}
+\f]
+where n is the total number of points of the mesh,
+\f$\color[HTML]{dcdcdc}\hat{U}^v\f$ and \f$\color[HTML]{dcdcdc}U^v\f$ are the
+exact and computed solutions at mesh point v, and \f$\color[HTML]{dcdcdc}V^v\f$
+denotes the volume associated to mesh point v. The order of convergence is
+estimated as
+\f[
+p = \frac{ \log \left| \left| \varepsilon \right| \right|_1^{m+1} - \log \left|
+\left| \varepsilon \right| \right|_1^m}{ \log h^{m+1} - \log h^m}
+\f]
+where m is a mesh index. The following table summarizes the L1 errors in all
+flow variables at t=1.
+       Mesh     | L1(r)     |  L1(u)     | L1(v)     | L1(w)     | L1(e)
+       :------: | --------: | ---------: | --------: | --------: | --------:
+       750K     | 2.46e-3   |  6.56e-4   | 6.51e-4   | 8.04e-4   | 1.43e-2
+       6M       | 7.04e-4   |  1.98e-4   | 1.94e-4   | 2.40e-4   | 3.95e-3
+       48M      | 1.93e-4   |  5.74e-5   | 5.45e-5   | 6.66e-5   | 1.04e-3
+       p        | 1.86      |  1.79      | 1.83      | 1.85      | 1.92
+Here r, u, v, w, and e are the fluid density, velocity in the x, y, z
+directions, and the internal energy, respectively. The order of convergence
+approaches the expected value of 2.0.
+
+@section inciter_example_rayleigh_taylor_refs References
+
+@m_div{m-text m-noindent}
+[1] J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.
+@m_enddiv
+
+*/

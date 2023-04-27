@@ -1,5 +1,5 @@
 /*!
-  \page      inciter_example_vortical_flow Inciter: Vortical flow
+  \page      riecg_example_vortical_flow RieCG: Vortical flow
 
 This example uses @ref inciter_riecg in @ref inciter_main to compute a problem
 whose analytic solution is known, therefore it can be used to verify the
@@ -15,7 +15,7 @@ vorticity and velocity gradients is a fundamental source of kinetic energy in
 flows that transition to shear-driven turbulence, and hence an important
 ingredient of computing many practical engineering and atmospheric flows.
 
-@section inciter_example_vortical_flow_setup Problem setup
+@section riecg_example_vortical_flow_setup Problem setup
 
 The simulation domain is a cube centered around the point {0,0,0}. The initial
 conditions are sampled from the analytic solution at t=0. We set Dirichlet
@@ -26,11 +26,11 @@ approaches a stationary state, the numerical errors in the flow variables
 converge to stationary values, determined by the combination of spatial and
 temporal errors which are measured and assessed.
 
-@section inciter_example_vortical_flow_sha Code revision to reproduce
+@section riecg_example_vortical_flow_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [93f84cc](https://codeberg.org/xyst/xyst/commit/93f84cc477633742f7c6836d7c678be4062f2ad4) and the control file below.
 
-@section inciter_example_vortical_flow_control Control file
+@section riecg_example_vortical_flow_control Control file
 
 @code{.bash}
 # vim: filetype=sh:
@@ -81,13 +81,13 @@ inciter
 end
 @endcode
 
-@section inciter_example_vortical_flow_run Run using the 750K mesh on 32 CPUs
+@section riecg_example_vortical_flow_run Run using the 750K mesh on 32 CPUs
 
 @code{.bash}
 ./charmrun +p32 Main/inciter -v -i unitcube_750K.exo -c vortical_flow.q
 @endcode
 
-@section inciter_example_vortical_flow_fieldvis Visualization
+@section riecg_example_vortical_flow_fieldvis Visualization
 
 [ParaView](https://www.paraview.org) can be used for interactive visualization
 of the numerically computed fields as
@@ -104,7 +104,7 @@ The initial and final velocity, pressure, and total energy are depicted below.
 <img src="images/vort_energy_a=10_b=10_bg.png"/>
 @m_enddiv
 
-@section inciter_example_vortical_flow_error Numerical errors
+@section riecg_example_vortical_flow_error Numerical errors
 
 To estimate the order of convergence, the numerical solution is computed using
 three different meshes, whose properties of are tabulated below.
@@ -139,7 +139,7 @@ plot [] [:8e-5] "750K/diag" u 2:20, "6M/diag" u 2:20, "48M/diag" u 2:20
 
 @note For the meshes, contact us using the link at the bottom of the page.
 
-@section inciter_example_vortical_flow_convergence Convergence rate
+@section riecg_example_vortical_flow_convergence Convergence rate
 
 The following table summarizes the L1 errors in all flow variables at the
 stationary state.
@@ -159,7 +159,7 @@ p = \frac{ \log \left| \left| \varepsilon \right| \right|_1^{m+1} - \log \left|
 where m is a mesh index. As expected, the asymptotic convergence of the
 computed numerical solution in all variables approaches 2.
 
-@section inciter_example_vortical_flow_refs References
+@section riecg_example_vortical_flow_refs References
 
 @m_div{m-text m-noindent}
 [1] J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.

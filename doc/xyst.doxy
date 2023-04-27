@@ -2371,7 +2371,7 @@ DOT_CLEANUP            = YES
 #
 
 ##! M_SEARCH_DISABLED       = NO
-##! M_SEARCH_EXTERNAL_URL = "https://startpage.com/search?q=site:xyst.cc+{query}"
+##! M_SEARCH_EXTERNAL_URL = "https://searx.be/search?q=site:xyst.cc+{query}"
 
 HTML_EXTRA_STYLESHEET = \
     https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,400i,600,600i%7CSource+Code+Pro:400,400i,600 \
@@ -2380,7 +2380,8 @@ HTML_EXTRA_STYLESHEET = \
 ##! M_THEME_COLOR = #22272e
 
 ##! M_LINKS_NAVBAR1 = \
-##!      "inciter_main inciter_riecg meshconv_main unittest_main" \
+##!      "<a href=\"index.html#mainpage_tools\">Tools</a> inciter_main meshconv_main unittest_main" \
+##!      "examples <a href=\"examples.html#riecg_examples\">RieCG</a>" \
 ##!       papers \
 ##!      "<a href=\"https://codeberg.org/xyst/xyst\">Source</a> namespaces annotated files licenses coverage"
 

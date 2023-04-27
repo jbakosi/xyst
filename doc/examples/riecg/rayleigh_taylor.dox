@@ -1,5 +1,5 @@
 /*!
-  \page      inciter_example_rayleigh_taylor Inciter: Rayleigh-Taylor unstable configuration
+  \page      riecg_example_rayleigh_taylor RieCG: Rayleigh-Taylor unstable configuration
 
 This example uses @ref inciter_riecg in @ref inciter_main to compute a problem
 whose analytic solution is known, therefore it can be used to verify the
@@ -10,7 +10,7 @@ The purpose of this test case is to assess time dependent fluid motion in the
 presence of Rayleigh-Taylor unstable conditions, i.e., opposing density and
 pressure gradients. The derivation of this test problem is given in [1]. 
 
-@section inciter_example_rayleigh_taylor_setup Problem setup
+@section riecg_example_rayleigh_taylor_setup Problem setup
 
 The simulation domain is a cube centered around the point {0,0,0}. The initial
 conditions are sampled from the analytic solution at t=0. We set Dirichlet
@@ -31,11 +31,11 @@ average edge length.
 
 @note For the meshes, contact us using the link at the bottom of the page.
 
-@section inciter_example_rayleigh_taylor_sha Code revision to reproduce
+@section riecg_example_rayleigh_taylor_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [f141902](https://codeberg.org/xyst/xyst/commit/f141902b9746b44deb866869946be99860dbe3c5) and the control file below.
 
-@section inciter_example_rayleigh_taylor_control Control file
+@section riecg_example_rayleigh_taylor_control Control file
 
 @code{.bash}
 # vim: filetype=sh:
@@ -95,13 +95,13 @@ inciter
 end
 @endcode
 
-@section inciter_example_rayleigh_taylor_run Run using the 750K mesh on 32 CPUs
+@section riecg_example_rayleigh_taylor_run Run using the 750K mesh on 32 CPUs
 
 @code{.bash}
 ./charmrun +p32 Main/inciter -v -i unitcube_750K.exo -c rayleigh_taylor.q
 @endcode
 
-@section inciter_example_rayleigh_taylor_fieldvis Visualization
+@section riecg_example_rayleigh_taylor_fieldvis Visualization
 
 [ParaView](https://www.paraview.org) can be used for interactive visualization
 of the numerically computed fields as
@@ -136,7 +136,7 @@ surface at the final simulation time.
 <img src="images/rt_velocity.png"/>
 @m_enddiv
 
-@section inciter_example_rayleigh_taylor_error Numerical errors and convergence rate
+@section riecg_example_rayleigh_taylor_error Numerical errors and convergence rate
                  
 The table below shows the numerical L1 errors of the flow quantities computed.
 The L1 error is computed as
@@ -165,7 +165,7 @@ Here r, u, v, w, and e are the fluid density, velocity in the x, y, z
 directions, and the internal energy, respectively. The order of convergence
 approaches the expected value of 2.0.
 
-@section inciter_example_rayleigh_taylor_refs References
+@section riecg_example_rayleigh_taylor_refs References
 
 @m_div{m-text m-noindent}
 [1] J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.

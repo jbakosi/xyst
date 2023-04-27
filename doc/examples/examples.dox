@@ -1,16 +1,16 @@
 /*!
   \page      examples Examples
 
-\section inciter_examples Inciter
-  - \subpage inciter_example_vortical_flow
-  - \subpage inciter_example_taylor_green
-  - \subpage inciter_example_rayleigh_taylor
-  - \subpage inciter_example_sedov
-  - \subpage inciter_example_sedov_lb
-  - \subpage inciter_example_onera
-  - \subpage inciter_example_slotcyl
-  - \subpage inciter_example_f16
+\section riecg_examples RieCG
+  - \subpage riecg_example_vortical_flow
+  - \subpage riecg_example_taylor_green
+  - \subpage riecg_example_rayleigh_taylor
+  - \subpage riecg_example_sedov
+  - \subpage riecg_example_sedov_lb
+  - \subpage riecg_example_onera
+  - \subpage riecg_example_slotcyl
+  - \subpage riecg_example_f16
 
-See the @ref papers for more examples.
+See @ref papers for more documentation and more examples.
 
 */

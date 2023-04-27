@@ -1,5 +1,5 @@
 /*!
-  \page      inciter_example_f16 Inciter: F-16
+  \page      riecg_example_f16 RieCG: F-16
 
 This example runs the
 [ALECG](https://quinoacomputing.github.io/archive/inciter_alecg.html) algorithm

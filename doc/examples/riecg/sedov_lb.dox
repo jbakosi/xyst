@@ -1,5 +1,5 @@
 /*!
-  \page      inciter_example_sedov_lb Inciter: Automatic load balancing
+  \page      riecg_example_sedov_lb RieCG: Automatic load balancing
 
 This example uses @ref inciter_riecg in @ref inciter_main to induce parallel
 load imbalance and uses Charm++ to homogenize the computational load speeding
@@ -30,7 +30,7 @@ balancing costs are negligible (compared to the physics operators) and can be
 beneficial for irregular work-loads at any problem size from laptop [2] to
 cluster [1].
 
-@section inciter_example_sedov_lb_problem The Sedov problem
+@section riecg_example_sedov_lb_problem The Sedov problem
 
 We computed the Sedov problem [3], widely used in shock hydrodynamics to test
 the ability of numerical methods to maintain symmetry. In this problem, a
@@ -38,9 +38,9 @@ source of energy is defined to produce a shock in a single computational cell
 at the origin at t=0. The solution is a spherically spreading wave starting
 from a single point. We used a domain that is eighth of a sphere with the mesh
 consisting of 23,191,232 tetrahedra and 3,956,135 points. See also @ref
-inciter_example_sedov.
+riecg_example_sedov.
 
-@section inciter_example_sedov_lb_mod A modified Sedov problem
+@section riecg_example_sedov_lb_mod A modified Sedov problem
 
 To exercise Charm++'s built-in load balancing, we modified the Sedov problem by
 adding extra computational load to the function that computes the pressure
@@ -49,7 +49,7 @@ This increases the cost of the equation of state evaluation whose location
 propagates in space and time, which induces load imbalance across multiple mesh
 partitions in parallel.
 
-@section inciter_example_sedov_lb_sha Code revision to reproduce
+@section riecg_example_sedov_lb_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [aa29b26](https://codeberg.org/xyst/xyst/commit/aa29b264272ceda81089821731ea6ea678d42a14), the following patch
 @code{.patch}
@@ -82,7 +82,7 @@ patch -p1 -i p
 
 Then use the control file below.
 
-@section inciter_example_sedov_lb_control Control file
+@section riecg_example_sedov_lb_control Control file
 
 @code{.bash}
 # vim: filetype=sh:
@@ -141,7 +141,7 @@ end
 
 @note For the mesh, contact us using the link at the bottom of the page.
 
-@section inciter_example_sedov_lb_run Run on 32 CPUs
+@section riecg_example_sedov_lb_run Run on 32 CPUs
 
 @code{.bash}
 # no extra load: run without applying the patch above
@@ -159,7 +159,7 @@ subsequently. The -l 20 command line argument tells Charm++ to perform load
 balancing every 20th time step. Consult the [Charm++
 manual](https://charm.readthedocs.io) for details on load balancing.
 
-@section inciter_example_sedov_lb_timings Timings
+@section riecg_example_sedov_lb_timings Timings
 
 The figure and table below show the effect of load balancing on wall-clock
 time: in this particular case the extra load would make the simulation about
@@ -186,7 +186,7 @@ the load. While this example was run on a single computer, experience shows
 that the benefits of such load-balancing can be even greater on large
 distributed-memory machines [1].
 
-@section inciter_example_sedov_lb_references References
+@section riecg_example_sedov_lb_references References
 
 @m_div{m-text m-noindent}
 [1] J. Bakosi, R. Bird, F.Gonzalez, C. Junghans, W. Li, H. Luo, A. Pandare, J. Waltz, [Asynchronous distributed-memory task-parallel algorithm for compressible flows on unstructured 3D Eulerian grids](https://doi.org/10.1016/j.advengsoft.2020.102962), Advances in Engineering Software, 102962, 2021.

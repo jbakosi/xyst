@@ -1,5 +1,5 @@
 /*!
-  \page      inciter_example_onera Inciter: ONERA wing
+  \page      riecg_example_onera RieCG: ONERA wing
 
 This example uses @ref inciter_riecg in @ref inciter_main to demonstrate and
 validate the solver in a 3D complex-geometry case by comparing the numerical
@@ -14,7 +14,7 @@ state, the most efficient ways to compute this problem are to use implicit time
 marching or local time stepping [2] of which @ref inciter_riecg implements the
 latter allowing taking larger time steps for larger cells.
 
-@section inciter_example_onera_setup Problem setup
+@section riecg_example_onera_setup Problem setup
 
 We used a coarser and a finer computational mesh whose properties are displayed
 below.
@@ -29,11 +29,11 @@ surface symmetry (free-slip) conditions are set.
 
 @note For the meshes, contact us using the link at the bottom of the page.
 
-@section inciter_example_onera_sha Code revision to reproduce
+@section riecg_example_onera_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [aa29b26](https://codeberg.org/xyst/xyst/commit/aa29b264272ceda81089821731ea6ea678d42a14) and the control file below.
 
-@section inciter_example_onera_control Control file
+@section riecg_example_onera_control Control file
 
 @code{.bash}
 # vim: filetype=sh:
@@ -95,13 +95,13 @@ inciter
 end
 @endcode
 
-@section inciter_example_onera_run Run using the coarse mesh on 32 CPUs
+@section riecg_example_onera_run Run using the coarse mesh on 32 CPUs
 
 @code{.bash}
 ./charmrun +p32 Main/inciter -v -i onera_710K.exo -c onera.q
 @endcode
 
-@section inciter_example_onera_fieldvis Visualization
+@section riecg_example_onera_fieldvis Visualization
 
 [ParaView](https://www.paraview.org) can be used for interactive visualization
 of the numerically computed 3D fields as
@@ -172,7 +172,7 @@ set title "Surface pressure coefficient at 95% semispan"; set xlabel "x/c"; set 
 
 @note For the experimental data and the paraview session file, extracting the pressure along the wing span, yielding the files o??.txt above, contact us using the link at the bottom of the page.
 
-@section inciter_example_onera_references References
+@section riecg_example_onera_references References
 
 @m_div{m-text m-noindent}
 [1] H. Luo, J.D. Baum, R. Lohner, [A Fast, Matrix-Free Implicit Method for Compressible Flows on Unstructured Grids](https://doi.org/10.1006/jcph.1998.6076), J. Comput. Phys. 146,2, 1998.

@@ -1,5 +1,5 @@
 /*!
-  \page      inciter_example_slotcyl Inciter: Slotted cylinder
+  \page      riecg_example_slotcyl RieCG: Slotted cylinder
 
 This example uses @ref inciter_riecg in @ref inciter_main to compute a
 solid-body rotation problem. Such tests are frequently used to evaluate and
@@ -9,7 +9,7 @@ Here we evaluate the numerical method using Zalesak's slotted cylinder problem
 [1], augmented by Leveque [2] in order to examine the resolution of both smooth
 and discontinuous profiles.
 
-@section inciter_example_slotcyl_equations Equations solved
+@section riecg_example_slotcyl_equations Equations solved
 
 In this example we numerically solve the linear advection equation coupled to
 the Euler equations, see also @ref inciter_riecg. as
@@ -42,7 +42,7 @@ only for c, we still solve the above coupled system. This way we test the
 solver as it is intended to be used in practice: solving the same system of
 equations with its software implementation.
 
-@section inciter_example_slotcyl_setup Problem setup
+@section riecg_example_slotcyl_setup Problem setup
 
 The inital configuration for the scalar field, c, is depicted in the figure
 below.
@@ -91,11 +91,11 @@ of the domain, sampling their analytic solutions. For the scalar, homogeneous
 Dirichlet conditions are set on those sides with normals in the x and y
 directions.
 
-@section inciter_example_slotcyl_sha Code revision to reproduce
+@section riecg_example_slotcyl_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [82358a5](https://codeberg.org/xyst/xyst/commit/82358a5f14c685ceb2f6957d09fb3c1ded753b13) and the control file below.
 
-@section inciter_example_slotcyl_control Control file
+@section riecg_example_slotcyl_control Control file
 
 @code{.bash}
 # vim: filetype=sh:
@@ -144,7 +144,7 @@ inciter
 end
 @endcode
 
-@section inciter_example_slotcyl_run Run using on 32 CPUs
+@section riecg_example_slotcyl_run Run using on 32 CPUs
 
 @code{.bash}
 ./charmrun +p32 Main/inciter -v -i unitsquare_01_1.9M.exo -c slot_cyl.q
@@ -152,7 +152,7 @@ end
 
 @note For the mesh, contact us using the link at the bottom of the page.
 
-@section inciter_example_slotcyl_fieldvis Visualization
+@section riecg_example_slotcyl_fieldvis Visualization
 
 [ParaView](https://www.paraview.org) can be used for interactive visualization
 of the numerically computed fields as
@@ -161,7 +161,7 @@ of the numerically computed fields as
 paraview out.e-s.0.32.0
 @endcode
 
-@section inciter_example_slotcyl_results Results
+@section riecg_example_slotcyl_results Results
 
 First, we verify that the flow variables are indeed constant in time. This
 verifies that that correct source terms have been chosen and that they have
@@ -182,7 +182,7 @@ at various locations so the solution can be compared to the analytic solution.
 <img src="images/slotcyl_y0.75.png"/>
 @m_enddiv
 
-@section inciter_example_slotcyl_references References
+@section riecg_example_slotcyl_references References
 
 @m_div{m-text m-noindent}
 [1] S.T. Zalesak, [Fully multidimensional flux-corrected transport algorithms for fluids](https://doi.org/10.1016/0021-9991(79)90051-2), J. Comput. Phys. 31,3, p.335-362, 1979.

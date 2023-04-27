@@ -5,6 +5,7 @@
   - \subpage riecg_example_vortical_flow
   - \subpage riecg_example_taylor_green
   - \subpage riecg_example_rayleigh_taylor
+  - \subpage riecg_example_nonlinear_energy_growth
   - \subpage riecg_example_sedov
   - \subpage riecg_example_sedov_lb
   - \subpage riecg_example_onera

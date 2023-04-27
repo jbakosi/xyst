@@ -1,16 +1,17 @@
 /*!
-  \page      riecg_example_rayleigh_taylor RieCG: Rayleigh-Taylor unstable configuration
+  \page      riecg_example_nonlinear_energy_growth RieCG: Nonlinear energy growth
 
 This example uses @ref inciter_riecg in @ref inciter_main to compute a problem
 whose analytic solution is known, therefore it can be used to verify the
 accuracy of the numerical method and the correctness of the software
 implementation.
 
-The purpose of this test case is to assess time dependent fluid motion in the
-presence of Rayleigh-Taylor unstable conditions, i.e., opposing density and
-pressure gradients. The derivation of this test problem is given in [1]. 
+The purpose of this problem is to test nonlinear, time-dependent energy growth
+and the subsequent development of pressure gradients due to coupling between
+the internal energy and the equation of state. The derivation of this test
+problem is given in [1].
 
-@section riecg_example_rayleigh_taylor_setup Problem setup
+@section riecg_example_nonlinear_energy_growth_setup Problem setup
 
 The simulation domain is a cube centered around the point {0,0,0}. The initial
 conditions are sampled from the analytic solution at t=0. We set Dirichlet
@@ -31,43 +32,43 @@ average edge length.
 
 @note For the meshes, contact us using the link at the bottom of the page.
 
-@section riecg_example_rayleigh_taylor_sha Code revision to reproduce
+@section riecg_example_nonlinear_energy_growth_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [f141902](https://codeberg.org/xyst/xyst/commit/f141902b9746b44deb866869946be99860dbe3c5) and the control file below.
 
-@section riecg_example_rayleigh_taylor_control Control file
+@section riecg_example_nonlinear_energy_growth_control Control file
 
 @code{.bash}
 # vim: filetype=sh:
 # This is a comment
 # Keywords are case-sensitive
 
-title "Euler equations computing non-stationary Rayleigh-Taylor"
+title "Euler equations computing nonlinear energy growth"
 
 inciter
 
-  #nstep 5
-  term 1.0
-  ttyi 10
+  term 1.0      # Physical time at which to terminate
+  ttyi 10       # TTY output interval
 
   dt 0.001      # 750K
   #dt 0.0005    #   6M
   #dt 0.00025   #  48M
 
   partitioning
-    algorithm rcb
+    algorithm mj
   end
 
-  problem rayleigh_taylor
+  problem nonlinear_energy_growth
+
   compflow
     depvar u
-    alpha 1.0
+    alpha 0.25
     betax 1.0
-    betay 1.0
-    betaz 1.0
-    p0 1.0
-    r0 1.0
-    kappa 1.0
+    betay 0.75
+    betaz 0.5
+    r0 2.0
+    ce -1.0
+    kappa 0.8
     material
       # =5/3 ratio of specific heats
       gamma 1.66666666666667 end
@@ -89,19 +90,19 @@ inciter
   diagnostics
     interval 1
     format scientific
-     precision 12
+    precision 12
   end
 
 end
 @endcode
 
-@section riecg_example_rayleigh_taylor_run Run using the 750K mesh on 32 CPUs
+@section riecg_example_nonlinear_energy_growth_run Run using the 750K mesh on 32 CPUs
 
 @code{.bash}
-./charmrun +p32 Main/inciter -v -i unitcube_750K.exo -c rayleigh_taylor.q
+./charmrun +p32 Main/inciter -v -i unitcube_750K.exo -c nonlinear_energy_growth.q
 @endcode
 
-@section riecg_example_rayleigh_taylor_fieldvis Visualization
+@section riecg_example_nonlinear_energy_growth_fieldvis Visualization
 
 [ParaView](https://www.paraview.org) can be used for interactive visualization
 of the numerically computed fields as
@@ -110,33 +111,25 @@ of the numerically computed fields as
 paraview out.e-s.0.32.0
 @endcode
 
-The figures below depict the velocity field at the surface at different
-simulation times, showing the reversal of the velocity components in time,
-indicating the spatial and temporal dynamics of the velocity field.
+The figures below show the density, energy, and pressure distributions at four
+different times on center planes through the origin.
 
 @m_div{m-col-m-10 m-center-m}
-<img src="images/rt_xvelocity_t=0.png"/>
-<img src="images/rt_xvelocity_t=05.png"/>
-<img src="images/rt_xvelocity_t=1.png"/>
-<img src="images/rt_yvelocity_t=0.png"/>
-<img src="images/rt_yvelocity_t=05.png"/>
-<img src="images/rt_yvelocity_t=1.png"/>
-<img src="images/rt_zvelocity_t=0.png"/>
-<img src="images/rt_zvelocity_t=05.png"/>
-<img src="images/rt_zvelocity_t=1.png"/>
+<img src="images/nleg_density_t=0.png"/>
+<img src="images/nleg_density_t=03.png"/>
+<img src="images/nleg_density_t=06.png"/>
+<img src="images/nleg_density_t=10.png"/>
+<img src="images/nleg_energy_t=0.png"/>
+<img src="images/nleg_energy_t=03.png"/>
+<img src="images/nleg_energy_t=06.png"/>
+<img src="images/nleg_energy_t=10.png"/>
+<img src="images/nleg_pressure_t=0.png"/>
+<img src="images/nleg_pressure_t=03.png"/>
+<img src="images/nleg_pressure_t=06.png"/>
+<img src="images/nleg_pressure_t=10.png"/>
 @m_enddiv
 
-The figures below show the density, pressure, energy, and velocity on the
-surface at the final simulation time.
-
-@m_div{m-col-m-10 m-center-m}
-<img src="images/rt_density.png"/>
-<img src="images/rt_pressure.png"/>
-<img src="images/rt_energy.png"/>
-<img src="images/rt_velocity.png"/>
-@m_enddiv
-
-@section riecg_example_rayleigh_taylor_error Numerical errors and convergence rate
+@section riecg_example_nonlinear_energy_growth_error Numerical errors and convergence rate
 
 The table below shows the numerical L1 errors of the flow quantities computed.
 The L1 error is computed as
@@ -157,15 +150,15 @@ where m is a mesh index. The following table summarizes the L1 errors in all
 flow variables at t=1.
        Mesh     | L1(r)     |  L1(u)     | L1(v)     | L1(w)     | L1(e)
        :------: | --------: | ---------: | --------: | --------: | --------:
-       750K     | 2.46e-3   |  6.56e-4   | 6.51e-4   | 8.04e-4   | 1.43e-2
-       6M       | 7.04e-4   |  1.98e-4   | 1.94e-4   | 2.40e-4   | 3.95e-3
-       48M      | 1.93e-4   |  5.74e-5   | 5.45e-5   | 6.66e-5   | 1.04e-3
-       p        | 1.86      |  1.79      | 1.83      | 1.85      | 1.92
+       750K     | 1.02e-3   |  1.07e-4   | 5.97e-5   | 4.34e-5   | 3.55e-4
+       6M       | 2.58e-4   |  2.19e-5   | 1.26e-5   | 1.01e-5   | 8.03e-5
+       48M      | 6.83e-5   |  4.65e-6   | 2.86e-6   | 2.43e-6   | 2.02e-5
+       p        | 1.91      |  2.24      | 2.14      | 2.06      | 1.99
 Here r, u, v, w, and e are the fluid density, velocity in the x, y, z
-directions, and the internal energy, respectively. The order of convergence
-approaches the expected value of 2.0.
+directions, and the internal energy, respectively. The measured convergence
+rate in all variables approaches $2.0$, consistent with expectations.
 
-@section riecg_example_rayleigh_taylor_refs References
+@section riecg_example_nonlinear_energy_growth_refs References
 
 @m_div{m-text m-noindent}
 [1] J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.

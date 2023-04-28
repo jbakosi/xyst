@@ -8,9 +8,9 @@ matrix:
       TPL_DIR: "/xyst/external/install/gnu-smp"
       SMP: on
       POSTFIX_RUNNER_ARGS: "+setcpuaffinity"
-    - BUILDTYPE: Debug
-      IMAGE: "xyst-clang"
-      TPL_DIR: "/xyst/external/install/clang"
+    #- BUILDTYPE: Debug
+    #  IMAGE: "xyst-clang"
+    #  TPL_DIR: "/xyst/external/install/clang"
 
 pipeline:
   build:

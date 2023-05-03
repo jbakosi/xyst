@@ -707,11 +707,9 @@ RieCG::merge()
   tk::destroy( m_bnorm );
 
   // Enforce boundary conditions using (re-)computed boundary data
-  BC();
+  BC( Disc()->T() );
 
   if (Disc()->Initial()) {
-    // Enforce boundary conditions on initial conditions
-    BC();
     // Output initial conditions to file
     writeFields( CkCallback(CkIndex_RieCG::start(), thisProxy[thisIndex]) );
   } else {
@@ -720,10 +718,11 @@ RieCG::merge()
 }
 
 void
-RieCG::BC()
+RieCG::BC( tk::real t )
 // *****************************************************************************
 // Apply boundary conditions
-// \details The following BC enforcement changes the initial condition or
+//! \param[in] t Physical time
+//! \details The following BC enforcement changes the initial condition or
 //!   updated solution (dependending on when it is called) to ensure strong
 //!   imposition of the BCs. This is a matter of choice. Another alternative is
 //!   to only apply BCs when computing fluxes at boundary faces, thereby only
@@ -738,12 +737,8 @@ RieCG::BC()
       insert( "RieCGG", "BC", thisIndex, CkMyPe(), Disc()->It() );
   }
 
-  auto d = Disc();
-  const auto& coord = d->Coord();
-
   // Apply Dirichlet BCs
-  auto t = d->T() + rkcoef[m_stage] * d->Dt();
-  physics::dirbc( m_u, t, coord, m_dirbcmasks );
+  physics::dirbc( m_u, t, Disc()->Coord(), m_dirbcmasks );
 
   // Apply symmetry BCs
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms );
@@ -1044,7 +1039,7 @@ RieCG::solve()
   if (src) src( d->Coord(), d->T(), m_u );
 
   // Enforce boundary conditions
-  BC();
+  BC( d->T() + rkcoef[m_stage] * d->Dt() );
 
   // Activate SDAG wait for next time step stage
   thisProxy[ thisIndex ].wait4grad();

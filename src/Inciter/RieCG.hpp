@@ -367,7 +367,7 @@ class RieCG : public CBase_RieCG {
     void evalRestart();
 
     //! Apply boundary conditions
-    void BC();
+    void BC( tk::real t );
 
     //! Compute gradients for next time step
     void grad();

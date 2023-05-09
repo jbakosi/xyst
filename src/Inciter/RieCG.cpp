@@ -469,11 +469,14 @@ RieCG::setup()
 
   auto d = Disc();
 
-  // Set initial conditions
-  problems::initialize( d->Coord(), m_u, d->T() );
+  // Determine which nodes reside in user-defined IC box(es) if any
+  auto boxnodes = problems::boxnodes( d->Coord() );
 
-  // Compute volume of user-defined box IC
-  d->boxvol( m_boxnodes );
+  // Set initial conditions
+  problems::initialize( d->Coord(), m_u, d->T(), boxnodes );
+
+  // Start computing the volume of user-defined IC box(es)
+  d->boxvol( boxnodes );
 
   // Query time history field output labels from all PDEs integrated
   const auto& hist_points = g_inputdeck.get< tag::history, tag::point >();

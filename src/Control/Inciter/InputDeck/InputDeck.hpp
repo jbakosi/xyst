@@ -94,13 +94,11 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::ic
                                  , kw::box
                                  , kw::materialid
-                                 , kw::mass
                                  , kw::density
                                  , kw::velocity
                                  , kw::move
                                  , kw::pressure
                                  , kw::energy
-                                 , kw::energy_content
                                  , kw::temperature
                                  , kw::xmin
                                  , kw::xmax

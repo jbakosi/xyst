@@ -196,7 +196,6 @@ class RieCG : public CBase_RieCG {
       p | m_farbcnorms;
       p | m_surfint;
       p | m_stage;
-      p | m_boxnodes;
       p | m_dtp;
       p | m_tp;
       p | m_finished;
@@ -318,8 +317,6 @@ class RieCG : public CBase_RieCG {
                               std::vector< tk::real > > > m_surfint;
     //! Runge-Kutta stage counter
     std::size_t m_stage;
-    //! Mesh node ids at which user-defined box ICs are defined (multiple boxes)
-    std::vector< std::unordered_set< std::size_t > > m_boxnodes;
     //! Time step size for each mesh node
     std::vector< tk::real > m_dtp;
     //! Physical time for each mesh node

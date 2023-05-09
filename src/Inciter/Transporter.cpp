@@ -982,13 +982,13 @@ Transporter::stat()
 void
 Transporter::boxvol( tk::real v, tk::real summeshid )
 // *****************************************************************************
-// Reduction target computing total volume of IC box
-//! \param[in] v Total volume within user-specified box IC
+// Reduction target computing total volume of IC box(es)
+//! \param[in] v Total volume within user-specified IC box(es)
 //! \param[in] summeshid Mesh id as a real (summed accross the distributed mesh)
 // *****************************************************************************
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
-  if (v > 0.0) printer().diag( "Box IC volume: " + std::to_string(v) );
+  if (v > 0.0) printer().diag( "IC-box-volume sum: " + std::to_string(v) );
   m_riecg[ meshid ].box( v );
 }
 

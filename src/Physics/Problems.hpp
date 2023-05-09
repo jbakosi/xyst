@@ -23,6 +23,10 @@ extern ctr::InputDeck g_inputdeck;
 
 namespace problems {
 
+//! Determine nodes that lie inside user-defined IC box(es)
+std::vector< std::unordered_set< std::size_t > >
+boxnodes( const std::array< std::vector< tk::real >, 3 >& coord );
+
 //! Query user config and assign function to set initial conditions
 std::function< std::vector< tk::real >
              ( tk::real, tk::real, tk::real, tk::real ) >
@@ -48,6 +52,7 @@ PHYS_SRC();
 void
 initialize( const std::array< std::vector< tk::real >, 3 >& coord,
             tk::Fields& U,
-            tk::real t );
+            tk::real t,
+            const std::vector<std::unordered_set< std::size_t >>& inbox = {} );
 
 } // problems::

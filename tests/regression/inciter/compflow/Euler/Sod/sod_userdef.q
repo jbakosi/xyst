@@ -15,12 +15,11 @@ inciter
     algorithm mj
   end
 
-  problem sod
+  #problem sod
 
   compflow
     depvar u
 
-    #problem sod_shocktube
     ic
       density -1.0 end                  # overwritten by boxes
       velocity 100.0 100.0 100.0 end    # overwritten by boxes

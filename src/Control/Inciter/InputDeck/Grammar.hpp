@@ -617,9 +617,7 @@ namespace deck {
              , box_parameter< eq, kw::density, tag::density >
              , box_parameter< eq, kw::pressure, tag::pressure >
              , box_parameter< eq, kw::temperature, tag::temperature >
-             , box_parameter< eq, kw::energy_content, tag::energy_content >
              , box_parameter< eq, kw::energy, tag::energy >
-             , box_parameter< eq, kw::mass, tag::mass >
              , box_vector< eq, kw::velocity, tag::velocity >
              > > {};
 

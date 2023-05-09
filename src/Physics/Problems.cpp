@@ -22,6 +22,57 @@ extern ctr::InputDeck g_inputdeck;
 
 namespace problems {
 
+// *****************************************************************************
+//  Determine nodes that lie inside user-defined IC box(es)
+//! \param[in] coord Mesh node coordinates
+//! \return inbox List of nodes at which box user ICs are set for each IC box
+// *****************************************************************************
+std::vector< std::unordered_set< std::size_t > >
+boxnodes( const std::array< std::vector< tk::real >, 3 >& coord ) {
+  using inciter::g_inputdeck;
+
+  const auto& icbox =
+    g_inputdeck.get< tag::param, tag::compflow, tag::ic, tag::box >();
+
+  if (icbox.empty()) return {};
+
+  std::vector< std::unordered_set< std::size_t > > inbox;
+
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  std::size_t bcnt = 0;
+  for (const auto& b : icbox[0]) {
+    inbox.emplace_back();
+    std::vector< tk::real > box
+      { b.get< tag::xmin >(), b.get< tag::xmax >(),
+        b.get< tag::ymin >(), b.get< tag::ymax >(),
+        b.get< tag::zmin >(), b.get< tag::zmax >() };
+
+    const auto eps = std::numeric_limits< tk::real >::epsilon();
+    // Determine which nodes lie in the IC box
+    if ( std::any_of( begin(box), end(box), [=](auto p)
+                      { return abs(p) > eps; } ) )
+    {
+      std::array< tk::real, 3 > b_min{{box[0], box[2], box[4]}};
+      std::array< tk::real, 3 > b_max{{box[1], box[3], box[5]}};
+      for (std::size_t i=0; i<x.size(); ++i) {
+        std::array< tk::real, 3 > node{{ x[i], y[i], z[i] }};
+        if ( node[0]>b_min[0] && node[0]<b_max[0] &&
+             node[1]>b_min[1] && node[1]<b_max[1] &&
+             node[2]>b_min[2] && node[2]<b_max[2] )
+        {
+          inbox[bcnt].insert( i );
+        }
+      }
+    }
+    ++bcnt;
+  }
+
+  return inbox;
+}
+
 namespace userdef {
 
 static std::vector< tk::real >
@@ -70,12 +121,10 @@ ic( tk::real, tk::real, tk::real, tk::real )
 
   } else {
 
-    Throw( "IC background energy cannot be computed. User must specify "
+    Throw( "IC background energy cannot be computed. Must specify "
            "one of background pressure, energy, or velocity." );
 
   }
-
-  ErrChk( u[0] > 0.0, "Density IC zero" );
 
   return u;
 }
@@ -732,29 +781,97 @@ SOL()
     return IC();
 }
 
+//! Set the solution in the user-defined IC box
+
+static void
+initializeBox( const inciter::ctr::box& b, std::vector< tk::real >& s )
+// *****************************************************************************
+// Set the solution in the user-defined IC box
+//! \param[in] b IC box configuration to use
+//! \param[in,out] s Solution vector that is set to box ICs
+//! \details This function sets the fluid density and total specific energy
+//!   within a box initial condition, configured by the user.
+// *****************************************************************************
+{
+  using inciter::g_inputdeck;
+
+  auto boxrho = b.get< tag::density >();
+  const auto& boxvel = b.get< tag::velocity >();
+  auto boxpre = b.get< tag::pressure >();
+  auto boxene = b.get< tag::energy >();
+  auto boxtem = b.get< tag::temperature >();
+
+  tk::real r = 0.0, ru = 0.0, rv = 0.0, rw = 0.0, re = 0.0;
+  if (boxrho > 0.0) r = boxrho;
+  if (boxvel.size() == 3) {
+    ru = r * boxvel[0];
+    rv = r * boxvel[1];
+    rw = r * boxvel[2];
+  }
+  if (boxpre > 0.0) re = eos::totalenergy( r, ru/r, rv/r, rw/r, boxpre );
+  if (boxene > 0.0) {
+    auto ux = ru/r, uy = rv/r, uz = rw/r;
+    auto ke = 0.5*(ux*ux + uy*uy + uz*uz);
+    re = r * (boxene + ke);
+  }
+  if (boxtem > 0.0) {
+    auto cv = g_inputdeck.get< tag::param, tag::compflow, tag::cv >()[0][0];
+    re = r * boxtem * cv;
+  }
+
+  s[0] = r;
+  s[1] = ru;
+  s[2] = rv;
+  s[3] = rw;
+  s[4] = re;
+}
+
 void
 initialize( const std::array< std::vector< tk::real >, 3 >& coord,
             tk::Fields& U,
-            tk::real t )
+            tk::real t,
+            const std::vector< std::unordered_set< std::size_t > >& inbox )
 // *****************************************************************************
 //  Initalize the compressible flow equations, prepare for time integration
 //! \param[in] coord Mesh node coordinates
 //! \param[in,out] U Array of unknowns
 //! \param[in] t Physical time
+//! \param[in] inbox Nodes at which box user ICs are set (for each box IC)
 // *****************************************************************************
 {
   Assert( coord[0].size() == U.nunk(), "Size mismatch" );
+
+  using inciter::g_inputdeck;
+
+  const auto& icbox =
+    g_inputdeck.get< tag::param, tag::compflow, tag::ic, tag::box >();
+
+  auto ic = IC();
 
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
 
-  auto ic = IC();
-
   // Set initial conditions dependeing on problem configured
   for (std::size_t i=0; i<x.size(); ++i) {
+
+    // Query problem-specific ICs
     auto s = ic( x[i], y[i], z[i], t );
+
+    // initialize the user-defined ICs in box(es) (if any configured)
+    if (!icbox.empty()) {
+      std::size_t bcnt = 0;
+      for (const auto& b : icbox[0]) { // for all boxes
+        if (inbox.size() > bcnt && inbox[bcnt].find(i) != inbox[bcnt].end()) {
+          initializeBox( b, s );
+        }
+        ++bcnt;
+      }
+    }
+
+    // Set values for ICs
     for (std::size_t c=0; c<s.size(); ++c) U(i,c,0) = s[c];
+
   }
 }
 

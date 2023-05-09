@@ -187,12 +187,10 @@ using box = tk::TaggedTuple< brigand::list<
   , tag::ymax,          kw::ymax::info::expect::type
   , tag::zmin,          kw::zmin::info::expect::type
   , tag::zmax,          kw::zmax::info::expect::type
-  , tag::mass,          kw::mass::info::expect::type
   , tag::density,       kw::density::info::expect::type
   , tag::velocity,      std::vector< kw::velocity::info::expect::type >
   , tag::pressure,      kw::pressure::info::expect::type
   , tag::energy,        kw::energy::info::expect::type
-  , tag::energy_content,kw::energy_content::info::expect::type
   , tag::temperature,   kw::temperature::info::expect::type
 > >;
 

@@ -665,20 +665,6 @@ struct materialid_info {
 using materialid = keyword< materialid_info,
   TAOCPP_PEGTL_STRING("materialid") >;
 
-struct mass_info {
-  static std::string name() { return "mass"; }
-  static std::string shortDescription() { return "Specify mass"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to configure the mass
-       and associated volume within a box.)";
-  }
-  struct expect {
-    using type = tk::real;
-    static std::string description() { return "real"; }
-  };
-};
-using mass = keyword< mass_info, TAOCPP_PEGTL_STRING("mass") >;
-
 struct density_info {
   static std::string name() { return "density"; }
   static std::string shortDescription() { return "Specify density"; }
@@ -721,22 +707,6 @@ struct energy_info {
   };
 };
 using energy = keyword< energy_info, TAOCPP_PEGTL_STRING("energy") >;
-
-struct energy_content_info {
-  static std::string name() { return "energy_content"; }
-  static std::string shortDescription() { return
-    "Specify energy per unit volume";
-  }
-  static std::string longDescription() { return
-    R"(This keyword is used to configure energy per unit volume, used for, e.g.,
-    boundary or initial conditions.)"; }
-  struct expect {
-    using type = tk::real;
-    static std::string description() { return "real"; }
-  };
-};
-using energy_content =
-  keyword< energy_content_info, TAOCPP_PEGTL_STRING("energy_content") >;
 
 struct temperature_info {
   static std::string name() { return "temperature"; }
@@ -842,12 +812,9 @@ struct box_info {
     will be set to 1.2 and the pressure to be 1.4. Besides the box dimensions,
     the following physics keywords are allowed in a box ... end block:)"
     + std::string("\'")
-    + materialid::string()+ "\', \'"
-    + mass::string()+ "\', \'"
     + density::string()+ "\', \'"
     + velocity::string() + "\', \'"
     + energy::string() + "\', \'"
-    + energy_content::string() + "\', \'"
     + temperature::string() + "\', \'"
     + pressure::string() + "\'."; }
 };
@@ -861,7 +828,6 @@ struct ic_info {
     R"(This keyword is used to introduce an ic...end block used to set initial
     conditions. Keywords allowed in a ic ... end block: )" + std::string("\'")
     + materialid::string()+ "\', \'"
-    + mass::string()+ "\', \'"
     + density::string()+ "\', \'"
     + velocity::string() + "\', \'"
     + pressure::string() + "\', \'"

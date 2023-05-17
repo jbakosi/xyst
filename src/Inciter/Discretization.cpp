@@ -963,7 +963,7 @@ Discretization::status()
     if (histiter() or histtime() or histrange()) print << 't';
     if (intiter() or inttime() or intrange()) print << 'i';
     if (m_refined) print << 'h';
-    if (not (m_it % lbfreq) && not finished()) print << 'l';
+    if ((m_it % lbfreq == 0 || m_it == 2) && not finished()) print << 'l';
     if (not benchmark && (not (m_it % rsfreq) || finished())) print << 'r';
 
     print << std::endl;

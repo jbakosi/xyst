@@ -27,11 +27,6 @@ option(SMP "Build Charm++ in SMP mode" OFF)
 if(SMP)
   set(smp "-smp")
 endif()
-option(RNDQ "Build Charm++ with randomized message queues" OFF)
-if(RNDQ)
-  set(rndq "-rndq")
-  set(CHARM_RNDQ "-D;RANDOMIZED_MSGQ=on;-D;PRIO_TYPE=int;-D;ERROR_CHECKING=on;-D;CMAKE_BUILD_TYPE=Debug")
-endif()
 
 # Set install directory based on compiler ID if was not given on command line
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -90,7 +85,6 @@ ExternalProject_Add(
   CMAKE_ARGS -D TARGET=LIBS
              -D NETWORK=mpi
              -D SMP=${SMP}
-             ${CHARM_RNDQ}
              -D ENABLE_FORTRAN=off
              -D CMAKE_C_COMPILER:PATH=${MPI_C_COMPILER}
              -D CMAKE_CXX_COMPILER:PATH=${MPI_CXX_COMPILER}

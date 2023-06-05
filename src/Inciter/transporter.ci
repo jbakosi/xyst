@@ -55,12 +55,15 @@ module transporter {
                                              tk::real initial,
                                              tk::real summeshid );
       entry [reductiontarget] void minstat( tk::real d0, tk::real d1,
-                                            tk::real d2, tk::real rmeshid );
+                                            tk::real d2, tk::real d3,
+                                            tk::real d4, tk::real rmeshid );
       entry [reductiontarget] void maxstat( tk::real d0, tk::real d1,
-                                            tk::real d2, tk::real rmeshid );
+                                            tk::real d2, tk::real d3,
+                                            tk::real d4, tk::real rmeshid );
       entry [reductiontarget] void sumstat( tk::real d0, tk::real d1,
                                             tk::real d2, tk::real d3,
                                             tk::real d4, tk::real d5,
+                                            tk::real d6, tk::real d7,
                                             tk::real summeshid );
       entry [reductiontarget] void pdfstat( CkReductionMsg* msg );
       entry [reductiontarget] void boxvol( tk::real v, tk::real summeshid );

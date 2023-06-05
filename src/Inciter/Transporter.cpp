@@ -842,12 +842,15 @@ Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
 }
 
 void
-Transporter::minstat( tk::real d0, tk::real d1, tk::real d2, tk::real rmeshid )
+Transporter::minstat( tk::real d0, tk::real d1, tk::real d2, tk::real d3,
+                      tk::real d4, tk::real rmeshid )
 // *****************************************************************************
 // Reduction target yielding minimum mesh statistcs across all workers
 //! \param[in] d0 Minimum mesh statistics collected over all chares
 //! \param[in] d1 Minimum mesh statistics collected over all chares
 //! \param[in] d2 Minimum mesh statistics collected over all chares
+//! \param[in] d3 Minimum mesh statistics collected over all chares
+//! \param[in] d4 Minimum mesh statistics collected over all chares
 //! \param[in] rmeshid Mesh id as a real
 // *****************************************************************************
 {
@@ -855,18 +858,23 @@ Transporter::minstat( tk::real d0, tk::real d1, tk::real d2, tk::real rmeshid )
 
   m_minstat[meshid][0] = d0;  // minimum edge length
   m_minstat[meshid][1] = d1;  // minimum cell volume cubic root
-  m_minstat[meshid][2] = d2;  // minimum number of cells on chare
+  m_minstat[meshid][2] = d2;  // minimum number of elements on chare
+  m_minstat[meshid][3] = d3;  // minimum number of points on chare
+  m_minstat[meshid][4] = d4;  // minimum number of edges on chare
 
   minstat_complete(meshid);
 }
 
 void
-Transporter::maxstat( tk::real d0, tk::real d1, tk::real d2, tk::real rmeshid )
+Transporter::maxstat( tk::real d0, tk::real d1, tk::real d2, tk::real d3,
+                      tk::real d4, tk::real rmeshid )
 // *****************************************************************************
 // Reduction target yielding the maximum mesh statistics across all workers
 //! \param[in] d0 Maximum mesh statistics collected over all chares
 //! \param[in] d1 Maximum mesh statistics collected over all chares
 //! \param[in] d2 Maximum mesh statistics collected over all chares
+//! \param[in] d3 Maximum mesh statistics collected over all chares
+//! \param[in] d4 Minimum mesh statistics collected over all chares
 //! \param[in] rmeshid Mesh id as a real
 // *****************************************************************************
 {
@@ -874,14 +882,17 @@ Transporter::maxstat( tk::real d0, tk::real d1, tk::real d2, tk::real rmeshid )
 
   m_maxstat[meshid][0] = d0;  // maximum edge length
   m_maxstat[meshid][1] = d1;  // maximum cell volume cubic root
-  m_maxstat[meshid][2] = d2;  // maximum number of cells on chare
+  m_maxstat[meshid][2] = d2;  // maximum number of elements on chare
+  m_maxstat[meshid][3] = d3;  // maximum number of points on chare
+  m_maxstat[meshid][4] = d4;  // maximum number of edges on chare
 
   maxstat_complete(meshid);
 }
 
 void
 Transporter::sumstat( tk::real d0, tk::real d1, tk::real d2, tk::real d3,
-                      tk::real d4, tk::real d5, tk::real summeshid )
+                      tk::real d4, tk::real d5, tk::real d6, tk::real d7,
+                      tk::real summeshid )
 // *****************************************************************************
 // Reduction target yielding the sum mesh statistics across all workers
 //! \param[in] d0 Sum mesh statistics collected over all chares
@@ -890,14 +901,18 @@ Transporter::sumstat( tk::real d0, tk::real d1, tk::real d2, tk::real d3,
 //! \param[in] d3 Sum mesh statistics collected over all chares
 //! \param[in] d4 Sum mesh statistics collected over all chares
 //! \param[in] d5 Sum mesh statistics collected over all chares
+//! \param[in] d6 Sum mesh statistics collected over all chares
+//! \param[in] d7 Sum mesh statistics collected over all chares
 //! \param[in] summeshid Mesh id (summed accross the distributed mesh)
 // *****************************************************************************
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
 
-  m_avgstat[meshid][0] = d1 / d0;      // average edge length
-  m_avgstat[meshid][1] = d3 / d2;      // average cell volume cubic root
-  m_avgstat[meshid][2] = d5 / d4;      // average number of cells per chare
+  m_avgstat[meshid][0] = d1 / d0;  // average edge length
+  m_avgstat[meshid][1] = d3 / d2;  // average cell volume cubic root
+  m_avgstat[meshid][2] = d5 / d4;  // average number of elements per chare
+  m_avgstat[meshid][3] = d6 / d4;  // average number of points per chare
+  m_avgstat[meshid][4] = d7 / d4;  // average number of elements per chare
 
   sumstat_complete(meshid);
 }
@@ -955,18 +970,26 @@ Transporter::stat()
     for (std::size_t i=0; i<m_nelem.size(); ++i) {
       print.diag(
         "Mesh " + std::to_string(i) +
-        " distribution statistics: min/max/avg(edgelength) = " +
+        " distribution statistics:\n\tmin/max/avg(edgelength) = " +
         std::to_string( m_minstat[i][0] ) + " / " +
         std::to_string( m_maxstat[i][0] ) + " / " +
-        std::to_string( m_avgstat[i][0] ) + ", " +
+        std::to_string( m_avgstat[i][0] ) + "\n\t" +
         "min/max/avg(V^{1/3}) = " +
         std::to_string( m_minstat[i][1] ) + " / " +
         std::to_string( m_maxstat[i][1] ) + " / " +
-        std::to_string( m_avgstat[i][1] ) + ", " +
-        "min/max/avg(ntets) = " +
+        std::to_string( m_avgstat[i][1] ) + "\n\t" +
+        "min/max/avg(nelem) = " +
         std::to_string( static_cast<std::size_t>(m_minstat[i][2]) ) + " / " +
         std::to_string( static_cast<std::size_t>(m_maxstat[i][2]) ) + " / " +
-        std::to_string( static_cast<std::size_t>(m_avgstat[i][2]) ) );
+        std::to_string( static_cast<std::size_t>(m_avgstat[i][2]) ) + "\n\t" +
+        "min/max/avg(npoin) = " +
+        std::to_string( static_cast<std::size_t>(m_minstat[i][3]) ) + " / " +
+        std::to_string( static_cast<std::size_t>(m_maxstat[i][3]) ) + " / " +
+        std::to_string( static_cast<std::size_t>(m_avgstat[i][3]) ) + "\n\t" +
+        "min/max/avg(nedge) = " +
+        std::to_string( static_cast<std::size_t>(m_minstat[i][4]) ) + " / " +
+        std::to_string( static_cast<std::size_t>(m_maxstat[i][4]) ) + " / " +
+        std::to_string( static_cast<std::size_t>(m_avgstat[i][4]) ) );
     }
 
     // Print out time integration header to screen

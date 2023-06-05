@@ -399,9 +399,9 @@ Discretization::stat( tk::real mesh_volume )
 
   auto MIN = -std::numeric_limits< tk::real >::max();
   auto MAX = std::numeric_limits< tk::real >::max();
-  std::vector< tk::real > min{ MAX, MAX, MAX };
-  std::vector< tk::real > max{ MIN, MIN, MIN };
-  std::vector< tk::real > sum{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  std::vector< tk::real > min{ MAX, MAX, MAX, MAX, MAX };
+  std::vector< tk::real > max{ MIN, MIN, MIN, MIN, MIN };
+  std::vector< tk::real > sum{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
   tk::UniPDF edgePDF( 1e-4 );
   tk::UniPDF volPDF( 1e-4 );
   tk::UniPDF ntetPDF( 1e-4 );
@@ -421,7 +421,8 @@ Discretization::stat( tk::real mesh_volume )
   // statistics are intended as simple average diagnostics, we ignore these
   // small differences. For reproducible average edge lengths and edge length
   // PDFs, run the mesh in serial.
-  for (std::size_t p=0; p<m_gid.size(); ++p)
+  tk::UnsMesh::EdgeSet edges;
+  for (std::size_t p=0; p<m_gid.size(); ++p) {
     for (auto i : tk::Around(psup,p)) {
        const auto dx = x[ i ] - x[ p ];
        const auto dy = y[ i ] - y[ p ];
@@ -432,7 +433,9 @@ Discretization::stat( tk::real mesh_volume )
        sum[0] += 1.0;
        sum[1] += length;
        edgePDF.add( length );
+       edges.insert( { m_gid[i], m_gid[p] } );
     }
+  }
 
   // Compute mesh cell volume statistics
   for (std::size_t e=0; e<m_inpoel.size()/4; ++e) {
@@ -450,9 +453,11 @@ Discretization::stat( tk::real mesh_volume )
     volPDF.add( L );
   }
 
-  // Contribute stats of number of tetrahedra (ntets)
+  // Contribute statistics
   sum[4] = 1.0;
   min[2] = max[2] = sum[5] = static_cast< tk::real >( m_inpoel.size() / 4 );
+  min[3] = max[3] = sum[6] = static_cast< tk::real >( m_gid.size() );
+  min[4] = max[4] = sum[7] = static_cast< tk::real >( edges.size() );
   ntetPDF.add( min[2] );
 
   min.push_back( static_cast<tk::real>(m_meshid) );

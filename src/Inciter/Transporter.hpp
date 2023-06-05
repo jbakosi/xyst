@@ -154,17 +154,20 @@ class Transporter : public CBase_Transporter {
 
     //! \brief Reduction target yielding the minimum mesh statistics across
     //!   all workers
-    void minstat( tk::real d0, tk::real d1, tk::real d2, tk::real rmeshid );
+    void minstat( tk::real d0, tk::real d1, tk::real d2, tk::real d3,
+                  tk::real d4, tk::real rmeshid );
 
     //! \brief Reduction target yielding the maximum mesh statistics across
     //!   all workers
-    void maxstat( tk::real d0, tk::real d1, tk::real d2, tk::real rmeshid );
+    void maxstat( tk::real d0, tk::real d1, tk::real d2, tk::real d3,
+                  tk::real d4, tk::real rmeshid );
 
     //! \brief Reduction target yielding the sum of mesh statistics across
     //!   all workers
     void sumstat( tk::real d0, tk::real d1,
                   tk::real d2, tk::real d3,
                   tk::real d4, tk::real d5,
+                  tk::real d6, tk::real d7,
                   tk::real summeshid );
 
     //! \brief Reduction target yielding PDF of mesh statistics across all
@@ -283,11 +286,11 @@ class Transporter : public CBase_Transporter {
     //! Total mesh volume (one per mesh)
     std::vector< tk::real > m_meshvol;
     //! Minimum mesh statistics (one per mesh)
-    std::vector< std::array< tk::real, 3 > > m_minstat;
+    std::vector< std::array< tk::real, 5 > > m_minstat;
     //! Maximum mesh statistics (one per mesh)
-    std::vector< std::array< tk::real, 3 > > m_maxstat;
+    std::vector< std::array< tk::real, 5 > > m_maxstat;
     //! Average mesh statistics (one per mesh)
-    std::vector< std::array< tk::real, 3 > > m_avgstat;
+    std::vector< std::array< tk::real, 5 > > m_avgstat;
     //! Timer tags
     enum class TimerTag { MESH_READ=0 };
     //! Timers

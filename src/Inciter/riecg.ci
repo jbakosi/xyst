@@ -12,20 +12,15 @@
 
 module riecg {
 
-  //! [External modules and includes]
   extern module transporter;
   extern module discretization;
 
   include "UnsMesh.hpp";
   include "PUPUtil.hpp";
-  //! [External modules and includes]
 
   namespace inciter {
 
-    //! [1D Charm++ chare array]
     array [1D] RieCG {
-    //! [1D Charm++ chare array]
-      //! [Entry methods]
       entry RieCG( const CProxy_Discretization& disc,
                    const std::map< int, std::vector< std::size_t > >& bface,
                    const std::map< int, std::vector< std::size_t > >& bnode,
@@ -49,12 +44,10 @@ module riecg {
       entry void next();
       entry void stage();
       entry void evalLB( int nrestart );
-      //! [Entry methods]
 
       // SDAG code follows. See http://charm.cs.illinois.edu/manuals/html/
       // charm++/manual.html, Sec. "Structured Control Flow: Structured Dagger".
 
-      //! [DAG]
       entry void wait4int() {
         when ownnorm_complete(), comnorm_complete() serial "int" { merge(); } }
 
@@ -75,7 +68,6 @@ module riecg {
       entry void comrhs_complete();
       entry void feop_complete();
       entry void resize_complete();
-      //! [DAG]
     }
 
   } // inciter::

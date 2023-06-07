@@ -164,7 +164,7 @@ add_regression_test(compflow_euler_sod_charestate ${INCITER_EXECUTABLE}
 
 add_regression_test(compflow_euler_sod_u0.8_migr
                     ${INCITER_EXECUTABLE}
-                    NUMPES 4
+                    NUMPES 4 PPN 1
                     INPUTFILES sod.q rectangle_01_1.5k.exo
                     ARGS -c sod.q -i rectangle_01_1.5k.exo -v -u 0.8
                          +balancer RecBipartLB +LBDebug 1

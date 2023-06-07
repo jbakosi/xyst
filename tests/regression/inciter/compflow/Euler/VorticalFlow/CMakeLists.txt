@@ -112,7 +112,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_reord_u0.5
 
 add_regression_test(compflow_euler_vorticalflow_riecg_u0.9_migr
                     ${INCITER_EXECUTABLE}
-                    NUMPES 4
+                    NUMPES 4 PPN 1
                     INPUTFILES vortical_flow.q unitcube_1k.exo
                     ARGS -c vortical_flow.q -i unitcube_1k.exo -v -u 0.9
                          -l 10 +balancer RecBipartLB +LBDebug 1 +cs

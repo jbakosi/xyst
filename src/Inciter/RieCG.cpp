@@ -1265,9 +1265,10 @@ RieCG::writeFields( CkCallback cb )
       s[1] /= s[0];
       s[2] /= s[0];
       s[3] /= s[0];
-      s[4] = s[4] / s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
-      ap[i] = eos::pressure( s[0], s[4] );
+      s[4] /= s[0];
       for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
+      s[4] -= 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
+      ap[i] = eos::pressure( s[0], s[4] );
     }
     for (std::size_t c=0; c<5; ++c) {
       nodefieldnames.push_back( nodefieldnames[c] + "_analytic" );

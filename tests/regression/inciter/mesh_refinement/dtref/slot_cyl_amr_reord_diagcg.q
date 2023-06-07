@@ -14,7 +14,7 @@ inciter
   pelocal_reorder true
 
   partitioning
-    algorithm mj
+    algorithm rcb
   end
 
   transport

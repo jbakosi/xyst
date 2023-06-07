@@ -11,7 +11,7 @@ inciter
   cfl 0.0
 
   partitioning
-    algorithm mj
+    algorithm rcb
   end
 
   problem rayleigh_taylor

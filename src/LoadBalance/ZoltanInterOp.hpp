@@ -11,32 +11,21 @@
     partitioning.
 */
 // *****************************************************************************
-#ifndef ZoltanInterOp_h
-#define ZoltanInterOp_h
-
-#include <vector>
-#include <utility>
-#include <cstddef>
-#include <cstdint>
+#pragma once
 
 #include "Options/PartitioningAlgorithm.hpp"
 
 namespace tk {
 
-class Print;
-class UnsMesh;
-
 //! Interoperation with the Zoltan library, used for static mesh partitioning
 namespace zoltan {
 
-//! Partition mesh using Zoltan2 with a geometric partitioner, such as RCB, RIB
+//! Partition mesh using Zoltan with a geometric partitioner, such as RCB, RIB
 std::vector< std::size_t >
 geomPartMesh( tk::ctr::PartitioningAlgorithmType algorithm,
               const std::array< std::vector< tk::real >, 3 >& elemcoord,
-              const std::vector< long >& elemid,
+              const std::vector< unsigned int >& elemid,
               int npart );
 
 } // zoltan::
 } // tk::
-
-#endif // ZoltanInterOp_h

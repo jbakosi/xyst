@@ -2292,18 +2292,6 @@ struct hsfc_info {
 };
 using hsfc = keyword< hsfc_info, TAOCPP_PEGTL_STRING("hsfc") >;
 
-struct mj_info {
-  static std::string name() { return "multi-jagged"; }
-  static std::string shortDescription() { return
-    "Select multi-jagged (MJ) mesh partitioner"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select the multi-jagged (MJ) mesh partitioner.
-    MJ is a geometry-based partitioner used to distribute an input mesh among
-    processing elements. See
-    Control/Options/PartitioningAlgorithm.hpp for other valid options.)"; }
-};
-using mj = keyword< mj_info, TAOCPP_PEGTL_STRING("mj") >;
-
 struct phg_info {
   static std::string name() { return "hypergraph"; }
   static std::string shortDescription() { return
@@ -2328,9 +2316,7 @@ struct algorithm_info {
     static std::string choices() {
       return '\'' + rcb::string() + "\' | \'"
                   + rib::string() + "\' | \'"
-                  + hsfc::string() + "\' | \'"
-                  + mj::string() + "\' | \'"
-                  + phg::string() + '\'';
+                  + hsfc::string() + '\'';
     }
   };
 };

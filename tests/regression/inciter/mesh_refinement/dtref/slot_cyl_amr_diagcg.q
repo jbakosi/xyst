@@ -13,7 +13,7 @@ inciter
   scheme diagcg
 
   partitioning
-    algorithm mj
+    algorithm rcb
   end
 
   transport

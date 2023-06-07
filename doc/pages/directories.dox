@@ -175,7 +175,7 @@ In other words, this is where all execution starts for all executables.
 @details This directory contains functionality specific to _static_ load
 balancing. (_Static_ because dynamic load balancing is handled by Charm++.) It
 has code
- - to interoperate with Zoltan2, used for _initial_ mesh (graph) partitioning
+ - to interoperate with Zoltan, used for _initial_ mesh (graph) partitioning
    in @ref inciter_main, ZoltanInterOp.C, and
  - to experiment with custom Charm++ object placement (currently unused), e.g.,
    UnsMeshMap.C.

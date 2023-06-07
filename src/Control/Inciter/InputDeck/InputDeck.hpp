@@ -81,7 +81,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::rcb
                                  , kw::rib
                                  , kw::hsfc
-                                 , kw::phg
                                  , kw::inciter
                                  , kw::ncomp
                                  , kw::pde_diffusivity
@@ -135,7 +134,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::pde_beta
                                  , kw::pde_p0
                                  , kw::cfl
-                                 , kw::mj
                                  , kw::depvar
                                  , kw::nonlin_ener_growth
                                  , kw::pde_betax

@@ -14,7 +14,7 @@ inciter
   fct true
 
   partitioning
-    algorithm mj
+    algorithm rcb
   end
 
   compflow

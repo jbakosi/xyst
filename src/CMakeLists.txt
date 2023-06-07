@@ -182,7 +182,7 @@ endif()
 find_package(HDF5 COMPONENTS C HL REQUIRED)
 find_package(NetCDF REQUIRED)
 
-find_package(Zoltan2 REQUIRED)
+find_package(Zoltan REQUIRED)
 find_package(SEACASExodus REQUIRED)
 find_package(Exodiff REQUIRED)
 

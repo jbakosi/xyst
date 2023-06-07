@@ -256,7 +256,7 @@ issuing a broadcast to Partitioner::partition().
 
 `Partitioner::partition()` sets up the necessary data for calling an external
 mesh partitioner. Currently, various coordinate-based partitioners are hooked
-up from Zoltan2. This works in distributed-memory parallel fashion, and calls
+up from Zoltan. This works in distributed-memory parallel fashion, and calls
 MPI under the hood (inside the library call). Note that the number of desired
 mesh partitions equals the number of Charm++ (worker) chares we want, which can
 be larger than the number of PEs (or compute nodes). The output of mesh

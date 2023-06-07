@@ -10,8 +10,7 @@
   \details   Mesh partitioning algorithm options
 */
 // *****************************************************************************
-#ifndef InciterPartitioningAlgorithmOptions_h
-#define InciterPartitioningAlgorithmOptions_h
+#pragma once
 
 #include <map>
 
@@ -25,11 +24,10 @@ namespace tk {
 namespace ctr {
 
 //! Mesh partitioning algorithm types
-enum class PartitioningAlgorithmType : uint8_t { RCB,
-                                                 RIB,
-                                                 HSFC,
-                                                 MJ,
-                                                 PHG };
+enum class PartitioningAlgorithmType : uint8_t { RCB
+                                               , RIB
+                                               , HSFC
+                                               };
 
 //! \brief Pack/Unpack PartitioningAlgorithmType: forward overload to generic
 //!   enum class packer
@@ -47,8 +45,6 @@ class PartitioningAlgorithm : public tk::Toggle< PartitioningAlgorithmType > {
     using keywords = brigand::list< kw::rcb
                                   , kw::rib
                                   , kw::hsfc
-                                  , kw::mj
-                                  , kw::phg
                                   >;
 
     //! \brief Options constructor
@@ -59,17 +55,15 @@ class PartitioningAlgorithm : public tk::Toggle< PartitioningAlgorithmType > {
         //! Group, i.e., options, name
         "Mesh partitioning algorithm",
         //! Enums -> names
-        { { PartitioningAlgorithmType::RCB, kw::rcb::name() },
-          { PartitioningAlgorithmType::RIB, kw::rib::name() },
-          { PartitioningAlgorithmType::HSFC, kw::hsfc::name() },
-          { PartitioningAlgorithmType::MJ, kw::mj::name() },
-          { PartitioningAlgorithmType::PHG, kw::phg::name() } },
+        { { PartitioningAlgorithmType::RCB, kw::rcb::name() }
+        , { PartitioningAlgorithmType::RIB, kw::rib::name() }
+        , { PartitioningAlgorithmType::HSFC, kw::hsfc::name() }
+        },
         //! keywords -> Enums
-        { { kw::rcb::string(), PartitioningAlgorithmType::RCB },
-          { kw::rib::string(), PartitioningAlgorithmType::RIB },
-          { kw::hsfc::string(), PartitioningAlgorithmType::HSFC },
-          { kw::mj::string(), PartitioningAlgorithmType::MJ },
-          { kw::phg::string(), PartitioningAlgorithmType::PHG } } ) {}
+        { { kw::rcb::string(), PartitioningAlgorithmType::RCB }
+        , { kw::rib::string(), PartitioningAlgorithmType::RIB }
+        , { kw::hsfc::string(), PartitioningAlgorithmType::HSFC }
+        } ) {}
 
     //! \brief Return parameter based on Enum
     //! \details Here 'parameter' is the library-specific identifier of the
@@ -85,31 +79,14 @@ class PartitioningAlgorithm : public tk::Toggle< PartitioningAlgorithmType > {
       return it->second;
     }
 
-    // Return true if partitioning algorithm is geometric
-    //! \param[in] m Enum value of the option requested
-    //! \return True if partitioning algorithm is geometric, false if it is not
-    bool geometric( PartitioningAlgorithmType m ) const {
-      if ( m == PartitioningAlgorithmType::RCB ||
-           m == PartitioningAlgorithmType::RIB ||
-           m == PartitioningAlgorithmType::HSFC ||
-           m == PartitioningAlgorithmType::MJ )
-        return true;
-      else
-       return false;
-    }
-
   private:
     //! Enums -> Zoltan partitioning algorithm parameters
     std::map< PartitioningAlgorithmType, ParamType > method {
       { PartitioningAlgorithmType::RCB, "rcb" },
       { PartitioningAlgorithmType::RIB, "rib" },
       { PartitioningAlgorithmType::HSFC, "hsfc" },
-      { PartitioningAlgorithmType::MJ, "multijagged" },
-      { PartitioningAlgorithmType::PHG, "phg" }
     };
 };
 
 } // ctr::
 } // tk::
-
-#endif // InciterPartitioningAlgorithmOptions_h

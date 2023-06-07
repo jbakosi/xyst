@@ -11,7 +11,7 @@ inciter
   cfl 0.8
 
   partitioning
-   algorithm mj
+   algorithm rcb
   end
 
   problem vortical_flow

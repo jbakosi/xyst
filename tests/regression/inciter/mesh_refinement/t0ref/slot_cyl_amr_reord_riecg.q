@@ -11,7 +11,7 @@ inciter
   ttyi  1     # TTY output interval
 
   partitioning
-    algorithm mj
+    algorithm rcb
   end
 
   pelocal_reorder true

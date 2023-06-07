@@ -147,7 +147,7 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       Physics
                       Statistics
                       ${SEACASExodus_LIBRARIES}
-                      ${Zoltan2_LIBRARIES}
+                      ${ZOLTAN_LIBRARIES}
 )
 
 # Add custom dependencies for Inciter's main Charm++ module

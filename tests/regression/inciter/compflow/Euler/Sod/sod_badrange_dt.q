@@ -11,7 +11,7 @@ inciter
   cfl 0.1
 
   partitioning
-    algorithm mj
+    algorithm rcb
   end
 
   problem sod

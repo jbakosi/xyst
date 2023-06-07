@@ -22,6 +22,7 @@
 #include "UnsMesh.hpp"
 #include "ContainerUtil.hpp"
 #include "Callback.hpp"
+#include "ZoltanInterOp.hpp"
 
 namespace inciter {
 
@@ -150,7 +151,7 @@ Partitioner::partition( int nchare )
                                   "number of compute nodes" );
 
   // Generate element IDs for Zoltan
-  std::vector< long > gelemid( m_ginpoel.size()/4 );
+  std::vector< unsigned int > gelemid( m_ginpoel.size()/4 );
   std::iota( begin(gelemid), end(gelemid), 0 );
 
   m_nchare = nchare;

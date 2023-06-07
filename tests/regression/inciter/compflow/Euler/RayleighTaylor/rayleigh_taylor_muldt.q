@@ -12,7 +12,7 @@ inciter
   dt 0.01
 
   partitioning
-    algorithm mj
+    algorithm rcb
   end
 
   problem rayleigh_taylor

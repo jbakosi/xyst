@@ -55,7 +55,6 @@ ExternalProject_Add(
              -D TPL_ENABLE_MPI:BOOL=ON
              -D BUILD_SHARED_LIBS:BOOL=ON
              -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF
-             -D Trilinos_ENABLE_Zoltan2:BOOL=ON
              -D Trilinos_ENABLE_SEACASExodus:BOOL=ON
              -D Trilinos_ENABLE_SEACASExodiff:BOOL=ON
              -D Trilinos_ENABLE_Fortran=OFF
@@ -71,6 +70,20 @@ ExternalProject_Add(
              -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
   LOG_DOWNLOAD 1
   LOG_PATCH 1
+  LOG_CONFIGURE 1
+  LOG_BUILD 1
+  LOG_INSTALL 1
+)
+
+ExternalProject_Add(
+  zoltan
+  PREFIX zoltan
+  GIT_REPOSITORY https://github.com/sandialabs/Zoltan.git
+  GIT_TAG v3.901
+  CONFIGURE_COMMAND ${PROJECT_BINARY_DIR}/zoltan/src/zoltan/configure
+                    CC=${MPI_C_COMPILER}
+                    --prefix=${CMAKE_INSTALL_PREFIX}
+  LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
   LOG_INSTALL 1

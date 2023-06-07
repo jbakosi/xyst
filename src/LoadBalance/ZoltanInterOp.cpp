@@ -7,7 +7,7 @@
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
   \brief     Interoperation with the Zoltan library
-  \details   Interoperation with the Zoltan library, used for static mesh graph
+  \details   Interoperation with the Zoltan library, used for static mesh
     partitioning.
 */
 // *****************************************************************************
@@ -15,145 +15,153 @@
 #include <stddef.h>
 #include <string>
 
-#include "NoWarning/Zoltan2_PartitioningProblem.hpp"
+#include "NoWarning/zoltan.h"
 
 #include "ZoltanInterOp.hpp"
 
 namespace tk {
 namespace zoltan {
 
-//! GeometricMeshElemAdapter : Zoltan2::MeshAdapter
-//! \details GeometricMeshElemAdapter specializes those virtual member functions
-//!   of Zoltan2::MeshAdapter that are required for mesh-element-based
-//!   geometric partitioning with Zoltan2
-template< typename ZoltanTypes >
-class GeometricMeshElemAdapter : public Zoltan2::MeshAdapter< ZoltanTypes > {
+typedef struct {
+  int numMyPoints;
+  ZOLTAN_ID_PTR myGlobalIDs;
+  tk::real* x;
+  tk::real* y;
+  tk::real* z;
+} MESH_DATA;
 
-  private:
-    using MeshEntityType = Zoltan2::MeshEntityType;
-    using EntityTopologyType = Zoltan2::EntityTopologyType;
+static int
+get_number_of_objects( void *data, int *ierr ) {
+  MESH_DATA* mesh = static_cast< MESH_DATA * >( data );
+  *ierr = ZOLTAN_OK;
+  return mesh->numMyPoints;
+}
 
-  public:
-    using gno_t = typename Zoltan2::InputTraits< ZoltanTypes >::gno_t;
-    using scalar_t = typename Zoltan2::InputTraits< ZoltanTypes >::scalar_t;
-    using base_adapter_t = Zoltan2::MeshAdapter< ZoltanTypes >;
+static void
+get_object_list( void *data, int /* sizeGID */, int /* sizeLID */,
+                 ZOLTAN_ID_PTR globalID, ZOLTAN_ID_PTR localID,
+                 int /* wgt_dim */, float* /*obj_wgts */, int *ierr )
+{
+  MESH_DATA* mesh = static_cast< MESH_DATA * >( data );
+  *ierr = ZOLTAN_OK;
+  for (int i=0; i<mesh->numMyPoints; ++i){
+    globalID[i] = mesh->myGlobalIDs[i];
+    localID[i] = static_cast< ZOLTAN_ID_TYPE >( i );
+  }
+}
 
-    //! Constructor
-    //! \param[in] nelem Number of elements in mesh graph on this rank
-    //! \param[in] centroid Mesh element coordinates (centroids)
-    //! \param[in] elemid Mesh element global IDs
-    GeometricMeshElemAdapter(
-      std::size_t nelem,
-      const std::array< std::vector< tk::real >, 3 >& centroid,
-      const std::vector< long >& elemid )
-    : m_nelem( nelem ),
-      m_topology( EntityTopologyType::TETRAHEDRON ),
-      m_centroid( centroid ),
-      m_elemid( elemid )
-    {}
+static int
+get_num_geometry( void* /*data */, int *ierr ) {
+  *ierr = ZOLTAN_OK;
+  return 3;
+}
 
-    //! Returns the number of mesh entities on this rank
-    //! \return Number of mesh elements on this rank
-    // cppcheck-suppress unusedFunction
-    std::size_t getLocalNumOf( MeshEntityType ) const override
-    { return m_nelem; }
-
-    //! Provide a pointer to this rank's identifiers
-    //! \param[in,out] Ids Pointer to the list of global element Ids on this
-    //!   rank
-    // cppcheck-suppress unusedFunction
-    void getIDsViewOf( MeshEntityType, const gno_t*& Ids) const override
-    { Ids = m_elemid.data(); }
-
-    //! Return dimensionality of the mesh
-    //! \return Number of mesh dimension
-    // cppcheck-suppress unusedFunction
-    int getDimension() const override { return 3; }
-
-    //! Provide a pointer to one dimension of mesh element coordinates
-    //! \param[in] coords Pointer to a list of coordinate values for the
-    //!   dimension
-    //! \param[in,out] stride Describes the layout of the coordinate values in
-    //!   the coords list. If stride is one, then the ith coordinate value is
-    //!   coords[i], but if stride is two, then the ith coordinate value is
-    //!   coords[2*i]
-    //! \param dim Value from 0 to one less than getEntityCoordinateDimension()
-    //!   specifying which dimension is being provided in the coords list
-    // cppcheck-suppress unusedFunction
-    void getCoordinatesViewOf( MeshEntityType,
-                               const scalar_t*& coords,
-                               int &stride,
-                               int dim ) const override
-    {
-      coords = m_centroid[ static_cast<std::size_t>(dim) ].data();
-      stride = 1;
-    }
-
-  private:
-    //! Number of elements on this rank
-    const std::size_t m_nelem;
-    //! Mesh element topology types
-    const EntityTopologyType m_topology;
-    //! Mesh element coordinates (centroids)
-    const std::array< std::vector< tk::real >, 3 >& m_centroid;
-    //! Global mesh element ids
-    const std::vector< long >& m_elemid;
-};
+static void
+get_geometry_list( void *data, int sizeGID, int sizeLID,
+                   int num_obj, ZOLTAN_ID_PTR /* globalID */,
+                   ZOLTAN_ID_PTR /* localID */,
+                   int num_dim, double *geom_vec, int *ierr )
+{
+  MESH_DATA *mesh = static_cast< MESH_DATA * >( data );
+  if ( (sizeGID != 1) || (sizeLID != 1) || (num_dim != 3)){
+    *ierr = ZOLTAN_FATAL;
+    return;
+  }
+  *ierr = ZOLTAN_OK;
+  for (int i=0; i<num_obj; ++i) {
+    geom_vec[3*i+0] = static_cast< tk::real >( mesh->x[i] );
+    geom_vec[3*i+1] = static_cast< tk::real >( mesh->y[i] );
+    geom_vec[3*i+2] = static_cast< tk::real >( mesh->z[i] );
+  }
+}
 
 std::vector< std::size_t >
 geomPartMesh( tk::ctr::PartitioningAlgorithmType algorithm,
               const std::array< std::vector< tk::real >, 3 >& centroid,
-              const std::vector< long >& elemid,
+              const std::vector< unsigned int >& elemid,
               int npart )
 // *****************************************************************************
-//  Partition mesh using Zoltan2 with a geometric partitioner, such as RCB, RIB
+//  Partition mesh using Zoltan with a geometric partitioner, such as RCB, RIB
 //! \param[in] algorithm Partitioning algorithm type
 //! \param[in] centroid Mesh element coordinates
 //! \param[in] elemid Global mesh element ids
-//! \param[in] npart Number of desired graph partitions
-//! \return Array of chare ownership IDs mapping graph points to concurrent
-//!   async chares
-//! \details This function uses Zoltan to partition the mesh graph in parallel.
-//!   It assumes that the mesh graph is distributed among all the MPI ranks.
+//! \param[in] npart Number of desired partitions
+//! \return Array of chare ownership IDs mapping elements to chares
+//! \details This function uses Zoltan to partition the mesh in parallel.
+//!   It assumes that the mesh is distributed among all the MPI ranks.
 // *****************************************************************************
 {
-  // Set Zoltan parameters
-  Teuchos::ParameterList params( "Zoltan parameters" );
-  params.set( "algorithm", tk::ctr::PartitioningAlgorithm().param(algorithm) );
-  params.set( "num_global_parts", std::to_string(npart) );
-  params.set( "objects_to_partition", "mesh_elements" );
+  float ver;
+  struct Zoltan_Struct *zz;
+  int changes, numGidEntries, numLidEntries, numImport, numExport;
+  ZOLTAN_ID_PTR importGlobalGids, importLocalGids, exportGlobalGids,
+                exportLocalGids;
+  int *importProcs, *importToPart, *exportProcs, *exportToPart;
+  MESH_DATA myMesh;
+  myMesh.numMyPoints = static_cast< int >( elemid.size() );
+  myMesh.myGlobalIDs = const_cast< unsigned int* >( elemid.data() );
+  myMesh.x = const_cast< tk::real* >( centroid[0].data() );
+  myMesh.y = const_cast< tk::real* >( centroid[1].data() );
+  myMesh.z = const_cast< tk::real* >( centroid[2].data() );
 
-  // Define types for Zoltan2
-  //  * 1st argument, 'scalar': the data type for element values, weights and
-  //    coordinates
-  //  * 2nd argument, 'lno' (local number): the integral data type used by
-  //    the application and by Zoltan2 for local indices and local
-  //    counts
-  //  * 3rd argument 'gno' (global number): is the integral data type used by
-  //    the application and Zoltan2 to represent global
-  //    identifiers and global counts
-  // See also
-  // external/src/trilinos/packages/zoltan2/src/input/Zoltan2_InputTraits.hpp
-  using ZoltanTypes = Zoltan2::BasicUserTypes< tk::real, long, long >;
+  Zoltan_Initialize( 0, nullptr, &ver );
 
-  // Create mesh adapter for Zoltan for mesh element partitioning
-  using InciterZoltanAdapter = GeometricMeshElemAdapter< ZoltanTypes >;
-  InciterZoltanAdapter adapter( elemid.size(), centroid, elemid );
+  zz = Zoltan_Create( MPI_COMM_WORLD );
 
-  // Create Zoltan2 partitioning problem using our mesh input adapter
-  Zoltan2::PartitioningProblem< InciterZoltanAdapter >
-    partitioner( &adapter, &params );
+  Zoltan_Set_Param( zz, "DEBUG_LEVEL", "0" );
+  Zoltan_Set_Param( zz, "LB_METHOD",
+                    tk::ctr::PartitioningAlgorithm().param(algorithm).c_str() );
+  Zoltan_Set_Param( zz, "LB_APPROACH", "PARTITION" );
+  Zoltan_Set_Param( zz, "NUM_GID_ENTRIES", "1" );
+  Zoltan_Set_Param( zz, "NUM_LID_ENTRIES", "1" );
+  Zoltan_Set_Param( zz, "OBJ_WEIGHT_DIM", "0" );
+  Zoltan_Set_Param( zz, "RETURN_LISTS", "PART" );
+  Zoltan_Set_Param( zz, "RCB_OUTPUT_LEVEL", "0" );
+  Zoltan_Set_Param( zz, "AVERAGE_CUTS", "1" );
+  Zoltan_Set_Param( zz, "NUM_GLOBAL_PARTS", std::to_string(npart).c_str() );
 
-  // Perform partitioning using Zoltan
-  partitioner.solve();
+  /* Query functions, to provide geometry to Zoltan */
 
-  // Copy over array of chare IDs corresponding to the ownership of elements
-  // in our chunk of the mesh graph, i.e., the coloring or chare ids for the
-  // mesh elements we operated on
-  auto partlist = partitioner.getSolution().getPartListView();
+  Zoltan_Set_Num_Obj_Fn( zz, get_number_of_objects, &myMesh );
+  Zoltan_Set_Obj_List_Fn( zz, get_object_list, &myMesh );
+  Zoltan_Set_Num_Geom_Fn( zz, get_num_geometry, &myMesh );
+  Zoltan_Set_Geom_Multi_Fn( zz, get_geometry_list, &myMesh );
+
+  Zoltan_LB_Partition(zz, /* input (all remaining fields are output) */
+        &changes,        /* 1 if partitioning was changed, 0 otherwise */
+        &numGidEntries,  /* Number of integers used for a global ID */
+        &numLidEntries,  /* Number of integers used for a local ID */
+        &numImport,      /* Number of vertices to be sent to me */
+        &importGlobalGids,  /* Global IDs of vertices to be sent to me */
+        &importLocalGids,   /* Local IDs of vertices to be sent to me */
+        &importProcs,    /* Process rank for source of each incoming vertex */
+        &importToPart,   /* New partition for each incoming vertex */
+        &numExport,      /* Number of vertices I must send to other processes*/
+        &exportGlobalGids,  /* Global IDs of the vertices I must send */
+        &exportLocalGids,   /* Local IDs of the vertices I must send */
+        &exportProcs,    /* Process to which I send each of the vertices */
+        &exportToPart);  /* Partition to which each vertex will belong */
+
+  Assert( numExport == static_cast< int >( elemid.size() ), "Size mismatch" );
+
+  // Copy over array of chare IDs corresponding to the ownership of elements in
+  // our chunk of the mesh, i.e., the coloring or chare ids for the mesh
+  // elements we operate on.
   std::vector< std::size_t > chare( elemid.size() );
-  for (std::size_t p=0; p<elemid.size(); ++p )
-    chare[p] = static_cast< std::size_t >( partlist[p] );
+  for (std::size_t p=0; p<static_cast<std::size_t>(numExport); ++p )
+    chare[ exportLocalGids[p] ] = static_cast< std::size_t >( exportToPart[p] );
+
+  /******************************************************************
+  ** Free the arrays allocated by Zoltan_LB_Partition, and free
+  ** the storage allocated for the Zoltan structure.
+  ******************************************************************/
+
+  Zoltan_LB_Free_Part( &importGlobalGids, &importLocalGids,
+                       &importProcs, &importToPart );
+  Zoltan_LB_Free_Part( &exportGlobalGids, &exportLocalGids,
+                       &exportProcs, &exportToPart );
+
+  Zoltan_Destroy(&zz);
 
   return chare;
 }

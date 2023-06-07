@@ -19,7 +19,6 @@
 #include <stddef.h>
 
 #include "ContainerUtil.hpp"
-#include "ZoltanInterOp.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
 #include "Options/PartitioningAlgorithm.hpp"
 #include "DerivedData.hpp"

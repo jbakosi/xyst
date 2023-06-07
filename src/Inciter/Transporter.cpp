@@ -265,10 +265,10 @@ Transporter::createPartitioner()
   // Start timer measuring preparation of mesh(es) for partitioning
   m_timer[ TimerTag::MESH_READ ];
 
-  // Start preparing mesh(es)
-  print.diag( "Reading mesh(es)" );
-
   ErrChk( !m_input.empty(), "No input mesh" );
+
+  // Start preparing mesh(es)
+  print.diag( "Reading mesh" + std::string(m_input.size()>1?"es":"") );
 
   // Read boundary (side set) data from a list of input mesh files
   std::size_t meshid = 0;

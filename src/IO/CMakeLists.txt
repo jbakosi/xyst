@@ -14,7 +14,6 @@ target_include_directories(IO PUBLIC
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_PATH}
                            ${BRIGAND_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Main)
 
@@ -53,7 +52,6 @@ target_include_directories(NativeMeshIO PUBLIC
                            ${PEGTL_INCLUDE_DIRS}
                            ${HIGHWAYHASH_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_PATH}
                            ${PROJECT_BINARY_DIR}/../Main)
 
 set_target_properties(NativeMeshIO PROPERTIES LIBRARY_OUTPUT_NAME
@@ -76,8 +74,7 @@ target_include_directories(ExodusIIMeshIO PUBLIC
                            ${SEACASExodus_INCLUDE_DIRS}
                            ${NETCDF_INCLUDES}
                            ${HIGHWAYHASH_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_PATH})
+                           ${MPI_CXX_INCLUDE_DIRS})
 
 set_target_properties(ExodusIIMeshIO PROPERTIES LIBRARY_OUTPUT_NAME
                       xyst_exodusiimeshio)

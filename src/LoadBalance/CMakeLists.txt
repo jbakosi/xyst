@@ -13,7 +13,6 @@ target_include_directories(ZoltanInterOp PUBLIC
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_PATH}
                            ${ZOLTAN_INCLUDE_DIRS}
                            ${BRIGAND_INCLUDE_DIRS})
 

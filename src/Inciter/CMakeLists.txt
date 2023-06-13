@@ -32,6 +32,7 @@ target_include_directories(Inciter PUBLIC
                            ${CHARM_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${HIGHWAYHASH_INCLUDE_DIRS}
+                           ${MPI_CXX_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Inciter
                            ${PROJECT_BINARY_DIR}/../Base
                            ${PROJECT_BINARY_DIR}/../IO

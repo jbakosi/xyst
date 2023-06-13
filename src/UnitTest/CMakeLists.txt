@@ -26,7 +26,6 @@ target_include_directories(UnitTest PUBLIC
                            ${CHARM_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_PATH}
                            ${PROJECT_BINARY_DIR}/../Base
                            ${PROJECT_BINARY_DIR}/../Main
                            ${PROJECT_BINARY_DIR}/../IO

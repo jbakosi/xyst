@@ -20,9 +20,7 @@ target_include_directories(Base PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_BINARY_DIR}/../Main
                            ${CHARM_INCLUDE_DIRS}
-                           ${BRIGAND_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_DIRS}
-                           ${PSTREAMS_INCLUDE_DIRS})
+                           ${MPI_CXX_INCLUDE_DIRS})
 
 addCharmModule( "charestatecollector" "Base" )
 

@@ -48,9 +48,7 @@ target_include_directories(NativeMeshIO PUBLIC
                            ${NETCDF_INCLUDES}
                            ${TPL_INCLUDE_DIR}
                            ${CHARM_INCLUDE_DIRS}
-                           ${BRIGAND_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
-                           ${HIGHWAYHASH_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Main)
 
@@ -73,7 +71,6 @@ target_include_directories(ExodusIIMeshIO PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${SEACASExodus_INCLUDE_DIRS}
                            ${NETCDF_INCLUDES}
-                           ${HIGHWAYHASH_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS})
 
 set_target_properties(ExodusIIMeshIO PROPERTIES LIBRARY_OUTPUT_NAME
@@ -114,8 +111,6 @@ target_include_directories(MeshWriter PUBLIC
                            ${SEACASExodus_INCLUDE_DIRS}
                            ${NETCDF_INCLUDES}
                            ${PEGTL_INCLUDE_DIRS}
-                           ${CHARM_INCLUDE_DIRS}
-                           ${HIGHWAYHASH_INCLUDE_DIRS}
                            ${BRIGAND_INCLUDE_DIRS})
 
 set_target_properties(MeshWriter PROPERTIES LIBRARY_OUTPUT_NAME

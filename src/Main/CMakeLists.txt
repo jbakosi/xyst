@@ -34,11 +34,10 @@ target_include_directories(Init PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Control
+                           ${PROJECT_BINARY_DIR}/../Main
                            ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
-                           ${CHARM_INCLUDE_DIRS}
-                           ${BRIGAND_INCLUDE_DIRS}
-                           ${PROJECT_BINARY_DIR}/../Main)
+                           ${CHARM_INCLUDE_DIRS})
 
 add_dependencies( "Init" "charestatecollectorCharmModule" )
 
@@ -90,8 +89,6 @@ target_include_directories(${UNITTEST_EXECUTABLE} PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
                            ${PROJECT_SOURCE_DIR}/../UnitTest
                            ${PROJECT_SOURCE_DIR}/../IO
-                           ${TUT_INCLUDE_DIRS}
-                           ${RANDOM123_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../UnitTest
                            ${PROJECT_BINARY_DIR}/../IO)
 

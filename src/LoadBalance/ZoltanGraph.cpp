@@ -180,7 +180,6 @@ std::vector< std::size_t >
 graphPartMesh( const std::vector< std::size_t >& ginpoel, int npart )
 // *****************************************************************************
 //  Partition mesh using Zoltan with a geometric partitioner
-//! \param[in] alg Partitioning algorithm type
 //! \param[in] ginpoel Mesh connectivity with global ids
 //! \param[in] npart Number of desired partitions
 //! \return Array of chare ownership IDs mapping elements to chares

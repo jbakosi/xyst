@@ -28,10 +28,8 @@ target_include_directories(Inciter PUBLIC
                            ${Boost_INCLUDE_DIRS}
                            ${SEACASExodus_INCLUDE_DIRS}
                            ${NETCDF_INCLUDES}
-                           ${BRIGAND_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
-                           ${HIGHWAYHASH_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Inciter
                            ${PROJECT_BINARY_DIR}/../Base
@@ -54,9 +52,7 @@ target_include_directories(MeshRefinement PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
-                           ${HIGHWAYHASH_INCLUDE_DIRS}
                            ${TPL_INCLUDE_DIR}
-                           ${BRIGAND_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Main)
 
 addCharmModule( "transporter" "Inciter" )

@@ -6,7 +6,7 @@
 #            2019-2021 Triad National Security, LLC.
 #            2022-2023 J. Bakosi
 #            All rights reserved. See the LICENSE file for details.
-# \brief     Find m.css
+# \brief     Find m.css and everything that's need to build the documentation
 #
 ################################################################################
 
@@ -17,7 +17,6 @@
 #
 #  Usage:
 #
-#  set(MCSS_ROOT "/path/to/custom/mcss") # prefer over system
 #  find_package(MCSS)
 
 if(MCSS_DOX2HTML5 AND PYTHONINTERP_FOUND AND PYGMENTS_FOUND AND JINJA2_FOUND AND LATEX_FOUND)
@@ -50,11 +49,11 @@ if (PYTHONINTERP_FOUND)
 
 endif()
 
+find_package(Doxygen 1.8.15 QUIET)
 find_package(LATEX QUIET)
 
 FIND_PROGRAM(MCSS_DOX2HTML5 NAMES dox2html5.py
-                            PATHS ${MCSS_ROOT} $ENV{MCSS_ROOT}
-                            PATH_SUFFIXES m.css/doxygen)
+                            PATHS ${CMAKE_SOURCE_DIR}/../doc/mcss/doxygen)
 
 # Handle the QUIETLY and REQUIRED arguments and set MCSS_FOUND to TRUE if
 # all listed variables are TRUE.

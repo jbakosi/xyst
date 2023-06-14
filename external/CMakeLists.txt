@@ -62,8 +62,6 @@ ExternalProject_Add(
              -D TPL_ENABLE_Netcdf:BOOL=ON
              -D Netcdf_LIBRARY_DIRS:PATH=${NETCDF_LIBRARY_DIRS}
              -D TPL_Netcdf_INCLUDE_DIRS:PATH=${NETCDF_INCLUDES}
-             -D BLAS_LIBRARY_DIRS:PATH=$ENV{BLAS_LIBRARY_DIRS}
-             -D LAPACK_LIBRARY_DIRS:PATH=$ENV{LAPACK_LIBRARY_DIRS}
              -D CMAKE_INSTALL_RPATH:PATH=${CMAKE_INSTALL_PREFIX}/lib
              -D CMAKE_C_COMPILER:PATH=${MPI_C_COMPILER}
              -D CMAKE_CXX_COMPILER:PATH=${MPI_CXX_COMPILER}
@@ -110,19 +108,6 @@ ExternalProject_Add(
 )
 
 ExternalProject_Add(
-  tut
-  PREFIX tut
-  GIT_REPOSITORY https://github.com/mrzechonek/tut-framework
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory
-                  ${PROJECT_BINARY_DIR}/tut/src/tut/include/tut
-                  ${CMAKE_INSTALL_PREFIX}/include/tut
-  LOG_DOWNLOAD 1
-  LOG_INSTALL 1
-)
-
-ExternalProject_Add(
   numdiff
   PREFIX numdiff
   GIT_REPOSITORY https://codeberg.org/xyst/ndiff
@@ -132,58 +117,5 @@ ExternalProject_Add(
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
-  LOG_INSTALL 1
-)
-
-ExternalProject_Add(
-  highwayhash
-  PREFIX highwayhash
-  GIT_REPOSITORY https://github.com/google/highwayhash
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory
-                  ${PROJECT_BINARY_DIR}/highwayhash/src/highwayhash/highwayhash
-                  ${CMAKE_INSTALL_PREFIX}/include/highwayhash
-  LOG_DOWNLOAD 1
-  LOG_INSTALL 1
-)
-
-ExternalProject_Add(
-  brigand 
-  PREFIX brigand
-  GIT_REPOSITORY https://github.com/edouarda/brigand
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory
-                  ${PROJECT_BINARY_DIR}/brigand/src/brigand/include/brigand
-                  ${CMAKE_INSTALL_PREFIX}/include/brigand
-  LOG_DOWNLOAD 1
-  LOG_INSTALL 1
-)
-
-ExternalProject_Add(
-  testu01 
-  PREFIX testu01
-  GIT_REPOSITORY https://codeberg.org/xyst/TestU01-threadsafe
-  CMAKE_ARGS -D CMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
-             -D CMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
-             -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}/testu01
-  LOG_DOWNLOAD 1
-  LOG_CONFIGURE 1
-  LOG_BUILD 1
-  LOG_INSTALL 1
-)
-
-ExternalProject_Add(
-  mcss
-  PREFIX mcss
-  GIT_REPOSITORY https://github.com/mosra/m.css
-  GIT_TAG 91ff035
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory
-                  ${PROJECT_BINARY_DIR}/mcss/src/mcss
-                  ${CMAKE_INSTALL_PREFIX}/m.css
-  LOG_DOWNLOAD 1
   LOG_INSTALL 1
 )

@@ -18,8 +18,7 @@
     is a tagged tuple containing a hierarchy of various containers. As an
     example on how tagged tuples are used for parsing an input file, see
     Control/Walker/InputDeck/InputDeck.h. Another way to use a tagged tuple is a
-    compile-time associated container between tags and an arbitrary type. As an
-    example, see rngtest::TestU01Stack::runner.
+    compile-time associated container between tags and an arbitrary type.
 */
 // *****************************************************************************
 #ifndef TaggedTuple_h

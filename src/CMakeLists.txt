@@ -168,12 +168,8 @@ set(CMAKE_PREFIX_PATH ${TPL_DIR} ${CMAKE_PREFIX_PATH})
 
 find_package(Charm REQUIRED)
 find_package(Boost REQUIRED)
-find_package(TUT REQUIRED)
 find_package(PEGTL 2.0.0 REQUIRED)
 find_package(NumDiff REQUIRED)
-find_package(HighwayHash REQUIRED)
-find_package(Brigand REQUIRED)
-find_package(TUT REQUIRED)
 
 set(HDF5_PREFER_PARALLEL true)
 if(NOT BUILD_SHARED_LIBS)
@@ -303,7 +299,6 @@ add_subdirectory(${REGRESSION_DIR}
                  ${CMAKE_BINARY_DIR}/tests)
 
 # Configure building documentation and web page
-find_package(Doxygen 1.8.15 QUIET)
 find_package(MCSS QUIET)
 if (DOXYGEN_FOUND AND MCSS_FOUND AND PYTHONINTERP_FOUND AND PYGMENTS_FOUND AND
     JINJA2_FOUND AND LATEX_FOUND)

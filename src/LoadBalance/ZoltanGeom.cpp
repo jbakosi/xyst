@@ -119,7 +119,7 @@ geomPartMesh( tk::ctr::PartitioningAlgorithmType alg,
               int npart )
 // *****************************************************************************
 //  Partition mesh using Zoltan with a geometric partitioner
-//! \param[in] nelem Number of elements in this mesh partition
+//! \param[in] alg Partitioning algorithm to use
 //! \param[in] inpoel Mesh connectivity with local ids
 //! \param[in] coord Node coordinates
 //! \param[in] npart Number of desired partitions

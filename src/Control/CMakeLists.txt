@@ -21,9 +21,6 @@ target_include_directories(InciterControl PUBLIC
                            ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
-                           ${BRIGAND_INCLUDE_DIRS}
-                           ${LUA_INCLUDE_DIR}
-                           ${SOL2_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Main)
 
 set_target_properties(InciterControl PROPERTIES
@@ -49,8 +46,7 @@ target_include_directories(UnitTestControl PUBLIC
                            ${PROJECT_BINARY_DIR}/../Main
                            ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
-                           ${CHARM_INCLUDE_DIRS}
-                           ${BRIGAND_INCLUDE_DIRS})
+                           ${CHARM_INCLUDE_DIRS})
 
 set_target_properties(UnitTestControl PROPERTIES
                       LIBRARY_OUTPUT_NAME xyst_unittestcontrol)
@@ -75,8 +71,7 @@ target_include_directories(MeshConvControl PUBLIC
                            ${PROJECT_BINARY_DIR}/../Main
                            ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
-                           ${CHARM_INCLUDE_DIRS}
-                           ${BRIGAND_INCLUDE_DIRS})
+                           ${CHARM_INCLUDE_DIRS})
 
 set_target_properties(MeshConvControl PROPERTIES
                       LIBRARY_OUTPUT_NAME xyst_meshconvcontrol)

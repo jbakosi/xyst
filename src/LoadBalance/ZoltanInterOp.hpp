@@ -15,17 +15,26 @@
 
 #include "Options/PartitioningAlgorithm.hpp"
 
-namespace tk {
-
 //! Interoperation with the Zoltan library, used for static mesh partitioning
 namespace zoltan {
 
-//! Partition mesh using Zoltan with a geometric partitioner, such as RCB, RIB
+//! Partition mesh using Zoltan with a geometric partitioner
 std::vector< std::size_t >
-geomPartMesh( tk::ctr::PartitioningAlgorithmType algorithm,
-              const std::array< std::vector< tk::real >, 3 >& elemcoord,
-              const std::vector< unsigned int >& elemid,
+geomPartMesh( tk::ctr::PartitioningAlgorithmType alg,
+              const std::vector< std::size_t >& inpoel,
+              const std::array< std::vector< tk::real >, 3 >& coord,
               int npart );
 
+//! Partition mesh using Zoltan with a geometric partitioner
+std::vector< std::size_t >
+graphPartMesh( const std::vector< std::size_t >& ginpoel, int npart );
+
+//! Partition mesh using Zoltan with a geometric or graph partitioner
+std::vector< std::size_t >
+partMesh( tk::ctr::PartitioningAlgorithmType alg,
+          const std::vector< std::size_t >& inpoel,
+          const std::vector< std::size_t >& ginpoel,
+          const std::array< std::vector< tk::real >, 3 >& coord,
+          int npart );
+
 } // zoltan::
-} // tk::

@@ -27,6 +27,7 @@ namespace ctr {
 enum class PartitioningAlgorithmType : uint8_t { RCB
                                                , RIB
                                                , HSFC
+                                               , PHG
                                                };
 
 //! \brief Pack/Unpack PartitioningAlgorithmType: forward overload to generic
@@ -45,6 +46,7 @@ class PartitioningAlgorithm : public tk::Toggle< PartitioningAlgorithmType > {
     using keywords = brigand::list< kw::rcb
                                   , kw::rib
                                   , kw::hsfc
+                                  , kw::phg
                                   >;
 
     //! \brief Options constructor
@@ -58,11 +60,13 @@ class PartitioningAlgorithm : public tk::Toggle< PartitioningAlgorithmType > {
         { { PartitioningAlgorithmType::RCB, kw::rcb::name() }
         , { PartitioningAlgorithmType::RIB, kw::rib::name() }
         , { PartitioningAlgorithmType::HSFC, kw::hsfc::name() }
+        , { PartitioningAlgorithmType::PHG, kw::phg::name() }
         },
         //! keywords -> Enums
         { { kw::rcb::string(), PartitioningAlgorithmType::RCB }
         , { kw::rib::string(), PartitioningAlgorithmType::RIB }
         , { kw::hsfc::string(), PartitioningAlgorithmType::HSFC }
+        , { kw::phg::string(), PartitioningAlgorithmType::PHG }
         } ) {}
 
     //! \brief Return parameter based on Enum
@@ -85,6 +89,7 @@ class PartitioningAlgorithm : public tk::Toggle< PartitioningAlgorithmType > {
       { PartitioningAlgorithmType::RCB, "rcb" },
       { PartitioningAlgorithmType::RIB, "rib" },
       { PartitioningAlgorithmType::HSFC, "hsfc" },
+      { PartitioningAlgorithmType::PHG, "hypergraph" },
     };
 };
 

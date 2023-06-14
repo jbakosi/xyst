@@ -3,12 +3,15 @@ project(LoadBalance CXX)
 include(charm)
 
 add_library(ZoltanInterOp
-            ZoltanInterOp.cpp)
+            ZoltanInterOp.cpp
+            ZoltanGeom.cpp
+            ZoltanGraph.cpp)
 
 target_include_directories(ZoltanInterOp PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Control
+                           ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_BINARY_DIR}/../Main
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}

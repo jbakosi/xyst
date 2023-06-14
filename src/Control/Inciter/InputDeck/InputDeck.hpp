@@ -81,6 +81,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
                                  , kw::rcb
                                  , kw::rib
                                  , kw::hsfc
+                                 , kw::phg
                                  , kw::inciter
                                  , kw::ncomp
                                  , kw::pde_diffusivity

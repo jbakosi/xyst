@@ -150,25 +150,15 @@ Partitioner::partition( int nchare )
   Assert( nchare >= CkNumNodes(), "Number of chares must not be lower than the "
                                   "number of compute nodes" );
 
-  // Generate element IDs for Zoltan
-  std::vector< unsigned int > gelemid( m_ginpoel.size()/4 );
-  std::iota( begin(gelemid), end(gelemid), 0 );
-
   m_nchare = nchare;
-  const auto alg = g_inputdeck.get< tag::discr, tag::partitioner >();
-  const auto che = tk::zoltan::geomPartMesh( alg,
-                                             centroids( m_inpoel, m_coord ),
-                                             gelemid,
-                                             nchare );
+  const auto che =
+    zoltan::partMesh( g_inputdeck.get< tag::discr, tag::partitioner >(),
+                      m_inpoel, m_ginpoel, m_coord, nchare );
 
   if ( g_inputdeck.get< tag::cmd, tag::feedback >() ) m_host.pepartitioned();
 
   contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
               m_cbp.get< tag::partitioned >() );
-
-  Assert( che.size() == gelemid.size(), "Size of ownership array (chare ID "
-          "of elements) after mesh partitioning does not equal the number of "
-          "mesh graph elements" );
 
   // Categorize mesh elements (given by their gobal node IDs) by target chare
   // and distribute to their compute nodes based on mesh partitioning.
@@ -319,46 +309,6 @@ Partitioner::refine()
 
   std::vector< std::size_t > meshdata{ m_meshid, error };
   contribute( meshdata, CkReduction::max_ulong, m_cbp.get<tag::refinserted>() );
-}
-
-std::array< std::vector< tk::real >, 3 >
-Partitioner::centroids( const std::vector< std::size_t >& inpoel,
-                        const tk::UnsMesh::Coords& coord )
-// *****************************************************************************
-//  Compute element centroid coordinates
-//! \param[in] inpoel Mesh connectivity with local ids
-//! \param[in] coord Node coordinates
-//! \return Centroids for all cells on this compute node
-// *****************************************************************************
-{
-  Assert( tk::uniquecopy(inpoel).size() == coord[0].size(), "Size mismatch" );
-
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  // Make room for element centroid coordinates
-  std::array< std::vector< tk::real >, 3 > cent;
-  auto& cx = cent[0];
-  auto& cy = cent[1];
-  auto& cz = cent[2];
-  auto num = inpoel.size()/4;
-  cx.resize( num );
-  cy.resize( num );
-  cz.resize( num );
-
-  // Compute element centroids for mesh passed in
-  for (std::size_t e=0; e<num; ++e) {
-    auto A = inpoel[e*4+0];
-    auto B = inpoel[e*4+1];
-    auto C = inpoel[e*4+2];
-    auto D = inpoel[e*4+3];
-    cx[e] = (x[A] + x[B] + x[C] + x[D]) / 4.0;
-    cy[e] = (y[A] + y[B] + y[C] + y[D]) / 4.0;
-    cz[e] = (z[A] + z[B] + z[C] + z[D]) / 4.0;
-  }
-
-  return cent;
 }
 
 std::unordered_map< int, Partitioner::MeshData >

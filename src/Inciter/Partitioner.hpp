@@ -209,11 +209,6 @@ class Partitioner : public CBase_Partitioner {
     //! List of boundary nodes associated to side-set IDs
     std::map< int, std::vector< std::size_t > > m_bnode;
 
-    //! Compute element centroid coordinates
-    std::array< std::vector< tk::real >, 3 >
-    centroids( const std::vector< std::size_t >& inpoel,
-               const tk::UnsMesh::Coords& coord );
-
     //!  Categorize mesh elements (given by their gobal node IDs) by target
     std::unordered_map< int, MeshData >
     categorize( const std::vector< std::size_t >& che ) const;

@@ -51,7 +51,7 @@ of testing serial, synchronous (e.g., MPI) parallel, and asynchronous parallel
 Install prerequisites: _Debian/Ubuntu linux_
 
 @code
-apt-get install git autoconf cmake gfortran g++ gmsh libblas-dev liblapack-dev libopenmpi-dev libhdf5-dev libhdf5-openmpi-dev libnetcdf-mpi-dev libboost-all-dev tao-pegtl-dev
+apt-get install git autoconf cmake g++ gmsh libopenmpi-dev libhdf5-dev libhdf5-openmpi-dev libnetcdf-mpi-dev libboost-all-dev tao-pegtl-dev
 @endcode
 
 Clone, build third-party libraries, build, test

@@ -11,9 +11,9 @@ matrix:
     - BUILDTYPE: Debug
       IMAGE: "xyst-gnu"
       TPL_DIR: "/xyst/external/install/gnu"
-    - BUILDTYPE: Debug
-      IMAGE: "xyst-clang"
-      TPL_DIR: "/xyst/external/install/clang"
+    #- BUILDTYPE: Debug
+    #  IMAGE: "xyst-clang"
+    #  TPL_DIR: "/xyst/external/install/clang"
 
 pipeline:
   build:

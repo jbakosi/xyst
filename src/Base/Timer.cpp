@@ -64,7 +64,7 @@ Timer::eta( tk::real term, tk::real time, uint64_t nstep, uint64_t it,
 {
   using std::chrono::duration_cast;
 
-  Dsec elapsed, estimated;
+  Dsec elapsed, estimated{};
 
   Assert( it > 0, "it == 0" );
 

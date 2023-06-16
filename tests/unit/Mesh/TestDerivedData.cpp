@@ -120,6 +120,7 @@
 #include "DerivedData.hpp"
 #include "Reorder.hpp"
 #include "Vector.hpp"
+#include "UnsMesh.hpp"
 
 #ifndef DOXYGEN_GENERATING_OUTPUT
 
@@ -3295,6 +3296,168 @@ void DerivedData_object::test< 75 >() {
     // exception thrown in DEBUG mode, test ok
   }
   #endif
+}
+
+//! Attempt to vector groups for edges with empty edge-point connectivity
+template<> template<>
+void DerivedData_object::test< 76 >() {
+  set_test_name( "genEdpas throws with empty inpoed" );
+
+  #ifdef NDEBUG        // exception only thrown in DEBUG mode
+    skip( "in RELEASE mode, would yield segmentation fault" );
+  #else
+  try {
+    std::vector< std::size_t > empty;
+    tk::genEdpas( 8, 4, empty );
+    fail( "should throw exception in DEBUG mode" );
+  }
+  catch ( tk::Exception& ) {
+    // exception thrown in DEBUG mode, test ok
+  }
+  #endif
+}
+
+//! Test genEdpas if it throws on non-positive number of nodes
+template<> template<>
+void DerivedData_object::test< 77 >() {
+  set_test_name( "genEdpas throws on non-positive npoin" );
+
+  #ifdef NDEBUG        // exception only thrown in DEBUG mode
+    skip( "in RELEASE mode, would yield floating point exception" );
+  #else
+  try {
+    std::vector< std::size_t > inpoed{ 0, 1, 2, 3 };
+    tk::genEdpas( 8, 0, inpoed );
+    fail( "should throw exception in DEBUG mode" );
+  }
+  catch ( tk::Exception& ) {
+    // exception thrown in DEBUG mode, test ok
+  }
+  #endif
+}
+
+//! Test genEdpas if it throws on non-positive max vector length
+template<> template<>
+void DerivedData_object::test< 78 >() {
+  set_test_name( "genEdpas throws on non-positive mvecl" );
+
+  #ifdef NDEBUG        // exception only thrown in DEBUG mode
+    skip( "in RELEASE mode, would yield floating point exception" );
+  #else
+  try {
+    std::vector< std::size_t > inpoed{ 0, 1, 2, 3 };
+    tk::genEdpas( -1, 4, inpoed );
+    fail( "should throw exception in DEBUG mode" );
+  }
+  catch ( tk::Exception& ) {
+    // exception thrown in DEBUG mode, test ok
+  }
+  #endif
+}
+
+//! Test genEdpas if it throws on inpoed non-divisible by 2
+template<> template<>
+void DerivedData_object::test< 79 >() {
+  set_test_name( "genEdpas throws on inpoed non-div 2" );
+
+  #ifdef NDEBUG        // exception only thrown in DEBUG mode
+    skip( "in RELEASE mode, would yield invalid read" );
+  #else
+  try {
+    // Partial mesh mesh connectivity
+    std::vector< std::size_t > inpoed{ 12, 14,  9 };
+    tk::genEdpas( 8, 7, inpoed );
+    fail( "should throw exception in DEBUG mode" );
+  }
+  catch ( tk::Exception& ) {
+    // exception thrown in DEBUG mode, test ok
+  }
+  #endif
+}
+
+//! Generate and test vector groups of edges for simple tetrahedron mesh
+template<> template<>
+void DerivedData_object::test< 80 >() {
+  set_test_name( "genEdpas for tetrahedra" );
+
+  // mesh connectivity for simple tetrahedron-only mesh
+  std::vector< std::size_t > inpoel { 12, 14,  9, 11,
+                                      10, 14, 13, 12,
+                                      14, 13, 12,  9,
+                                      10, 14, 12, 11,
+                                      1,  14,  5, 11,
+                                      7,   6, 10, 12,
+                                      14,  8,  5, 10,
+                                      8,   7, 10, 13,
+                                      7,  13,  3, 12,
+                                      1,   4, 14,  9,
+                                      13,  4,  3,  9,
+                                      3,   2, 12,  9,
+                                      4,   8, 14, 13,
+                                      6,   5, 10, 11,
+                                      1,   2,  9, 11,
+                                      2,   6, 12, 11,
+                                      6,  10, 12, 11,
+                                      2,  12,  9, 11,
+                                      5,  14, 10, 11,
+                                      14,  8, 10, 13,
+                                      13,  3, 12,  9,
+                                      7,  10, 13, 12,
+                                      14,  4, 13,  9,
+                                      14,  1,  9, 11 };
+
+  // Shift node IDs to start from zero
+  tk::shiftToZero( inpoel );
+
+  // Generate points of edges
+  auto esup = tk::genEsup( inpoel, 4 );
+  auto inpoed = tk::genInpoed( inpoel, 4, esup );
+
+  // Find number of points in mesh
+  auto minmax = std::minmax_element( begin(inpoel), end(inpoel) );
+  Assert( *minmax.first == 0, "node ids should start from zero" );
+  auto npoin = *minmax.second + 1;
+
+  for (auto mvecl : {4,8}) {
+    // Generate vector groups for edges of length mvecl
+    auto edpas = tk::genEdpas( mvecl, npoin, inpoed );
+
+    // Test if the same edges are swept by un-grouped and grouped loops
+    using tk::UnsMesh;
+    std::unordered_set< UnsMesh::Edge, UnsMesh::Hash<2>, UnsMesh::Eq<2> >
+      swept_edges_ed, swept_edges_gr;
+
+    auto nedge = inpoed.size() / 2;
+    for (std::size_t e=0; e<nedge; ++e) {
+      auto p = inpoed[e*2+0];
+      auto q = inpoed[e*2+1];
+      swept_edges_ed.insert( { p, q } );
+    }
+
+    for (std::size_t w=0; w<edpas.second.size()-1; ++w) {
+      for (auto i=edpas.second[w]+1; i<=edpas.second[w+1]; ++i) {
+        auto e = edpas.first[i];
+        auto p = inpoed[e*2+0];
+        auto q = inpoed[e*2+1];
+        swept_edges_gr.insert( { p, q } );
+      }
+    }
+
+    ensure_equals( "number of swept edges unequal",
+                   swept_edges_ed.size(), swept_edges_gr.size() );
+
+    for (std::size_t w=0; w<edpas.second.size()-1; ++w) {
+      for (auto i=edpas.second[w]+1; i<=edpas.second[w+1]; ++i) {
+        auto e = edpas.first[i];
+        auto p = inpoed[e*2+0];
+        auto q = inpoed[e*2+1];
+        ensure( "edge " + std::to_string(p) + '-' + std::to_string(q) +
+                " swept by vector group " + std::to_string(mvecl) +
+                " not in original loop",
+                swept_edges_ed.find({p,q}) != end(swept_edges_ed) );
+      }
+    }
+  }
 }
 
 #if defined(__clang__)

@@ -812,6 +812,121 @@ genEsued( const std::vector< std::size_t >& inpoel,
   return esued;
 }
 
+std::pair< std::vector< std::size_t >, std::vector< std::size_t > >
+genEdpas( int mvecl, std::size_t npoin,
+          const std::vector< std::size_t >& inpoed )
+// *****************************************************************************
+//  Generate vector-groups for edges
+//! \param[in] mvecl Max vector length to target
+//! \param[in] npoin Number mesh points
+//! \param[in] inpoed Edge connectivity as linear vector, see tk::genInpoed
+//! \return Linked lists storing edge-groups so that any point of a group is
+//!   accessed only once within a group.
+// //! \warning It is not okay to call this function with an empty container or a
+// //!   non-positive number of nodes per element; it will throw an exception.
+//! \details The data generated here is stored in a linked list, more precisely,
+//!   two linked arrays (vectors), _edpas1_ and _edpas2_, where _edpas2_ holds
+//!   the indices at which _edpas1_ holds the edge ids of a vector group.
+//!   Looping over all groups can then be accomplished by the following loop:
+//!   \code{.cpp}
+//!     for (std::size_t w=0; w<edpas.second.size()-1; ++w)
+//!       for (auto i=edpas.second[w]+1; i<=edpas.second[w+1]; ++i)
+//!          use edge id edpas.first[i]
+//!   \endcode
+//! \see Lohner, An Introduction to Applied CFD Techniques, Wiley, 2008
+// *****************************************************************************
+{
+  Assert( mvecl > 0, "Attempt to call genEdpas() with non-positive veclen" );
+  Assert( npoin > 0, "Attempt to call genEdpas() with non-positive npoin" );
+  Assert( !inpoed.empty(), "Attempt to call genEdpas() on empty container" );
+  Assert( inpoed.size()%2 == 0, "Size of inpoed must be divisible by 2" );
+
+  auto nedge = inpoed.size() / 2;
+
+  std::vector< std::size_t > ledge( nedge, 0 );
+  std::vector< std::size_t > lpoin( npoin, 0 );
+
+  std::pair< std::vector< std::size_t >, std::vector< std::size_t > > edpas;
+  edpas.first.resize( nedge+1, 0 );
+  edpas.second.push_back( 0 );
+
+  std::unordered_set< std::size_t > unedge( nedge );
+  for (std::size_t e=0; e<nedge; ++e) unedge.insert( e );
+
+  std::size_t nenew = 0, ngrou = 0;
+  int nvecl;
+
+  while (nenew < nedge) {
+    nvecl = 0;
+    ++ngrou;
+    edpas.second.emplace_back();
+    for (auto ie = begin(unedge); ie != end(unedge); ) {
+      auto e = *ie;
+      auto p = inpoed[e*2+0];
+      auto q = inpoed[e*2+1];
+      if (lpoin[p] != ngrou && lpoin[q] != ngrou) {
+        //std::cout << e << ":\t" << p << '-' << q << "\t"
+        //          << lpoin[p] << "-" << lpoin[q] << " != " << ngrou << '\n';
+        lpoin[p] = lpoin[q] = ngrou;
+        ledge[e] = ngrou;
+        ++nenew;
+        ++nvecl;
+        edpas.first[nenew] = e;
+        edpas.second[ngrou] = nenew;
+        ie = unedge.erase( ie );
+      } else {
+        ++ie;
+      }
+      if (nvecl == mvecl) break;
+    }
+  }
+
+  //std::size_t ne = 0;
+  //for (std::size_t i=0; i<edpas.second.size()-1; ++i) {
+  //  std::cout << i+1 << ": " << edpas.second[i+1] - edpas.second[i] << '\n';
+  //  ne += edpas.second[i+1] - edpas.second[i];
+  //}
+  //std::cout << "edges grouped: " << ne << " of " << nedge << '\n';
+  //std::cout << "edges groups:";
+  //for (std::size_t g=1; g<=edpas.second.size(); ++g) {
+  //  std::cout << '\n';
+  //  for (std::size_t e=0; e<nedge; ++e) {
+  //    if (ledge[e] == g) {
+  //      auto p = inpoed[e*2+0];
+  //      auto q = inpoed[e*2+1];
+  //      std::cout << e << ":\t" << p << '-' << q << ",\tgrp: " << ledge[e] << '\n';
+  //    }
+  //  }
+  //}
+  //std::cout << '\n';
+
+  //std::cout << "new access loop:\n";
+  //for (std::size_t g=0; g<edpas.second.size()-1; ++g) {
+  //  std::cout << g << ": " << edpas.second[g]+1 << " ... "
+  //                         << edpas.second[g+1] << ": ";
+  //  //#pragma omp simd
+  //  for (auto i=edpas.second[g]+1; i<=edpas.second[g+1]; ++i) {
+  //    auto e = edpas.first[i];
+  //    auto p = inpoed[e*2+0];
+  //    auto q = inpoed[e*2+1];
+  //    std::cout << e << ':' << p << '-' << q << ' ';
+  //  }
+  //  std::cout << '\n';
+  //}
+  //std::cout << '\n';
+
+  //std::cout << "old access loop:\n";
+  //for (std::size_t e=0; e<nedge; ++e) {
+  //  auto p = inpoed[e*2+0];
+  //  auto q = inpoed[e*2+1];
+  //  std::cout << e << ':' << p << '-' << q << ' ';
+  //}
+  //std::cout << '\n';
+
+  // Return linked lists
+  return edpas;
+}
+
 std::size_t
 genNbfacTet( std::size_t tnbfac,
              const std::vector< std::size_t >& inpoel,

@@ -108,6 +108,11 @@ genEsued( const std::vector< std::size_t >& inpoel,
           const std::pair< std::vector< std::size_t >,
                            std::vector< std::size_t > >& esup );
 
+//! Generate vector-groups for edges
+std::pair< std::vector< std::size_t >, std::vector< std::size_t > >
+genEdpas( int mvecl, std::size_t npoin,
+          const std::vector< std::size_t >& inpoed );
+
 //! Generate total number of boundary faces in this chunk
 std::size_t
 genNbfacTet( std::size_t tnbfac,

@@ -3298,7 +3298,8 @@ void DerivedData_object::test< 75 >() {
   #endif
 }
 
-//! Attempt to vector groups for edges with empty edge-point connectivity
+//! \brief Attempt to generate vector groups for edges with empty edge-point
+//!        connectivity
 template<> template<>
 void DerivedData_object::test< 76 >() {
   set_test_name( "genEdpas throws with empty inpoed" );

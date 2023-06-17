@@ -11,8 +11,7 @@
      of an unstructured mesh.
 */
 // *****************************************************************************
-#ifndef DerivedData_h
-#define DerivedData_h
+#pragma once
 
 #include <vector>
 #include <map>
@@ -174,5 +173,3 @@ intet( const std::array< std::vector< real >, 3 >& coord,
        std::array< real, 4 >& N );
 
 } // tk::
-
-#endif // DerivedData_h

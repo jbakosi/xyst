@@ -3356,7 +3356,7 @@ void DerivedData_object::test< 78 >() {
   #endif
 }
 
-//! Test genEdpas if it throws on inpoed non-divisible by 2
+//! Test genEdpas if it throws on inpoed size non-divisible by 2
 template<> template<>
 void DerivedData_object::test< 79 >() {
   set_test_name( "genEdpas throws on inpoed non-div 2" );

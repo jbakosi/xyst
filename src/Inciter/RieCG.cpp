@@ -533,17 +533,11 @@ RieCG::start()
 }
 
 void
-RieCG::merge()
+RieCG::bnorm()
 // *****************************************************************************
-// Combine own and communicated portions of the integrals
+// Combine own and communicated portions of the boundary point normals
 // *****************************************************************************
 {
-  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
-      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
-    stateProxy.ckLocalBranch()->
-      insert( "RieCGG", "merge", thisIndex, CkMyPe(), Disc()->It() );
-  }
-
   const auto& lid = Disc()->Lid();
 
   // Combine own and communicated contributions to boundary point normals
@@ -580,6 +574,15 @@ RieCG::merge()
     }
   }
   m_bnorm = std::move(loc);
+}
+
+void
+RieCG::streamable()
+// *****************************************************************************
+// Convert integrals into streamable data structures
+// *****************************************************************************
+{
+  const auto& lid = Disc()->Lid();
 
   // Convert boundary point integrals into streamable data structures
   m_bpoin.resize( m_bndpoinint.size() );
@@ -665,9 +668,59 @@ RieCG::merge()
     ++k;
   }
 
-  // Generate superedge-groups to reduce indirect addressing in edge-loops
+  // Convert symmetry BC data to streamable data structures
+  const auto& sbc =
+    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::symmetry >();
+  tk::destroy( m_symbcnodes );
+  tk::destroy( m_symbcnorms );
+  for (auto p : m_symbcnodeset) {
+    for (const auto& s : sbc[0]) {
+      auto m = m_bnorm.find(s);
+      if (m != end(m_bnorm)) {
+        auto r = m->second.find(p);
+        if (r != end(m->second)) {
+          m_symbcnodes.push_back( p );
+          m_symbcnorms.push_back( r->second[0] );
+          m_symbcnorms.push_back( r->second[1] );
+          m_symbcnorms.push_back( r->second[2] );
+        }
+      }
+    }
+  }
+  tk::destroy( m_symbcnodeset );
 
+  // Convert farfield BC data to streamable data structures
+  const auto& fbc =
+    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::farfield >();
+  tk::destroy( m_farbcnodes );
+  tk::destroy( m_farbcnorms );
+  for (auto p : m_farbcnodeset) {
+    for (const auto& s : fbc[0]) {
+      auto n = m_bnorm.find(s);
+      if (n != end(m_bnorm)) {
+        auto a = n->second.find(p);
+        if (a != end(n->second)) {
+          m_farbcnodes.push_back( p );
+          m_farbcnorms.push_back( a->second[0] );
+          m_farbcnorms.push_back( a->second[1] );
+          m_farbcnorms.push_back( a->second[2] );
+        }
+      }
+    }
+  }
+  tk::destroy( m_farbcnodeset );
+  tk::destroy( m_bnorm );
+}
+
+void
+RieCG::superedges()
+// *****************************************************************************
+// Generate superedge-groups to reduce indirect addressing in edge-loops
+// *****************************************************************************
+{
   const auto& inpoel = Disc()->Inpoel();
+  const auto& lid = Disc()->Lid();
+  const auto& gid = Disc()->Gid();
 
   tk::UnsMesh::FaceSet untri;
   for (std::size_t e=0; e<inpoel.size()/4; e++) {
@@ -757,50 +810,29 @@ RieCG::merge()
           m_dsupedge[2].size()/2 == m_domedgeint.size(),
           "Not all edges accounted for in superedge groups" );
 
+  tk::destroy( m_domedgeint );
+}
 
-
-  // Convert symmetry BC data to streamable data structures
-  const auto& sbc =
-    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::symmetry >();
-  tk::destroy( m_symbcnodes );
-  tk::destroy( m_symbcnorms );
-  for (auto p : m_symbcnodeset) {
-    for (const auto& s : sbc[0]) {
-      auto m = m_bnorm.find(s);
-      if (m != end(m_bnorm)) {
-        auto r = m->second.find(p);
-        if (r != end(m->second)) {
-          m_symbcnodes.push_back( p );
-          m_symbcnorms.push_back( r->second[0] );
-          m_symbcnorms.push_back( r->second[1] );
-          m_symbcnorms.push_back( r->second[2] );
-        }
-      }
-    }
+void
+RieCG::merge()
+// *****************************************************************************
+// Combine own and communicated portions of the integrals
+// *****************************************************************************
+{
+  if (g_inputdeck.get< tag::cmd, tag::chare >() ||
+      g_inputdeck.get< tag::cmd, tag::quiescence >()) {
+    stateProxy.ckLocalBranch()->
+      insert( "RieCGG", "merge", thisIndex, CkMyPe(), Disc()->It() );
   }
-  tk::destroy( m_symbcnodeset );
 
-  // Convert farfield BC data to streamable data structures
-  const auto& fbc =
-    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::farfield >();
-  tk::destroy( m_farbcnodes );
-  tk::destroy( m_farbcnorms );
-  for (auto p : m_farbcnodeset) {
-    for (const auto& s : fbc[0]) {
-      auto n = m_bnorm.find(s);
-      if (n != end(m_bnorm)) {
-        auto a = n->second.find(p);
-        if (a != end(n->second)) {
-          m_farbcnodes.push_back( p );
-          m_farbcnorms.push_back( a->second[0] );
-          m_farbcnorms.push_back( a->second[1] );
-          m_farbcnorms.push_back( a->second[2] );
-        }
-      }
-    }
-  }
-  tk::destroy( m_farbcnodeset );
-  tk::destroy( m_bnorm );
+  // Combine own and communicated contributions to boundary point normals
+  bnorm();
+
+  // Convert integrals into streamable data structures
+  streamable();
+
+  // Generate superedge-groups to reduce indirect addressing in edge-loops
+  superedges();
 
   // Enforce boundary conditions using (re-)computed boundary data
   BC( Disc()->T() );

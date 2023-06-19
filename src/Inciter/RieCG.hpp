@@ -348,6 +348,15 @@ class RieCG : public CBase_RieCG {
     //! Compute boundary point normals
     void bndint();
 
+    //! Combine own and communicated portions of the boundary point normals
+    void bnorm();
+
+    //! Convert integrals into streamable data structures
+    void streamable();
+
+    //! Generate superedge-groups to reduce indirect addressing in edge-loops
+    void superedges();
+
     //! Output mesh and particle fields to files
     void out();
 

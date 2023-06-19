@@ -723,6 +723,8 @@ RieCG::domsuped()
 {
   Assert( !m_domedgeint.empty(), "No domain edges to group" );
 
+  auto nedge = m_domedgeint.size();
+
   const auto& inpoel = Disc()->Inpoel();
   const auto& lid = Disc()->Lid();
   const auto& gid = Disc()->Gid();
@@ -806,21 +808,20 @@ RieCG::domsuped()
   //          << "superedges: ntet:" << m_dsupedge[0].size()/4 << "(nedge:"
   //          << m_dsupedge[0].size()/4*6 << ","
   //          << 100.0 * static_cast< tk::real >( m_dsupedge[0].size()/4*6 ) /
-  //                     static_cast< tk::real >( m_domedgeint.size() )
+  //                     static_cast< tk::real >( nedge )
   //          << "%) + ntri:" << m_dsupedge[1].size()/3
   //          << "(nedge:" << m_dsupedge[1].size() << ","
   //          << 100.0 * static_cast< tk::real >( m_dsupedge[1].size() ) /
-  //                     static_cast< tk::real >( m_domedgeint.size() )
+  //                     static_cast< tk::real >( nedge )
   //          << "%) + nedge:"
   //          << m_dsupedge[2].size()/2 << "("
   //          << 100.0 * static_cast< tk::real >( m_dsupedge[2].size()/2 ) /
-  //                     static_cast< tk::real >( m_domedgeint.size() )
+  //                     static_cast< tk::real >( nedge )
   //          << "%) = " << m_dsupedge[0].size()/4*6 + m_dsupedge[1].size() +
-  //             m_dsupedge[2].size()/2 << " of "<< m_domedgeint.size()
-  //          << " total edges\n";
+  //             m_dsupedge[2].size()/2 << " of "<< nedge << " total edges\n";
 
   Assert( m_dsupedge[0].size()/4*6 + m_dsupedge[1].size() +
-          m_dsupedge[2].size()/2 == m_domedgeint.size(),
+          m_dsupedge[2].size()/2 == nedge,
           "Not all edges accounted for in superedge groups" );
 }
 

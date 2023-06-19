@@ -202,22 +202,22 @@ muscl( std::size_t p,
 }
 
 void
-grad( const std::vector< std::size_t >& dedge,
-      const std::vector< tk::real >& deint,
-      const std::vector< std::size_t >& bpoin,
+grad( const std::vector< std::size_t >& bpoin,
       const std::vector< tk::real >& bpint,
       const std::vector< std::size_t >& bedge,
       const std::vector< tk::real >& beint,
+      const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+      const std::array< std::vector< tk::real >, 3 >& dsupint,
       const tk::Fields& U,
       tk::Fields& G )
 // *****************************************************************************
 //  Compute nodal gradients of primitive variables in all points
-//! \param[in] dedge Streamable domain edge end points with local ids
-//! \param[in] deint Streamable domain edge integrals
 //! \param[in] bpoin Streamable boundary point local ids
 //! \param[in] bpint Streamable boundary point integrals
 //! \param[in] bedge Streamable boundary edges with local ids
 //! \param[in] beint Streamable boundary edge integrals
+//! \param[in] dsupedge Superedge (tet, face, edge) end points with local ids
+//! \param[in] dsupint Superedge (tet, face, edge) domain edge integrals
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] G Nodal gradients
 //! \return Gradients of primitive variables in all mesh points
@@ -238,36 +238,86 @@ grad( const std::vector< std::size_t >& dedge,
     #pragma GCC diagnostic ignored "-Wvla"
   #endif
 
-  // domain edge contributions
-  for (std::size_t e=0; e<dedge.size()/2; ++e) {
-    auto p = dedge[e*2+0];
-    auto q = dedge[e*2+1];
-
-    // primitive variables
-    tk::real uL[ncomp], uR[ncomp];
-    uL[0] = U(p,0,0);
-    uL[1] = U(p,1,0) / uL[0];
-    uL[2] = U(p,2,0) / uL[0];
-    uL[3] = U(p,3,0) / uL[0];
-    uL[4] = U(p,4,0) / uL[0] - 0.5*(uL[1]*uL[1] + uL[2]*uL[2] + uL[3]*uL[3]);
-    uR[0] = U(q,0,0);
-    uR[1] = U(q,1,0) / uR[0];
-    uR[2] = U(q,2,0) / uR[0];
-    uR[3] = U(q,3,0) / uR[0];
-    uR[4] = U(q,4,0) / uR[0] - 0.5*(uR[1]*uR[1] + uR[2]*uR[2] + uR[3]*uR[3]);
-    for (std::size_t c=5; c<ncomp; ++c) { uL[c] = U(p,c,0); uR[c] = U(q,c,0); }
+  // domain edge contributions: tet superedges
+  for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
+    std::size_t N[4] = { dsupedge[0][e*4+0], dsupedge[0][e*4+1],
+                         dsupedge[0][e*4+2], dsupedge[0][e*4+3] };
+    tk::real u[4][ncomp];
+    for (int i=0; i<4; ++i) {
+      u[i][0] = U(N[i],0,0);
+      u[i][1] = U(N[i],1,0) / u[i][0];
+      u[i][2] = U(N[i],2,0) / u[i][0];
+      u[i][3] = U(N[i],3,0) / u[i][0];
+      u[i][4] = U(N[i],4,0) / u[i][0]
+        - 0.5*(u[i][1]*u[i][1] + u[i][2]*u[i][2] + u[i][3]*u[i][3]);
+      for (std::size_t c=5; c<ncomp; ++c) u[i][c] = U(N[i],c,0);
+    }
 
     for (std::size_t c=0; c<ncomp; ++c) {
-      auto f = uL[c] + uR[c];
-      auto g = deint[e*3+0] * f;
-      G(p,c*3+0,0) -= g;
-      G(q,c*3+0,0) += g;
-      g = deint[e*3+1] * f;
-      G(p,c*3+1,0) -= g;
-      G(q,c*3+1,0) += g;
-      g = deint[e*3+2] * f;
-      G(p,c*3+2,0) -= g;
-      G(q,c*3+2,0) += g;
+      for (std::size_t j=0; j<3; ++j) {
+        tk::real f[6];
+        f[0] = dsupint[0][(e*6+0)*3+j] * ( u[1][c] + u[0][c] );
+        f[1] = dsupint[0][(e*6+1)*3+j] * ( u[2][c] + u[1][c] );
+        f[2] = dsupint[0][(e*6+2)*3+j] * ( u[0][c] + u[2][c] );
+        f[3] = dsupint[0][(e*6+3)*3+j] * ( u[3][c] + u[0][c] );
+        f[4] = dsupint[0][(e*6+4)*3+j] * ( u[3][c] + u[1][c] );
+        f[5] = dsupint[0][(e*6+5)*3+j] * ( u[3][c] + u[2][c] );
+        G(N[0],c*3+j,0) = G(N[0],c*3+j,0) - f[0] + f[2] - f[3];
+        G(N[1],c*3+j,0) = G(N[1],c*3+j,0) + f[0] - f[1] - f[4];
+        G(N[2],c*3+j,0) = G(N[2],c*3+j,0) + f[1] - f[2] - f[5];
+        G(N[3],c*3+j,0) = G(N[3],c*3+j,0) + f[3] + f[4] + f[5];
+      }
+    }
+  }
+
+  // domain edge contributions: triangle superedges
+  for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
+    std::size_t N[3] = { dsupedge[1][e*3+0], dsupedge[1][e*3+1],
+                         dsupedge[1][e*3+2] };
+    tk::real u[3][ncomp];
+    for (int i=0; i<3; ++i) {
+      u[i][0] = U(N[i],0,0);
+      u[i][1] = U(N[i],1,0) / u[i][0];
+      u[i][2] = U(N[i],2,0) / u[i][0];
+      u[i][3] = U(N[i],3,0) / u[i][0];
+      u[i][4] = U(N[i],4,0) / u[i][0]
+        - 0.5*(u[i][1]*u[i][1] + u[i][2]*u[i][2] + u[i][3]*u[i][3]);
+      for (std::size_t c=5; c<ncomp; ++c) u[i][c] = U(N[i],c,0);
+    }
+
+    for (std::size_t c=0; c<ncomp; ++c) {
+      for (std::size_t j=0; j<3; ++j) {
+        tk::real f[3];
+        f[0] = dsupint[1][(e*3+0)*3+j] * ( u[1][c] + u[0][c] );
+        f[1] = dsupint[1][(e*3+1)*3+j] * ( u[2][c] + u[1][c] );
+        f[2] = dsupint[1][(e*3+2)*3+j] * ( u[0][c] + u[2][c] );
+        G(N[0],c*3+j,0) = G(N[0],c*3+j,0) - f[0] + f[2];
+        G(N[1],c*3+j,0) = G(N[1],c*3+j,0) + f[0] - f[1];
+        G(N[2],c*3+j,0) = G(N[2],c*3+j,0) + f[1] - f[2];
+      }
+    }
+  }
+
+  // domain edge contributions: edges
+  for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
+    std::size_t N[2] = { dsupedge[2][e*2+0], dsupedge[2][e*2+1] };
+    tk::real u[2][ncomp];
+    for (int i=0; i<2; ++i) {
+      u[i][0] = U(N[i],0,0);
+      u[i][1] = U(N[i],1,0) / u[i][0];
+      u[i][2] = U(N[i],2,0) / u[i][0];
+      u[i][3] = U(N[i],3,0) / u[i][0];
+      u[i][4] = U(N[i],4,0) / u[i][0]
+        - 0.5*(u[i][1]*u[i][1] + u[i][2]*u[i][2] + u[i][3]*u[i][3]);
+      for (std::size_t c=5; c<ncomp; ++c) u[i][c] = U(N[i],c,0);
+    }
+
+    for (std::size_t c=0; c<ncomp; ++c) {
+      for (std::size_t j=0; j<3; ++j) {
+        tk::real f = dsupint[2][e*3+j] * ( u[1][c] + u[0][c] );
+        G(N[0],c*3+j,0) -= f;
+        G(N[1],c*3+j,0) += f;
+      }
     }
   }
 

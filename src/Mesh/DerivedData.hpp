@@ -40,7 +40,8 @@ const std::array< UnsMesh::Edge, 6 >
   lpoed{{ {{0,1}}, {{1,2}}, {{2,0}}, {{0,3}}, {{1,3}}, {{2,3}} }};
 
 //! Const array defining the node ordering convention for triangle edges
-const std::array< UnsMesh::Edge, 3 > lpoet{{ {{0,1}}, {{1,2}}, {{2,0}} }};
+const std::array< UnsMesh::Edge, 3 >
+  lpoet{{ {{0,1}}, {{1,2}}, {{2,0}} }};
 
 //! Compute number of points (nodes) in mesh from connectivity
 std::size_t

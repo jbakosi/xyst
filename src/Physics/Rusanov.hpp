@@ -17,12 +17,12 @@ namespace physics {
 
 //! Compute nodal gradients of primitive variables in all points
 void
-grad( const std::vector< std::size_t >& dedge,
-      const std::vector< tk::real >& deint,
-      const std::vector< std::size_t >& bpoin,
+grad( const std::vector< std::size_t >& bpoin,
       const std::vector< tk::real >& bpint,
       const std::vector< std::size_t >& bedge,
       const std::vector< tk::real >& beint,
+      const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+      const std::array< std::vector< tk::real >, 3 >& dsupint,
       const tk::Fields& U,
       tk::Fields& G );
 

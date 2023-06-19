@@ -664,7 +664,100 @@ RieCG::merge()
     m_deint[k*3+2] = d[2];
     ++k;
   }
-  tk::destroy( m_domedgeint );
+
+  // Generate superedge-groups to reduce indirect addressing in edge-loops
+
+  const auto& inpoel = Disc()->Inpoel();
+
+  tk::UnsMesh::FaceSet untri;
+  for (std::size_t e=0; e<inpoel.size()/4; e++) {
+    std::size_t N[4] = {
+      inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
+    for (const auto& [a,b,c] : tk::lpofa) untri.insert( { N[a], N[b], N[c] } );
+  }
+
+  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+    std::size_t N[4] = {
+      inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
+    int f = 0;
+    tk::real sig[6];
+    decltype(m_domedgeint)::const_iterator d[6];
+    for (const auto& [p,q] : tk::lpoed) {
+      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+      sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+      d[f] = m_domedgeint.find( ed );
+      if (d[f] == end(m_domedgeint)) break; else ++f;
+    }
+    if (f == 6) {
+      m_dsupedge[0].push_back( N[0] );
+      m_dsupedge[0].push_back( N[1] );
+      m_dsupedge[0].push_back( N[2] );
+      m_dsupedge[0].push_back( N[3] );
+      for (const auto& [a,b,c] : tk::lpofa) untri.erase( { N[a], N[b], N[c] } );
+      for (int ed=0; ed<6; ++ed) {
+        m_dsupint[0].push_back( sig[ed] * d[ed]->second[0] );
+        m_dsupint[0].push_back( sig[ed] * d[ed]->second[1] );
+        m_dsupint[0].push_back( sig[ed] * d[ed]->second[2] );
+        m_domedgeint.erase( d[ed] );
+      }
+    }
+  }
+
+  for (const auto& N : untri) {
+    int f = 0;
+    tk::real sig[3];
+    decltype(m_domedgeint)::const_iterator d[3];
+    for (const auto& [p,q] : tk::lpoet) {
+      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+      sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+      d[f] = m_domedgeint.find( ed );
+      if (d[f] == end(m_domedgeint)) break; else ++f;
+    }
+    if (f == 3) {
+      m_dsupedge[1].push_back( N[0] );
+      m_dsupedge[1].push_back( N[1] );
+      m_dsupedge[1].push_back( N[2] );
+      for (int ed=0; ed<3; ++ed) {
+        m_dsupint[1].push_back( sig[ed] * d[ed]->second[0] );
+        m_dsupint[1].push_back( sig[ed] * d[ed]->second[1] );
+        m_dsupint[1].push_back( sig[ed] * d[ed]->second[2] );
+        m_domedgeint.erase( d[ed] );
+      }
+    }
+  }
+
+  for (const auto& [ed,d] : m_domedgeint) {
+    auto p = tk::cref_find( lid, ed[0] );
+    auto q = tk::cref_find( lid, ed[1] );
+    m_dsupedge[2].push_back( p );
+    m_dsupedge[2].push_back( q );
+    m_dsupint[2].push_back( d[0] );
+    m_dsupint[2].push_back( d[1] );
+    m_dsupint[2].push_back( d[2] );
+  }
+
+  //std::cout << std::setprecision(2)
+  //          << "superedges: ntet:" << m_dsupedge[0].size()/4 << "(nedge:"
+  //          << m_dsupedge[0].size()/4*6 << ","
+  //          << 100.0 * static_cast< tk::real >( m_dsupedge[0].size()/4*6 ) /
+  //                     static_cast< tk::real >( m_domedgeint.size() )
+  //          << "%) + ntri:" << m_dsupedge[1].size()/3
+  //          << "(nedge:" << m_dsupedge[1].size() << ","
+  //          << 100.0 * static_cast< tk::real >( m_dsupedge[1].size() ) /
+  //                     static_cast< tk::real >( m_domedgeint.size() )
+  //          << "%) + nedge:"
+  //          << m_dsupedge[2].size()/2 << "("
+  //          << 100.0 * static_cast< tk::real >( m_dsupedge[2].size()/2 ) /
+  //                     static_cast< tk::real >( m_domedgeint.size() )
+  //          << "%) = " << m_dsupedge[0].size()/4*6 + m_dsupedge[1].size() +
+  //             m_dsupedge[2].size()/2 << " of "<< m_domedgeint.size()
+  //          << " total edges\n";
+
+  Assert( m_dsupedge[0].size()/4*6 + m_dsupedge[1].size() +
+          m_dsupedge[2].size()/2 == m_domedgeint.size(),
+          "Not all edges accounted for in superedge groups" );
+
+
 
   // Convert symmetry BC data to streamable data structures
   const auto& sbc =
@@ -856,8 +949,8 @@ RieCG::grad()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-  physics::grad( m_dedge, m_deint, m_bpoin, m_bpint, m_bedge, m_beint, m_u,
-                 m_grad );
+  physics::grad( m_bpoin, m_bpint, m_bedge, m_beint, m_dsupedge, m_dsupint,
+                 m_u, m_grad );
 
   // Send gradient contributions to neighbor chares
   if (d->NodeCommMap().empty()) {

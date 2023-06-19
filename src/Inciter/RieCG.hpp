@@ -182,6 +182,8 @@ class RieCG : public CBase_RieCG {
       p | m_bedge;
       p | m_beint;
       p | m_dedge;
+      p | m_dsupedge;
+      p | m_dsupint;
       p | m_deint;
       p | m_bpsym;
       p | m_besym;
@@ -284,6 +286,10 @@ class RieCG : public CBase_RieCG {
     std::vector< tk::real > m_beint;
     //! Streamable domain edge end points with local ids
     std::vector< std::size_t > m_dedge;
+    //! Superedge (tet, face, edge) end points with local ids
+    std::array< std::vector< std::size_t >, 3 > m_dsupedge;
+    //! Superedge (tet, face, edge) domain edge integrals
+    std::array< std::vector< tk::real >, 3 > m_dsupint;
     //! Streamable domain edge integrals
     std::vector< tk::real > m_deint;
     //! Streamable boundary point symmetry BC flags

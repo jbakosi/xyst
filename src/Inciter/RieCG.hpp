@@ -354,8 +354,8 @@ class RieCG : public CBase_RieCG {
     //! Convert integrals into streamable data structures
     void streamable();
 
-    //! Generate superedge-groups to reduce indirect addressing in edge-loops
-    void superedges();
+    //! Generate superedge-groups for domain-edge loops
+    void domsuped();
 
     //! Output mesh and particle fields to files
     void out();

@@ -667,6 +667,9 @@ RieCG::streamable()
     m_deint[k*3+2] = d[2];
     ++k;
   }
+  // Generate domain superedges
+  domsuped();
+  tk::destroy( m_domedgeint );
 
   // Convert symmetry BC data to streamable data structures
   const auto& sbc =
@@ -713,11 +716,13 @@ RieCG::streamable()
 }
 
 void
-RieCG::superedges()
+RieCG::domsuped()
 // *****************************************************************************
-// Generate superedge-groups to reduce indirect addressing in edge-loops
+// Generate superedge-groups for domain-edge loops
 // *****************************************************************************
 {
+  Assert( !m_domedgeint.empty(), "No domain edges to group" );
+
   const auto& inpoel = Disc()->Inpoel();
   const auto& lid = Disc()->Lid();
   const auto& gid = Disc()->Gid();
@@ -809,8 +814,6 @@ RieCG::superedges()
   Assert( m_dsupedge[0].size()/4*6 + m_dsupedge[1].size() +
           m_dsupedge[2].size()/2 == m_domedgeint.size(),
           "Not all edges accounted for in superedge groups" );
-
-  tk::destroy( m_domedgeint );
 }
 
 void
@@ -830,9 +833,6 @@ RieCG::merge()
 
   // Convert integrals into streamable data structures
   streamable();
-
-  // Generate superedge-groups to reduce indirect addressing in edge-loops
-  superedges();
 
   // Enforce boundary conditions using (re-)computed boundary data
   BC( Disc()->T() );

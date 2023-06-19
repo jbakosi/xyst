@@ -727,6 +727,14 @@ RieCG::domsuped()
   const auto& lid = Disc()->Lid();
   const auto& gid = Disc()->Gid();
 
+  tk::destroy( m_dsupedge[0] );
+  tk::destroy( m_dsupedge[1] );
+  tk::destroy( m_dsupedge[2] );
+
+  tk::destroy( m_dsupint[0] );
+  tk::destroy( m_dsupint[1] );
+  tk::destroy( m_dsupint[2] );
+
   tk::UnsMesh::FaceSet untri;
   for (std::size_t e=0; e<inpoel.size()/4; e++) {
     std::size_t N[4] = {

@@ -252,7 +252,6 @@ grad( const std::vector< std::size_t >& bpoin,
         - 0.5*(u[i][1]*u[i][1] + u[i][2]*u[i][2] + u[i][3]*u[i][3]);
       for (std::size_t c=5; c<ncomp; ++c) u[i][c] = U(N[i],c,0);
     }
-
     for (std::size_t c=0; c<ncomp; ++c) {
       for (std::size_t j=0; j<3; ++j) {
         tk::real f[6];
@@ -284,7 +283,6 @@ grad( const std::vector< std::size_t >& bpoin,
         - 0.5*(u[i][1]*u[i][1] + u[i][2]*u[i][2] + u[i][3]*u[i][3]);
       for (std::size_t c=5; c<ncomp; ++c) u[i][c] = U(N[i],c,0);
     }
-
     for (std::size_t c=0; c<ncomp; ++c) {
       for (std::size_t j=0; j<3; ++j) {
         tk::real f[3];
@@ -311,7 +309,6 @@ grad( const std::vector< std::size_t >& bpoin,
         - 0.5*(u[i][1]*u[i][1] + u[i][2]*u[i][2] + u[i][3]*u[i][3]);
       for (std::size_t c=5; c<ncomp; ++c) u[i][c] = U(N[i],c,0);
     }
-
     for (std::size_t c=0; c<ncomp; ++c) {
       for (std::size_t j=0; j<3; ++j) {
         tk::real f = dsupint[2][e*3+j] * ( u[1][c] + u[0][c] );
@@ -324,8 +321,6 @@ grad( const std::vector< std::size_t >& bpoin,
   // boundary point contributions
   for (std::size_t b=0; b<bpoin.size(); ++b) {
     auto p = bpoin[b];
-
-    // primitive variables
     tk::real u[ncomp];
     u[0] = U(p,0,0);
     u[1] = U(p,1,0) / u[0];
@@ -333,7 +328,6 @@ grad( const std::vector< std::size_t >& bpoin,
     u[3] = U(p,3,0) / u[0];
     u[4] = U(p,4,0) / u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]);
     for (std::size_t c=5; c<ncomp; ++c) u[c] = U(p,c,0);
-
     for (std::size_t c=0; c<ncomp; ++c) {
       G(p,c*3+0,0) += bpint[b*3+0] * u[c];
       G(p,c*3+1,0) += bpint[b*3+1] * u[c];
@@ -345,8 +339,6 @@ grad( const std::vector< std::size_t >& bpoin,
   for (std::size_t e=0; e<bedge.size()/2; ++e) {
     auto p = bedge[e*2+0];
     auto q = bedge[e*2+1];
-
-    // primitive variables
     tk::real uL[ncomp], uR[ncomp];
     uL[0] = U(p,0,0);
     uL[1] = U(p,1,0) / uL[0];
@@ -359,7 +351,6 @@ grad( const std::vector< std::size_t >& bpoin,
     uR[3] = U(q,3,0) / uR[0];
     uR[4] = U(q,4,0) / uR[0] - 0.5*(uR[1]*uR[1] + uR[2]*uR[2] + uR[3]*uR[3]);
     for (std::size_t c=5; c<ncomp; ++c) { uL[c] = U(p,c,0); uR[c] = U(q,c,0); }
-
     for (std::size_t c=0; c<ncomp; ++c) {
       auto f = uL[c] + uR[c];
       auto g = beint[e*3+0] * f;

@@ -3309,7 +3309,7 @@ void DerivedData_object::test< 76 >() {
   #else
   try {
     std::vector< std::size_t > empty;
-    tk::genEdpas( 8, 4, empty );
+    tk::genEdpas( 8, 2, 4, empty );
     fail( "should throw exception in DEBUG mode" );
   }
   catch ( tk::Exception& ) {
@@ -3328,7 +3328,7 @@ void DerivedData_object::test< 77 >() {
   #else
   try {
     std::vector< std::size_t > inpoed{ 0, 1, 2, 3 };
-    tk::genEdpas( 8, 0, inpoed );
+    tk::genEdpas( 8, 2, 0, inpoed );
     fail( "should throw exception in DEBUG mode" );
   }
   catch ( tk::Exception& ) {
@@ -3347,7 +3347,7 @@ void DerivedData_object::test< 78 >() {
   #else
   try {
     std::vector< std::size_t > inpoed{ 0, 1, 2, 3 };
-    tk::genEdpas( -1, 4, inpoed );
+    tk::genEdpas( -1, 2, 4, inpoed );
     fail( "should throw exception in DEBUG mode" );
   }
   catch ( tk::Exception& ) {
@@ -3367,7 +3367,27 @@ void DerivedData_object::test< 79 >() {
   try {
     // Partial mesh mesh connectivity
     std::vector< std::size_t > inpoed{ 12, 14,  9 };
-    tk::genEdpas( 8, 7, inpoed );
+    tk::genEdpas( 8, 2, 7, inpoed );
+    fail( "should throw exception in DEBUG mode" );
+  }
+  catch ( tk::Exception& ) {
+    // exception thrown in DEBUG mode, test ok
+  }
+  #endif
+}
+
+//! Test genEdpas if it throws on non-positive nnpe
+template<> template<>
+void DerivedData_object::test< 80 >() {
+  set_test_name( "genEdpas throws on non-positive nnpe" );
+
+  #ifdef NDEBUG        // exception only thrown in DEBUG mode
+    skip( "in RELEASE mode, would yield invalid read" );
+  #else
+  try {
+    // Partial mesh mesh connectivity
+    std::vector< std::size_t > inpoed{ 12, 14,  9 };
+    tk::genEdpas( 8, 0, 7, inpoed );
     fail( "should throw exception in DEBUG mode" );
   }
   catch ( tk::Exception& ) {
@@ -3378,8 +3398,8 @@ void DerivedData_object::test< 79 >() {
 
 //! Generate and test vector groups of edges for simple tetrahedron mesh
 template<> template<>
-void DerivedData_object::test< 80 >() {
-  set_test_name( "genEdpas for tetrahedra" );
+void DerivedData_object::test< 81 >() {
+  set_test_name( "genEdpas for edges of tetrahedra mesh" );
 
   // mesh connectivity for simple tetrahedron-only mesh
   std::vector< std::size_t > inpoel { 12, 14,  9, 11,
@@ -3421,7 +3441,7 @@ void DerivedData_object::test< 80 >() {
 
   for (auto mvecl : {4,8}) {
     // Generate vector groups for edges of length mvecl
-    auto edpas = tk::genEdpas( mvecl, npoin, inpoed );
+    auto edpas = tk::genEdpas( mvecl, 2, npoin, inpoed );
 
     // Test if the same edges are swept by un-grouped and grouped loops
     using tk::UnsMesh;
@@ -3466,6 +3486,202 @@ void DerivedData_object::test< 80 >() {
                 swept_edges_ed.find({p,q}) != end(swept_edges_ed) );
       }
     }
+  }
+}
+
+//! Generate and test vector groups of superedges for simple tetrahedron mesh
+template<> template<>
+void DerivedData_object::test< 82 >() {
+  set_test_name( "genEdpas for superedges of tetrahedra mesh" );
+
+  // mesh connectivity for simple tetrahedron-only mesh
+  std::vector< std::size_t > inpoel { 12, 14,  9, 11,
+                                      10, 14, 13, 12,
+                                      14, 13, 12,  9,
+                                      10, 14, 12, 11,
+                                      1,  14,  5, 11,
+                                      7,   6, 10, 12,
+                                      14,  8,  5, 10,
+                                      8,   7, 10, 13,
+                                      7,  13,  3, 12,
+                                      1,   4, 14,  9,
+                                      13,  4,  3,  9,
+                                      3,   2, 12,  9,
+                                      4,   8, 14, 13,
+                                      6,   5, 10, 11,
+                                      1,   2,  9, 11,
+                                      2,   6, 12, 11,
+                                      6,  10, 12, 11,
+                                      2,  12,  9, 11,
+                                      5,  14, 10, 11,
+                                      14,  8, 10, 13,
+                                      13,  3, 12,  9,
+                                      7,  10, 13, 12,
+                                      14,  4, 13,  9,
+                                      14,  1,  9, 11 };
+
+  // Shift node IDs to start from zero
+  tk::shiftToZero( inpoel );
+
+  // Generate points of edges
+  auto esup = tk::genEsup( inpoel, 4 );
+  auto inpoed = tk::genInpoed( inpoel, 4, esup );
+
+  // Generate tetrahedron, triangle, and edge as superedges
+
+  std::array< std::vector< std::size_t >, 3 > supedge;
+
+  tk::UnsMesh::FaceSet untri;
+  for (std::size_t e=0; e<inpoel.size()/4; e++) {
+    std::size_t N[4] = {
+      inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
+    for (const auto& [a,b,c] : tk::lpofa) untri.insert( { N[a], N[b], N[c] } );
+  }
+
+  tk::UnsMesh::EdgeSet unedge;
+  for (std::size_t e=0; e<inpoed.size()/2; ++e) {
+    unedge.insert( { inpoed[e*2], inpoed[e*2+1] } );
+  }
+
+  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+    std::size_t N[4] = {
+      inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
+    int f = 0;
+    decltype(unedge)::const_iterator d[6];
+    for (const auto& [p,q] : tk::lpoed) {
+      d[f] = unedge.find( { N[p], N[q] } );
+      if (d[f] == end(unedge)) break; else ++f;
+    }
+    if (f == 6) {
+      supedge[0].push_back( N[0] );
+      supedge[0].push_back( N[1] );
+      supedge[0].push_back( N[2] );
+      supedge[0].push_back( N[3] );
+      for (const auto& [a,b,c] : tk::lpofa) untri.erase( { N[a], N[b], N[c] } );
+      for (int ed=0; ed<6; ++ed) unedge.erase( d[ed] );
+    }
+  }
+
+  for (const auto& N : untri) {
+    int f = 0;
+    decltype(unedge)::const_iterator d[3];
+    for (const auto& [p,q] : tk::lpoet) {
+      d[f] = unedge.find( { N[p], N[q] } );
+      if (d[f] == end(unedge)) break; else ++f;
+    }
+    if (f == 3) {
+      supedge[1].push_back( N[0] );
+      supedge[1].push_back( N[1] );
+      supedge[1].push_back( N[2] );
+      for (int ed=0; ed<3; ++ed) unedge.erase( d[ed] );
+    }
+  }
+
+  supedge[2].resize( unedge.size()*2 );
+  std::size_t k = 0;
+  for (const auto& ed : unedge) {
+    auto e = supedge[2].data() + k*2;
+    e[0] = ed[0];
+    e[1] = ed[1];
+    ++k;
+  }
+
+  // Find number of points in mesh
+  auto minmax = std::minmax_element( begin(inpoel), end(inpoel) );
+  Assert( *minmax.first == 0, "node ids should start from zero" );
+  auto npoin = *minmax.second + 1;
+
+  // Test all superedge vector groups
+  k = 0;
+  for (const std::size_t nnpe : {4UL,3UL,2UL}) {
+    for (auto mvecl : {4,8}) {
+      // Generate vector groups for edges of length mvecl
+      auto edpas = tk::genEdpas( mvecl, nnpe, npoin, supedge[k] );
+
+      // Test if the same edges are swept by un-grouped and grouped loops
+      using tk::UnsMesh;
+      std::unordered_set< UnsMesh::Edge, UnsMesh::Hash<2>, UnsMesh::Eq<2> >
+        swept_edges_ed, swept_edges_gr;
+
+      auto nedge = supedge[k].size() / nnpe;
+      for (std::size_t e=0; e<nedge; ++e) {
+        const auto N = supedge[k].data() + e*nnpe;
+        swept_edges_ed.insert( { N[0], N[1] } );
+        if (nnpe > 2) {
+          swept_edges_ed.insert( { N[1], N[2] } );
+          swept_edges_ed.insert( { N[2], N[0] } );
+        }
+        if (nnpe > 3) {
+          swept_edges_ed.insert( { N[0], N[3] } );
+          swept_edges_ed.insert( { N[1], N[3] } );
+          swept_edges_ed.insert( { N[2], N[3] } );
+        }
+      }
+
+      std::vector< std::unordered_set< std::size_t > >
+          swept_nodes_gr( edpas.second.size()-1 );
+
+      for (std::size_t w=0; w<edpas.second.size()-1; ++w) {
+        for (auto i=edpas.second[w]+1; i<=edpas.second[w+1]; ++i) {
+          auto e = edpas.first[i];
+          const auto N = supedge[k].data() + e*nnpe;
+          swept_edges_gr.insert( { N[0], N[1] } );
+          if (nnpe > 2) {
+            swept_edges_gr.insert( { N[1], N[2] } );
+            swept_edges_gr.insert( { N[2], N[0] } );
+          }
+          if (nnpe > 3) {
+            swept_edges_gr.insert( { N[0], N[3] } );
+            swept_edges_gr.insert( { N[1], N[3] } );
+            swept_edges_gr.insert( { N[2], N[3] } );
+          }
+          auto& nodegr = swept_nodes_gr[w];
+          for (std::size_t p=0; p<nnpe; ++p) {
+            ensure( "node already in group", nodegr.find(N[p]) == end(nodegr) );
+            nodegr.insert( N[p] );
+          }
+        }
+      }
+
+      ensure_equals( "number of swept edges unequal",
+                     swept_edges_ed.size(), swept_edges_gr.size() );
+
+      for (std::size_t w=0; w<edpas.second.size()-1; ++w) {
+        for (auto i=edpas.second[w]+1; i<=edpas.second[w+1]; ++i) {
+          auto e = edpas.first[i];
+          const auto N = supedge[k].data() + e*nnpe;
+          ensure( "edge " + std::to_string(N[0]) + '-' + std::to_string(N[1]) +
+                  " swept by vector group " + std::to_string(mvecl) +
+                  " not in original loop",
+                  swept_edges_ed.find({N[0],N[1]}) != end(swept_edges_ed) );
+          if (nnpe > 2) {
+            ensure( "edge " + std::to_string(N[1]) + '-' + std::to_string(N[2])+
+                    " swept by vector group " + std::to_string(mvecl) +
+                    " not in original loop",
+                    swept_edges_ed.find({N[1],N[2]}) != end(swept_edges_ed) );
+            ensure( "edge " + std::to_string(N[2]) + '-' + std::to_string(N[0])+
+                    " swept by vector group " + std::to_string(mvecl) +
+                    " not in original loop",
+                    swept_edges_ed.find({N[2],N[0]}) != end(swept_edges_ed) );
+          }
+          if (nnpe > 3) {
+            ensure( "edge " + std::to_string(N[0]) + '-' + std::to_string(N[3])+
+                    " swept by vector group " + std::to_string(mvecl) +
+                    " not in original loop",
+                    swept_edges_ed.find({N[0],N[3]}) != end(swept_edges_ed) );
+            ensure( "edge " + std::to_string(N[1]) + '-' + std::to_string(N[3])+
+                    " swept by vector group " + std::to_string(mvecl) +
+                    " not in original loop",
+                    swept_edges_ed.find({N[1],N[3]}) != end(swept_edges_ed) );
+            ensure( "edge " + std::to_string(N[2]) + '-' + std::to_string(N[3])+
+                    " swept by vector group " + std::to_string(mvecl) +
+                    " not in original loop",
+                    swept_edges_ed.find({N[2],N[3]}) != end(swept_edges_ed) );
+          }
+        }
+      }
+    }
+    ++k;
   }
 }
 

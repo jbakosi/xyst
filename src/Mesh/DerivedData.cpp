@@ -813,17 +813,19 @@ genEsued( const std::vector< std::size_t >& inpoel,
 }
 
 std::pair< std::vector< std::size_t >, std::vector< std::size_t > >
-genEdpas( int mvecl, std::size_t npoin,
+genEdpas( int mvecl, std::size_t nnpe, std::size_t npoin,
           const std::vector< std::size_t >& inpoed )
 // *****************************************************************************
 //  Generate vector-groups for edges
 //! \param[in] mvecl Max vector length to target
+//! \param[in] nnpe Number of nodes per (super-)edge
 //! \param[in] npoin Number mesh points
-//! \param[in] inpoed Edge connectivity as linear vector, see tk::genInpoed
+//! \param[in] inpoed Edge connectivity as linear vector, see tk::genInpoed for
+//!            nnpe=2
 //! \return Linked lists storing edge-groups so that any point of a group is
 //!   accessed only once within a group.
-// //! \warning It is not okay to call this function with an empty container or a
-// //!   non-positive number of nodes per element; it will throw an exception.
+//! \warning It is not okay to call this function with an empty container or a
+//!   non-positive number of nodes per element; it will throw an exception.
 //! \details The data generated here is stored in a linked list, more precisely,
 //!   two linked arrays (vectors), _edpas1_ and _edpas2_, where _edpas2_ holds
 //!   the indices at which _edpas1_ holds the edge ids of a vector group.
@@ -837,11 +839,12 @@ genEdpas( int mvecl, std::size_t npoin,
 // *****************************************************************************
 {
   Assert( mvecl > 0, "Attempt to call genEdpas() with non-positive veclen" );
+  Assert( nnpe > 0, "Attempt to call genEdpas() with non-positive nnpe" );
   Assert( npoin > 0, "Attempt to call genEdpas() with non-positive npoin" );
   Assert( !inpoed.empty(), "Attempt to call genEdpas() on empty container" );
-  Assert( inpoed.size()%2 == 0, "Size of inpoed must be divisible by 2" );
+  Assert( inpoed.size()%nnpe == 0, "Size of inpoed must be divisible by nnpe" );
 
-  auto nedge = inpoed.size() / 2;
+  auto nedge = inpoed.size() / nnpe;
 
   std::vector< std::size_t > ledge( nedge, 0 );
   std::vector< std::size_t > lpoin( npoin, 0 );
@@ -862,12 +865,13 @@ genEdpas( int mvecl, std::size_t npoin,
     edpas.second.emplace_back();
     for (auto ie = begin(unedge); ie != end(unedge); ) {
       auto e = *ie;
-      auto p = inpoed[e*2+0];
-      auto q = inpoed[e*2+1];
-      if (lpoin[p] != ngrou && lpoin[q] != ngrou) {
-        //std::cout << e << ":\t" << p << '-' << q << "\t"
-        //          << lpoin[p] << "-" << lpoin[q] << " != " << ngrou << '\n';
-        lpoin[p] = lpoin[q] = ngrou;
+      const auto N = inpoed.data() + e*nnpe;
+      std::size_t nsw = 0;
+      for (std::size_t i=0; i<nnpe; ++i) {
+        if (lpoin[N[i]] == ngrou) break; else ++nsw;
+      }
+      if (nsw == nnpe) {
+        for (std::size_t i=0; i<nnpe; ++i) lpoin[N[i]] = ngrou;
         ledge[e] = ngrou;
         ++nenew;
         ++nvecl;
@@ -887,29 +891,28 @@ genEdpas( int mvecl, std::size_t npoin,
   //  ne += edpas.second[i+1] - edpas.second[i];
   //}
   //std::cout << "edges grouped: " << ne << " of " << nedge << '\n';
-  //std::cout << "edges groups:";
+  //std::cout << "edge groups:";
   //for (std::size_t g=1; g<=edpas.second.size(); ++g) {
   //  std::cout << '\n';
   //  for (std::size_t e=0; e<nedge; ++e) {
   //    if (ledge[e] == g) {
-  //      auto p = inpoed[e*2+0];
-  //      auto q = inpoed[e*2+1];
-  //      std::cout << e << ":\t" << p << '-' << q << ",\tgrp: " << ledge[e] << '\n';
+  //      const auto N = inpoed.data() + e*nnpe;
+  //      std::cout << e << ":\t";
+  //      for (std::size_t i=0; i<nnpe-1; ++i) std::cout << N[i] << '-';
+  //      std::cout << N[nnpe-1] << "\tgrp: " << ledge[e] << '\n';
   //    }
   //  }
   //}
   //std::cout << '\n';
 
-  //std::cout << "new access loop:\n";
+  //std::cout << "\nnew access loop:\n";
   //for (std::size_t g=0; g<edpas.second.size()-1; ++g) {
-  //  std::cout << g << ": " << edpas.second[g]+1 << " ... "
-  //                         << edpas.second[g+1] << ": ";
   //  //#pragma omp simd
-  //  for (auto i=edpas.second[g]+1; i<=edpas.second[g+1]; ++i) {
-  //    auto e = edpas.first[i];
-  //    auto p = inpoed[e*2+0];
-  //    auto q = inpoed[e*2+1];
-  //    std::cout << e << ':' << p << '-' << q << ' ';
+  //  for (auto w=edpas.second[g]+1; w<=edpas.second[g+1]; ++w) {
+  //    auto e = edpas.first[w];
+  //    const auto N = inpoed.data() + e*nnpe;
+  //    for (std::size_t i=0; i<nnpe-1; ++i) std::cout << N[i] << '-';
+  //    std::cout << N[nnpe-1] << ' ';
   //  }
   //  std::cout << '\n';
   //}
@@ -917,11 +920,11 @@ genEdpas( int mvecl, std::size_t npoin,
 
   //std::cout << "old access loop:\n";
   //for (std::size_t e=0; e<nedge; ++e) {
-  //  auto p = inpoed[e*2+0];
-  //  auto q = inpoed[e*2+1];
-  //  std::cout << e << ':' << p << '-' << q << ' ';
+  //  const auto N = inpoed.data() + e*nnpe;
+  //  for (std::size_t i=0; i<nnpe-1; ++i) std::cout << N[i] << '-';
+  //  std::cout << N[nnpe-1] << ' ';
   //}
-  //std::cout << '\n';
+  //std::cout << "\n\n";
 
   // Return linked lists
   return edpas;

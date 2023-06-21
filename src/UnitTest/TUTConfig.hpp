@@ -19,7 +19,7 @@ namespace tut {
 //! \details If any of the unit test groups have more tests than this number,
 //!   this should be increased. All test groups use this value to override the
 //!   default template argument for tut::test_group<>.
-const int MAX_TESTS_IN_GROUP = 80;
+const int MAX_TESTS_IN_GROUP = 100;
 
 } // tut::
 

@@ -634,39 +634,10 @@ RieCG::streamable()
   }
   tk::destroy( m_bndpoinint );
 
-  // Convert boundary edge integrals into streamable data structures
-  m_bedge.resize( m_bndedgeint.size() * 2 );
-  m_besym.resize( m_bndedgeint.size() * 2 );
-  m_beint.resize( m_bndedgeint.size() * 3 );
-  std::size_t j = 0;
-  for (const auto& [ed,b] : m_bndedgeint) {
-    auto p = tk::cref_find( lid, ed[0] );
-    auto q = tk::cref_find( lid, ed[1] );
-    m_bedge[j*2+0] = p;
-    m_bedge[j*2+1] = q;
-    m_besym[j*2+0] = static_cast< std::uint8_t >( m_symbcnodeset.count(p) );
-    m_besym[j*2+1] = static_cast< std::uint8_t >( m_symbcnodeset.count(q) );
-    m_beint[j*3+0] = b[0];
-    m_beint[j*3+1] = b[1];
-    m_beint[j*3+2] = b[2];
-    ++j;
-  }
+  // Generate boundary superedges
+  bndsuped();
   tk::destroy( m_bndedgeint );
 
-  // Convert domain edge integrals into streamable data structures
-  m_dedge.resize( m_domedgeint.size() * 2 );
-  m_deint.resize( m_domedgeint.size() * 3 );
-  std::size_t k = 0;
-  for (const auto& [ed,d] : m_domedgeint) {
-    auto p = tk::cref_find( lid, ed[0] );
-    auto q = tk::cref_find( lid, ed[1] );
-    m_dedge[k*2+0] = p;
-    m_dedge[k*2+1] = q;
-    m_deint[k*3+0] = d[0];
-    m_deint[k*3+1] = d[1];
-    m_deint[k*3+2] = d[2];
-    ++k;
-  }
   // Generate domain superedges
   domsuped();
   tk::destroy( m_domedgeint );
@@ -716,14 +687,103 @@ RieCG::streamable()
 }
 
 void
+RieCG::bndsuped()
+// *****************************************************************************
+// Generate superedge-groups for boundary-edge loops
+//! \see See Lohner, Sec. 15.1.6.2, An Introduction to Applied CFD Techniques,
+//!      Wiley, 2008.
+// *****************************************************************************
+{
+  #ifndef NDEBUG
+  auto nbedge = m_bndedgeint.size();
+  #endif
+
+  const auto& lid = Disc()->Lid();
+  const auto& gid = Disc()->Gid();
+
+  tk::destroy( m_bsupedge[0] );
+  tk::destroy( m_bsupedge[1] );
+
+  tk::destroy( m_bsupint[0] );
+  tk::destroy( m_bsupint[1] );
+
+  //for (const auto& [setid, tri] : m_bface) {
+  //  for (auto e : tri) {
+  //    std::size_t N[3] = { m_triinpoel[e*3+0], m_triinpoel[e*3+1],
+  //                         m_triinpoel[e*3+2] };
+  //    int f = 0;
+  //    tk::real sig[3];
+  //    decltype(m_bndedgeint)::const_iterator b[3];
+  //    for (const auto& [p,q] : tk::lpoet) {
+  //      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+  //      sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+  //      b[f] = m_bndedgeint.find( ed );
+  //      if (b[f] == end(m_bndedgeint)) break; else ++f;
+  //    }
+  //    if (f == 3) {
+  //      m_bsupedge[0].push_back( N[0] );
+  //      m_bsupedge[0].push_back( N[1] );
+  //      m_bsupedge[0].push_back( N[2] );
+  //      m_bsupedge[0].push_back( m_symbcnodeset.count(N[0]) );
+  //      m_bsupedge[0].push_back( m_symbcnodeset.count(N[1]) );
+  //      m_bsupedge[0].push_back( m_symbcnodeset.count(N[2]) );
+  //      for (int ed=0; ed<3; ++ed) {
+  //        m_bsupint[0].push_back( sig[ed] * b[ed]->second[0] );
+  //        m_bsupint[0].push_back( sig[ed] * b[ed]->second[1] );
+  //        m_bsupint[0].push_back( sig[ed] * b[ed]->second[2] );
+  //        m_bndedgeint.erase( b[ed] );
+  //      }
+  //    }
+  //  }
+  //}
+
+  m_bsupedge[1].resize( m_bndedgeint.size()*4 );
+  m_bsupint[1].resize( m_bndedgeint.size()*3 );
+  std::size_t k = 0;
+  for (const auto& [ed,b] : m_bndedgeint) {
+    auto p = tk::cref_find( lid, ed[0] );
+    auto q = tk::cref_find( lid, ed[1] );
+    auto e = m_bsupedge[1].data() + k*4;
+    e[0] = p;
+    e[1] = q;
+    e[2] = m_symbcnodeset.count(p);
+    e[3] = m_symbcnodeset.count(q);
+    auto i = m_bsupint[1].data() + k*3;
+    i[0] = b[0];
+    i[1] = b[1];
+    i[2] = b[2];
+    ++k;
+  }
+
+  //std::cout << std::setprecision(2)
+  //          << "superedges: ntri:" << m_bsupedge[0].size()/6
+  //          << "(nedge:" << m_bsupedge[0].size()/3 << ","
+  //          << 100.0 * static_cast< tk::real >( m_bsupedge[0].size()/3 ) /
+  //                     static_cast< tk::real >( nbedge )
+  //          << "%) + nedge:"
+  //          << m_bsupedge[1].size()/4 << "("
+  //          << 100.0 * static_cast< tk::real >( m_bsupedge[1].size()/4 ) /
+  //                     static_cast< tk::real >( nbedge )
+  //          << "%) = " << m_bsupedge[0].size()/2 + m_bsupedge[1].size()/4
+  //          << " of "<< nbedge << " total boundary edges\n";
+
+  Assert( m_bsupedge[0].size()/2 + m_bsupedge[1].size()/4 == nbedge,
+          "Not all boundary edges accounted for in superedge groups" );
+}
+
+void
 RieCG::domsuped()
 // *****************************************************************************
 // Generate superedge-groups for domain-edge loops
+//! \see See Lohner, Sec. 15.1.6.2, An Introduction to Applied CFD Techniques,
+//!      Wiley, 2008.
 // *****************************************************************************
 {
   Assert( !m_domedgeint.empty(), "No domain edges to group" );
 
+  #ifndef NDEBUG
   auto nedge = m_domedgeint.size();
+  #endif
 
   const auto& inpoel = Disc()->Inpoel();
   const auto& lid = Disc()->Lid();
@@ -744,64 +804,68 @@ RieCG::domsuped()
     for (const auto& [a,b,c] : tk::lpofa) untri.insert( { N[a], N[b], N[c] } );
   }
 
-  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    std::size_t N[4] = {
-      inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
-    int f = 0;
-    tk::real sig[6];
-    decltype(m_domedgeint)::const_iterator d[6];
-    for (const auto& [p,q] : tk::lpoed) {
-      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-      sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
-      d[f] = m_domedgeint.find( ed );
-      if (d[f] == end(m_domedgeint)) break; else ++f;
-    }
-    if (f == 6) {
-      m_dsupedge[0].push_back( N[0] );
-      m_dsupedge[0].push_back( N[1] );
-      m_dsupedge[0].push_back( N[2] );
-      m_dsupedge[0].push_back( N[3] );
-      for (const auto& [a,b,c] : tk::lpofa) untri.erase( { N[a], N[b], N[c] } );
-      for (int ed=0; ed<6; ++ed) {
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[0] );
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[1] );
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[2] );
-        m_domedgeint.erase( d[ed] );
-      }
-    }
-  }
+  //for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+  //  std::size_t N[4] = {
+  //    inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
+  //  int f = 0;
+  //  tk::real sig[6];
+  //  decltype(m_domedgeint)::const_iterator d[6];
+  //  for (const auto& [p,q] : tk::lpoed) {
+  //    tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+  //    sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+  //    d[f] = m_domedgeint.find( ed );
+  //    if (d[f] == end(m_domedgeint)) break; else ++f;
+  //  }
+  //  if (f == 6) {
+  //    m_dsupedge[0].push_back( N[0] );
+  //    m_dsupedge[0].push_back( N[1] );
+  //    m_dsupedge[0].push_back( N[2] );
+  //    m_dsupedge[0].push_back( N[3] );
+  //    for (const auto& [a,b,c] : tk::lpofa) untri.erase( { N[a], N[b], N[c] } );
+  //    for (int ed=0; ed<6; ++ed) {
+  //      m_dsupint[0].push_back( sig[ed] * d[ed]->second[0] );
+  //      m_dsupint[0].push_back( sig[ed] * d[ed]->second[1] );
+  //      m_dsupint[0].push_back( sig[ed] * d[ed]->second[2] );
+  //      m_domedgeint.erase( d[ed] );
+  //    }
+  //  }
+  //}
 
-  for (const auto& N : untri) {
-    int f = 0;
-    tk::real sig[3];
-    decltype(m_domedgeint)::const_iterator d[3];
-    for (const auto& [p,q] : tk::lpoet) {
-      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-      sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
-      d[f] = m_domedgeint.find( ed );
-      if (d[f] == end(m_domedgeint)) break; else ++f;
-    }
-    if (f == 3) {
-      m_dsupedge[1].push_back( N[0] );
-      m_dsupedge[1].push_back( N[1] );
-      m_dsupedge[1].push_back( N[2] );
-      for (int ed=0; ed<3; ++ed) {
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[0] );
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[1] );
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[2] );
-        m_domedgeint.erase( d[ed] );
-      }
-    }
-  }
+  //for (const auto& N : untri) {
+  //  int f = 0;
+  //  tk::real sig[3];
+  //  decltype(m_domedgeint)::const_iterator d[3];
+  //  for (const auto& [p,q] : tk::lpoet) {
+  //    tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+  //    sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+  //    d[f] = m_domedgeint.find( ed );
+  //    if (d[f] == end(m_domedgeint)) break; else ++f;
+  //  }
+  //  if (f == 3) {
+  //    m_dsupedge[1].push_back( N[0] );
+  //    m_dsupedge[1].push_back( N[1] );
+  //    m_dsupedge[1].push_back( N[2] );
+  //    for (int ed=0; ed<3; ++ed) {
+  //      m_dsupint[1].push_back( sig[ed] * d[ed]->second[0] );
+  //      m_dsupint[1].push_back( sig[ed] * d[ed]->second[1] );
+  //      m_dsupint[1].push_back( sig[ed] * d[ed]->second[2] );
+  //      m_domedgeint.erase( d[ed] );
+  //    }
+  //  }
+  //}
 
+  m_dsupedge[2].resize( m_domedgeint.size()*2 );
+  m_dsupint[2].resize( m_domedgeint.size()*3 );
+  std::size_t k = 0;
   for (const auto& [ed,d] : m_domedgeint) {
-    auto p = tk::cref_find( lid, ed[0] );
-    auto q = tk::cref_find( lid, ed[1] );
-    m_dsupedge[2].push_back( p );
-    m_dsupedge[2].push_back( q );
-    m_dsupint[2].push_back( d[0] );
-    m_dsupint[2].push_back( d[1] );
-    m_dsupint[2].push_back( d[2] );
+    auto e = m_dsupedge[2].data() + k*2;
+    e[0] = tk::cref_find( lid, ed[0] );
+    e[1] = tk::cref_find( lid, ed[1] );
+    auto i = m_dsupint[2].data() + k*3;
+    i[0] = d[0];
+    i[1] = d[1];
+    i[2] = d[2];
+    ++k;
   }
 
   //std::cout << std::setprecision(2)
@@ -990,7 +1054,7 @@ RieCG::grad()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-  physics::grad( m_bpoin, m_bpint, m_bedge, m_beint, m_dsupedge, m_dsupint,
+  physics::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
                  m_u, m_grad );
 
   // Send gradient contributions to neighbor chares
@@ -1073,8 +1137,9 @@ RieCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
   }
 
-  physics::rhs( m_dedge, m_deint, m_bpoin, m_bpint, m_bedge, m_beint, m_bpsym,
-    m_besym, d->Coord(), m_grad, m_u, d->V(), d->T(), m_tp, m_rhs );
+  physics::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
+    m_bpoin, m_bpint, m_bpsym, d->Coord(), m_grad, m_u, d->V(), d->T(),
+    m_tp, m_rhs );
 
   if (steady) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= prev_rkcoef * m_dtp[p];
@@ -1159,7 +1224,7 @@ RieCG::solve()
 
     // Advance solution, converging to steady state
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
-      for (ncomp_t c=0; c<m_u.nprop(); ++c) {
+      for (std::size_t c=0; c<m_u.nprop(); ++c) {
         m_u(i,c,0) = m_un(i,c,0) - rkcoef[m_stage] * m_dtp[i] * m_rhs(i,c,0);
       }
     }

@@ -3435,12 +3435,20 @@ void DerivedData_object::test< 80 >() {
       swept_edges_ed.insert( { p, q } );
     }
 
+    std::vector< std::unordered_set< std::size_t > >
+        swept_nodes_gr( edpas.second.size()-1 );
+
     for (std::size_t w=0; w<edpas.second.size()-1; ++w) {
       for (auto i=edpas.second[w]+1; i<=edpas.second[w+1]; ++i) {
         auto e = edpas.first[i];
         auto p = inpoed[e*2+0];
         auto q = inpoed[e*2+1];
         swept_edges_gr.insert( { p, q } );
+        auto& nodegr = swept_nodes_gr[w];
+        ensure( "node already in group", nodegr.find(p) == end(nodegr) );
+        ensure( "node already in group", nodegr.find(q) == end(nodegr) );
+        nodegr.insert( p );
+        nodegr.insert( q );
       }
     }
 

@@ -39,7 +39,7 @@ add_regression_test(compflow_euler_taylor_green_riecg ${INCITER_EXECUTABLE}
 # Parallel + virtualization
 
 add_regression_test(compflow_euler_taylor_green_riecg_u0.5 ${INCITER_EXECUTABLE}
-                    NUMPES 4
+                    NUMPES 4 PPN 2
                     INPUTFILES taylor_green.q unitcube_1k.exo
                     ARGS -c taylor_green.q -i unitcube_1k.exo -v -u 0.5
                     BIN_BASELINE taylor_green_pe4_u0.5.std.exo.0

@@ -707,35 +707,35 @@ RieCG::bndsuped()
   tk::destroy( m_bsupint[0] );
   tk::destroy( m_bsupint[1] );
 
-  //for (const auto& [setid, tri] : m_bface) {
-  //  for (auto e : tri) {
-  //    std::size_t N[3] = { m_triinpoel[e*3+0], m_triinpoel[e*3+1],
-  //                         m_triinpoel[e*3+2] };
-  //    int f = 0;
-  //    tk::real sig[3];
-  //    decltype(m_bndedgeint)::const_iterator b[3];
-  //    for (const auto& [p,q] : tk::lpoet) {
-  //      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-  //      sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
-  //      b[f] = m_bndedgeint.find( ed );
-  //      if (b[f] == end(m_bndedgeint)) break; else ++f;
-  //    }
-  //    if (f == 3) {
-  //      m_bsupedge[0].push_back( N[0] );
-  //      m_bsupedge[0].push_back( N[1] );
-  //      m_bsupedge[0].push_back( N[2] );
-  //      m_bsupedge[0].push_back( m_symbcnodeset.count(N[0]) );
-  //      m_bsupedge[0].push_back( m_symbcnodeset.count(N[1]) );
-  //      m_bsupedge[0].push_back( m_symbcnodeset.count(N[2]) );
-  //      for (int ed=0; ed<3; ++ed) {
-  //        m_bsupint[0].push_back( sig[ed] * b[ed]->second[0] );
-  //        m_bsupint[0].push_back( sig[ed] * b[ed]->second[1] );
-  //        m_bsupint[0].push_back( sig[ed] * b[ed]->second[2] );
-  //        m_bndedgeint.erase( b[ed] );
-  //      }
-  //    }
-  //  }
-  //}
+  for (const auto& [setid, tri] : m_bface) {
+    for (auto e : tri) {
+      std::size_t N[3] = { m_triinpoel[e*3+0], m_triinpoel[e*3+1],
+                           m_triinpoel[e*3+2] };
+      int f = 0;
+      tk::real sig[3];
+      decltype(m_bndedgeint)::const_iterator b[3];
+      for (const auto& [p,q] : tk::lpoet) {
+        tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+        sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+        b[f] = m_bndedgeint.find( ed );
+        if (b[f] == end(m_bndedgeint)) break; else ++f;
+      }
+      if (f == 3) {
+        m_bsupedge[0].push_back( N[0] );
+        m_bsupedge[0].push_back( N[1] );
+        m_bsupedge[0].push_back( N[2] );
+        m_bsupedge[0].push_back( m_symbcnodeset.count(N[0]) );
+        m_bsupedge[0].push_back( m_symbcnodeset.count(N[1]) );
+        m_bsupedge[0].push_back( m_symbcnodeset.count(N[2]) );
+        for (int ed=0; ed<3; ++ed) {
+          m_bsupint[0].push_back( sig[ed] * b[ed]->second[0] );
+          m_bsupint[0].push_back( sig[ed] * b[ed]->second[1] );
+          m_bsupint[0].push_back( sig[ed] * b[ed]->second[2] );
+          m_bndedgeint.erase( b[ed] );
+        }
+      }
+    }
+  }
 
   m_bsupedge[1].resize( m_bndedgeint.size()*4 );
   m_bsupint[1].resize( m_bndedgeint.size()*3 );
@@ -804,55 +804,55 @@ RieCG::domsuped()
     for (const auto& [a,b,c] : tk::lpofa) untri.insert( { N[a], N[b], N[c] } );
   }
 
-  //for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-  //  std::size_t N[4] = {
-  //    inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
-  //  int f = 0;
-  //  tk::real sig[6];
-  //  decltype(m_domedgeint)::const_iterator d[6];
-  //  for (const auto& [p,q] : tk::lpoed) {
-  //    tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-  //    sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
-  //    d[f] = m_domedgeint.find( ed );
-  //    if (d[f] == end(m_domedgeint)) break; else ++f;
-  //  }
-  //  if (f == 6) {
-  //    m_dsupedge[0].push_back( N[0] );
-  //    m_dsupedge[0].push_back( N[1] );
-  //    m_dsupedge[0].push_back( N[2] );
-  //    m_dsupedge[0].push_back( N[3] );
-  //    for (const auto& [a,b,c] : tk::lpofa) untri.erase( { N[a], N[b], N[c] } );
-  //    for (int ed=0; ed<6; ++ed) {
-  //      m_dsupint[0].push_back( sig[ed] * d[ed]->second[0] );
-  //      m_dsupint[0].push_back( sig[ed] * d[ed]->second[1] );
-  //      m_dsupint[0].push_back( sig[ed] * d[ed]->second[2] );
-  //      m_domedgeint.erase( d[ed] );
-  //    }
-  //  }
-  //}
+  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+    std::size_t N[4] = {
+      inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
+    int f = 0;
+    tk::real sig[6];
+    decltype(m_domedgeint)::const_iterator d[6];
+    for (const auto& [p,q] : tk::lpoed) {
+      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+      sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+      d[f] = m_domedgeint.find( ed );
+      if (d[f] == end(m_domedgeint)) break; else ++f;
+    }
+    if (f == 6) {
+      m_dsupedge[0].push_back( N[0] );
+      m_dsupedge[0].push_back( N[1] );
+      m_dsupedge[0].push_back( N[2] );
+      m_dsupedge[0].push_back( N[3] );
+      for (const auto& [a,b,c] : tk::lpofa) untri.erase( { N[a], N[b], N[c] } );
+      for (int ed=0; ed<6; ++ed) {
+        m_dsupint[0].push_back( sig[ed] * d[ed]->second[0] );
+        m_dsupint[0].push_back( sig[ed] * d[ed]->second[1] );
+        m_dsupint[0].push_back( sig[ed] * d[ed]->second[2] );
+        m_domedgeint.erase( d[ed] );
+      }
+    }
+  }
 
-  //for (const auto& N : untri) {
-  //  int f = 0;
-  //  tk::real sig[3];
-  //  decltype(m_domedgeint)::const_iterator d[3];
-  //  for (const auto& [p,q] : tk::lpoet) {
-  //    tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-  //    sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
-  //    d[f] = m_domedgeint.find( ed );
-  //    if (d[f] == end(m_domedgeint)) break; else ++f;
-  //  }
-  //  if (f == 3) {
-  //    m_dsupedge[1].push_back( N[0] );
-  //    m_dsupedge[1].push_back( N[1] );
-  //    m_dsupedge[1].push_back( N[2] );
-  //    for (int ed=0; ed<3; ++ed) {
-  //      m_dsupint[1].push_back( sig[ed] * d[ed]->second[0] );
-  //      m_dsupint[1].push_back( sig[ed] * d[ed]->second[1] );
-  //      m_dsupint[1].push_back( sig[ed] * d[ed]->second[2] );
-  //      m_domedgeint.erase( d[ed] );
-  //    }
-  //  }
-  //}
+  for (const auto& N : untri) {
+    int f = 0;
+    tk::real sig[3];
+    decltype(m_domedgeint)::const_iterator d[3];
+    for (const auto& [p,q] : tk::lpoet) {
+      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+      sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+      d[f] = m_domedgeint.find( ed );
+      if (d[f] == end(m_domedgeint)) break; else ++f;
+    }
+    if (f == 3) {
+      m_dsupedge[1].push_back( N[0] );
+      m_dsupedge[1].push_back( N[1] );
+      m_dsupedge[1].push_back( N[2] );
+      for (int ed=0; ed<3; ++ed) {
+        m_dsupint[1].push_back( sig[ed] * d[ed]->second[0] );
+        m_dsupint[1].push_back( sig[ed] * d[ed]->second[1] );
+        m_dsupint[1].push_back( sig[ed] * d[ed]->second[2] );
+        m_domedgeint.erase( d[ed] );
+      }
+    }
+  }
 
   m_dsupedge[2].resize( m_domedgeint.size()*2 );
   m_dsupint[2].resize( m_domedgeint.size()*3 );

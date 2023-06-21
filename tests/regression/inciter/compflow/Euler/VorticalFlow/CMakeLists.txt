@@ -32,7 +32,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_steady
 
 add_regression_test(compflow_euler_vorticalflow_riecg_steady
                     ${INCITER_EXECUTABLE}
-                    NUMPES 4
+                    NUMPES 4 PPN 1
                     INPUTFILES vortical_flow_steady.q unitcube_1k.exo
                     ARGS -c vortical_flow_steady.q -i unitcube_1k.exo -v
                     BIN_BASELINE vortical_flow_steady_pe4.std.exo.0

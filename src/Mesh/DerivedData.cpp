@@ -838,10 +838,11 @@ genEdpas( int mvecl, std::size_t nnpe, std::size_t npoin,
 //! \see Lohner, An Introduction to Applied CFD Techniques, Wiley, 2008
 // *****************************************************************************
 {
+  if (inpoed.empty()) return {};
+
   Assert( mvecl > 0, "Attempt to call genEdpas() with non-positive veclen" );
   Assert( nnpe > 0, "Attempt to call genEdpas() with non-positive nnpe" );
   Assert( npoin > 0, "Attempt to call genEdpas() with non-positive npoin" );
-  Assert( !inpoed.empty(), "Attempt to call genEdpas() on empty container" );
   Assert( inpoed.size()%nnpe == 0, "Size of inpoed must be divisible by nnpe" );
 
   auto nedge = inpoed.size() / nnpe;

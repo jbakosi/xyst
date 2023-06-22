@@ -3302,20 +3302,12 @@ void DerivedData_object::test< 75 >() {
 //!        connectivity
 template<> template<>
 void DerivedData_object::test< 76 >() {
-  set_test_name( "genEdpas throws with empty inpoed" );
+  set_test_name( "genEdpas graceful with empty inpoed" );
 
-  #ifdef NDEBUG        // exception only thrown in DEBUG mode
-    skip( "in RELEASE mode, would yield segmentation fault" );
-  #else
-  try {
-    std::vector< std::size_t > empty;
-    tk::genEdpas( 8, 2, 4, empty );
-    fail( "should throw exception in DEBUG mode" );
-  }
-  catch ( tk::Exception& ) {
-    // exception thrown in DEBUG mode, test ok
-  }
-  #endif
+  std::vector< std::size_t > empty;
+  auto edpas = tk::genEdpas( 8, 2, 4, empty );
+  ensure( "edpas after empty inpoed not empty",
+          edpas.first.empty() && edpas.second.empty() );
 }
 
 //! Test genEdpas if it throws on non-positive number of nodes

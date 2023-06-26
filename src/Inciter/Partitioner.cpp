@@ -18,7 +18,7 @@
 #include "Partitioner.hpp"
 #include "DerivedData.hpp"
 #include "Reorder.hpp"
-#include "MeshReader.hpp"
+#include "ExodusIIMeshReader.hpp"
 #include "UnsMesh.hpp"
 #include "ContainerUtil.hpp"
 #include "Callback.hpp"
@@ -90,7 +90,7 @@ Partitioner::Partitioner(
 // *****************************************************************************
 {
   // Create mesh reader
-  tk::MeshReader mr( filename );
+  tk::ExodusIIMeshReader mr( filename );
 
   // Read this compute node's chunk of the mesh (graph and coords) from file
   std::vector< std::size_t > triinpoel;

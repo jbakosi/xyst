@@ -77,7 +77,6 @@ add_executable(${UNITTEST_EXECUTABLE}
                ../../tests/unit/Inciter/AMR/TestError.cpp
                ../../tests/unit/IO/TestExodusIIMeshReader.cpp
                ../../tests/unit/IO/TestMesh.cpp
-               ../../tests/unit/IO/TestMeshReader.cpp
                ../../tests/unit/Mesh/TestAround.cpp
                ../../tests/unit/Mesh/TestDerivedData.cpp
                ../../tests/unit/Mesh/TestDerivedData_MPISingle.cpp
@@ -102,8 +101,8 @@ target_link_libraries(${UNITTEST_EXECUTABLE}
                       UnitTest
                       UnitTestControl
                       Mesh
-                      MeshDetect
                       NativeMeshIO
+                      MeshDetect
                       ExodusIIMeshIO
                       ${SEACASExodus_LIBRARIES}
                       ${MKL_CORE_LIBRARY}

@@ -30,7 +30,7 @@
 #include "PDFWriter.hpp"
 #include "ContainerUtil.hpp"
 #include "LoadDistributor.hpp"
-#include "MeshReader.hpp"
+#include "ExodusIIMeshReader.hpp"
 #include "Inciter/Types.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
 #include "DiagWriter.hpp"
@@ -274,7 +274,7 @@ Transporter::createPartitioner()
   std::size_t meshid = 0;
   for (const auto& filename : m_input) {
     // Create mesh reader for reading side sets from file
-    tk::MeshReader mr( filename );
+    tk::ExodusIIMeshReader mr( filename );
 
     // Read out total number of mesh points from mesh file
     m_npoin.push_back( mr.npoin() );

@@ -19,7 +19,7 @@ namespace zoltan {
 std::vector< std::size_t >
 partMesh( tk::ctr::PartitioningAlgorithmType alg,
           const std::vector< std::size_t >& inpoel,
-          const std::vector< std::size_t >& ginpoel,
+          const std::vector< std::size_t >& /*ginpoel*/,
           const std::array< std::vector< tk::real >, 3 >& coord,
           int npart )
 // *****************************************************************************
@@ -35,7 +35,8 @@ partMesh( tk::ctr::PartitioningAlgorithmType alg,
   std::vector< std::size_t > chare;
 
   if (alg == tk::ctr::PartitioningAlgorithmType::PHG)
-    chare = graphPartMesh( ginpoel, npart );
+    //chare = graphPartMesh( ginpoel, npart );
+    Throw( "Unimplemented" );
   else
     chare = geomPartMesh( alg, inpoel, coord, npart );
 

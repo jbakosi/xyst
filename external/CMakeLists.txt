@@ -106,16 +106,3 @@ ExternalProject_Add(
   LOG_BUILD 1
   LOG_INSTALL 1
 )
-
-ExternalProject_Add(
-  numdiff
-  PREFIX numdiff
-  GIT_REPOSITORY https://codeberg.org/xyst/ndiff
-  CMAKE_ARGS -D CMAKE_C_COMPILER:PATH=${CMAKE_C_COMPILER}
-             -D CMAKE_CXX_COMPILER:PATH=${CMAKE_CXX_COMPILER}
-             -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
-  LOG_DOWNLOAD 1
-  LOG_CONFIGURE 1
-  LOG_BUILD 1
-  LOG_INSTALL 1
-)

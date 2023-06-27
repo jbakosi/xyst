@@ -32,6 +32,8 @@ if (ENABLE_VALGRIND)
   endif()
 endif()
 
+add_subdirectory(numdiff)
+
 # configure helper executable to test signals from executables
 add_executable(signal_wrapper signal_wrapper.cpp)
 set(SIGNAL_WRAPPER "${CMAKE_CURRENT_BINARY_DIR}/signal_wrapper")

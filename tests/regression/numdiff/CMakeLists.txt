@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 2.4)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
-PROJECT(numdiff C)
+project(numdiff C)
 
 if(NOT "${CMAKE_C_FLAGS}" MATCHES "std=c99")
    if(NOT CMAKE_C_COMPILER_ID STREQUAL "Cray")
@@ -17,7 +17,7 @@ file(GLOB numdiff_src src/*.c)
 
 include_directories(src)
 add_executable(numdiff ${numdiff_src})
-set(OUTPUT_NAME numdiff CACHE string "Output name for executable")
+set(OUTPUT_NAME numdiff CACHE STRING "Output name for executable")
 set(NUMDIFF_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_NAME} PARENT_SCOPE)
 set_target_properties(numdiff PROPERTIES OUTPUT_NAME ${OUTPUT_NAME})
 if(UNIX)

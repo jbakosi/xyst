@@ -17,7 +17,8 @@ target_include_directories(ZoltanInterOp PUBLIC
                            ${PROJECT_SOURCE_DIR}/../zoltan/src/all
                            ${PROJECT_BINARY_DIR}/../Main
                            ${PEGTL_INCLUDE_DIRS}
-                           ${CHARM_INCLUDE_DIRS})
+                           ${CHARM_INCLUDE_DIRS}
+                           ${MPI_CXX_INCLUDE_DIRS})
 
 set_target_properties(ZoltanInterOp PROPERTIES
                       LIBRARY_OUTPUT_NAME xyst_zoltaninterop)

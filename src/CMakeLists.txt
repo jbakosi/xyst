@@ -248,12 +248,6 @@ set(INCITER_EXECUTABLE inciter)
 set(MESHCONV_EXECUTABLE meshconv)
 set(UNITTEST_EXECUTABLE unittest)
 
-# Create set of all executables tested. These are the executables that do
-# "interesting things", i.e., excluding unittest
-set(NONTEST_EXECUTABLES ${MESHCONV_EXECUTABLE} ${INCITER_EXECUTABLE})
-
-set(EXECUTABLES ${MESHCONV_EXECUTABLE} ${UNITTEST_EXECUTABLE} ${INCITER_EXECUTABLE})
-
 # Decide if the Exception class will write to std::cerr. This may not always be
 # thread-safe, e.g., in Charm++'s SMP mode, so it can be disabled here. The
 # default is set based on whether Charm++ is built in SMP or non-SMP mode.
@@ -386,6 +380,8 @@ if(CODE_COVERAGE)
   include(CodeCoverage)
   setup_target_for_all_coverage(doc/html/${CMAKE_BUILD_TYPE} test_coverage
                                 ${RUNNER} ${RUNNER_NCPUS_ARG}
-                                DEPENDS ${NONTEST_EXECUTABLES}
-                                        ${UNITTEST_EXECUTABLE})
+                                DEPENDS ${MESHCONV_EXECUTABLE}
+                                        ${INCITER_EXECUTABLE}
+                                        ${UNITTEST_EXECUTABLE}
+                                        numdiff)
 endif()

@@ -31,7 +31,7 @@
 FROM debian:bullseye
 
 # Install system-wide prerequisites
-RUN apt-get update -y && apt-get install -y git autoconf libtool-bin bzip2 cmake g++ clang gmsh libboost-dev tao-pegtl-dev zlib1g-dev
+RUN apt-get update -y && apt-get install -y git autoconf libtool-bin bzip2 cmake g++ clang gmsh tao-pegtl-dev zlib1g-dev
 
 # Install OpenMPI
 ADD https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.0.tar.bz2 /openmpi/

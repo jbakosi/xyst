@@ -26,6 +26,8 @@
   #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
   #pragma clang diagnostic ignored "-Wredundant-parens"
   #pragma clang diagnostic ignored "-Wcast-qual"
+  #pragma clang diagnostic ignored "-Wsuggest-override"
+  #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -37,7 +39,7 @@
   #pragma warning( disable: 367 )
 #endif
 
-#include <boost/format.hpp>
+#include "boost/format.hpp"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop

@@ -17,8 +17,6 @@
 #include <utility>
 #include <map>
 
-#include "NoWarning/format.hpp"
-
 #include "NoWarning/tut_runner.hpp"
 
 #include "Tags.hpp"

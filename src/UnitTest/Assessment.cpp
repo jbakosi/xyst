@@ -13,8 +13,6 @@
 
 #include <string>
 
-#include "NoWarning/format.hpp"
-
 #include "Print.hpp"
 #include "Assessment.hpp"
 

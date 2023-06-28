@@ -167,7 +167,6 @@ include(GNUInstallDirs)
 set(CMAKE_PREFIX_PATH ${TPL_DIR} ${CMAKE_PREFIX_PATH})
 
 find_package(Charm REQUIRED)
-find_package(Boost REQUIRED)
 find_package(PEGTL 2.0.0 REQUIRED)
 
 set(HDF5_PREFER_PARALLEL true)

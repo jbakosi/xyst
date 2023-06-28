@@ -1,16 +1,14 @@
 // *****************************************************************************
 /*!
-  \file      src/LoadBalance/ZoltanGraph.cpp
+  \file      src/LoadBalance/ZoltanInterOp.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Interoperation with the Zoltan library's graph partitioners.
+  \brief     Interoperation with the Zoltan library's partitioners.
 */
 // *****************************************************************************
-
-#include "NoWarning/zoltan.h"
 
 #include "ZoltanInterOp.hpp"
 

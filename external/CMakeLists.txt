@@ -74,21 +74,6 @@ ExternalProject_Add(
 )
 
 ExternalProject_Add(
-  zoltan
-  PREFIX zoltan
-  GIT_REPOSITORY https://github.com/sandialabs/Zoltan.git
-  GIT_TAG v3.901
-  CONFIGURE_COMMAND ${PROJECT_BINARY_DIR}/zoltan/src/zoltan/configure
-                    CC=${MPI_C_COMPILER}
-                    CXX=${MPI_CXX_COMPILER}
-                    --prefix=${CMAKE_INSTALL_PREFIX}
-  LOG_DOWNLOAD 1
-  LOG_CONFIGURE 1
-  LOG_BUILD 1
-  LOG_INSTALL 1
-)
-
-ExternalProject_Add(
   charm
   PREFIX charm
   GIT_REPOSITORY https://github.com/UIUC-PPL/charm

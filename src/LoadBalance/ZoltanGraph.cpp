@@ -10,15 +10,27 @@
 */
 // *****************************************************************************
 
-#include <iostream>     // NOT NEEDED
+#include "Macro.hpp"
 
-#include "NoWarning/zoltan.h"
+#if defined(__clang__)
+  #pragma clang diagnostic push
+#elif defined(STRICT_GNUC)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
+
+#include "zoltan.h"
+
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#elif defined(STRICT_GNUC)
+  #pragma GCC diagnostic pop
+#endif
 
 #include "ZoltanInterOp.hpp"
 #include "ContainerUtil.hpp"
 #include "DerivedData.hpp"
 #include "Reorder.hpp"
-//#include "Around.hpp"
 
 namespace zoltan {
 

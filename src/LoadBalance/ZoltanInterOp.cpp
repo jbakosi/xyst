@@ -24,7 +24,7 @@ partMesh( tk::ctr::PartitioningAlgorithmType alg,
 //  Partition mesh using Zoltan with a geometric or graph partitioner
 //! \param[in] alg Partitioning algorithm type
 //! \param[in] inpoel Mesh connectivity with local ids
-//! \param[in] ginpoel Mesh connectivity with global ids
+// //! \param[in] ginpoel Mesh connectivity with global ids
 //! \param[in] coord Node coordinates
 //! \param[in] npart Number of desired partitions
 //! \return Array of chare ownership IDs mapping elements to chares

@@ -240,7 +240,6 @@ advedge( const tk::UnsMesh::Coords& coord,
 //! Compute advection fluxes on a single edge
 //! \param[in] coord Mesh node coordinates
 //! \param[in] G Nodal gradients
-//! \param[in] U Solution vector at recent time step
 //! \param[in] dsupint Domain superedge integral for this edge
 //! \param[in] p Left node index of edge
 //! \param[in] q Right node index of edge

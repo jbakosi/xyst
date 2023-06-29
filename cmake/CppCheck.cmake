@@ -31,6 +31,7 @@ if(CPPCHECK AND CPPCHECK_HTMLREPORT)
               -i${PROJECT_SOURCE_DIR}/boost
               -i${PROJECT_SOURCE_DIR}/brigand
               -i${PROJECT_SOURCE_DIR}/highwayhash
+              -i${PROJECT_SOURCE_DIR}/exodus
               -i${PROJECT_SOURCE_DIR}/tut
               -i${PROJECT_SOURCE_DIR}/zoltan
               ${CMAKE_CURRENT_SOURCE_DIR}

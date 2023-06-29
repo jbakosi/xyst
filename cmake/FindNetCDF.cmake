@@ -12,7 +12,7 @@
 
 # NetCDF: https://www.unidata.ucar.edu/software/netcdf
 #
-#  NETCDF_INCLUDES     - where to find netcdf.h, etc
+#  NETCDF_INCLUDE_DIRS - where to find netcdf.h, etc
 #  NETCDF_LIBRARIES    - Link these libraries when using NetCDF
 #  NETCDF_LIBRARY_DIRS - location of the NetCDF libraries
 #  NETCDF_FOUND        - True if NetCDF found including required interfaces (see below)
@@ -39,11 +39,11 @@
 #  target_link_libraries (only_uses_c_interface ${NETCDF_LIBRARIES_C})
 
 # If already in cache, be silent
-if (NETCDF_INCLUDES AND NETCDF_LIBRARIES)
+if (NETCDF_INCLUDE_DIRS AND NETCDF_LIBRARIES)
   set (NETCDF_FIND_QUIETLY TRUE)
-endif (NETCDF_INCLUDES AND NETCDF_LIBRARIES)
+endif (NETCDF_INCLUDE_DIRS AND NETCDF_LIBRARIES)
 
-find_path (NETCDF_INCLUDES netcdf_par.h
+find_path (NETCDF_INCLUDE_DIRS netcdf_par.h
            HINTS ${NETCDF_ROOT}
                  ${NETCDF_DIR}
                  $ENV{NETCDF_DIR}
@@ -79,7 +79,7 @@ mark_as_advanced(NETCDF_LIBRARY_DIRS)
 macro (NetCDF_check_interface lang header libs)
   if (NETCDF_${lang})
     find_path (NETCDF_INCLUDES_${lang} NAMES ${header}
-      HINTS "${NETCDF_INCLUDES}" NO_DEFAULT_PATH)
+      HINTS "${NETCDF_INCLUDE_DIRS}" NO_DEFAULT_PATH)
     find_library (NETCDF_LIBRARIES_${lang} NAMES ${libs}
       HINTS "${NETCDF_LIBRARY_DIRS}" NO_DEFAULT_PATH)
     mark_as_advanced (NETCDF_INCLUDES_${lang} NETCDF_LIBRARIES_${lang})
@@ -107,6 +107,6 @@ set (NETCDF_LIBRARIES ${NetCDF_libs})
 # handle the QUIETLY and REQUIRED arguments and set NETCDF_FOUND to TRUE if
 # all listed variables are TRUE
 include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args (NetCDF DEFAULT_MSG NETCDF_LIBRARIES NETCDF_INCLUDES NetCDF_has_interfaces)
+find_package_handle_standard_args (NetCDF DEFAULT_MSG NETCDF_LIBRARIES NETCDF_INCLUDE_DIRS NetCDF_has_interfaces)
 
-mark_as_advanced (NETCDF_LIBRARIES NETCDF_INCLUDES)
+mark_as_advanced (NETCDF_LIBRARIES NETCDF_INCLUDE_DIRS)

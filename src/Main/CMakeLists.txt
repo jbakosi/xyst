@@ -104,12 +104,9 @@ target_link_libraries(${UNITTEST_EXECUTABLE}
                       NativeMeshIO
                       MeshDetect
                       ExodusIIMeshIO
-                      ${SEACASExodus_LIBRARIES}
-                      ${MKL_CORE_LIBRARY}
-                      ${MKL_INTERFACE_LIBRARY}
-                      ${MKL_SEQUENTIAL_LAYER_LIBRARY}
-                      ${HDF5_C_LIBRARIES}
-)
+                      exodus
+                      ${NETCDF_LIBRARIES}
+                      ${HDF5_C_LIBRARIES})
 
 # Add custom dependencies for UnitTest's main Charm++ module
 addCharmModule( "unittestinciter" "${UNITTEST_EXECUTABLE}" )
@@ -143,8 +140,9 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       Physics
                       Statistics
                       zoltan
-                      ${SEACASExodus_LIBRARIES}
-)
+                      exodus
+                      ${NETCDF_LIBRARIES}
+                      ${HDF5_C_LIBRARIES})
 
 # Add custom dependencies for Inciter's main Charm++ module
 addCharmModule( "inciter" "${INCITER_EXECUTABLE}" "-I${PROJECT_BINARY_DIR}")
@@ -173,9 +171,9 @@ target_link_libraries(${MESHCONV_EXECUTABLE}
                       Base
                       Config
                       Init
-                      ${SEACASExodus_LIBRARIES}
-                      ${HDF5_C_LIBRARIES}
-)
+                      exodus
+                      ${NETCDF_LIBRARIES}
+                      ${HDF5_C_LIBRARIES})
 
 # Add custom dependencies for MeshConv's main Charm++ module
 addCharmModule( "meshconv" "${MESHCONV_EXECUTABLE}" )

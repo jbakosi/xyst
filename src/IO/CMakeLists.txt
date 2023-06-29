@@ -6,15 +6,13 @@ add_library(IO
 
 target_include_directories(IO PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
+                           ${PROJECT_SOURCE_DIR}/../exodus/include
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_SOURCE_DIR}/../Statistics
-                           ${SEACASExodus_INCLUDE_DIRS}
-                           ${NETCDF_INCLUDES}
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_DIRS}
-                           ${BRIGAND_INCLUDE_DIRS}
+                           ${NETCDF_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Main)
 
 set_target_properties(IO PROPERTIES LIBRARY_OUTPUT_NAME xyst_io)
@@ -40,16 +38,13 @@ add_library(NativeMeshIO
 
 target_include_directories(NativeMeshIO PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
+                           ${PROJECT_SOURCE_DIR}/../exodus/include
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../Control
-                           ${Boost_INCLUDE_DIRS}
-                           ${SEACASExodus_INCLUDE_DIRS}
-                           ${NETCDF_INCLUDES}
-                           ${TPL_INCLUDE_DIR}
                            ${CHARM_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_DIRS}
+                           ${NETCDF_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Main)
 
 set_target_properties(NativeMeshIO PROPERTIES LIBRARY_OUTPUT_NAME
@@ -67,11 +62,10 @@ add_library(ExodusIIMeshIO
 
 target_include_directories(ExodusIIMeshIO PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
+                           ${PROJECT_SOURCE_DIR}/../exodus/include
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Mesh
-                           ${SEACASExodus_INCLUDE_DIRS}
-                           ${NETCDF_INCLUDES}
-                           ${MPI_CXX_INCLUDE_DIRS})
+                           ${NETCDF_INCLUDE_DIRS})
 
 set_target_properties(ExodusIIMeshIO PROPERTIES LIBRARY_OUTPUT_NAME
                       xyst_exodusiimeshio)
@@ -108,10 +102,8 @@ target_include_directories(MeshWriter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_BINARY_DIR}/../Main
                            ${PROJECT_BINARY_DIR}/../IO
-                           ${SEACASExodus_INCLUDE_DIRS}
-                           ${NETCDF_INCLUDES}
-                           ${PEGTL_INCLUDE_DIRS}
-                           ${BRIGAND_INCLUDE_DIRS})
+                           ${CHARM_INCLUDE_DIRS}
+                           ${PEGTL_INCLUDE_DIRS})
 
 set_target_properties(MeshWriter PROPERTIES LIBRARY_OUTPUT_NAME
                       xyst_meshwriter)

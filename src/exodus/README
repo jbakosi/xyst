@@ -1,0 +1,19 @@
+Clone from https://github.com/sandialabs/seacas TAG v2023-05-30
+Remove unnecessary files, add cmake build for exodus + exodiff.
+J. Bakosi, June 2023
+
+===================
+
+See SEACAS (including Exodus) documentation at http://sandialabs.github.io/seacas-docs/
+
+========================================================================
+CONTACT:
+
+Greg Sjaardema,
+Sandia National Laboratories,
+gdsjaar@sandia.gov, gsjaardema@gmail.com
+
+We appreciate feedback from users of this package.  Please send
+comments, suggestions, and bug reports to Greg Sjaardema
+<gdsjaar@sandia.gov>, <gsjaardema@gmail.com>
+

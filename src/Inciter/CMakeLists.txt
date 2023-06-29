@@ -16,6 +16,7 @@ add_library(Inciter
 
 target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
+                           ${PROJECT_SOURCE_DIR}/../exodus/include
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../IO
@@ -25,12 +26,9 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Statistics
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PROJECT_SOURCE_DIR}/../Physics
-                           ${Boost_INCLUDE_DIRS}
-                           ${SEACASExodus_INCLUDE_DIRS}
-                           ${NETCDF_INCLUDES}
                            ${CHARM_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_DIRS}
+                           ${NETCDF_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Inciter
                            ${PROJECT_BINARY_DIR}/../Base
                            ${PROJECT_BINARY_DIR}/../IO

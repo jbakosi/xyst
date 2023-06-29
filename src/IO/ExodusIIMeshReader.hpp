@@ -20,7 +20,7 @@
 #include <map>
 #include <unordered_map>
 
-#include "NoWarning/exodusII.hpp"
+#include "exodusII.h"
 
 #include "Types.hpp"
 #include "Exception.hpp"

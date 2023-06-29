@@ -16,7 +16,7 @@
 
 #include <iomanip>
 
-#include "NoWarning/exodusII.hpp"
+#include "exodusII.h"
 
 #include "PDFWriter.hpp"
 #include "Exception.hpp"

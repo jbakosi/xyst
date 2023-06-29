@@ -37,42 +37,6 @@ else()
   message(STATUS "CMAKE_INSTALL_PREFIX: " ${CMAKE_INSTALL_PREFIX})
 endif()
 
-set(HDF5_PREFER_PARALLEL true)
-if(NOT BUILD_SHARED_LIBS)
-  set(HDF5_USE_STATIC_LIBRARIES true)
-endif()
-find_package(HDF5 COMPONENTS C HL REQUIRED)
-find_package(NetCDF REQUIRED)
-
-ExternalProject_Add(
-  trilinos
-  PREFIX trilinos
-  GIT_REPOSITORY https://github.com/trilinos/Trilinos.git
-  GIT_TAG trilinos-release-12-12-1
-  PATCH_COMMAND patch -p1 -t -i ${PROJECT_SOURCE_DIR}/../cmake/exodus_gcc10.patch
-  CMAKE_ARGS -D Trilinos_ENABLE_ALL_PACKAGES:BOOL=OFF
-             -D CMAKE_CXX_STANDARD:STRING=17
-             -D TPL_ENABLE_MPI:BOOL=ON
-             -D BUILD_SHARED_LIBS:BOOL=ON
-             -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF
-             -D Trilinos_ENABLE_SEACASExodus:BOOL=ON
-             -D Trilinos_ENABLE_SEACASExodiff:BOOL=ON
-             -D Trilinos_ENABLE_Fortran=OFF
-             -D Trilinos_ENABLE_DEBUG=OFF
-             -D TPL_ENABLE_Netcdf:BOOL=ON
-             -D Netcdf_LIBRARY_DIRS:PATH=${NETCDF_LIBRARY_DIRS}
-             -D TPL_Netcdf_INCLUDE_DIRS:PATH=${NETCDF_INCLUDES}
-             -D CMAKE_INSTALL_RPATH:PATH=${CMAKE_INSTALL_PREFIX}/lib
-             -D CMAKE_C_COMPILER:PATH=${MPI_C_COMPILER}
-             -D CMAKE_CXX_COMPILER:PATH=${MPI_CXX_COMPILER}
-             -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
-  LOG_DOWNLOAD 1
-  LOG_PATCH 1
-  LOG_CONFIGURE 1
-  LOG_BUILD 1
-  LOG_INSTALL 1
-)
-
 ExternalProject_Add(
   charm
   PREFIX charm

@@ -382,5 +382,5 @@ if(CODE_COVERAGE)
                                 DEPENDS ${MESHCONV_EXECUTABLE}
                                         ${INCITER_EXECUTABLE}
                                         ${UNITTEST_EXECUTABLE}
-                                        numdiff)
+                                        numdiff exodiff)
 endif()

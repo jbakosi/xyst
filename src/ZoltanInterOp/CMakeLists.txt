@@ -1,4 +1,4 @@
-project(LoadBalance CXX)
+project(ZoltanInterOp CXX)
 
 include(charm)
 
@@ -22,6 +22,8 @@ target_include_directories(ZoltanInterOp PUBLIC
 
 set_target_properties(ZoltanInterOp PROPERTIES
                       LIBRARY_OUTPUT_NAME xyst_zoltaninterop)
+
+add_dependencies(ZoltanInterOp charm)
 
 INSTALL(TARGETS ZoltanInterOp
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime

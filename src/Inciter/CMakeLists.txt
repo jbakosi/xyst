@@ -22,7 +22,7 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../IO
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_SOURCE_DIR}/../Main
-                           ${PROJECT_SOURCE_DIR}/../LoadBalance
+                           ${PROJECT_SOURCE_DIR}/../ZoltanInterOp
                            ${PROJECT_SOURCE_DIR}/../Statistics
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PROJECT_SOURCE_DIR}/../Physics
@@ -52,6 +52,8 @@ target_include_directories(MeshRefinement PUBLIC
                            ${CHARM_INCLUDE_DIRS}
                            ${TPL_INCLUDE_DIR}
                            ${PROJECT_BINARY_DIR}/../Main)
+
+add_dependencies(MeshRefinement charm)
 
 addCharmModule( "transporter" "Inciter" )
 addCharmModule( "partitioner" "Inciter" )

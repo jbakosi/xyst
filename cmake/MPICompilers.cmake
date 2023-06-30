@@ -70,21 +70,16 @@ function(get_mpi_compilers)
   # Export to parent scope
   set(MPI_C_FOUND ${MPI_C_FOUND} PARENT_SCOPE)
   set(MPI_CXX_FOUND ${MPI_CXX_FOUND} PARENT_SCOPE)
-  set(MPI_Fortran_FOUND ${MPI_Fortran_FOUND} PARENT_SCOPE)
   set(MPI_C_INCLUDE_DIRS ${MPI_C_INCLUDE_DIRS} PARENT_SCOPE)
   set(MPI_CXX_INCLUDE_DIRS ${MPI_CXX_INCLUDE_DIRS} PARENT_SCOPE)
 
-  # Find underlying C, C++, and Fortran compilers
+  # Find underlying C and C++ compilers
   if (MPI_C_COMPILER)
     get_compiler(${MPI_C_COMPILER} UNDERLYING_C_COMPILER)
   endif()
 
   if (MPI_CXX_COMPILER)
     get_compiler(${MPI_CXX_COMPILER} UNDERLYING_CXX_COMPILER)
-  endif()
-
-  if (MPI_Fortran_COMPILER)
-    get_compiler(${MPI_Fortran_COMPILER} UNDERLYING_Fortran_COMPILER)
   endif()
 
   # Echo MPI wrappers
@@ -104,16 +99,6 @@ function(get_mpi_compilers)
       execute_process(
         COMMAND           which ${MPI_CXX_COMPILER}
         OUTPUT_VARIABLE   MPI_CXX_COMPILER
-      )
-    endif()
-  endif()
-
-  if (MPI_Fortran_COMPILER)
-    MESSAGE(STATUS "MPI Fortran wrapper: " ${MPI_Fortran_COMPILER})
-    if(NOT IS_ABSOLUTE ${MPI_Fortran_COMPILER})
-      execute_process(
-        COMMAND           which ${MPI_Fortran_COMPILER}
-        OUTPUT_VARIABLE   MPI_Fortran_COMPILER
       )
     endif()
   endif()

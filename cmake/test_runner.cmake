@@ -40,7 +40,7 @@ message("  USE_VALGRIND (true if we use valgrind)                      : ${USE_V
 message("  VALGRIND (valgrind executable)                              : ${VALGRIND}")
 message("  RUNNER (used to run parallel and serial jobs inside cmake)  : ${RUNNER}")
 message("  RUNNER_NCPUS_ARG (used to specify the number of CPUs)       : ${RUNNER_NCPUS_ARG}")
-message("  CHARM_SMP (true/false indicating Charm++ SMP mode)          : ${CHARM_SMP}")
+message("  SMP (true/false indicating Charm++ SMP mode)                : ${SMP}")
 message("  RUNNER_ARGS (parallel/serial job runner arguments)          : ${RUNNER_ARGS}")
 message("  POSTFIX_RUNNER_ARGS (postfix job runner arguments)          : ${POSTFIX_RUNNER_ARGS}")
 message("  TEST_EXECUTABLE (executable tested)                         : ${TEST_EXECUTABLE}")
@@ -84,7 +84,7 @@ if (USE_VALGRIND)
 endif()
 
 # Configure test run command
-if (CHARM_SMP)
+if (SMP)
 
   # In Charm++'s SMP mode, if the runner is mpirun, -n (as RUNNER_NCPUS_ARG)
   # specifies the number of compute nodes.
@@ -283,7 +283,7 @@ else() # Test command ran successfully, attempt to do diffs
 
         list(GET BIN_RESULT ${r} result)
 
-        if (NOT CHARM_SMP AND NOT b EQUAL r)
+        if (NOT SMP AND NOT b EQUAL r)
           #message("Charm++ in non-SMP mode: not diffing baseline ${b} with result ${r}")
           break()
         endif()

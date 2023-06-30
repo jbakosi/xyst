@@ -23,6 +23,8 @@
 # ##############################################################################
 function(config_executable target)
 
+  add_dependencies(${target} charm)
+
   # Add MPI compile flags
   if(MPI_COMPILE_FLAGS)
     set_target_properties(${target} PROPERTIES

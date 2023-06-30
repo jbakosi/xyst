@@ -19,6 +19,8 @@ target_include_directories(Physics PUBLIC
 
 set_target_properties(Physics PROPERTIES LIBRARY_OUTPUT_NAME xyst_physics)
 
+add_dependencies(Physics charm)
+
 INSTALL(TARGETS Physics
   	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
   	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime

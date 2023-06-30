@@ -203,13 +203,13 @@ class Transporter : public CBase_Transporter {
       p | m_input;
       p | m_nchare;
       p | m_meshid;
+      p | m_ncit;
       p | m_nload;
       p | m_npart;
       p | m_nstat;
       p | m_ndisc;
       p | m_nchk;
       p | m_ncom;
-      p | m_ncit;
       p | m_nt0refit;
       p | m_ndtrefit;
       p | m_noutrefit;

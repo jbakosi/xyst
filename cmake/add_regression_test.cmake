@@ -187,7 +187,7 @@ function(ADD_REGRESSION_TEST test_name executable)
 
   # Configure number of PEs per logical node and total number of PEs used in
   # hardwared for Charm++'s SMP mode.
-  if (CHARM_SMP)
+  if (SMP)
 
     # If PPN is set, use it but do error checking on its value compared to
     # NUMPES. If PPN is not set, setup a test with a single logical node and
@@ -226,7 +226,7 @@ function(ADD_REGRESSION_TEST test_name executable)
   # Prefix executable and append REQUESTED_NUMPES to test name
   set(test_name "${executable}:${test_name}_pe${REQUESTED_NUMPES}")
   # In SMP mode, also append ppn to test name
-  if (CHARM_SMP)
+  if (SMP)
     set(test_name "${test_name}_ppn${PPN}")
   endif()
   #message("${test_name}: req:${REQUESTED_NUMPES}, nod:${NUMNODES}, ppn:${PPN}, hw:${HARDWARE_NUMPES}")
@@ -289,7 +289,7 @@ function(ADD_REGRESSION_TEST test_name executable)
     # Prefix executable and append REQUESTED_NUMPES to dependent test name
     set(checkpoint "${executable}:${ARG_CHECKPOINT}_pe${REQUESTED_NUMPES}")
     # In SMP mode, also append ppn to checkpoint test name
-    if (CHARM_SMP)
+    if (SMP)
       set(checkpoint "${checkpoint}_ppn${PPN}")
     endif()
 
@@ -413,7 +413,7 @@ function(ADD_REGRESSION_TEST test_name executable)
            -DPOSTPROCESS_PROG=${ARG_POSTPROCESS_PROG}
            -DPOSTPROCESS_PROG_ARGS=${ARG_POSTPROCESS_PROG_ARGS}
            -DPOSTPROCESS_PROG_OUTPUT=${ARG_POSTPROCESS_PROG_OUTPUT}
-           -DCHARM_SMP=${CHARM_SMP}
+           -DSMP=${SMP}
            -P ${TEST_RUNNER}
            WORKING_DIRECTORY ${workdir})
 

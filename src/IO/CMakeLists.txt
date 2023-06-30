@@ -17,6 +17,8 @@ target_include_directories(IO PUBLIC
 
 set_target_properties(IO PROPERTIES LIBRARY_OUTPUT_NAME xyst_io)
 
+add_dependencies(IO charm)
+
 INSTALL(TARGETS IO
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
@@ -49,6 +51,8 @@ target_include_directories(NativeMeshIO PUBLIC
 
 set_target_properties(NativeMeshIO PROPERTIES LIBRARY_OUTPUT_NAME
                       xyst_nativemeshio)
+
+add_dependencies(NativeMeshIO charm)
 
 INSTALL(TARGETS NativeMeshIO
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime

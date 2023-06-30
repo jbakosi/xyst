@@ -29,6 +29,7 @@
   #pragma clang diagnostic ignored "-Wdouble-promotion"
   #pragma clang diagnostic ignored "-Wconversion"
   #pragma clang diagnostic ignored "-Wsign-conversion"
+  #pragma clang diagnostic ignored "-Wsign-compare"
   #pragma clang diagnostic ignored "-Wfloat-equal"
   #pragma clang diagnostic ignored "-Wfloat-conversion"
   #pragma clang diagnostic ignored "-Wshorten-64-to-32"

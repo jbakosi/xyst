@@ -31,7 +31,7 @@ set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR})
 # Set the requirement for the C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-message(STATUS "Required language standard: C++${CMAKE_CXX_STANDARD}")
+message(STATUS "Language standard: C++${CMAKE_CXX_STANDARD}")
 
 # Set build type (will be exported to the source)
 set(BUILD_TYPE ${CMAKE_BUILD_TYPE})
@@ -143,30 +143,50 @@ execute_process(COMMAND "date" "+%A, %b %d, %Y"
                 OUTPUT_VARIABLE BUILD_DATE_SIMPLE)
 string(REGEX REPLACE "[\r\n]" "" BUILD_DATE_SIMPLE "${BUILD_DATE_SIMPLE}")
 
-option(SMP "Use Charm++ built in SMP mode" OFF)
-if(SMP)
-  set(smp "-smp")
-endif()
-option(RNDQ "Use Charm++ built with randomized message queues" OFF)
-if(RNDQ)
-  set(rndq "-rndq")
-endif()
-
-# Set external libraries install directory
-if (NOT TPL_DIR)
-  set(REL_TPL_DIR ${PROJECT_SOURCE_DIR}/../external/install/${COMP}${smp}${rndq})
-  get_filename_component(ABS_TPL_DIR ${REL_TPL_DIR} ABSOLUTE)
-  set(TPL_DIR ${ABS_TPL_DIR} CACHE
-      STRING "Third-party (external) libraries install directory.")
-endif()
-message(STATUS "Third-party (external) libraries install directory: " ${TPL_DIR})
-
 # Include support for multiarch path names
 include(GNUInstallDirs)
-# Add our TPL_DIR to modules directory
-set(CMAKE_PREFIX_PATH ${TPL_DIR} ${CMAKE_PREFIX_PATH})
 
-find_package(Charm REQUIRED)
+include(ProcessorCount)
+ProcessorCount(PROCESSOR_COUNT)
+if(PROCESSOR_COUNT EQUAL 0)
+  set(PROCESSOR_COUNT "1")
+endif()
+message(STATUS "Found ${PROCESSOR_COUNT} PEs")
+
+# Build Charm++ if necessary
+option(SMP "Build Charm++ in SMP mode" OFF)
+option(CHARM_OPTS "Forward options to Charm++ cmake" "")
+add_library(charm INTERFACE)
+find_package(Charm)
+if(NOT CHARM_FOUND)
+  include(ExternalProject)
+  ExternalProject_Add(
+    charm_external
+    PREFIX charm
+    GIT_REPOSITORY https://github.com/UIUC-PPL/charm
+    GIT_TAG v7.0.0-rc2
+    PATCH_COMMAND patch -p1 -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch
+    CMAKE_ARGS -D TARGET=charm
+               -D NETWORK=mpi
+               -D SMP=${SMP}
+               -D ENABLE_FORTRAN=off
+               -D CMAKE_BUILD_TYPE=Release
+               ${CHARM_OPTS}
+               -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/charm/install
+    CMAKE_GENERATOR "Unix Makefiles"
+    BUILD_COMMAND make -j${PROCESSOR_COUNT}
+    EXCLUDE_FROM_ALL 1
+    LOG_DOWNLOAD 1
+    LOG_CONFIGURE 1
+    LOG_BUILD 1
+    LOG_INSTALL 1)
+  add_dependencies(charm charm_external)
+  set(CHARM_COMPILER ${CMAKE_BINARY_DIR}/charm/install/bin/charmc)
+  set(CHARM_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/charm/install/include)
+  set(CHARM_RUN ${CMAKE_BINARY_DIR}/charm/install/bin/charmrun)
+endif()
+target_include_directories(charm INTERFACE ${CHARM_INCLUDE_DIRS})
+
 find_package(PEGTL 2.0.0 REQUIRED)
 
 set(HDF5_PREFER_PARALLEL true)
@@ -251,7 +271,7 @@ set(UNITTEST_EXECUTABLE unittest)
 # thread-safe, e.g., in Charm++'s SMP mode, so it can be disabled here. The
 # default is set based on whether Charm++ is built in SMP or non-SMP mode.
 if (NOT EXCEPTIONS_WRITE_TO_CERR)     # set default if not set
-  if (CHARM_SMP)
+  if (SMP)
     set(cerr false)
   else()
     set(cerr true)
@@ -275,7 +295,7 @@ configure_file( "${PROJECT_SOURCE_DIR}/Main/XystConfig.cpp.in"
 
 add_subdirectory(Base)
 add_subdirectory(Control)
-add_subdirectory(LoadBalance)
+add_subdirectory(ZoltanInterOp)
 add_subdirectory(Statistics)
 add_subdirectory(Mesh)
 add_subdirectory(IO)

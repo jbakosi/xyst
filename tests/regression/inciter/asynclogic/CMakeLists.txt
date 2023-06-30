@@ -45,7 +45,7 @@ foreach(scheme riecg)
       endforeach()
 
       # In Charm++ SMP mode add some extra tests with npe != ppn
-      if (CHARM_SMP)
+      if (SMP)
         # Set npes & ppn as 4&2, 6&3, 6&2, 8&4, and 8&2, to correspond to
         # logical nodes x worker threads as 2x2, 2x3, 3x2, 2x4, and 4x2,
         # respectively. See also add_regresion_test.cmake for more details on

@@ -76,7 +76,6 @@ if(CHARM_COMPILER)
   include(CheckIncludeFiles)
   CHECK_INCLUDE_FILES("${CHARM_INCLUDE_DIR}/conv-mach-opt.h"
                       HAVE_CHARM_CONV_MACH_OPT)
-
   if (HAVE_CHARM_CONV_MACH_OPT)
     include(CheckSymbolExists)
     CHECK_SYMBOL_EXISTS(CMK_SMP "${CHARM_INCLUDE_DIR}/conv-mach-opt.h" SMP)
@@ -84,17 +83,6 @@ if(CHARM_COMPILER)
       message(STATUS "Charm++ built in SMP mode")
     else()
       message(STATUS "Charm++ built in non-SMP mode")
-    endif()
-  endif()
-
-  CHECK_INCLUDE_FILES("${CHARM_INCLUDE_DIR}/conv-autoconfig.h"
-                      HAVE_CHARM_CONV_AUTOCONFIG)
-
-  if (HAVE_CHARM_CONV_AUTOCONFIG)
-    include(CheckSymbolExists)
-    CHECK_SYMBOL_EXISTS(CMK_SMP "${CHARM_INCLUDE_DIR}/conv-autoconfig.h" RNDQ)
-    if (RNDQ)
-      message(STATUS "Charm++ built with randomized message queues")
     endif()
   endif()
 endif()

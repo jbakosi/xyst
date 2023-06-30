@@ -54,13 +54,12 @@ Install prerequisites: _Debian/Ubuntu linux_
 apt-get install git autoconf cmake g++ libopenmpi-dev libhdf5-dev libhdf5-openmpi-dev libnetcdf-mpi-dev tao-pegtl-dev
 @endcode
 
-Clone, build third-party libraries, build, test
+Clone, build, test
 
 @code
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
-mkdir external/build && cd external/build && cmake .. && make -sj$(grep -c processor /proc/cpuinfo) && cd -
 mkdir build && cd build && cmake ../src && make -sj$(grep -c processor /proc/cpuinfo) && cd -
-cd build && ./charmrun +p $(grep -c processor /proc/cpuinfo) Main/unittest -v -q && ctest -j $(grep -c processor /proc/cpuinfo) --output-on-failure && cd -
+cd build && ./charmrun +p $(grep -c processor /proc/cpuinfo) Main/unittest -v && ctest -j $(grep -c processor /proc/cpuinfo) && cd -
 @endcode
 
 All executables will be under `build/Main/`.

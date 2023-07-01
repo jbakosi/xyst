@@ -25,17 +25,17 @@ libraries (TPLs) used by Xyst.
   - Web: http://www.boost.org
   - License: @subpage boost_license_page
 
-\subsection hdf5_license The HDF5 data model, required by SEACAS
+\subsection hdf5_license The HDF5 data model, required by Exodus
   - Web: http://www.hdfgroup.org/HDF5
   - License: @subpage hdf5_license_page
 
-\subsection netcdf_license The NetCDF data model, required by SEACAS
+\subsection netcdf_license The NetCDF data model, required by Exodus
   - Web: http://www.unidata.ucar.edu/downloads/netcdf/index.jsp
   - License: @subpage netcdf_license_page
 
-\subsection seacas_license SEACAS for mesh-based I/O
-  - Web: https://github.com/trilinos/Trilinos/tree/master/packages/seacas
-  - License: @subpage seacas_license_page
+\subsection exodus_license ExodusII for mesh-based I/O
+  - Web: https://github.com/sandialabs/seacas
+  - License: @subpage exodus_license_page
 
 \subsection zoltan_license Zoltan for static mesh partitioning
   - Web: http://www.cs.sandia.gov/Zoltan/Zoltan.html

@@ -8,7 +8,7 @@ meshes from and to either of the following formats:
 
   - Gmsh, http://www.geuz.org/gmsh
   - Netgen, https://sourceforge.net/projects/netgen-mesher
-  - ExodusII, https://github.com/gsjaardema/seacas
+  - ExodusII, https://github.com/sandialabs/seacas
   - ASC, used in [Jacob Waltz](https://www.researchgate.net/scientific-contributions/2014382994_Jacob_Waltz)'s _Chicoma_ code
   - UGRID, https://www.simcenter.msstate.edu/software/documentation/aflr3
   - RDGFLO, https://www.mae.ncsu.edu/people/hluo2

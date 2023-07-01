@@ -17,8 +17,8 @@
 #  CHARM_COMPILER     - Charmc compiler wrapper
 #  CHARM_RUN          - Charmrun executable runner
 #
-#  Set CHARM_INSTALL before calling find_package to a path to add an additional
-#  search path, e.g.,
+#  Set CHARM_INSTALL_DIR before calling find_package to a path to add an
+#  additional search path.
 
 function(_GET_CHARMINC _OUT_INC _charmc)
   file(STRINGS ${_charmc} _contents REGEX "^CHARMINC=")
@@ -37,14 +37,14 @@ endif()
 
 FIND_PROGRAM(CHARM_COMPILER
   NAMES charmc
-  PATHS ${CHARM_INSTALL}
+  PATHS ${CHARM_INSTALL_DIR}
         ${CMAKE_BINARY_DIR}/charm/install
   PATH_SUFFIXES bin
 )
 
 FIND_PROGRAM(CHARM_RUN
   NAMES charmrun
-  PATHS ${CHARM_INSTALL}
+  PATHS ${CHARM_INSTALL_DIR}
         ${CMAKE_BINARY_DIR}/charm/install
   PATH_SUFFIXES bin
 )
@@ -55,7 +55,7 @@ endif()
 
 FIND_PATH(CHARM_INCLUDE_DIR NAMES charm.h
                             HINTS ${HINTS_CHARMINC}
-                                  ${CHARM_INSTALL}/include
+                                  ${CHARM_INSTALL_DIR}/include
                                   ${CMAKE_BINARY_DIR}/charm/install/include
                             PATH_SUFFIXES charm)
 

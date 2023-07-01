@@ -2,25 +2,21 @@ matrix:
   include:
     - BUILDTYPE: Release
       IMAGE: "xyst-gnu"
-      TPL_DIR: "/xyst/external/install/gnu"
-    - BUILDTYPE: Release
-      IMAGE: "xyst-gnu-smp"
-      TPL_DIR: "/xyst/external/install/gnu-smp"
-      SMP: on
-      POSTFIX_RUNNER_ARGS: "+setcpuaffinity"
-    - BUILDTYPE: Debug
-      IMAGE: "xyst-gnu"
-      TPL_DIR: "/xyst/external/install/gnu"
+#    - BUILDTYPE: Release
+#      IMAGE: "xyst-gnu-smp"
+#      SMP: on
+#      POSTFIX_RUNNER_ARGS: "+setcpuaffinity"
+#    - BUILDTYPE: Debug
+#      IMAGE: "xyst-gnu"
     #- BUILDTYPE: Debug
     #  IMAGE: "xyst-clang"
-    #  TPL_DIR: "/xyst/external/install/clang"
 
 pipeline:
   build:
     image: jbakosi/${IMAGE}
-    #pull: true
+    pull: true
     commands:
-     - mkdir build && cd build && cmake -DSMP=${SMP} -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DTPL_DIR=${TPL_DIR} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root --bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=${POSTFIX_RUNNER_ARGS} ../src && make -sj2
+     - mkdir build && cd build && cmake -DCHARM_INSTALL_DIR=/charm-install -DSMP=${SMP} -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root --bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=${POSTFIX_RUNNER_ARGS} ../src && make -sj2
 
   test:
     image: jbakosi/${IMAGE}

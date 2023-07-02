@@ -74,11 +74,11 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(Charm DEFAULT_MSG CHARM_COMPILER
 if(CHARM_COMPILER)
   set(CMAKE_REQUIRED_QUIET 1)
   include(CheckIncludeFiles)
-  CHECK_INCLUDE_FILES("${CHARM_INCLUDE_DIR}/conv-mach-opt.h"
+  CHECK_INCLUDE_FILES("${CHARM_INCLUDE_DIR}/conv-autoconfig.h"
                       HAVE_CHARM_CONV_MACH_OPT)
   if (HAVE_CHARM_CONV_MACH_OPT)
     include(CheckSymbolExists)
-    CHECK_SYMBOL_EXISTS(CMK_SMP "${CHARM_INCLUDE_DIR}/conv-mach-opt.h" SMP)
+    CHECK_SYMBOL_EXISTS(CMK_SMP "${CHARM_INCLUDE_DIR}/conv-autoconfig.h" SMP)
     if (SMP)
       message(STATUS "Charm++ built in SMP mode")
     else()

@@ -24,15 +24,15 @@
 #   docker push jbakosi/xyst-gnu
 #
 #   Test in non-SMP or SMP mode, after uncommenting Clone, Build, and Test:
-#   docker build -f debian --build-arg CHARM_INSTALL_DIR=/charm-non-smp .
-#   docker build -f debian --build-arg CHARM_INSTALL_DIR=/charm-smp .
+#   docker build -f debian -t xyst-gnu --build-arg CHARM_INSTALL_DIR=/charm-non-smp .
+#   docker build -f debian -t xyst-gnu --build-arg CHARM_INSTALL_DIR=/charm-smp .
 #
 ################################################################################
 
 FROM debian:bullseye
 
 # Install system-wide prerequisites
-RUN apt-get update -y && apt-get install -y git autoconf cmake g++ gfortran tao-pegtl-dev bzip2 zlib1g-dev libaec-dev autoconf libtool-bin
+RUN apt-get update -y && apt-get install -y git autoconf libtool-bin cmake g++ gfortran tao-pegtl-dev bzip2 zlib1g-dev libaec-dev
 
 # Install OpenMPI
 ADD https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.4.tar.bz2 /openmpi/

@@ -31,16 +31,19 @@ function(_GET_CHARMINC _OUT_INC _charmc)
 endfunction()
 
 # find out if Charm++ was built in SMP mode
-function(GET_CHARM_SMP SMP hdr)
-  file( STRINGS ${hdr} _contents REGEX ".*#define CMK_SMP[ \t]+" )
+function(GET_CHARM_DEF RES SEARCH_DEF)
+  file(STRINGS ${CHARM_INCLUDE_DIR}/conv-autoconfig.h _contents
+       REGEX ".*#define ${SEARCH_DEF}[ \t]+")
   if(_contents)
-    string(REGEX REPLACE ".*#define CMK_SMP[ \t]+(on|ON|off|OFF|0|1).*" "\\1" SMP "${_contents}")
-    string(TOLOWER "${SMP}" SMP)
-    if (SMP STREQUAL "1" OR SMP STREQUAL "on")
-      set(SMP true PARENT_SCOPE)
+    string(REGEX REPLACE ".*#define ${SEARCH_DEF}[ \t]+(on|ON|off|OFF|0|1|true|TRUE|false|FALSE).*" "\\1" ${RES} "${_contents}")
+    string(TOLOWER ${${RES}} ${RES})
+    if (${RES} STREQUAL "1" OR
+        ${RES} STREQUAL "on" OR
+        ${RES} STREQUAL "true")
+      set(${RES} true PARENT_SCOPE)
+    else()
+      set(${RES} false PARENT_SCOPE)
     endif()
-  else()
-    message(FATAL_ERROR "Include file ${hdr} does not exist")
  endif()
 endfunction()
 
@@ -86,11 +89,16 @@ FIND_PACKAGE_HANDLE_STANDARD_ARGS(Charm DEFAULT_MSG CHARM_COMPILER
                                   CHARM_INCLUDE_DIRS CHARM_RUN)
 
 if(CHARM_COMPILER)
-  GET_CHARM_SMP(SMP ${CHARM_INCLUDE_DIR}/conv-autoconfig.h)
+  GET_CHARM_DEF(SMP CMK_SMP)
   if (SMP)
     message(STATUS "Charm++ built in SMP mode")
   else()
     message(STATUS "Charm++ built in non-SMP mode")
+  endif()
+
+  GET_CHARM_DEF(RNDQ CMK_RANDOMIZED_MSGQ)
+  if (RNDQ)
+    message(STATUS "Charm++ built with randomized message queues")
   endif()
 endif()
 

@@ -31,20 +31,6 @@ pressure( tk::real r, tk::real e ) {
   return r * e * (g-1.0);
 }
 
-//! Compute pressure
-//! \param[in] r Density
-//! \param[in] u X-velocity
-//! \param[in] v Y-velocity
-//! \param[in] w Z-velocity
-//! \param[in] re Specific total (internal + kinetic) energy
-//! \return Pressure computed from the ideal gas equation of state
-inline tk::real
-pressure( tk::real r, tk::real u, tk::real v, tk::real w, tk::real re ) {
-  using inciter::g_inputdeck;
-  auto g = g_inputdeck.get< tag::param, tag::compflow, tag::gamma >()[0][0];
-  return (re - 0.5 * r * (u*u + v*v + w*w)) * (g-1.0);
-}
-
 //! Calculate speed of sound from the material density and material pressure
 //! \param[in] rho Material density
 //! \param[in] pr Material pressure

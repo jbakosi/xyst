@@ -133,7 +133,8 @@ farbc( tk::Fields& U,
     auto& re = U(p,4,0);
     //auto vn = (ru*nx + rv*ny + rw*nz)/r;
     auto vn = fu*nx + fv*ny + fw*nz;
-    //auto a = eos::soundspeed( r, eos::pressure( r, ru/r, rv/r, rw/r, re ) );
+    //auto a = eos::soundspeed( r,
+    //           eos::pressure( r, (re - 0.5*(ru*ru + rv*rv + rw*rw)/r)/r ) );
     auto a = eos::soundspeed( fr, fp );
     auto M = vn / a;
     if (M <= -1.0) {
@@ -146,7 +147,7 @@ farbc( tk::Fields& U,
     } else if (M > -1.0 && M < 0.0) {
       // subsonic inflow: 1 outgoing and 4 incoming characteristics,
       // pressure from inside, rest from outside
-      auto pr = eos::pressure( r, ru/r, rv/r, rw/r, re );
+      auto pr = eos::pressure( r, (re - 0.5*(ru*ru + rv*rv + rw*rw)/r)/r );
       r  = fr;
       ru = fr * fu;
       rv = fr * fv;

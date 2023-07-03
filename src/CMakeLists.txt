@@ -207,45 +207,49 @@ if(exit_code EQUAL 0)
 endif()
 message(STATUS "Git sha1: ${GIT_HEAD_SHA1}")
 
-# Find Python: required for code coverage (fastcov) and doc (m.css)
-find_package(PythonInterp 3.6 QUIET)
-
-# Attempt to find tools required for code coverage analysis
-include(DetectCodeCoverage)
-
-# Set compiler flags to perform code coverage analysis
-if(CODE_COVERAGE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+option(BUILD_DOC "Build docmentation" OFF)
+if (BUILD_DOC)
+  # Find Python: required for code coverage (fastcov) and doc (m.css)
+  find_package(PythonInterp 3.6 QUIET)
+  # Attempt to find tools required for code coverage analysis
+  include(DetectCodeCoverage)
+  # Set compiler flags to perform code coverage analysis
+  if(CODE_COVERAGE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+  endif()
 endif()
 
 # Query build hostname
 site_name(HOSTNAME)
 
-# Set runner configuration. This is used when generating code coverage and
-# running regression tests using ctest. Note that ninja puts chamrun to <build>
-# while make puts it into <build>/Main, but after any executable target we copy
-# <build>/Main/charmrun to <build> for non-ninja builds. See also
-# cmake/ConfigExecutable.cmake.
+option(ENABLE_TESTS "Enable tests" ON)
+if (ENABLE_TESTS)
+  # Set runner configuration. This is used when generating code coverage and
+  # running regression tests using ctest. Note that ninja puts chamrun to
+  # <build> while make puts it into <build>/Main, but after any executable
+  # target we copy <build>/Main/charmrun to <build> for non-ninja builds. See
+  # also cmake/ConfigExecutable.cmake.
 
-# Defaults for runner, used to run regression tests
-set(RUNNER "${CHARM_RUN}" CACHE STRING
-    "Parallel/serial job runner, used to run regression tests")
-set(RUNNER_NCPUS_ARG "+p" CACHE STRING
-    "The argument used to specify the number of PEs for the runner")
-set(RUNNER_ARGS "" CACHE STRING
-    "Arguments to pass to the parallel/serial job runner, e.g., to mpirun.")
-set(POSTFIX_RUNNER_ARGS "" CACHE STRING
-    "Arguments to pass to the parallel/serial job runner at the end of the command line.")
+  # Defaults for runner, used to run regression tests
+  set(RUNNER "${CHARM_RUN}" CACHE STRING
+      "Parallel/serial job runner, used to run regression tests")
+  set(RUNNER_NCPUS_ARG "+p" CACHE STRING
+      "The argument used to specify the number of PEs for the runner")
+  set(RUNNER_ARGS "" CACHE STRING
+      "Arguments to pass to the parallel/serial job runner, e.g., to mpirun.")
+  set(POSTFIX_RUNNER_ARGS "" CACHE STRING
+      "Arguments to pass to the parallel/serial job runner at the end of the command line.")
 
-# Echo runner configuration
-message(STATUS "Parallel/serial job runner: ${RUNNER}")
-message(STATUS "Parallel job runner ncpus arg: ${RUNNER_NCPUS_ARG}")
-if(RUNNER_ARGS)
-  message(STATUS "Parallel/serial job runner args: ${RUNNER_ARGS}")
-endif()
-if(POSTFIX_RUNNER_ARGS)
-  message(STATUS "Parallel/serial job runner postfix args: ${POSTFIX_RUNNER_ARGS}")
+  # Echo runner configuration
+  message(STATUS "Parallel/serial job runner: ${RUNNER}")
+  message(STATUS "Parallel job runner ncpus arg: ${RUNNER_NCPUS_ARG}")
+  if(RUNNER_ARGS)
+    message(STATUS "Parallel/serial job runner args: ${RUNNER_ARGS}")
+  endif()
+  if(POSTFIX_RUNNER_ARGS)
+    message(STATUS "Parallel/serial job runner postfix args: ${POSTFIX_RUNNER_ARGS}")
+  endif()
 endif()
 
 # Echo compiler flags
@@ -259,13 +263,17 @@ if(CMAKE_EXE_LINKER_FLAGS)
   message(STATUS "Executable linker flags: '${CMAKE_EXE_LINKER_FLAGS}'")
 endif()
 
-# Query regression tests directory (will be exported to the source)
-get_filename_component(REGRESSION_DIR
-  "${PROJECT_SOURCE_DIR}/../tests/regression" ABSOLUTE)
+if (ENABLE_TESTS)
+  # Query regression tests directory (will be exported to the source)
+  get_filename_component(REGRESSION_DIR
+    "${PROJECT_SOURCE_DIR}/../tests/regression" ABSOLUTE)
+endif()
 
 set(INCITER_EXECUTABLE inciter)
 set(MESHCONV_EXECUTABLE meshconv)
-set(UNITTEST_EXECUTABLE unittest)
+if (ENABLE_TESTS)
+  set(UNITTEST_EXECUTABLE unittest)
+endif()
 
 # Decide if the Exception class will write to std::cerr. This may not always be
 # thread-safe, e.g., in Charm++'s SMP mode, so it can be disabled here. The
@@ -301,106 +309,110 @@ add_subdirectory(Mesh)
 add_subdirectory(IO)
 add_subdirectory(Physics)
 add_subdirectory(Inciter)
-add_subdirectory(UnitTest)
+if (ENABLE_TESTS)
+  add_subdirectory(UnitTest)
+endif()
 add_subdirectory(Main)
 
 # Configure regression tests
-enable_testing()
-add_subdirectory(${REGRESSION_DIR}
-                 ${CMAKE_BINARY_DIR}/tests)
-
-# Configure building documentation and web page
-find_package(MCSS QUIET)
-if (DOXYGEN_FOUND AND MCSS_FOUND AND PYTHONINTERP_FOUND AND PYGMENTS_FOUND AND
-    JINJA2_FOUND AND LATEX_FOUND)
-
-  find_program( PERL perl )
-  find_program( AWK awk )
-  find_program( XARGS xargs )
-  find_program( GIT git )
-  find_program( HEAD head )
-  find_program( EXTRACT_CMD_KEYWORDS
-                ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_cmd_keywords.sh )
-  find_program( EXTRACT_CTR_KEYWORDS
-                ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_ctr_keywords.sh )
-
-  if (PERL AND AWK AND XARGS AND GIT AND HEAD)
-
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../doc/xyst.doxy
-                   ${CMAKE_CURRENT_BINARY_DIR}/doc/xyst.doxy @ONLY)
-
-    file(GLOB doc_pages CONFIGURE_DEPENDS
-         RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "../doc/pages/*.dox")
-    foreach(page ${doc_pages})
-      configure_file(${page} ${CMAKE_CURRENT_BINARY_DIR}/doc/${page} @ONLY)
-    endforeach()
-
-    file(COPY ../doc/images DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/doc/html)
-
-    # Generate targets <executable>_cmd_keywords for extracting and generating
-    # reference documentation pages for command line keywords
-    set(executables_cmd_keywords)
-    foreach(exe IN LISTS EXECUTABLES)
-      add_custom_target(${exe}_cmd_keywords
-                        DEPENDS ${exe} ${doc_pages}
-                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
-                        COMMAND ${EXTRACT_CMD_KEYWORDS} ${exe}
-                        COMMENT "Extract ${exe}'s command-line keywords")
-      list(APPEND executables_cmd_keywords "${exe}_cmd_keywords")
-    endforeach()
-
-    # Generate targets <executable>_ctr_keywords for extracting and generating
-    # reference documentation pages for control file keywords
-    set(executables_ctr_keywords)
-    foreach(exe IN LISTS EXECUTABLES)
-      add_custom_target(${exe}_ctr_keywords
-                        DEPENDS ${exe} ${doc_pages}
-                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
-                        COMMAND ${EXTRACT_CTR_KEYWORDS} ${exe}
-                        COMMENT "Extract ${exe}'s control file keywords")
-      list(APPEND executables_ctr_keywords "${exe}_ctr_keywords")
-    endforeach()
-
-    add_custom_command(OUTPUT xml
-                       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
-                       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/doc/xyst.doxy
-                               ${executables_cmd_keywords}
-                               ${executables_ctr_keywords}
-                       COMMAND ${DOXYGEN_EXECUTABLE} xyst.doxy
-                       COMMAND ${MCSS_DOX2HTML5} --no-doxygen xyst.doxy
-                       VERBATIM USES_TERMINAL)
-
-    add_custom_target(doc DEPENDS xml
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
-                      COMMENT "Documentation")
-
-    message(STATUS "Add target 'doc' to generate documentation to ./doc/html/index.html")
-
-  endif()
-
+if (ENABLE_TESTS)
+  enable_testing()
+  add_subdirectory(${REGRESSION_DIR}
+                   ${CMAKE_BINARY_DIR}/tests)
 endif()
 
-# Setup code coverage targets
-if(CODE_COVERAGE)
+# Configure building documentation and web page
+if (BUILD_DOC)
+  find_package(MCSS QUIET)
+  if (DOXYGEN_FOUND AND MCSS_FOUND AND PYTHONINTERP_FOUND AND PYGMENTS_FOUND AND
+      JINJA2_FOUND AND LATEX_FOUND)
 
-  # Determine number of CPUs available
-  if (DEFINED ENV{SLURM_NPROCS})
-    set(PROCESSOR_COUNT $ENV{SLURM_NPROCS})
-  else()
-    include(ProcessorCount)
-    ProcessorCount(PROCESSOR_COUNT)
-    if(PROCESSOR_COUNT EQUAL 0)     # if ncpus could not be determined, assign 1
-      set(PROCESSOR_COUNT "1")
+    find_program( PERL perl )
+    find_program( AWK awk )
+    find_program( XARGS xargs )
+    find_program( GIT git )
+    find_program( HEAD head )
+    find_program( EXTRACT_CMD_KEYWORDS
+                  ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_cmd_keywords.sh )
+    find_program( EXTRACT_CTR_KEYWORDS
+                  ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_ctr_keywords.sh )
+
+    if (PERL AND AWK AND XARGS AND GIT AND HEAD)
+
+      configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../doc/xyst.doxy
+                     ${CMAKE_CURRENT_BINARY_DIR}/doc/xyst.doxy @ONLY)
+
+      file(GLOB doc_pages CONFIGURE_DEPENDS
+           RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "../doc/pages/*.dox")
+      foreach(page ${doc_pages})
+        configure_file(${page} ${CMAKE_CURRENT_BINARY_DIR}/doc/${page} @ONLY)
+      endforeach()
+
+      file(COPY ../doc/images DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/doc/html)
+
+      # Generate targets <executable>_cmd_keywords for extracting and generating
+      # reference documentation pages for command line keywords
+      set(executables_cmd_keywords)
+      foreach(exe IN LISTS EXECUTABLES)
+        add_custom_target(${exe}_cmd_keywords
+                          DEPENDS ${exe} ${doc_pages}
+                          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
+                          COMMAND ${EXTRACT_CMD_KEYWORDS} ${exe}
+                          COMMENT "Extract ${exe}'s command-line keywords")
+        list(APPEND executables_cmd_keywords "${exe}_cmd_keywords")
+      endforeach()
+
+      # Generate targets <executable>_ctr_keywords for extracting and generating
+      # reference documentation pages for control file keywords
+      set(executables_ctr_keywords)
+      foreach(exe IN LISTS EXECUTABLES)
+        add_custom_target(${exe}_ctr_keywords
+                          DEPENDS ${exe} ${doc_pages}
+                          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
+                          COMMAND ${EXTRACT_CTR_KEYWORDS} ${exe}
+                          COMMENT "Extract ${exe}'s control file keywords")
+        list(APPEND executables_ctr_keywords "${exe}_ctr_keywords")
+      endforeach()
+
+      add_custom_command(OUTPUT xml
+                         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
+                         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/doc/xyst.doxy
+                                 ${executables_cmd_keywords}
+                                 ${executables_ctr_keywords}
+                         COMMAND ${DOXYGEN_EXECUTABLE} xyst.doxy
+                         COMMAND ${MCSS_DOX2HTML5} --no-doxygen xyst.doxy
+                         VERBATIM USES_TERMINAL)
+
+      add_custom_target(doc DEPENDS xml
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
+                        COMMENT "Documentation")
+
+      message(STATUS "Add target 'doc' to generate documentation to ./doc/html/index.html")
+
     endif()
-  endif()
-  message(STATUS "Found ${PROCESSOR_COUNT} PEs")
 
-  include(CppCheck)
-  include(CodeCoverage)
-  setup_target_for_all_coverage(doc/html/${CMAKE_BUILD_TYPE} test_coverage
-                                ${RUNNER} ${RUNNER_NCPUS_ARG}
-                                DEPENDS ${MESHCONV_EXECUTABLE}
-                                        ${INCITER_EXECUTABLE}
-                                        ${UNITTEST_EXECUTABLE}
-                                        numdiff exodiff)
+  endif()
+
+  # Setup code coverage targets
+  if(CODE_COVERAGE)
+    # Determine number of CPUs available
+    if (DEFINED ENV{SLURM_NPROCS})
+      set(PROCESSOR_COUNT $ENV{SLURM_NPROCS})
+    else()
+      include(ProcessorCount)
+      ProcessorCount(PROCESSOR_COUNT)
+      if(PROCESSOR_COUNT EQUAL 0)     # if ncpus could not be determined, assign 1
+        set(PROCESSOR_COUNT "1")
+      endif()
+    endif()
+    message(STATUS "Found ${PROCESSOR_COUNT} PEs")
+    include(CppCheck)
+    include(CodeCoverage)
+    setup_target_for_all_coverage(doc/html/${CMAKE_BUILD_TYPE} test_coverage
+                                  ${RUNNER} ${RUNNER_NCPUS_ARG}
+                                  DEPENDS ${MESHCONV_EXECUTABLE}
+                                          ${INCITER_EXECUTABLE}
+                                          ${UNITTEST_EXECUTABLE}
+                                          numdiff exodiff)
+  endif()
 endif()

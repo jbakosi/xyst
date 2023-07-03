@@ -49,70 +49,71 @@ INSTALL(TARGETS Init
 # Configure executable targets
 
 ## UnitTest executable ########################################################
+if (ENABLE_TESTS)
+  add_executable(${UNITTEST_EXECUTABLE}
+                 UnitTestDriver.cpp
+                 UnitTest.cpp
+                 ../../tests/unit/Base/TestContainerUtil.cpp
+                 ../../tests/unit/Base/TestData.cpp
+                 ../../tests/unit/Base/TestException.cpp
+                 ../../tests/unit/Base/TestExceptionMPI.cpp
+                 ../../tests/unit/Base/TestFlip_map.cpp
+                 ../../tests/unit/Base/TestHas.cpp
+                 ../../tests/unit/Base/TestPrint.cpp
+                 ../../tests/unit/Base/TestPUPUtil.cpp
+                 ../../tests/unit/Base/TestReader.cpp
+                 ../../tests/unit/Base/TestPrintUtil.cpp
+                 ../../tests/unit/Base/TestTaggedTuple.cpp
+                 ../../tests/unit/Base/TestTaggedTuplePrint.cpp
+                 ../../tests/unit/Base/TestTaggedTupleDeepPrint.cpp
+                 ../../tests/unit/Base/TestTimer.cpp
+                 ../../tests/unit/Base/TestVector.cpp
+                 ../../tests/unit/Base/TestWriter.cpp
+                 ../../tests/unit/Base/TestLoadDistributor.cpp
+                 ../../tests/unit/Control/TestFileParser.cpp
+                 ../../tests/unit/Control/TestStringParser.cpp
+                 ../../tests/unit/Control/TestSystemComponents.cpp
+                 ../../tests/unit/Control/TestToggle.cpp
+                 ../../tests/unit/Inciter/AMR/TestError.cpp
+                 ../../tests/unit/IO/TestExodusIIMeshReader.cpp
+                 ../../tests/unit/IO/TestMesh.cpp
+                 ../../tests/unit/Mesh/TestAround.cpp
+                 ../../tests/unit/Mesh/TestDerivedData.cpp
+                 ../../tests/unit/Mesh/TestDerivedData_MPISingle.cpp
+                 ../../tests/unit/Mesh/TestGradients.cpp
+                 ../../tests/unit/Mesh/TestReorder.cpp
+  )
 
-add_executable(${UNITTEST_EXECUTABLE}
-               UnitTestDriver.cpp
-               UnitTest.cpp
-               ../../tests/unit/Base/TestContainerUtil.cpp
-               ../../tests/unit/Base/TestData.cpp
-               ../../tests/unit/Base/TestException.cpp
-               ../../tests/unit/Base/TestExceptionMPI.cpp
-               ../../tests/unit/Base/TestFlip_map.cpp
-               ../../tests/unit/Base/TestHas.cpp
-               ../../tests/unit/Base/TestPrint.cpp
-               ../../tests/unit/Base/TestPUPUtil.cpp
-               ../../tests/unit/Base/TestReader.cpp
-               ../../tests/unit/Base/TestPrintUtil.cpp
-               ../../tests/unit/Base/TestTaggedTuple.cpp
-               ../../tests/unit/Base/TestTaggedTuplePrint.cpp
-               ../../tests/unit/Base/TestTaggedTupleDeepPrint.cpp
-               ../../tests/unit/Base/TestTimer.cpp
-               ../../tests/unit/Base/TestVector.cpp
-               ../../tests/unit/Base/TestWriter.cpp
-               ../../tests/unit/Base/TestLoadDistributor.cpp
-               ../../tests/unit/Control/TestFileParser.cpp
-               ../../tests/unit/Control/TestStringParser.cpp
-               ../../tests/unit/Control/TestSystemComponents.cpp
-               ../../tests/unit/Control/TestToggle.cpp
-               ../../tests/unit/Inciter/AMR/TestError.cpp
-               ../../tests/unit/IO/TestExodusIIMeshReader.cpp
-               ../../tests/unit/IO/TestMesh.cpp
-               ../../tests/unit/Mesh/TestAround.cpp
-               ../../tests/unit/Mesh/TestDerivedData.cpp
-               ../../tests/unit/Mesh/TestDerivedData_MPISingle.cpp
-               ../../tests/unit/Mesh/TestGradients.cpp
-               ../../tests/unit/Mesh/TestReorder.cpp
-)
+  target_include_directories(${UNITTEST_EXECUTABLE} PUBLIC
+                             ${PROJECT_SOURCE_DIR}/..
+                             ${PROJECT_SOURCE_DIR}/../UnitTest
+                             ${PROJECT_SOURCE_DIR}/../IO
+                             ${PROJECT_BINARY_DIR}/../UnitTest
+                             ${PROJECT_BINARY_DIR}/../IO)
 
-target_include_directories(${UNITTEST_EXECUTABLE} PUBLIC
-                           ${PROJECT_SOURCE_DIR}/..
-                           ${PROJECT_SOURCE_DIR}/../UnitTest
-                           ${PROJECT_SOURCE_DIR}/../IO
-                           ${PROJECT_BINARY_DIR}/../UnitTest
-                           ${PROJECT_BINARY_DIR}/../IO)
+  config_executable(${UNITTEST_EXECUTABLE})
 
-config_executable(${UNITTEST_EXECUTABLE})
+  target_link_libraries(${UNITTEST_EXECUTABLE}
+                        Base
+                        Config
+                        Init
+                        MeshRefinement
+                        UnitTest
+                        UnitTestControl
+                        Mesh
+                        NativeMeshIO
+                        MeshDetect
+                        ExodusIIMeshIO
+                        exodus
+                        ${NETCDF_LIBRARIES}
+                        ${HDF5_C_LIBRARIES})
 
-target_link_libraries(${UNITTEST_EXECUTABLE}
-                      Base
-                      Config
-                      Init
-                      MeshRefinement
-                      UnitTest
-                      UnitTestControl
-                      Mesh
-                      NativeMeshIO
-                      MeshDetect
-                      ExodusIIMeshIO
-                      exodus
-                      ${NETCDF_LIBRARIES}
-                      ${HDF5_C_LIBRARIES})
-
-# Add custom dependencies for UnitTest's main Charm++ module
-addCharmModule( "unittestinciter" "${UNITTEST_EXECUTABLE}" )
-add_dependencies( "unittestinciterCharmModule"
-                  "charestatecollectorCharmModule"
-                  "mpirunnerinciterCharmModule" )
+  # Add custom dependencies for UnitTest's main Charm++ module
+  addCharmModule( "unittestinciter" "${UNITTEST_EXECUTABLE}" )
+  add_dependencies( "unittestinciterCharmModule"
+                    "charestatecollectorCharmModule"
+                    "mpirunnerinciterCharmModule" )
+endif()
 
 ## Inciter executable ##########################################################
 

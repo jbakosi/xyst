@@ -10,14 +10,14 @@ matrix:
     - BUILDTYPE: Debug
       IMAGE: "xyst-gnu"
       CHARM_INSTALL_DIR: "/charm-non-smp"
-    - BUILDTYPE: Debug
-      IMAGE: "xyst-clang"
-      CHARM_INSTALL_DIR: "/charm-non-smp"
+    #- BUILDTYPE: Debug
+    #  IMAGE: "xyst-clang"
+    #  CHARM_INSTALL_DIR: "/charm-non-smp"
 
 pipeline:
   build:
     image: jbakosi/${IMAGE}
-    pull: true
+    #pull: true
     commands:
      - mkdir build && cd build && cmake -DCHARM_INSTALL_DIR=/charm-install -DCHARM_INSTALL_DIR=${CHARM_INSTALL_DIR} -Wno-dev -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root --bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=${POSTFIX_RUNNER_ARGS} ../src && make -sj2
 

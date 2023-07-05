@@ -67,7 +67,7 @@ class RieCG : public CBase_RieCG {
     #endif
     //! Migrate constructor
     // cppcheck-suppress uninitMemberVar
-    explicit RieCG( CkMigrateMessage* msg ) : CBase_RieCG( msg ) {}
+    explicit RieCG( CkMigrateMessage* m ) : CBase_RieCG( m ) {}
     #if defined(__clang__)
       #pragma clang diagnostic pop
     #endif

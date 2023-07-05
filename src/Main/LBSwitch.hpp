@@ -40,6 +40,18 @@ class LBSwitch : public CBase_LBSwitch {
 
     //! Turn off automatic load balancing
     static void off();
+
+    /** @name Charm++ pack/unpack serializer member functions */
+    ///@{
+    //! \brief Pack/Unpack serialize member function
+    //! \note This is a Charm++ group, pup() is thus only for
+    //!    checkpoint/restart.
+    void pup( PUP::er& ) override {}
+    //! \brief Pack/Unpack serialize operator|
+    //! \param[in,out] p Charm++'s PUP::er serializer object reference
+    //! \param[in,out] m LBSwitch object reference
+    friend void operator|( PUP::er& p, LBSwitch& m ) { m.pup(p); }
+    //@}
 };
 
 } // tk::

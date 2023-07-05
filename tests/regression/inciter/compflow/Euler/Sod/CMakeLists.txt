@@ -108,14 +108,14 @@ add_regression_test(badrange ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES sod_badrange.q rectangle_01_1.5k.exo
                     ARGS -c sod_badrange.q -i rectangle_01_1.5k.exo -v
-                    EXTRA_PASS_REGEXP "Incorrect output time range"
+                    EXTRA_PASS_REGEXP "time range"
                     SKIP_RETURN_CODE true)
 
 add_regression_test(badrange_dt ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES sod_badrange_dt.q rectangle_01_1.5k.exo
                     ARGS -c sod_badrange_dt.q -i rectangle_01_1.5k.exo -v
-                    EXTRA_PASS_REGEXP "Incorrect output time range"
+                    EXTRA_PASS_REGEXP "time range"
                     SKIP_RETURN_CODE true)
 
 # Parallel

@@ -1032,7 +1032,7 @@ Transporter::inthead( const InciterPrint& print )
   "             t - physics time history output\n"
   "             h - h-refinement\n"
   "             l - load balancing\n"
-  "             r - checkpoint\n",
+  "             c - checkpoint\n",
   "\n      it             t            dt        ETE        ETA        EGT  flg\n"
     " -------------------------------------------------------------------------\n" );
 }

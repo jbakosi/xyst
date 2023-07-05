@@ -33,7 +33,6 @@ using CmdLineMembers = brigand::list<
     tag::io,             ios
   , tag::virtualization, kw::virtualization::info::expect::type
   , tag::verbose,        bool
-  , tag::chare,          bool
   , tag::nonblocking,    bool
   , tag::benchmark,      bool
   , tag::feedback,       bool
@@ -60,7 +59,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
     //! \brief Inciter command-line keywords
     //! \see tk::grm::use and its documentation
     using keywords = tk::cmd_keywords< kw::verbose
-                                     , kw::charestate
                                      , kw::nonblocking
                                      , kw::benchmark
                                      , kw::feedback
@@ -129,7 +127,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
       get< tag::io, tag::restart >() = "restart";
       get< tag::virtualization >() = 0.0;
       get< tag::verbose >() = false; // Quiet output by default
-      get< tag::chare >() = false; // No chare state output by default
       get< tag::nonblocking>() = false; // Blocking migration by default
       get< tag::benchmark >() = false; // No benchmark mode by default
       get< tag::feedback >() = false; // No detailed feedback by default

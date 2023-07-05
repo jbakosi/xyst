@@ -40,7 +40,6 @@
 #include "UnitTestDriver.hpp"
 #include "UnitTest/CmdLine/Parser.hpp"
 #include "TUTConfig.hpp"
-#include "ChareStateCollector.hpp"
 #include "QuietCerr.hpp"
 
 #if defined(__clang__)
@@ -51,9 +50,6 @@
 //! \brief Charm handle to the main proxy, facilitates call-back to finalize,
 //!    etc., must be in global scope, unique per executable
 CProxy_Main mainProxy;
-
-//! Chare state collector Charm++ chare group proxy
-tk::CProxy_ChareStateCollector stateProxy;
 
 //! If true, call and stack traces are to be output with exceptions
 //! \note This is true by default so that the trace is always output between
@@ -167,10 +163,6 @@ class Main : public CBase_Main {
       // Call generic mainchare contructor
       tk::MainCtor( mainProxy, thisProxy, m_timer, m_cmdline,
                     CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
-      // If quiescence detection is on or user requested it, create chare state
-      // collector Charm++ chare group
-      if ( m_cmdline.get< tag::chare >() || m_cmdline.get< tag::quiescence >() )
-        stateProxy = tk::CProxy_ChareStateCollector::ckNew();
       // Fire up an asynchronous execute object, which when created at some
       // future point in time will call back to this->execute(). This is
       // necessary so that this->execute() can access already migrated
@@ -189,28 +181,14 @@ class Main : public CBase_Main {
 
     //! Towards normal exit but collect chare state first (if any)
     void finalize( bool pass ) {
-      tk::finalize( m_cmdline, m_timer, stateProxy, m_timestamp,
+      tk::finalize( m_cmdline, m_timer, m_timestamp,
         m_cmdline.get< tag::io, tag::screen >(),
         m_cmdline.get< tag::io, tag::nrestart >(),
-        CkCallback( CkIndex_Main::dumpstate(nullptr), thisProxy ),
         pass );
     }
 
     //! Entry method triggered when quiescence is detected
-    void quiescence() {
-      try {
-        stateProxy.collect( /* error= */ true,
-          CkCallback( CkIndex_Main::dumpstate(nullptr), thisProxy ) );
-      } catch (...) { tk::processExceptionCharm(); }
-    }
-
-    //! Dump chare state
-    void dumpstate( CkReductionMsg* msg ) {
-      tk::dumpstate( m_cmdline,
-        m_cmdline.get< tag::io, tag::screen >(),
-        m_cmdline.get< tag::io, tag::nrestart >(),
-        msg );
-    }
+    [[noreturn]] void quiescence() { Throw( "Quiescence detected" ); }
 
   private:
     int m_signal;                               //!< Used to set signal handlers

@@ -15,10 +15,7 @@
 
 mainmodule meshconv {
 
-  extern module charestatecollector;
-
   readonly CProxy_Main mainProxy;
-  readonly tk::CProxy_ChareStateCollector stateProxy;
   readonly bool g_trace;
 
   mainchare Main {
@@ -29,7 +26,6 @@ mainmodule meshconv {
     entry void timestamp( const std::vector<
                                   std::pair<std::string,tk::real> >& s );
     entry void quiescence();
-    entry [reductiontarget] void dumpstate( CkReductionMsg* msg );
   }
 
   chare execute { entry execute(); }

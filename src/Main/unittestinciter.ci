@@ -17,11 +17,9 @@ mainmodule unittestinciter {
 
   extern module tutsuiteinciter;
   extern module mpirunnerinciter;
-  extern module charestatecollector;
   extern module quietcerr;
 
   readonly CProxy_Main mainProxy;
-  readonly tk::CProxy_ChareStateCollector stateProxy;
 
   namespace unittest {
 
@@ -38,7 +36,6 @@ mainmodule unittestinciter {
     entry void execute();
     entry void finalize( bool worked );
     entry void quiescence();
-    entry [reductiontarget] void dumpstate( CkReductionMsg* msg );
   }
 
   chare execute { entry execute(); }

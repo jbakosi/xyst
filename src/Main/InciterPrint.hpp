@@ -66,18 +66,6 @@ class InciterPrint : public tk::Print {
       item( opt.group(), codes );
     }
 
-    //! Print legend for list of codes of vector-valued option
-    //! \tparam Option Option type
-    template< typename Option >
-    void ItemVecLegend() const {
-      brigand::for_each< typename Option::keywords >( echoPolicies(this) );
-    }
-
-    //! Print configuration of a stack of partial differential equations
-    void pdes( const std::string& t,
-      const std::vector< std::vector< std::pair< std::string, std::string > > >&
-        info ) const;
-
     //! Print time integration header
     void inthead( const std::string& t, const std::string& name,
                   const std::string& legend, const std::string& head ) const;

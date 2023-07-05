@@ -112,7 +112,7 @@ void echoBuildEnv( const Print& print, const std::string& executable )
 }
 
 void echoRunEnv( const Print& print, int argc, char** argv,
-                 bool verbose, bool quiescence, bool charestate, bool trace,
+                 bool verbose, bool quiescence, bool trace,
                  const std::string& screen_log, const std::string& input_log )
 // *****************************************************************************
 //  Echo runtime environment
@@ -121,7 +121,6 @@ void echoRunEnv( const Print& print, int argc, char** argv,
 //! \param[in] argv C-style string array to command-line arguments to executable
 //! \param[in] verbose True for verbose screen-output
 //! \param[in] quiescence True if quiescence detection is enabled
-//! \param[in] charestate True if chare state collection is enabled
 //! \param[in] trace True if call and stack trace output is enabled
 //! \param[in] screen_log Screen output log file name
 //! \param[in] input_log Input log file name
@@ -153,8 +152,6 @@ void echoRunEnv( const Print& print, int argc, char** argv,
               std::to_string( CkNumPes()/CkNumNodes() ) + ')' );
   print.item( "Quiescence detection, -" + *kw::quiescence::alias(),
               quiescence ? "on" : "off" );
-  print.item( "Chare state output, -" + *kw::charestate::alias(),
-              charestate ? "on" : "off" );
   print.item( "Call and stack trace, -" + *kw::trace::alias(),
               trace ? "on" : "off" );
 }

@@ -24,8 +24,8 @@
 #include "XystConfig.hpp"
 #include "Exception.hpp"
 #include "Print.hpp"
-#include "ChareStateCollector.hpp"
 #include "ProcessException.hpp"
+#include "Tags.hpp"
 
 namespace tk {
 
@@ -46,7 +46,7 @@ void echoBuildEnv( const Print& print, const std::string& executable );
 
 //! Echo runtime environment
 void echoRunEnv( const Print& print, int argc, char** argv,
-                 bool verbose, bool quiescence, bool charestate, bool trace,
+                 bool verbose, bool quiescence, bool trace,
                  const std::string& screen_log, const std::string& input_log );
 
 //! \brief Generic Main() used for all executables for code-reuse and a uniform
@@ -92,7 +92,6 @@ Driver Main( int argc, char* argv[],
   // Runtime environment
   echoRunEnv( print, argc, argv, cmdline.template get< tag::verbose >(),
               cmdline.template get< tag::quiescence >(),
-              cmdline.template get< tag::chare >(),
               cmdline.template get< tag::trace >(),
               cmdline.logname( def, nrestart ),
               executable + "_input.log" );
@@ -130,58 +129,10 @@ void MainCtor( MainProxy& mp,
   timer.emplace_back();
 }
 
-//! Generic function to dump the Charm++ chare state (if collected)
-//! \tparam CmdLine Executable-specific tagged tuple storing the rusult of the
-//!    command line parser
-//! \param[in] cmdline Command line grammar stack for the executable
-//! \param[in] def Default log file name
-//! \param[in] nrestart Number of times restarted
-//! \param[in] msg Charm++ reduction message containing the chare state
-//!   aggregated from all PEs
-template< class CmdLine >
-void dumpstate( const CmdLine& cmdline,
-                const std::string& def,
-                int nrestart,
-                CkReductionMsg* msg )
-{
-  try {
-
-    // unpack chare state
-    std::unordered_map< int, std::vector< tk::ChareState > > state;
-    PUP::fromMem creator( msg->getData() );
-    creator | state;
-    delete msg;
-
-    // find out if chare state collection was triggered due to an error
-    auto it = state.find( -1 );
-    bool error = it != end(state);
-    if (error) state.erase( it );
-
-    // pretty-print collected chare state (only if user requested it or
-    // quiescence was detected which is an indication of a logic error)
-    if (cmdline.template get< tag::chare >() || error) {
-      tk::Print print( cmdline.logname( def, nrestart ),
-        cmdline.template get< tag::verbose >() ? std::cout : std::clog,
-        std::ios_base::app );
-      print.charestate( state );
-    }
-
-    // exit differently depending on how we were called
-    if (error)
-      Throw( "Quiescence or another error detected" );
-    else
-      CkExit(); // tell the Charm++ runtime system to exit with zero exit code
-
-  } catch (...) { tk::processExceptionCharm(); }
-}
-
 //! Generic finalize function for different executables
 //! \param[in] cmdline Command line grammar stack for the executable
 //! \param[in] timer Vector of timers, held by the main chare
-//! \param[in,out] state Chare state collector proxy
 //! \param[in,out] timestamp Vector of time stamps in h:m:s with labels
-//! \param[in] dumpstateTarget Pre-created Charm++ callback to use as the
-//!   target function for dumping chare state
 //! \param[in] def Default log file name
 //! \param[in] nrestart Number of times restarted
 //! \param[in] clean True if we should exit with a zero exit code, false to
@@ -189,12 +140,10 @@ void dumpstate( const CmdLine& cmdline,
 template< class CmdLine >
 void finalize( const CmdLine& cmdline,
                const std::vector< tk::Timer >& timer,
-               tk::CProxy_ChareStateCollector& state,
                std::vector< std::pair< std::string,
                                        tk::Timer::Watch > >& timestamp,
                const std::string& def,
                int nrestart,
-               const CkCallback& dumpstateTarget,
                bool clean = true )
 {
   try {
@@ -208,14 +157,7 @@ void finalize( const CmdLine& cmdline,
       print.endpart();
     }
 
-    // if quiescence detection is on or user requested it, collect chare state
-    if ( cmdline.template get< tag::chare >() ||
-         cmdline.template get< tag::quiescence >() )
-    {
-      state.collect( /* error = */ not clean, dumpstateTarget );
-    } else { // tell the ++ runtime system to exit with the correct exit code
-      if (clean) CkExit(); else CkAbort("Failed");
-    }
+    if (clean) CkExit(); else CkAbort("Failed");
 
   } catch (...) { tk::processExceptionCharm(); }
 }

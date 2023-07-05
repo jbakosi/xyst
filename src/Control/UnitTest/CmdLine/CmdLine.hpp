@@ -35,7 +35,6 @@ namespace ctr {
 using CmdLineMembers = brigand::list<
     tag::io,         ios
   , tag::verbose,    bool
-  , tag::chare,      bool
   , tag::help,       bool
   , tag::quiescence, bool
   , tag::trace,      bool
@@ -57,7 +56,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
     //! \brief UnitTest command-line keywords
     //! \see tk::grm::use and its documentation
     using keywords = tk::cmd_keywords< kw::verbose
-                                     , kw::charestate
                                      , kw::help
                                      , kw::helpkw
                                      , kw::group
@@ -83,7 +81,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
       get< tag::io, tag::screen >() =
         tk::baselogname( tk::unittest_executable() );
       get< tag::verbose >() = false; // Use quiet output by default
-      get< tag::chare >() = false; // No chare state output by default
       get< tag::trace >() = true; // Output call and stack trace by default
       get< tag::version >() = false; // Do not display version info by default
       // Initialize help: fill from own keywords

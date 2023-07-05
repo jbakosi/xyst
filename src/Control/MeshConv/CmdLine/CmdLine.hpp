@@ -57,7 +57,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
     //! \brief MeshConv command-line keywords
     //! \see tk::grm::use and its documentation
     using keywords = tk::cmd_keywords< kw::verbose
-                                     , kw::charestate
                                      , kw::help
                                      , kw::helpkw
                                      , kw::input

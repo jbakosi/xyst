@@ -363,19 +363,6 @@ namespace grm {
   };
 
   //! Rule used to trigger action
-  struct check_pref_errors : pegtl::success {};
-  //! Do error checking for the pref...end block
-  template<>
-  struct action< check_pref_errors > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      auto& tolref = stack.template get< tag::pref, tag::tolref >();
-      if (tolref < 0.0 || tolref > 1.0)
-        Message< Stack, ERROR, MsgKey::PREFTOL >( stack, in );
-    }
-  };
-
-  //! Rule used to trigger action
   struct match_pointname : pegtl::success {};
   //! \brief Match PDF name to the registered ones
   //! \details This is used to check the set of PDF names dependent previously

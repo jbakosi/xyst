@@ -39,8 +39,6 @@ target_include_directories(Init PUBLIC
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS})
 
-add_dependencies( "Init" "charestatecollectorCharmModule" )
-
 INSTALL(TARGETS Init
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
@@ -111,7 +109,6 @@ if (ENABLE_TESTS)
   # Add custom dependencies for UnitTest's main Charm++ module
   addCharmModule( "unittestinciter" "${UNITTEST_EXECUTABLE}" )
   add_dependencies( "unittestinciterCharmModule"
-                    "charestatecollectorCharmModule"
                     "mpirunnerinciterCharmModule" )
 endif()
 
@@ -149,7 +146,6 @@ target_link_libraries(${INCITER_EXECUTABLE}
 addCharmModule( "inciter" "${INCITER_EXECUTABLE}" "-I${PROJECT_BINARY_DIR}")
 addCharmModule( "lbswitch" "inciterCharmModule" )
 
-add_dependencies( "inciterCharmModule" "charestatecollectorCharmModule" )
 add_dependencies( "inciterCharmModule" "meshwriterCharmModule" )
 
 ### MeshConv executable ########################################################
@@ -178,5 +174,3 @@ target_link_libraries(${MESHCONV_EXECUTABLE}
 
 # Add custom dependencies for MeshConv's main Charm++ module
 addCharmModule( "meshconv" "${MESHCONV_EXECUTABLE}" )
-
-add_dependencies( "meshconvCharmModule" "charestatecollectorCharmModule" )

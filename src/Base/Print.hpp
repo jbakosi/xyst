@@ -30,7 +30,6 @@
 #include "Timer.hpp"
 #include "Exception.hpp"
 #include "Has.hpp"
-#include "ChareState.hpp"
 #include "PrintUtil.hpp"
 #include "TeeBuf.hpp"
 
@@ -348,33 +347,6 @@ class Print {
     void diagend( const std::string& msg ) const
     { stream<s>() << m_diag_end_fmt % msg << std::flush; }
 
-    //! Print chare state collected
-    //! \param[in] state State map to print
-    template< Style s = VERBOSE >
-    void charestate( const std::unordered_map< int,
-                        std::vector< ChareState > >& state ) const
-    {
-      stream<s>() << m_charestate_frame_fmt %
-                     "\n>>> =========== CHARE STATE ==========\n>>>";
-      // Sort by and list in the order of timestamp
-      std::map< tk::real, std::vector< ChareState > > sorted_state;
-      for (const auto& p : state)
-        for (const auto& i : p.second)
-          sorted_state[ i.get< tag::time >() ].push_back( i );
-      for (const auto& p : sorted_state) {
-        for (const auto& i : p.second) {
-          stream<s>() << m_charestate_fmt % p.first
-                                          % i.get< tag::pe >()
-                                          % i.get< tag::ch >()
-                                          % i.get< tag::id >()
-                                          % i.get< tag::fn >()
-                                          % i.get< tag::data >();
-        }
-      }
-      stream<s>() << m_charestate_frame_fmt %
-                     "\n>>> ======= END OF CHARE STATE =======\n>>>";
-    }
-
     //! Echo formatted print of a progress message
     //! \param[in] prefix Strings to output prefixing the progress report
     //! \param[in] done Array of integers indicating how many have been done
@@ -561,23 +533,6 @@ class Print {
     template< Style s = VERBOSE >
     std::ostream& stream() const noexcept { return s ? m_stream : m_qstream; }
 
-    //! Function object for echoing policies to screen
-    struct echoPolicies {
-      //! Need to store reference to host class whose data we operate on
-      const Print* const m_host;
-      //! Constructor: store host object pointer
-      explicit echoPolicies( const Print* const host ) : m_host( host ) {}
-      //! Function call operator templated on the type that echos a policy
-      template< typename U > void operator()( brigand::type_<U> ) {
-        static_assert( tk::HasTypedef_code_v< typename U::info >,
-                       "Policy code undefined for keyword" );
-        // Print policy code - policy name
-        m_host->raw( m_host->m_item_indent + "   " +
-                     *U::code() + " - " + U::info::name() + '\n' );
-
-      }
-    };
-
     //! Print Inciter header. Text ASCII Art Generator used for executable
     //! names: http://patorjk.com/software/taag.
     template< Style s = VERBOSE >
@@ -643,8 +598,6 @@ ____  ___                __    __      _____                .__    _________
     mutable format m_diag_start_fmt = format("Xyst> %s ");
     mutable format m_inprog_diag_fmt = format("Xyst> %s: %s");
     mutable format m_inprog_extra_diag_fmt = format(", %s: %s");
-    mutable format m_charestate_frame_fmt = format(">>> %s\n");
-    mutable format m_charestate_fmt = format(">>> t:%f PE:%d %s(%d)::%s: %s\n");
     mutable format m_diag_end_fmt = format("%s\n");
     mutable format m_progress_fmt = format("%s");
     mutable format m_help_title_fmt = format("\n%s %s\n");

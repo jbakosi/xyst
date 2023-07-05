@@ -880,25 +880,6 @@ struct verbose_info {
 };
 using verbose = keyword< verbose_info, TAOCPP_PEGTL_STRING("verbose") >;
 
-struct charestate_info {
-  static std::string name() { return "charestate"; }
-  static std::string shortDescription() { return
-    "Enable verbose chare state screen output"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to enable verbose Charm++ chare state collection and
-    screen output. The chare state is displayed after a run is finished and the
-    data collected is grouped by chare id (thisIndex), and within groups data
-    is ordered by the time-stamp when a given chare member function is
-    called. See src/Base/ChareState.hpp for details on what is collected. Note
-    that to collect chare state, the given chare must be instrumented. Note that
-    if quescence detection is enabled,
-    chare state collection is also automatically enabled, but the chare state is
-    only output if quiescence is detected (which also triggers an error).)";
-  }
-  using alias = Alias< S >;
-};
-using charestate = keyword< charestate_info, TAOCPP_PEGTL_STRING("state") >;
-
 struct benchmark_info {
   static std::string name() { return "benchmark"; }
   static std::string shortDescription() { return "Select benchmark mode"; }
@@ -1920,20 +1901,6 @@ struct sideset_info {
 };
 using sideset = keyword< sideset_info, TAOCPP_PEGTL_STRING("sideset") >;
 
-struct fn_info {
-  static std::string name() { return "User-defined function"; }
-  static std::string shortDescription() { return
-    "Specify a discrete user-defined function"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to specify a user-defined function with discrete
-    points, listed between a fn ... end block.)"; }
-  struct expect {
-    using type = tk::real;
-    static std::string description() { return "real(s)"; }
-   };
-};
-using fn = keyword< fn_info, TAOCPP_PEGTL_STRING("fn") >;
-
 struct bc_dirichlet_info {
   static std::string name() { return "Dirichlet boundary condition"; }
   static std::string shortDescription() { return
@@ -2789,20 +2756,6 @@ struct amr_info {
   }
 };
 using amr = keyword< amr_info, TAOCPP_PEGTL_STRING("amr") >;
-
-struct fntype_info {
-  static std::string name() { return "User-defined function type"; }
-  static std::string shortDescription() { return
-    "Select how a user-defined function is interpreted"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select how a user-defined function should be
-    interpreted.)"; }
-  struct expect {
-    static std::string description() { return "string"; }
-   };
-};
-using fntype =
-  keyword< fntype_info, TAOCPP_PEGTL_STRING("fntype") >;
 
 struct filename_info {
   static std::string name() { return "filename"; }

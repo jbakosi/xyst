@@ -34,7 +34,7 @@ inciter
     interval 20
     time_interval 4.0e-3
     time_range 0.1 0.15 1.0e-3 end
-    time_range 0.1 0.2 0.3 end # error triggered: dt > maxtime-mintim
+    time_range 0.1 0.2 0.3 end # error triggered: dt > maxtime-mintime
     point p1 0.1 0.05 0.025 end
     point p2 0.9 0.05 0.025 end
     point p3 0.5 0.05 0.025 end

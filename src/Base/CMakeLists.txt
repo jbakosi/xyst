@@ -11,7 +11,6 @@ add_library(Base
             Reader.cpp
             Writer.cpp
             PrintUtil.cpp
-            ChareStateCollector.cpp
 )
 
 target_include_directories(Base PUBLIC
@@ -22,7 +21,6 @@ target_include_directories(Base PUBLIC
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS})
 
-addCharmModule( "charestatecollector" "Base" )
 
 set_target_properties(Base PROPERTIES LIBRARY_OUTPUT_NAME xyst_base)
 

@@ -104,120 +104,6 @@ inline void pup( PUP::er& p, Term& t ) { t.pup(p); }
 //! \<y1y2y3\> = \<(Y1-\<Y1\>)(Y2-\<Y2\>)(Y3-\<Y3\>)\>.
 using Product = std::vector< Term >;
 
-
-// The following functions are useful for debugging, and unused.
-#if defined(__clang__)
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wunused-function"
-#elif defined(STRICT_GNUC)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wunused-function"
-#endif
-
-//! \brief Operator + for adding Term (var+field) to a std::string
-//! \param[in] lhs std::string to add to
-//! \param[in] term Term to add
-//! \return Updated std::string
-static std::string operator+ ( const std::string& lhs, const Term& term ) {
-  std::stringstream ss;
-  ss << lhs << term.var << term.field+1;
-  std::string rhs = ss.str();
-  return rhs;
-}
-
-//! \brief Operator += for adding Term (var+field) to a std::string
-//! \param[in,out] os std::string to add to
-//! \param[in] term Term to add
-//! \return Updated std::string
-static std::string& operator+= ( std::string& os, const Term& term ) {
-  std::stringstream ss;
-  ss << os << term.var << term.field+1;
-  os = ss.str();
-  return os;
-}
-
-//! \brief Operator << for writing Term to output streams
-//! \param[in,out] os Output stream to write to
-//! \param[in] term Term to write
-//! \return Updated output stream
-static std::ostream& operator<< ( std::ostream& os, const Term& term ) {
-  os << term.var << term.field+1;
-  return os;
-}
-
-//! \brief Operator + for adding products (var+field) to a std::string
-//! \param[in] lhs std::string to add to
-//! \param[in] p Product to add
-//! \return Updated std::string
-static std::string operator+ ( const std::string& lhs, const Product& p ) {
-  std::stringstream ss;
-  ss << lhs;
-  if (!p.empty()) {
-    ss << '<';
-    for (const auto& w : p) ss << w;
-    ss << '>';
-  }
-  std::string rhs = ss.str();
-  return rhs;
-}
-
-//! \brief Operator << for writing products to output streams
-//! \param[in,out] os Output stream to write to
-//! \param[in] p Product, std::vector< Term >, to write
-//! \return Updated output stream
-static
-std::ostream& operator<< ( std::ostream& os, const Product& p ) {
-  if (!p.empty()) {
-    os << '<';
-    for (const auto& w : p) os << w;
-    os << '>';
-  }
-  return os;
-}
-
-//! \brief Function for writing PDF sample space variables to output streams
-//! \param[in,out] os Output stream to write to
-//! \param[in] var Vector of Terms to write
-//! \param[in] bin Vector of PDF bin sizes
-//! \param[in] name Name of PDF
-//! \param[in] ext Vector of sample space extents
-//! \return Updated output stream
-static
-std::ostream& pdf( std::ostream& os,
-                   const std::vector< Term >& var,
-                   const std::vector< tk::real >& bin,
-                   const std::string& name,
-                   const std::vector< tk::real >& ext )
-{
-  Assert( !var.empty(), "var is empty in sample_space()" );
-  Assert( !bin.empty(), "bin is empty in sample_space()" );
-  Assert( var.size() == bin.size(),
-          "var.size and bin.size() must equal in ctr::pdf()" );
-
-  os << name << '(';
-  std::size_t i;
-  // sample space variables
-  for (i=0; i<var.size()-1; ++i) os << var[i] << ',';
-  os << var[i] << ':';
-  // sample space bin sizes
-  for (i=0; i<bin.size()-1; ++i) os << bin[i] << ',';
-  os << bin[i];
-  // sample space extents
-  if (!ext.empty()) {
-    os << ';';
-    for (i=0; i<ext.size()-1; ++i) os << ext[i] << ',';
-    os << ext[i];
-  }
-  os << ") ";
-  return os;
-}
-
-#if defined(__clang__)
-  #pragma clang diagnostic pop
-#elif defined(STRICT_GNUC)
-  #pragma GCC diagnostic pop
-#endif
-
 //! \brief Case-insensitive character comparison functor
 struct CaseInsensitiveCharLess {
   //! Function call operator
@@ -322,42 +208,6 @@ PDFInfo pdfInfo( const std::vector< std::vector< tk::real > >& binsizes,
   Throw( "Cannot find PDF." );
 }
 
-//! Extract number of PDFs given sample space dimension
-//! \details Count number of PDFs given the sample space dimension (template
-//!   argument D) and whether the PDF is ordinary or central (m)
-//! \note Size of binsizes, names, pdfs, and exts must all be equal
-//! \param[in] binsizes Vector of vector of bin sizes (inner vector: a different
-//!   entry for each sample space dimension for potentially multi-variate PDFs,
-//!   outer vector: potentially multiple PDFs)
-//! \param[in] pdfs Vector of PDFs
-//! \param[in] m ORDINARY or CENTRAL PDF we are looking for
-//! \return The number of PDFs matchin the criteria discussed above
-template< std::size_t D >
-std::size_t numPDF( const std::vector< std::vector< tk::real > >& binsizes,
-                    const std::vector< Probability >& pdfs,
-                    ctr::Moment m )
-{
-  Assert( binsizes.size() == pdfs.size(),
-          "Length of binsizes vector and that of PDFs must equal" );
-  auto& kind = (m == Moment::ORDINARY ? ordinary : central);
-  std::size_t i=0, n=0;
-  for (const auto& p : pdfs) {
-    const auto& bs = binsizes[i++];
-    if (kind(p) && bs.size() == D) ++n;
-  }
-  return n;
-}
-
-//! Lookup moment in moments map based on product key
-static inline tk::real
-lookup( const Product& p, const std::map< Product, tk::real >& moments ) {
-  const auto& it = moments.find( p );
-  if (it != end(moments))
-    return it->second;
-  else
-    Throw( "Cannot find moment " + p + " in moments map" );
-}
-
 //! Construct mean
 //! \param[in] var Variable
 //! \param[in] c Component number
@@ -369,22 +219,6 @@ mean( char var, kw::ncomp::info::expect::type c ) {
   return tk::ctr::Product( { m } );
 }
 
-//! Construct covariance
-//! \param[in] var1 Variable 1
-//! \param[in] c1 Component number 1
-//! \param[in] var2 Variable 2
-//! \param[in] c2 Component number 2
-//! \return Constructed vector< Term > identifying the first ordinary moment
-//!   (mean) of field (component) c of variable var
-static inline Product
-covariance( char var1, kw::ncomp::info::expect::type c1,
-            char var2, kw::ncomp::info::expect::type c2 )
-{
-  tk::ctr::Term u( static_cast<char>(std::tolower(var1)), c1, Moment::CENTRAL );
-  tk::ctr::Term v( static_cast<char>(std::tolower(var2)), c2, Moment::CENTRAL );
-  return tk::ctr::Product( { u, v } );
-}
-
 //! Construct variance
 //! \param[in] var Variable
 //! \param[in] c Component number
@@ -393,28 +227,6 @@ covariance( char var1, kw::ncomp::info::expect::type c1,
 static inline Product
 variance( char var, kw::ncomp::info::expect::type c ) {
   tk::ctr::Term f( static_cast<char>(std::tolower(var)), c, Moment::CENTRAL );
-  return tk::ctr::Product( { f, f } );
-}
-
-//! Construct third central moment
-//! \param[in] var Variable
-//! \param[in] c Component number
-//! \return Constructed vector< Term > identifying the third central moment
-//!   of field (component) c of variable var
-static inline Product
-cen3( char var, kw::ncomp::info::expect::type c ) {
-  tk::ctr::Term f( static_cast<char>(std::tolower(var)), c, Moment::CENTRAL );
-  return tk::ctr::Product( { f, f, f } );
-}
-
-//! Construct second ordinary moment
-//! \param[in] var Variable
-//! \param[in] c Component number
-//! \return Constructed vector< Term > identifying the second ordinary moment
-//!   of field (component) c of variable var
-static inline Product
-ord2( char var, kw::ncomp::info::expect::type c ) {
-  tk::ctr::Term f( static_cast<char>(std::toupper(var)), c, Moment::ORDINARY );
   return tk::ctr::Product( { f, f } );
 }
 

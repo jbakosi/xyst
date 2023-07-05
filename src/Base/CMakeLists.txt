@@ -24,6 +24,8 @@ target_include_directories(Base PUBLIC
 
 set_target_properties(Base PROPERTIES LIBRARY_OUTPUT_NAME xyst_base)
 
+add_dependencies(Base charm)
+
 INSTALL(TARGETS Base
        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime

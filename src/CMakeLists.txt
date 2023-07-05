@@ -165,7 +165,7 @@ if(NOT CHARM_FOUND)
     PREFIX charm
     GIT_REPOSITORY https://github.com/UIUC-PPL/charm
     GIT_TAG v7.0.0-rc2
-    PATCH_COMMAND patch -p1 -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch
+    PATCH_COMMAND patch -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch
     CMAKE_ARGS -D TARGET=charm
                -D NETWORK=mpi
                -D SMP=${SMP}

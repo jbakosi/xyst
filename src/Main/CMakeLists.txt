@@ -39,6 +39,8 @@ target_include_directories(Init PUBLIC
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS})
 
+add_dependencies(Init charm)
+
 INSTALL(TARGETS Init
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime

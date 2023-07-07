@@ -18,7 +18,6 @@ if (NOT AMPI)
   find_package(MPI REQUIRED)
   set(COMPILER ${MPI_CXX_COMPILER})
 endif()
-message(STATUS "C++ compiler: " ${CMAKE_CXX_COMPILER})
 
 set(BUILD_SHARED_LIBS ON CACHE
     BOOL "Build shared libraries. Possible values: ON | OFF")
@@ -204,6 +203,8 @@ endif()
 
 if(AMPI)
 
+  set(COMPILER ${AMPI_CXX_COMPILER})
+
   find_package(HDF5AMPI)
   if(NOT HDF5AMPI_FOUND)
     build_external_project(hdf5 "
@@ -289,6 +290,8 @@ else()
   find_package(NetCDF REQUIRED)
 
 endif()
+
+message(STATUS "C++ compiler: " ${COMPILER})
 
 find_package(PEGTL 2.0.0 REQUIRED)
 

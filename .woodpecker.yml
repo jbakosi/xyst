@@ -7,9 +7,9 @@ matrix:
       IMAGE: "xyst-gnu"
       CHARM_INSTALL_DIR: "/charm-smp"
       POSTFIX_RUNNER_ARGS: "+setcpuaffinity"
-    - BUILDTYPE: Debug
-      IMAGE: "xyst-gnu"
-      CHARM_INSTALL_DIR: "/charm-non-smp"
+    #- BUILDTYPE: Debug
+    #  IMAGE: "xyst-gnu"
+    #  CHARM_INSTALL_DIR: "/charm-non-smp"
     #- BUILDTYPE: Debug
     #  IMAGE: "xyst-clang"
     #  CHARM_INSTALL_DIR: "/charm-non-smp"

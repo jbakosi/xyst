@@ -27,6 +27,7 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PROJECT_SOURCE_DIR}/../Physics
                            ${CHARM_INCLUDE_DIRS}
+                           ${MPI_C_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${NETCDF_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Inciter
@@ -52,8 +53,6 @@ target_include_directories(MeshRefinement PUBLIC
                            ${CHARM_INCLUDE_DIRS}
                            ${TPL_INCLUDE_DIR}
                            ${PROJECT_BINARY_DIR}/../Main)
-
-add_dependencies(MeshRefinement charm)
 
 addCharmModule( "transporter" "Inciter" )
 addCharmModule( "partitioner" "Inciter" )

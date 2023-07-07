@@ -431,13 +431,11 @@ class Print {
 
     //! Print version information
     //! \param[in] executable Name of executable to output version for
-    //! \param[in] ver Version to output
     //! \param[in] git_commit Git commit sha1 to output
     template< Style s = VERBOSE >
     void version( const std::string& executable,
-                  const std::string& ver,
                   const std::string& git_commit ) const
-    { stream<s>() << m_version_fmt % executable % ver % git_commit; }
+    { stream<s>() << m_version_fmt % executable % git_commit; }
 
     //! Print mandatory arguments information
     //! \param[in] args Mandaatory-arguments infor to output
@@ -616,8 +614,7 @@ ____  ___                __    __      _____                .__    _________
     mutable format m_item_widename_value_fmt = format("%s%-75s : %s\n");
     mutable format m_part_underline_fmt = format("      %|=68|\n");
     mutable format m_section_underline_fmt = format("%s%s\n");
-    mutable format m_version_fmt =
-              format("\nXyst::%s, version %s, %s\n\n");
+    mutable format m_version_fmt = format("\nXyst::%s, git sha1 %s\n\n");
     mutable format m_mandatory_fmt = format("\n%s\n");
     mutable format m_usage_fmt =
               format("\n%s example usage:\n\n$ %s\n\n%s\n\n");

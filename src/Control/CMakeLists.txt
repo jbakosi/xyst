@@ -26,8 +26,6 @@ target_include_directories(InciterControl PUBLIC
 set_target_properties(InciterControl PROPERTIES
                       LIBRARY_OUTPUT_NAME xyst_incitercontrol)
 
-add_dependencies(InciterControl charm)
-
 INSTALL(TARGETS InciterControl
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
@@ -53,8 +51,6 @@ target_include_directories(UnitTestControl PUBLIC
 set_target_properties(UnitTestControl PROPERTIES
                       LIBRARY_OUTPUT_NAME xyst_unittestcontrol)
 
-add_dependencies(UnitTestControl charm)
-
 INSTALL(TARGETS UnitTestControl
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
@@ -76,8 +72,6 @@ target_include_directories(MeshConvControl PUBLIC
                            ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS})
-
-add_dependencies(MeshConvControl charm)
 
 set_target_properties(MeshConvControl PROPERTIES
                       LIBRARY_OUTPUT_NAME xyst_meshconvcontrol)

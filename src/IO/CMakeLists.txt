@@ -12,12 +12,11 @@ target_include_directories(IO PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Statistics
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
+                           ${MPI_C_INCLUDE_DIRS}
                            ${NETCDF_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Main)
 
 set_target_properties(IO PROPERTIES LIBRARY_OUTPUT_NAME xyst_io)
-
-add_dependencies(IO charm)
 
 INSTALL(TARGETS IO
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
@@ -45,14 +44,13 @@ target_include_directories(NativeMeshIO PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${CHARM_INCLUDE_DIRS}
+                           ${MPI_C_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${NETCDF_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Main)
 
 set_target_properties(NativeMeshIO PROPERTIES LIBRARY_OUTPUT_NAME
                       xyst_nativemeshio)
-
-add_dependencies(NativeMeshIO charm)
 
 INSTALL(TARGETS NativeMeshIO
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
@@ -69,6 +67,7 @@ target_include_directories(ExodusIIMeshIO PUBLIC
                            ${PROJECT_SOURCE_DIR}/../exodus/include
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Mesh
+                           ${MPI_C_INCLUDE_DIRS}
                            ${NETCDF_INCLUDE_DIRS})
 
 set_target_properties(ExodusIIMeshIO PROPERTIES LIBRARY_OUTPUT_NAME

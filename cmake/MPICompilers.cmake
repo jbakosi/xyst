@@ -84,7 +84,7 @@ function(get_mpi_compilers)
 
   # Echo MPI wrappers
   if (MPI_C_COMPILER)
-    MESSAGE(STATUS "MPI C wrapper: " ${MPI_C_COMPILER})
+    #MESSAGE(STATUS "MPI C wrapper: " ${MPI_C_COMPILER})
     if(NOT IS_ABSOLUTE ${MPI_C_COMPILER})
       execute_process(
         COMMAND           which ${MPI_C_COMPILER}
@@ -94,7 +94,7 @@ function(get_mpi_compilers)
   endif()
 
   if (MPI_CXX_COMPILER)
-    MESSAGE(STATUS "MPI C++ wrapper: " ${MPI_CXX_COMPILER})
+    #MESSAGE(STATUS "MPI C++ wrapper: " ${MPI_CXX_COMPILER})
     if(NOT IS_ABSOLUTE ${MPI_CXX_COMPILER})
       execute_process(
         COMMAND           which ${MPI_CXX_COMPILER}

@@ -9,9 +9,15 @@ add_definitions()
 include(charm)
 
 # Link executables with the charmc wrapper
-STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
-       "${CHARM_COMPILER} -module CommonLBs ${COLLIDECHARM} ${EXTRA_LINK_ARGS} -c++ <CMAKE_CXX_COMPILER>"
-       CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+if(AMPI)
+  STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
+         "${AMPI_C_COMPILER} <CMAKE_CXX_COMPILER>"
+         CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+else()
+  STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
+         "${CHARM_COMPILER} -module CommonLBs -c++ <CMAKE_CXX_COMPILER>"
+         CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+endif()
 
 include(ConfigExecutable)
 
@@ -39,8 +45,6 @@ target_include_directories(Init PUBLIC
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS})
 
-add_dependencies(Init charm)
-
 INSTALL(TARGETS Init
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
@@ -56,7 +60,6 @@ if (ENABLE_TESTS)
                  ../../tests/unit/Base/TestContainerUtil.cpp
                  ../../tests/unit/Base/TestData.cpp
                  ../../tests/unit/Base/TestException.cpp
-                 ../../tests/unit/Base/TestExceptionMPI.cpp
                  ../../tests/unit/Base/TestFlip_map.cpp
                  ../../tests/unit/Base/TestHas.cpp
                  ../../tests/unit/Base/TestPrint.cpp
@@ -106,7 +109,7 @@ if (ENABLE_TESTS)
                         ExodusIIMeshIO
                         exodus
                         ${NETCDF_LIBRARIES}
-                        ${HDF5_C_LIBRARIES})
+                        ${HDF5_LIBRARIES})
 
   # Add custom dependencies for UnitTest's main Charm++ module
   addCharmModule( "unittestinciter" "${UNITTEST_EXECUTABLE}" )
@@ -142,7 +145,7 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       zoltan
                       exodus
                       ${NETCDF_LIBRARIES}
-                      ${HDF5_C_LIBRARIES})
+                      ${HDF5_LIBRARIES})
 
 # Add custom dependencies for Inciter's main Charm++ module
 addCharmModule( "inciter" "${INCITER_EXECUTABLE}" "-I${PROJECT_BINARY_DIR}")
@@ -172,7 +175,7 @@ target_link_libraries(${MESHCONV_EXECUTABLE}
                       Init
                       exodus
                       ${NETCDF_LIBRARIES}
-                      ${HDF5_C_LIBRARIES})
+                      ${HDF5_LIBRARIES})
 
 # Add custom dependencies for MeshConv's main Charm++ module
 addCharmModule( "meshconv" "${MESHCONV_EXECUTABLE}" )

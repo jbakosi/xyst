@@ -26,7 +26,6 @@ std::string unittest_executable();
 std::string inciter_executable();
 std::string meshconv_executable();
 
-std::string xyst_version();
 std::string git_commit();
 std::string mpi_compiler();
 std::string compiler();

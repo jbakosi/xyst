@@ -18,8 +18,6 @@ target_include_directories(Mesh PUBLIC
 
 set_target_properties(Mesh PROPERTIES LIBRARY_OUTPUT_NAME xyst_mesh)
 
-add_dependencies(Mesh charm)
-
 INSTALL(TARGETS Mesh
   	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
   	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime

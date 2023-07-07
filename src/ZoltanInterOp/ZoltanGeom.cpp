@@ -14,6 +14,15 @@
 
 #if defined(__clang__)
   #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wold-style-cast"
+  #pragma clang diagnostic ignored "-Wsuggest-override"
+  #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
+  #pragma clang diagnostic ignored "-Wsign-conversion"
+  #pragma clang diagnostic ignored "-Wcast-align"
+  #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+  #pragma clang diagnostic ignored "-Wdocumentation"
+  #pragma clang diagnostic ignored "-Wundef"
+  #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wcast-function-type"

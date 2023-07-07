@@ -117,7 +117,6 @@ CmdLineParser::CmdLineParser( int argc, char** argv,
   const auto version = cmdline.get< tag::version >();
   if (version)
     print.version< tk::QUIET >( tk::inciter_executable(),
-                                tk::xyst_version(),
                                 tk::git_commit() );
 
   // Immediately exit if any help was output or was called without any argument

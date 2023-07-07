@@ -14,8 +14,6 @@ target_include_directories(Statistics PUBLIC
 set_target_properties(Statistics PROPERTIES
                       LIBRARY_OUTPUT_NAME xyst_statistics)
 
-add_dependencies(Statistics charm)
-
 INSTALL(TARGETS Statistics
   	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
   	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime

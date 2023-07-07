@@ -10,15 +10,7 @@
 #
 ################################################################################
 
-# Charm++: http://charmplusplus.org
-#
-#  CHARM_FOUND        - True if the charmc compiler wrapper was found
-#  CHARM_INCLUDE_DIRS - Charm++ include files paths
-#  CHARM_COMPILER     - Charmc compiler wrapper
-#  CHARM_RUN          - Charmrun executable runner
-#
-#  Set CHARM_INSTALL_DIR before calling find_package to a path to add an
-#  additional search path.
+# Optionally, set CHARM_INSTALL_DIR before calling find_package to a custom path.
 
 function(_GET_CHARMINC _OUT_INC _charmc)
   file(STRINGS ${_charmc} _contents REGEX "^CHARMINC=")
@@ -47,19 +39,14 @@ function(GET_CHARM_DEF RES SEARCH_DEF)
  endif()
 endfunction()
 
-# If already in cache, be silent
-if (CHARM_INCLUDE_DIRS AND CHARM_COMPILER AND CHARM_RUN)
-  set (CHARM_FIND_QUIETLY TRUE)
-endif()
-
-FIND_PROGRAM(CHARM_COMPILER
+find_program(CHARM_COMPILER
   NAMES charmc
   PATHS ${CHARM_INSTALL_DIR}
         ${CMAKE_BINARY_DIR}/charm/install
   PATH_SUFFIXES bin
 )
 
-FIND_PROGRAM(CHARM_RUN
+find_program(CHARM_RUN
   NAMES charmrun
   PATHS ${CHARM_INSTALL_DIR}
         ${CMAKE_BINARY_DIR}/charm/install
@@ -72,21 +59,15 @@ endif()
 
 FIND_PATH(CHARM_INCLUDE_DIR NAMES charm.h
                             HINTS ${HINTS_CHARMINC}
-                                  ${CHARM_INSTALL_DIR}/include
-                                  ${CMAKE_BINARY_DIR}/charm/install/include
-                            PATH_SUFFIXES charm)
+                                  ${CHARM_INSTALL_DIR}
+                                  ${CMAKE_BINARY_DIR}/charm/install
+                            PATH_SUFFIXES include)
 
 if(CHARM_INCLUDE_DIR)
   set(CHARM_INCLUDE_DIRS ${CHARM_INCLUDE_DIR})
 else()
   set(CHARM_INCLUDE_DIRS "")
 endif()
-
-# Handle the QUIETLY and REQUIRED arguments and set CHARM_FOUND to TRUE if all
-# listed variables are TRUE
-INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(Charm DEFAULT_MSG CHARM_COMPILER
-                                  CHARM_INCLUDE_DIRS CHARM_RUN)
 
 if(CHARM_COMPILER)
   GET_CHARM_DEF(SMP CMK_SMP)
@@ -102,4 +83,42 @@ if(CHARM_COMPILER)
   endif()
 endif()
 
-MARK_AS_ADVANCED(CHARM_COMPILER CHARM_INCLUDE_DIRS CHARM_RUN SMP)
+find_program(AMPI_C_COMPILER
+  NAMES ampicc
+  PATHS ${CHARM_INSTALL_DIR}
+        ${CMAKE_BINARY_DIR}/charm/install
+  PATH_SUFFIXES bin
+)
+
+find_program(AMPI_CXX_COMPILER
+  NAMES ampicxx
+  PATHS ${CHARM_INSTALL_DIR}
+        ${CMAKE_BINARY_DIR}/charm/install
+  PATH_SUFFIXES bin
+)
+
+find_program(AMPI_RUN
+  NAMES ampirun
+  PATHS ${CHARM_INSTALL_DIR}
+        ${CMAKE_BINARY_DIR}/charm/install
+  PATH_SUFFIXES bin
+)
+
+if(AMPI_C_COMPILER AND AMPI_CXX_COMPILER AND AMPI_RUN)
+  set(AMPI_FOUND true)
+  message(STATUS "Charm++ built with AMPI")
+  FIND_PATH(MPI_C_INCLUDE_DIR
+            NAMES mpi.h
+            PATHS ${HINTS_CHARMINC}
+                  ${CHARM_INSTALL_DIR}/include/ampi
+                  ${CMAKE_BINARY_DIR}/charm/install/include/ampi)
+  set(MPI_C_INCLUDE_DIRS ${MPI_C_INCLUDE_DIR} ${CHARM_INCLUDE_DIR})
+  set(MPI_CXX_INCLUDE_DIRS ${MPI_C_INCLUDE_DIR} ${CHARM_INCLUDE_DIR})
+endif()
+
+# Handle the QUIETLY and REQUIRED arguments and set CHARM_FOUND to TRUE if all
+# listed variables are TRUE
+INCLUDE(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(Charm DEFAULT_MSG CHARM_COMPILER CHARM_INCLUDE_DIRS CHARM_RUN)
+
+MARK_AS_ADVANCED(CHARM_COMPILER CHARM_INCLUDE_DIRS CHARM_RUN SMP AMPI_FOUND AMPI_C_COMPILER AMPI_CXX_COMPILER AMPI_RUN MPI_C_INCLUDE_DIRS MPI_CXX_INCLUDE_DIRS)

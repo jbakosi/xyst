@@ -67,6 +67,11 @@ SET(exodiff_src ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/ED_SystemInterface.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/stringx.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/exo_block.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/util.C)
+if(AMPI)
+  STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
+         "${AMPI_C_COMPILER} <CMAKE_CXX_COMPILER>"
+         CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+endif()
 add_executable(exodiff ${exodiff_src})
 target_include_directories(exodiff PUBLIC exodiff
                                           suplib_c
@@ -109,5 +114,6 @@ endif()
 target_link_libraries(exodiff PUBLIC exodus
                                      suplib_c
                                      suplib_cpp
-                                     ${NETCDF_LIBRARIES})
+                                     ${NETCDF_LIBRARIES}
+                                     ${HDF5_LIBRARIES})
 set(EXODIFF_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/exodiff PARENT_SCOPE)

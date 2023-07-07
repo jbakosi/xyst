@@ -40,7 +40,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_nocfl ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES rayleigh_taylor_nocfl.q unitcube_1k.exo
                     ARGS -c rayleigh_taylor_nocfl.q -i unitcube_1k.exo -v
-                    EXTRA_PASS_REGEXP "No time step calculation policy"
+                    EXTRA_PASS_REGEXP "No time step"
                     SKIP_RETURN_CODE true
                     LABELS riecg)
 

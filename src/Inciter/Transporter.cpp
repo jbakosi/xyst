@@ -1183,6 +1183,7 @@ Transporter::checkpoint( std::size_t finished, std::size_t meshid )
       const auto& restart = g_inputdeck.get< tag::cmd, tag::io, tag::restart >();
       CkCallback res( CkIndex_Transporter::resume(), thisProxy );
       CkStartCheckpoint( restart.c_str(), res );
+      //CkStartMemCheckpoint( res );
     } else {
       resume();
     }

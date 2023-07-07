@@ -96,7 +96,6 @@ CmdLineParser::CmdLineParser( int argc,
   const auto version = cmdline.get< tag::version >();
   if (version)
     print.version< tk::QUIET >( tk::unittest_executable(),
-                                tk::xyst_version(),
                                 tk::git_commit() );
 
   // Will exit in main chare constructor if any help was output

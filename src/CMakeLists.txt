@@ -11,22 +11,22 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
 include(DisallowInSourceBuilds)
 # Set CMAKE_BUILD_TYPE
 include(BuildType)
-# Find MPI compilers
-include(MPICompilers)
 
-set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries. Possible values: ON | OFF")
+option(AMPI "Use Charm++'s AMPI instead of MPI" OFF)
 
-# Set compilers, will become compiler defines
-set(COMPILER ${UNDERLYING_CXX_COMPILER})
-set(MPI_COMPILER ${MPI_CXX_COMPILER})
-MESSAGE(STATUS "Underlying C++ compiler: " ${UNDERLYING_CXX_COMPILER})
-# Set compiler id
+if (NOT AMPI)
+  include(MPICompilers)
+endif()
+
+set(BUILD_SHARED_LIBS ON CACHE
+    BOOL "Build shared libraries. Possible values: ON | OFF")
+
+if(NOT AMPI)
+  set(COMPILER ${UNDERLYING_CXX_COMPILER})
+  set(MPI_COMPILER ${MPI_CXX_COMPILER})
+endif()
+
 string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" COMP)
-
-# set version
-set(VERSION_MAJOR "1")
-set(VERSION_MINOR "0")
-set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR})
 
 # Set the requirement for the C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -153,48 +153,152 @@ if(PROCESSOR_COUNT EQUAL 0)
 endif()
 message(STATUS "Found ${PROCESSOR_COUNT} PEs")
 
-# Build Charm++ if necessary
+# Build external project: PROJECT: project name, COMMAND: cmake build code
+function(build_external_project PROJECT COMMAND)
+  set(dir ${CMAKE_BINARY_DIR}/${PROJECT})
+  file(MAKE_DIRECTORY ${dir} ${dir}/build)
+  set(CMAKE_LIST_CONTENT "${COMMAND}")
+  file(WRITE ${dir}/CMakeLists.txt "${CMAKE_LIST_CONTENT}")
+  execute_process(COMMAND ${CMAKE_COMMAND} ..
+                  WORKING_DIRECTORY ${dir}/build)
+  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+                  WORKING_DIRECTORY ${dir}/build)
+endfunction()
+
 option(SMP "Build Charm++ in SMP mode" OFF)
-option(CHARM_OPTS "Forward options to Charm++ cmake" "")
-add_library(charm INTERFACE)
+set(CHARM_OPTS "" CACHE STRING "Forward options to Charm++ cmake")
+
+if(AMPI)
+  set(CHARM_TARGET "AMPI")
+  set(CHARM_NETWORK "netlrts")
+else()
+  set(CHARM_TARGET "Charm++")
+  set(CHARM_NETWORK "mpi")
+endif()
+
 find_package(Charm)
 if(NOT CHARM_FOUND)
-  include(ExternalProject)
-  ExternalProject_Add(
-    charm_external
-    PREFIX charm
-    GIT_REPOSITORY https://github.com/UIUC-PPL/charm
-    GIT_TAG v7.0.0-rc2
-    PATCH_COMMAND patch -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch
-    CMAKE_ARGS -D TARGET=charm
-               -D NETWORK=mpi
-               -D SMP=${SMP}
-               -D ENABLE_FORTRAN=off
-               -D CMAKE_BUILD_TYPE=Release
-               ${CHARM_OPTS}
-               -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/charm/install
-    CMAKE_GENERATOR "Unix Makefiles"
-    BUILD_COMMAND make -j${PROCESSOR_COUNT}
-    EXCLUDE_FROM_ALL 1
-    LOG_DOWNLOAD 1
-    LOG_CONFIGURE 1
-    LOG_BUILD 1
-    LOG_INSTALL 1)
-  add_dependencies(charm charm_external)
-  set(CHARM_COMPILER ${CMAKE_BINARY_DIR}/charm/install/bin/charmc)
-  set(CHARM_INCLUDE_DIRS ${CMAKE_BINARY_DIR}/charm/install/include)
-  set(CHARM_RUN ${CMAKE_BINARY_DIR}/charm/install/bin/charmrun)
+  build_external_project(charm "
+    cmake_minimum_required(VERSION 2.8)
+    project(charm CXX)
+    include(ExternalProject)
+    ExternalProject_add(charm
+      PREFIX charm
+      #GIT_REPOSITORY https://github.com/UIUC-PPL/charm
+      GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/charm
+      GIT_TAG v7.0.0-rc2
+      PATCH_COMMAND patch -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch
+      CMAKE_ARGS -D TARGET=${CHARM_TARGET}
+                 -D NETWORK=${CHARM_NETWORK}
+                 -D SMP=${SMP}
+                 -D ENABLE_FORTRAN=off
+                 #-D SYNCFT=on
+                 -D CMAKE_BUILD_TYPE=Release ${CHARM_OPTS}
+                 -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/charm/install
+      CMAKE_GENERATOR \"Unix Makefiles\"
+      BUILD_COMMAND make -j${PROCESSOR_COUNT}
+      LOG_DOWNLOAD 1
+      LOG_CONFIGURE 1
+      LOG_BUILD 1
+      LOG_INSTALL 1)
+  ")
+  find_package(Charm REQUIRED)
 endif()
-target_include_directories(charm INTERFACE ${CHARM_INCLUDE_DIRS})
+
+if(AMPI)
+
+  set(COMPILER ${AMPI_C_COMPILER})
+  set(MPI_COMPILER ${AMPI_C_COMPILER})
+
+  find_package(HDF5AMPI)
+  if(NOT HDF5AMPI_FOUND)
+    build_external_project(hdf5 "
+      cmake_minimum_required(VERSION 2.8)
+      project(hdf5 C)
+      include(ExternalProject)
+      ExternalProject_Add(hdf5
+        PREFIX hdf5
+        #GIT_REPOSITORY https://github.com/UIUC-PPL/hdf5-ampi.git
+        GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/hdf5-ampi
+        CONFIGURE_COMMAND ${PROJECT_BINARY_DIR}/hdf5/build/hdf5/src/hdf5/configure
+                            CC=${AMPI_C_COMPILER}
+                            RUNSERIAL=${AMPI_RUN}\\t++quiet
+                            RUNPARALLEL=${AMPI_RUN}\\t++quiet\\t+p4
+                            --enable-build-mode=production
+                            --enable-parallel
+                            --enable-symbols=yes
+                            --disable-shared
+                            --enable-static
+                            --enable-cxx=no
+                            --enable-fortran=no
+                            --disable-dependency-tracking
+                            --enable-dconv-exception=no
+                            --with-pic
+                            --prefix=${CMAKE_BINARY_DIR}/hdf5/install
+        BUILD_COMMAND make -j${PROCESSOR_COUNT}
+        BUILD_IN_SOURCE 1
+        LOG_DOWNLOAD 1
+        LOG_CONFIGURE 1
+        LOG_BUILD 1
+        LOG_INSTALL 1)
+    ")
+    find_package(HDF5AMPI REQUIRED)
+  endif()
+
+  find_package(NetCDF)
+  if(NOT NetCDF_FOUND)
+    build_external_project(netcdf "
+      cmake_minimum_required(VERSION 2.8)
+      project(netcdf C)
+      include(ExternalProject)
+      ExternalProject_Add(netcdf
+        PREFIX netcdf
+        #GIT_REPOSITORY https://github.com/Unidata/netcdf-c.git
+        GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/netcdf-c
+        GIT_TAG v4.7.4
+        CMAKE_ARGS
+          -D USE_HDF5=on
+          -D CMAKE_C_COMPILER=${AMPI_C_COMPILER}
+          -D ENABLE_NETCDF_4=on
+          -D BUILD_SHARED_LIBS=off
+          -D ENABLE_EXAMPLES=off
+          -D ENABLE_FSYNC=off
+          -D ENABLE_DAP=off
+          -D ENABLE_TESTS=off
+          -D ENABLE_CONVERSION_WARNINGS=off
+          -D ENABLE_EXAMPLES=off
+          -D ENABLE_DAP_REMOTE_TESTS=off
+          -D ENABLE_TESTS=off
+          -D ENABLE_EXTREME_NUMBERS=off
+          -D ENABLE_PARALLEL4=on
+          -D ENABLE_PARALLEL_TESTS=off
+          -D ENABLE_BASH_SCRIPT_TESTING=off
+          -D ENABLE_V2_API=off
+          -D HDF5_C_LIBRARY=${HDF5_C_LIBRARY}
+          -D HDF5_HL_LIBRARY=${HDF5_HL_LIBRARY}
+          -D HDF5_INCLUDE_DIR=${HDF5_INCLUDE_DIR}
+          -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/netcdf/install
+        CMAKE_GENERATOR \"Unix Makefiles\"
+        BUILD_COMMAND make -j${PROCESSOR_COUNT}
+        LOG_DOWNLOAD 1
+        LOG_CONFIGURE 1
+        LOG_BUILD 1
+        LOG_INSTALL 1)
+     ")
+    find_package(NetCDF REQUIRED)
+  endif()
+
+else()
+
+  set(HDF5_PREFER_PARALLEL true)
+  find_package(HDF5 COMPONENTS C HL)
+  find_package(NetCDF REQUIRED)
+
+endif()
+
+message(STATUS "Underlying C++ compiler: " ${UNDERLYING_CXX_COMPILER})
 
 find_package(PEGTL 2.0.0 REQUIRED)
-
-set(HDF5_PREFER_PARALLEL true)
-if(NOT BUILD_SHARED_LIBS)
-  set(HDF5_USE_STATIC_LIBRARIES true)
-endif()
-find_package(HDF5 COMPONENTS C HL REQUIRED)
-find_package(NetCDF REQUIRED)
 
 add_subdirectory(exodus)
 add_subdirectory(zoltan)

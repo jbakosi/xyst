@@ -35,7 +35,4 @@ function(addCharmModule MODULE PARTOF)
   # Add dependency of PARTOF on new Charm++ module
   add_dependencies(${PARTOF} ${MODULE}CharmModule)
 
-  # Ensure charm is built before processing ci files
-  add_dependencies(${MODULE}CharmModule charm)
-
 endfunction(addCharmModule)

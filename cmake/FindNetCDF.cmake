@@ -18,6 +18,7 @@ endif()
 
 find_path(NETCDF_INCLUDE_DIR netcdf_par.h
           PATHS ${NETCDF_INSTALL_DIR}
+                $ENV{NETCDF_DIR}
                  ${CMAKE_BINARY_DIR}/netcdf/install
                  /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/netcdf/mpi
           PATH_SUFFIXES include)
@@ -32,6 +33,7 @@ endif()
 
 find_library(NETCDF_LIBRARY NAMES ${lib}
              PATHS ${NETCDF_INSTALL_DIR}
+                   $ENV{NETCDF_DIR}
                    ${CMAKE_BINARY_DIR}/netcdf/install
                    /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/netcdf/mpi
              PATH_SUFFIXES lib)

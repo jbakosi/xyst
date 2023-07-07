@@ -22,7 +22,6 @@ namespace tk {
 #define INCITER_EXECUTABLE           "@INCITER_EXECUTABLE@"
 #define MESHCONV_EXECUTABLE          "@MESHCONV_EXECUTABLE@"
 
-#define MPI_COMPILER                 "@MPI_COMPILER@"
 #define COMPILER                     "@COMPILER@"
 #define GIT_COMMIT                   "@GIT_HEAD_SHA1@"
 #define BUILD_HOSTNAME               "@HOSTNAME@"
@@ -36,7 +35,6 @@ std::string unittest_executable() { return UNITTEST_EXECUTABLE; }
 std::string inciter_executable() { return INCITER_EXECUTABLE; }
 std::string meshconv_executable() { return MESHCONV_EXECUTABLE; }
 
-std::string mpi_compiler() { return MPI_COMPILER; }
 std::string git_commit() { return GIT_COMMIT; }
 std::string compiler() { return COMPILER; }
 std::string build_hostname() { return BUILD_HOSTNAME; }

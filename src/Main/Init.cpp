@@ -105,8 +105,7 @@ void echoBuildEnv( const Print& print, const std::string& executable )
   print.item( "Asserts", "on (turn off: CMAKE_BUILD_TYPE=RELEASE)" );
 #endif
 
-  print.item( "MPI C++ wrapper", mpi_compiler() );
-  print.item( "Underlying C++ compiler", compiler() );
+  print.item( "C++ compiler", compiler() );
   print.item( "Build date", build_date() );
 }
 

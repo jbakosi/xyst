@@ -15,16 +15,13 @@ include(BuildType)
 option(AMPI "Use Charm++'s AMPI instead of MPI" OFF)
 
 if (NOT AMPI)
-  include(MPICompilers)
+  find_package(MPI REQUIRED)
+  set(COMPILER ${MPI_CXX_COMPILER})
 endif()
+message(STATUS "C++ compiler: " ${CMAKE_CXX_COMPILER})
 
 set(BUILD_SHARED_LIBS ON CACHE
     BOOL "Build shared libraries. Possible values: ON | OFF")
-
-if(NOT AMPI)
-  set(COMPILER ${UNDERLYING_CXX_COMPILER})
-  set(MPI_COMPILER ${MPI_CXX_COMPILER})
-endif()
 
 string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" COMP)
 
@@ -179,7 +176,7 @@ endif()
 find_package(Charm)
 if(NOT CHARM_FOUND)
   build_external_project(charm "
-    cmake_minimum_required(VERSION 2.8)
+    cmake_minimum_required(VERSION 3.0)
     project(charm CXX)
     include(ExternalProject)
     ExternalProject_add(charm
@@ -207,13 +204,10 @@ endif()
 
 if(AMPI)
 
-  set(COMPILER ${AMPI_C_COMPILER})
-  set(MPI_COMPILER ${AMPI_C_COMPILER})
-
   find_package(HDF5AMPI)
   if(NOT HDF5AMPI_FOUND)
     build_external_project(hdf5 "
-      cmake_minimum_required(VERSION 2.8)
+      cmake_minimum_required(VERSION 3.0)
       project(hdf5 C)
       include(ExternalProject)
       ExternalProject_Add(hdf5
@@ -248,7 +242,7 @@ if(AMPI)
   find_package(NetCDF)
   if(NOT NetCDF_FOUND)
     build_external_project(netcdf "
-      cmake_minimum_required(VERSION 2.8)
+      cmake_minimum_required(VERSION 3.0)
       project(netcdf C)
       include(ExternalProject)
       ExternalProject_Add(netcdf
@@ -295,8 +289,6 @@ else()
   find_package(NetCDF REQUIRED)
 
 endif()
-
-message(STATUS "Underlying C++ compiler: " ${UNDERLYING_CXX_COMPILER})
 
 find_package(PEGTL 2.0.0 REQUIRED)
 

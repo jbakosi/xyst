@@ -12,8 +12,7 @@
 
 # Optionally, set HDF5_INSTALL_DIR before calling find_package to a custom path.
 
-if(HDF5_INCLUDE_DIR AND HDF5_INCLUDE_DIRS AND
-   HDF5_LIBRARIES AND HDF5_C_LIBRARY AND HDF5_HL_LIBRARY)
+if(HDF5_INCLUDE_DIRS AND HDF5_C_LIBRARIES AND HDF5_HL_LIBRARIES)
   set(HDF5AMPI_FIND_QUIETLY TRUE)
 endif()
 
@@ -22,12 +21,14 @@ find_library(HDF5_C_LIBRARY NAMES libhdf5.a
                    ${CMAKE_BINARY_DIR}/hdf5/install
              PATH_SUFFIXES lib)
 
+set(HDF5_C_LIBRARIES ${HDF5_C_LIBRARY})
+
 find_library(HDF5_HL_LIBRARY NAMES libhdf5_hl.a
              PATHS ${HDF5_INSTALL_DIR}
                    ${CMAKE_BINARY_DIR}/hdf5/install
              PATH_SUFFIXES lib)
 
-set(HDF5_LIBRARIES ${HDF5_HL_LIBRARY} ${HDF5_C_LIBRARY})
+set(HDF5_HL_LIBRARIES ${HDF5_HL_LIBRARY})
 
 find_path(HDF5_INCLUDE_DIR NAMES hdf5.h
                            PATHS ${HDF5_INSTALL_DIR}
@@ -36,7 +37,7 @@ find_path(HDF5_INCLUDE_DIR NAMES hdf5.h
 
 set(HDF5_INCLUDE_DIRS ${HDF5_INCLUDE_DIR})
 
-include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args(HDF5AMPI DEFAULT_MSG HDF5_INCLUDE_DIR HDF5_INCLUDE_DIRS HDF5_LIBRARIES HDF5_C_LIBRARY HDF5_HL_LIBRARY)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(HDF5AMPI DEFAULT_MSG HDF5_INCLUDE_DIRS HDF5_C_LIBRARIES HDF5_HL_LIBRARIES)
 
-mark_as_advanced(HDF5_INCLUDE_DIR HDF5_INCLUDE_DIRS HDF5_LIBRARIES HDF5_C_LIBRARY HDF5_HL_LIBRARY)
+mark_as_advanced(HDF5_INCLUDE_DIRS HDF5_C_LIBRARIES HDF5_HL_LIBRARIES)

@@ -13,7 +13,7 @@
 
 #include <numeric>
 
-#include "exodusII.h"
+#include "NoWarning/exodusII.hpp"
 
 #include "ExodusIIMeshWriter.hpp"
 #include "Exception.hpp"

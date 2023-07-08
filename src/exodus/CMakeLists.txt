@@ -52,6 +52,11 @@ add_library(suplib_c ${suplib_c_src})
 target_include_directories(suplib_c PUBLIC suplib_c)
 
 project(exodiff CXX)
+if(AMPI)
+  STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
+         "${AMPI_CXX_COMPILER} <CMAKE_CXX_COMPILER>"
+         CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+endif()
 SET(exodiff_src ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/ED_SystemInterface.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/exo_entity.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/exodiff.C
@@ -67,11 +72,6 @@ SET(exodiff_src ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/ED_SystemInterface.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/stringx.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/exo_block.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/util.C)
-if(AMPI)
-  STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
-         "${AMPI_C_COMPILER} <CMAKE_CXX_COMPILER>"
-         CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
-endif()
 add_executable(exodiff ${exodiff_src})
 target_include_directories(exodiff PUBLIC exodiff
                                           suplib_c
@@ -87,6 +87,9 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
                                          -Wno-undefined-func-template
                                          -Wno-missing-noreturn
                                          -Wno-unreachable-code-return
+                                         -Wno-documentation
+                                         -Wno-invalid-noreturn
+                                         -Wno-dollar-in-identifier-extension
                                          -Wno-documentation-unknown-command
                                          -Wno-old-style-cast
                                          -Wno-weak-template-vtables
@@ -115,5 +118,6 @@ target_link_libraries(exodiff PUBLIC exodus
                                      suplib_c
                                      suplib_cpp
                                      ${NETCDF_LIBRARIES}
-                                     ${HDF5_LIBRARIES})
+                                     ${HDF5_HL_LIBRARIES}
+                                     ${HDF5_C_LIBRARIES})
 set(EXODIFF_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/exodiff PARENT_SCOPE)

@@ -8,16 +8,15 @@ add_definitions()
 # Include function for adding Charm++ modules
 include(charm)
 
-# Link executables with the charmc wrapper
 if(AMPI)
-  STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
-         "${AMPI_C_COMPILER} <CMAKE_CXX_COMPILER>"
-         CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+  set(CHARM_LINKER ${AMPI_CXX_COMPILER})
 else()
-  STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
-         "${CHARM_COMPILER} -module CommonLBs -c++ <CMAKE_CXX_COMPILER>"
-         CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+  set(CHARM_LINKER ${CHARM_COMPILER})
 endif()
+
+STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
+       "${CHARM_LINKER} -module CommonLBs -c++ <CMAKE_CXX_COMPILER>"
+       CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
 
 include(ConfigExecutable)
 
@@ -109,7 +108,8 @@ if (ENABLE_TESTS)
                         ExodusIIMeshIO
                         exodus
                         ${NETCDF_LIBRARIES}
-                        ${HDF5_LIBRARIES})
+                        ${HDF5_HL_LIBRARIES}
+                        ${HDF5_C_LIBRARIES})
 
   # Add custom dependencies for UnitTest's main Charm++ module
   addCharmModule( "unittestinciter" "${UNITTEST_EXECUTABLE}" )
@@ -145,7 +145,8 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       zoltan
                       exodus
                       ${NETCDF_LIBRARIES}
-                      ${HDF5_LIBRARIES})
+                      ${HDF5_HL_LIBRARIES}
+                      ${HDF5_C_LIBRARIES})
 
 # Add custom dependencies for Inciter's main Charm++ module
 addCharmModule( "inciter" "${INCITER_EXECUTABLE}" "-I${PROJECT_BINARY_DIR}")
@@ -175,7 +176,8 @@ target_link_libraries(${MESHCONV_EXECUTABLE}
                       Init
                       exodus
                       ${NETCDF_LIBRARIES}
-                      ${HDF5_LIBRARIES})
+                      ${HDF5_HL_LIBRARIES}
+                      ${HDF5_C_LIBRARIES})
 
 # Add custom dependencies for MeshConv's main Charm++ module
 addCharmModule( "meshconv" "${MESHCONV_EXECUTABLE}" )

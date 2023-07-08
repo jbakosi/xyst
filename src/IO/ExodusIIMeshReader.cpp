@@ -13,8 +13,6 @@
 
 #include <numeric>
 
-#include "exodusII.h"
-
 #include "ExodusIIMeshReader.hpp"
 #include "ContainerUtil.hpp"
 #include "Exception.hpp"

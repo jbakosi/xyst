@@ -6,7 +6,6 @@ add_library(IO
 
 target_include_directories(IO PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
-                           ${PROJECT_SOURCE_DIR}/../exodus/include
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_SOURCE_DIR}/../Statistics
@@ -39,7 +38,6 @@ add_library(NativeMeshIO
 
 target_include_directories(NativeMeshIO PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
-                           ${PROJECT_SOURCE_DIR}/../exodus/include
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../Control
@@ -64,7 +62,6 @@ add_library(ExodusIIMeshIO
 
 target_include_directories(ExodusIIMeshIO PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
-                           ${PROJECT_SOURCE_DIR}/../exodus/include
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${MPI_C_INCLUDE_DIRS}

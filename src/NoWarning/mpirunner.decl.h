@@ -69,7 +69,7 @@
   #pragma warning( disable: 1720 )
 #endif
 
-#include "../UnitTest/mpirunnerinciter.decl.h"
+#include "../UnitTest/mpirunner.decl.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop

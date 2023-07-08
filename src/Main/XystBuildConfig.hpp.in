@@ -23,4 +23,7 @@
 // Exceptions write to std::cerr
 #cmakedefine EXCEPTIONS_WRITE_TO_CERR
 
+// Use Charm++'s AMPI instead of MPI for MPI library calls
+#cmakedefine XYST_AMPI
+
 #endif // XystBuildConfig_h

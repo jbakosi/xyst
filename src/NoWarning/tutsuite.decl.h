@@ -75,7 +75,7 @@
   #pragma warning( disable: 1125 )
 #endif
 
-#include "../UnitTest/tutsuiteinciter.decl.h"
+#include "../UnitTest/tutsuite.decl.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop

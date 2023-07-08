@@ -167,6 +167,7 @@ set(CHARM_OPTS "" CACHE STRING "Forward options to Charm++ cmake")
 if(AMPI)
   set(CHARM_TARGET "AMPI")
   set(CHARM_NETWORK "netlrts")
+  set(XYST_AMPI AMPI)   # will become compiler define
 else()
   set(CHARM_TARGET "Charm++")
   set(CHARM_NETWORK "mpi")

@@ -28,7 +28,7 @@
   #pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 
-#include "../UnitTest/migrated_base.def.h"
+#include "../UnitTest/migrated.def.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop

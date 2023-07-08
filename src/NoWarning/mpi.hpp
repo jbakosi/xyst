@@ -26,6 +26,7 @@
   #pragma clang diagnostic ignored "-Wsuggest-override"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
   #pragma clang diagnostic ignored "-Wdocumentation"
+  #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wlong-long"
@@ -34,7 +35,7 @@
   #pragma GCC diagnostic ignored "-Wcast-function-type"
 #endif
 
-#include <mpi.h>
+#include "mpi.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop

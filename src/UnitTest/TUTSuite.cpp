@@ -71,7 +71,9 @@ TUTSuite::TUTSuite( const ctr::CmdLine& cmdline ) :
       std::any_of( groups.cbegin(), groups.cend(),
          [&grp]( const std::string& g )
          { return g.find(grp) != std::string::npos; } ))
+  {
     work = true;
+  }
 
   // Quit if there is no work to be done
   if (!work) {
@@ -86,7 +88,7 @@ TUTSuite::TUTSuite( const ctr::CmdLine& cmdline ) :
       print.endpart();
       print.part( "Serial, Charm++, and MPI unit test suites" );
       print.unithead( "Unit tests computed", grp );
-    } // ensure print is destructed (cannot collied with that of evaluate)
+    } // ensure print is destructed (cannot collide with that of evaluate)
 
     // Create MPI unit test runner nodegroup
     m_mpirunner = CProxy_MPIRunner< CProxy_TUTSuite >::ckNew( thisProxy );
@@ -113,11 +115,11 @@ TUTSuite::spawngrp( const std::string& g )
 {
   ++m_ngroup;         // increase number of test groups to run
 
-  if (g.find("MPI") != std::string::npos)
+  if (g.find("MPISingle") != std::string::npos) {
 
     m_mpirunner.rungroup( g );
 
-  else {
+  } else {
 
     // Add up number of additionally-spawned tests (this is so we know how many
     // to expect results from)

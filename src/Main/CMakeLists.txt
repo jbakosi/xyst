@@ -42,7 +42,8 @@ target_include_directories(Init PUBLIC
                            ${PROJECT_BINARY_DIR}/../Main
                            ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
-                           ${CHARM_INCLUDE_DIRS})
+                           ${CHARM_INCLUDE_DIRS}
+                           ${MPI_CXX_INCLUDE_DIRS})
 
 INSTALL(TARGETS Init
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
@@ -112,9 +113,8 @@ if (ENABLE_TESTS)
                         ${HDF5_C_LIBRARIES})
 
   # Add custom dependencies for UnitTest's main Charm++ module
-  addCharmModule( "unittestinciter" "${UNITTEST_EXECUTABLE}" )
-  add_dependencies( "unittestinciterCharmModule"
-                    "mpirunnerinciterCharmModule" )
+  addCharmModule( "unittest" "${UNITTEST_EXECUTABLE}" )
+  add_dependencies( "unittestCharmModule" "mpirunnerCharmModule" )
 endif()
 
 ## Inciter executable ##########################################################

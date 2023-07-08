@@ -16,9 +16,7 @@ module tuttest {
   // Note that template chare TUTTest depends on chare TUTSuite and in turn
   // TUTSuite depends on TUTTest (see also the interface file tutsuite.ci). This
   // is a mutual dependency and it is made to work with one of the chares
-  // (TUTTest) being a template chare. Note: if this extern module dependency is
-  // removed the code does not compile. See also the Charm++ manual on more
-  // information on template chares.
+  // (TUTTest) being a template chare.
   extern module tutsuite;
 
   namespace unittest {

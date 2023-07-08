@@ -68,15 +68,14 @@ class TUTSuite : public CBase_TUTSuite {
     //!   Charm++ chare', which appears in the comment before each such
     //!   host test name.
     const std::map< std::string, std::size_t > m_nspawned {
-        { "Base/Factory", 2 }
-      , { "Base/PUPUtil", 14 }
+        { "Base/PUPUtil", 14 }
       , { "Base/Timer", 1 }
     };
 
     //! Fire up all tests in a test group
     void spawngrp( const std::string& g );
 
-    //! Create pretty printer specialized to UnitTest
+    //! Create UnitTest pretty printer
     //! \return Pretty printer
     UnitTestPrint printer() const {
       return UnitTestPrint(

@@ -32,7 +32,7 @@
   #pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 
-#include "../UnitTest/tutsuiteinciter.def.h"
+#include "../UnitTest/tutsuite.def.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop

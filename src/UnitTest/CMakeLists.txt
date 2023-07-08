@@ -30,23 +30,21 @@ target_include_directories(UnitTest PUBLIC
                            ${PROJECT_BINARY_DIR}/../UnitTest)
 
 addCharmModule( "charmtimer" "UnitTest" )
-addCharmModule( "migrated_base" "UnitTest" )
+addCharmModule( "migrated" "UnitTest" )
 addCharmModule( "quietcerr" "UnitTest" )
-
-addCharmModule( "tutsuiteinciter" "UnitTest" )
-addCharmModule( "tuttestinciter" "UnitTest" )
-addCharmModule( "mpirunnerinciter" "UnitTest" )
-add_dependencies( "tutsuiteinciterCharmModule" "mpirunnerinciterCharmModule" )
+addCharmModule( "tutsuite" "UnitTest" )
+addCharmModule( "tuttest" "UnitTest" )
+addCharmModule( "mpirunner" "UnitTest" )
+add_dependencies( "tutsuiteCharmModule" "mpirunnerCharmModule" )
 
 # Add extra dependency of UnitTest on unittestCharmModule. This is required as a
 # dependency of UnitTest, TUTSuite, refers to the main Charm++ proxy defined in
 # the Charm++ module unittest (in Main/UnitTest.cpp).
-add_dependencies("UnitTest" "unittestinciterCharmModule")
+add_dependencies("UnitTest" "unittestCharmModule")
 
-# Add extra dependencies of UnitTest on those CharmModules that are required for
-# testing Inciter.
-add_dependencies("UnitTest" "discretizationCharmModule"
-                            "transporterCharmModule")
+# Add extra dependencies of UnitTest on those CharmModules required for testing
+# Inciter.
+add_dependencies("UnitTest" "discretizationCharmModule")
 
 set_target_properties(UnitTest PROPERTIES LIBRARY_OUTPUT_NAME xyst_unittest)
 

@@ -107,13 +107,13 @@ find_program(AMPI_RUN
 if(AMPI_C_COMPILER AND AMPI_CXX_COMPILER AND AMPI_RUN)
   set(AMPI_FOUND true)
   message(STATUS "Charm++ built with AMPI")
-  FIND_PATH(MPI_C_INCLUDE_DIR
+  FIND_PATH(MPI_INCLUDE_DIR
             NAMES mpi.h
             PATHS ${HINTS_CHARMINC}
                   ${CHARM_INSTALL_DIR}/include/ampi
                   ${CMAKE_BINARY_DIR}/charm/install/include/ampi)
-  set(MPI_C_INCLUDE_DIRS ${MPI_C_INCLUDE_DIR} ${CHARM_INCLUDE_DIR})
-  set(MPI_CXX_INCLUDE_DIRS ${MPI_C_INCLUDE_DIR} ${CHARM_INCLUDE_DIR})
+  set(MPI_C_INCLUDE_DIRS ${MPI_INCLUDE_DIR} ${CHARM_INCLUDE_DIR})
+  set(MPI_CXX_INCLUDE_DIRS ${MPI_INCLUDE_DIR} ${CHARM_INCLUDE_DIR})
 endif()
 
 # Handle the QUIETLY and REQUIRED arguments and set CHARM_FOUND to TRUE if all

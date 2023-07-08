@@ -28,7 +28,7 @@
   #pragma GCC diagnostic ignored "-Wshadow"
 #endif
 
-#include "../Main/unittestinciter.decl.h"
+#include "../Main/unittest.decl.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop

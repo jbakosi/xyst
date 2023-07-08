@@ -39,7 +39,7 @@
   #pragma GCC diagnostic ignored "-Wsuggest-attribute=noreturn"
 #endif
 
-#include "../Main/unittestinciter.def.h"
+#include "../Main/unittest.def.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop

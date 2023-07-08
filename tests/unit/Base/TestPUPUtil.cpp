@@ -19,7 +19,7 @@
 
 #include "XystConfig.hpp"
 #include "NoWarning/tutsuite.decl.h"
-#include "migrated_base.decl.h"
+#include "migrated.decl.h"
 
 #ifndef DOXYGEN_GENERATING_OUTPUT
 
@@ -986,4 +986,4 @@ void PUPUtil_object::test< 14 >() {
 
 #endif  // DOXYGEN_GENERATING_OUTPUT
 
-#include "NoWarning/migrated_base.def.h"
+#include "NoWarning/migrated.def.h"

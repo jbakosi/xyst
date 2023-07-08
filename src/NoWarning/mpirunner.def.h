@@ -39,7 +39,7 @@
   #pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 
-#include "../UnitTest/mpirunnerinciter.def.h"
+#include "../UnitTest/mpirunner.def.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop

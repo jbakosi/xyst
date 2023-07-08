@@ -10,8 +10,7 @@
   \details   Charm++ nodegroup to run MPI unit tests.
 */
 // *****************************************************************************
-#ifndef MPIRunner_h
-#define MPIRunner_h
+#pragma once
 
 #include <string>
 
@@ -60,5 +59,3 @@ class MPIRunner : public CBase_MPIRunner< Proxy > {
 #define CK_TEMPLATES_ONLY
 #include "NoWarning/mpirunner.def.h"
 #undef CK_TEMPLATES_ONLY
-
-#endif // MPIRunner_h

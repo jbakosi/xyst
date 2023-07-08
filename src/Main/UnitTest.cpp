@@ -21,6 +21,8 @@
 #include <utility>
 #include <cstddef>
 
+#include "NoWarning/mpi.hpp"
+
 #include "NoWarning/tut_runner.hpp"
 
 #include "NoWarning/tutsuite.decl.h"
@@ -110,6 +112,15 @@ inline void operator|( PUP::er& p, tut::test_runner_singleton& runner )
 { if (!p.isSizing()) runner = tut::test_runner_singleton(); }
 
 } // unittest::
+
+#ifdef XYST_AMPI
+//! Main function for Charm++'s AMPI
+//! \note If this is not defined, Charm++ does not wait for CkExit().
+int main( int, char** ) {
+  MPI_Init( nullptr, nullptr );
+  return 0;
+}
+#endif
 
 //! \brief Charm++ main chare for the unit test suite executable, unittest.
 //! \details Note that this object should not be in a namespace.

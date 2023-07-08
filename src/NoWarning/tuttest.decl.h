@@ -74,7 +74,7 @@
   #pragma warning( disable: 1125 )
 #endif
 
-#include "../UnitTest/tuttestinciter.decl.h"
+#include "../UnitTest/tuttest.decl.h"
 
 #if defined(__clang__)
   #pragma clang diagnostic pop

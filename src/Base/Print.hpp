@@ -614,7 +614,7 @@ ____  ___                __    __      _____                .__    _________
     mutable format m_item_widename_value_fmt = format("%s%-75s : %s\n");
     mutable format m_part_underline_fmt = format("      %|=68|\n");
     mutable format m_section_underline_fmt = format("%s%s\n");
-    mutable format m_version_fmt = format("\nXyst::%s, git sha1 %s\n\n");
+    mutable format m_version_fmt = format("\nXyst::%s, revision %s\n\n");
     mutable format m_mandatory_fmt = format("\n%s\n");
     mutable format m_usage_fmt =
               format("\n%s example usage:\n\n$ %s\n\n%s\n\n");

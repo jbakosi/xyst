@@ -4,7 +4,7 @@
 add_regression_test(version ${INCITER_EXECUTABLE}
                     NUMPES 1
                     ARGS --version
-                    EXTRA_PASS_REGEXP "git")
+                    EXTRA_PASS_REGEXP "revision")
 
 add_regression_test(help ${INCITER_EXECUTABLE}
                     NUMPES 1

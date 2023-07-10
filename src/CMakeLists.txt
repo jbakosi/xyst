@@ -333,22 +333,22 @@ if (ENABLE_TESTS)
 
   # Defaults for runner, used to run regression tests
   set(RUNNER "${CHARM_RUN}" CACHE STRING
-      "Parallel/serial job runner, used to run regression tests")
+      "Parallel/serial test runner, used to run regression tests")
   set(RUNNER_NCPUS_ARG "+p" CACHE STRING
-      "The argument used to specify the number of PEs for the runner")
+      "The argument used to specify the number of PEs for the test runner")
   set(RUNNER_ARGS "" CACHE STRING
-      "Arguments to pass to the parallel/serial job runner, e.g., to mpirun.")
+      "Arguments to pass to the parallel/serial test runner, e.g., to mpirun.")
   set(POSTFIX_RUNNER_ARGS "" CACHE STRING
-      "Arguments to pass to the parallel/serial job runner at the end of the command line.")
+      "Arguments to pass to the parallel/serial test runner at the end of the command line.")
 
   # Echo runner configuration
-  message(STATUS "Parallel/serial job runner: ${RUNNER}")
-  message(STATUS "Parallel job runner ncpus arg: ${RUNNER_NCPUS_ARG}")
+  message(STATUS "Test runner: ${RUNNER}")
+  message(STATUS "Test runner ncpus arg: ${RUNNER_NCPUS_ARG}")
   if(RUNNER_ARGS)
-    message(STATUS "Parallel/serial job runner args: ${RUNNER_ARGS}")
+    message(STATUS "Test runner args: ${RUNNER_ARGS}")
   endif()
   if(POSTFIX_RUNNER_ARGS)
-    message(STATUS "Parallel/serial job runner postfix args: ${POSTFIX_RUNNER_ARGS}")
+    message(STATUS "Test runner postfix args: ${POSTFIX_RUNNER_ARGS}")
   endif()
 endif()
 

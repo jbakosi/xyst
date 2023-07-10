@@ -53,8 +53,7 @@ target_include_directories(suplib_c PUBLIC suplib_c)
 
 project(exodiff CXX)
 if(AMPI)
-  STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
-         "${AMPI_CXX_COMPILER} <CMAKE_CXX_COMPILER>"
+  STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>" "${AMPI_CXX_COMPILER}"
          CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
 endif()
 SET(exodiff_src ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/ED_SystemInterface.C

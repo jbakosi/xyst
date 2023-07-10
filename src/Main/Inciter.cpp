@@ -18,9 +18,14 @@
 #include <vector>
 #include <iostream>
 
+#include "XystConfig.hpp"
+
+#ifdef XYST_AMPI
+  #include "NoWarning/mpi.hpp"
+#endif
+
 #include "Types.hpp"
 #include "Init.hpp"
-#include "XystConfig.hpp"
 #include "Timer.hpp"
 #include "Exception.hpp"
 #include "ProcessException.hpp"
@@ -88,6 +93,15 @@ ctr::InputDeck g_inputdeck;
 #endif
 
 } // inciter::
+
+#ifdef XYST_AMPI
+//! Main function for Charm++'s AMPI
+//! \note If this is not defined, Charm++ does not wait for CkExit().
+int main( int, char** ) {
+  MPI_Init( nullptr, nullptr );
+  return 0;
+}
+#endif
 
 //! \brief Charm++ main chare for the shock hydrodynamics executable, inciter.
 //! \details In inciter the Charm++ runtime system is initialized only after the

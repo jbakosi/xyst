@@ -21,7 +21,11 @@
 #include <utility>
 #include <cstddef>
 
-#include "NoWarning/mpi.hpp"
+#include "XystConfig.hpp"
+
+#ifdef XYST_AMPI
+  #include "NoWarning/mpi.hpp"
+#endif
 
 #include "NoWarning/tut_runner.hpp"
 
@@ -33,7 +37,6 @@
 #include "Tags.hpp"
 #include "Exception.hpp"
 #include "Init.hpp"
-#include "XystConfig.hpp"
 #include "HelpFactory.hpp"
 #include "Assessment.hpp"
 #include "ProcessException.hpp"

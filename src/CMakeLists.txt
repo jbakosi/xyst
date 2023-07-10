@@ -181,8 +181,8 @@ if(NOT CHARM_FOUND)
     include(ExternalProject)
     ExternalProject_add(charm
       PREFIX charm
-      #GIT_REPOSITORY https://github.com/UIUC-PPL/charm
-      GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/charm
+      GIT_REPOSITORY https://github.com/UIUC-PPL/charm
+      #GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/charm
       GIT_TAG v7.0.0-rc2
       PATCH_COMMAND patch -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch
       CMAKE_ARGS -D TARGET=${CHARM_TARGET}
@@ -214,8 +214,8 @@ if(AMPI)
       include(ExternalProject)
       ExternalProject_Add(hdf5
         PREFIX hdf5
-        #GIT_REPOSITORY https://github.com/UIUC-PPL/hdf5-ampi.git
-        GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/hdf5-ampi
+        GIT_REPOSITORY https://github.com/UIUC-PPL/hdf5-ampi.git
+        #GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/hdf5-ampi
         CONFIGURE_COMMAND ${PROJECT_BINARY_DIR}/hdf5/build/hdf5/src/hdf5/configure
                             CC=${AMPI_C_COMPILER}
                             RUNSERIAL=${AMPI_RUN}\\t++quiet
@@ -249,8 +249,8 @@ if(AMPI)
       include(ExternalProject)
       ExternalProject_Add(netcdf
         PREFIX netcdf
-        #GIT_REPOSITORY https://github.com/Unidata/netcdf-c.git
-        GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/netcdf-c
+        GIT_REPOSITORY https://github.com/Unidata/netcdf-c.git
+        #GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/netcdf-c
         GIT_TAG v4.7.4
         CMAKE_ARGS
           -D USE_HDF5=on

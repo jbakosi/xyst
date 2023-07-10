@@ -394,8 +394,9 @@ Transporter::partitioned( std::size_t meshid )
 {
   if (++m_npart == m_nelem.size()) {     // all meshes have been partitioned
     m_npart = 0;
-  } else // partition next mesh
+  } else { // partition next mesh
     m_partitioner[meshid+1].partition( m_nchare[meshid+1] );
+  }
 }
 
 void
@@ -437,7 +438,7 @@ Transporter::refinserted( std::size_t meshid, std::size_t error )
 
   } else {
 
-     m_refiner[meshid].doneInserting();
+    m_refiner[meshid].doneInserting();
 
   }
 }
@@ -1163,8 +1164,9 @@ Transporter::resume()
     auto nrestart = g_inputdeck.get< tag::cmd, tag::io, tag::nrestart >();
     for (std::size_t i=0; i<m_nelem.size(); ++i)
       m_riecg[ i ].evalLB( nrestart );
-  } else
+  } else {
     mainProxy.finalize();
+  }
 }
 
 void

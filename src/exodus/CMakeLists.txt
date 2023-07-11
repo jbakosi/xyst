@@ -110,12 +110,14 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
                                          -Wno-missing-noreturn
                                          -Wno-old-style-cast
                                          -Wno-zero-as-null-pointer-constant
+                                         -Wno-cast-function-type
                                          -Wno-double-promotion
                                          -Wno-sign-conversion)
 endif()
 target_link_libraries(exodiff PUBLIC exodus
                                      suplib_c
                                      suplib_cpp
+                                     ${MPI_CXX_LIBRARIES}
                                      ${NETCDF_LIBRARIES}
                                      ${HDF5_HL_LIBRARIES}
                                      ${HDF5_C_LIBRARIES})

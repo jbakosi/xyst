@@ -108,6 +108,7 @@ if (ENABLE_TESTS)
                         MeshDetect
                         ExodusIIMeshIO
                         exodus
+                        ${MPI_C_LIBRARIES}
                         ${NETCDF_LIBRARIES}
                         ${HDF5_HL_LIBRARIES}
                         ${HDF5_C_LIBRARIES})
@@ -144,6 +145,7 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       Statistics
                       zoltan
                       exodus
+                      ${MPI_C_LIBRARIES}
                       ${NETCDF_LIBRARIES}
                       ${HDF5_HL_LIBRARIES}
                       ${HDF5_C_LIBRARIES})
@@ -175,6 +177,7 @@ target_link_libraries(${MESHCONV_EXECUTABLE}
                       Config
                       Init
                       exodus
+                      ${MPI_C_LIBRARIES}
                       ${NETCDF_LIBRARIES}
                       ${HDF5_HL_LIBRARIES}
                       ${HDF5_C_LIBRARIES})

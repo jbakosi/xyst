@@ -21,6 +21,7 @@
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+  #pragma GCC diagnostic ignored "-Wcast-function-type"
 #endif
 
 #include "exodus/include/exodusII.h"

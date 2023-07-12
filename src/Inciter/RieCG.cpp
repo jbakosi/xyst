@@ -1207,7 +1207,8 @@ RieCG::resizePostAMR(
   const std::unordered_map< std::size_t, tk::UnsMesh::Edge >& addedNodes,
   const std::unordered_map< std::size_t, std::size_t >& /*addedTets*/,
   const std::set< std::size_t >& removedNodes,
-  const tk::NodeCommMap& nodeCommMap,
+  const std::unordered_map< int, std::unordered_set< std::size_t > >&
+    nodeCommMap,
   const std::map< int, std::vector< std::size_t > >& bface,
   const std::map< int, std::vector< std::size_t > >& bnode,
   const std::vector< std::size_t >& triinpoel )

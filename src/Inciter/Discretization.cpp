@@ -39,7 +39,7 @@ Discretization::Discretization(
   const tk::CProxy_MeshWriter& meshwriter,
   const tk::UnsMesh::CoordMap& coordmap,
   const tk::UnsMesh::Chunk& el,
-  const tk::CommMaps& msum,
+  const std::map< int, std::unordered_set< std::size_t > >& nodeCommMap,
   int nc ) :
   m_meshid( meshid ),
   m_nchare( nc ),
@@ -81,7 +81,7 @@ Discretization::Discretization(
 //! \param[in] meshwriter Mesh writer proxy
 //! \param[in] coordmap Coordinates of mesh nodes and their global IDs
 //! \param[in] el Elements of the mesh chunk we operate on
-//! \param[in] msum Communication maps associated to chare IDs bordering the
+//! \param[in] nodeCommMap Node lists associated to chare IDs bordering the
 //!   mesh chunk we operate on
 //! \param[in] nc Total number of Discretization chares
 // *****************************************************************************
@@ -100,11 +100,8 @@ Discretization::Discretization(
           "Input mesh to Discretization not conforming" );
   #endif
 
-  // Store communication maps
-  for (const auto& [ c, maps ] : msum) {
-    m_nodeCommMap[c] = maps.get< tag::node >();
-    m_edgeCommMap[c] = maps.get< tag::edge >();
-  }
+  // Store node communication map
+  for (const auto& [c,map] : nodeCommMap) m_nodeCommMap[c] = map;
 
   // Get ready for computing/communicating nodal volumes
   startvol();
@@ -126,21 +123,28 @@ Discretization::Discretization(
 
   // Compute number of mesh points owned
   std::size_t npoin = m_gid.size();
-  for (auto g : m_gid) if (tk::slave(m_nodeCommMap,g,thisIndex)) --npoin;
+  for (auto g : m_gid) {
+    if (std::any_of( m_nodeCommMap.cbegin(), m_nodeCommMap.cend(),
+          [&](const auto& s) { return
+            s.second.find(g) != s.second.cend() && s.first > thisIndex; } ))
+    {
+      --npoin;
+    }
+  }
 
   // Tell the RTS that the Discretization chares have been created and compute
   // the total number of mesh points across the distributed mesh
   std::vector< std::size_t > meshdata{ m_meshid, npoin };
   contribute( meshdata, CkReduction::sum_ulong,
     CkCallback( CkReductionTarget(Transporter,disccreated), m_transporter ) );
-
 }
 
 void
 Discretization::resizePostAMR(
   const tk::UnsMesh::Chunk& chunk,
   const tk::UnsMesh::Coords& coord,
-  const tk::NodeCommMap& nodeCommMap,
+  const std::unordered_map< int, std::unordered_set< std::size_t > >&
+    nodeCommMap,
   const std::set< std::size_t >& /*removedNodes*/ )
 // *****************************************************************************
 //  Resize mesh data structures after mesh refinement

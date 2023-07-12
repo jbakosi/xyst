@@ -60,9 +60,7 @@ Sorter::Sorter( std::size_t meshid,
   m_noffset( 0 ),
   m_nodech(),
   m_chnode(),
-  m_edgech(),
-  m_chedge(),
-  m_msum(),
+  m_nodeCommMap(),
   m_reordcomm(),
   m_start( 0 ),
   m_newnodes(),
@@ -125,17 +123,16 @@ Sorter::setup( std::size_t npoin )
   std::array< std::size_t, 2 > chunksize{{
      npoin / N, std::numeric_limits< std::size_t >::max() / N }};
 
-  // Find chare-boundary nodes and edges of our mesh chunk. This algorithm
-  // collects the global mesh node ids and edges on the chare boundary. A node
-  // is on a chare boundary if it belongs to a face of a tetrahedron that has
-  // no neighbor tet at a face. The edge is on the chare boundary if its first
-  // edge-end point is on a chare boundary. The nodes are categorized to bins
-  // that will be sent to different chares to build point-to-point
-  // communication maps across all chares. The binning is determined by the
-  // global node id divided by the chunksizes. See discussion above on how we
-  // use two chunksizes for global node ids assigned by the hash algorithm in
-  // Refiner (if initial mesh refinement has been done).
-  tk::CommMaps chbnd;
+  // Find chare-boundary nodes of our mesh chunk. This algorithm collects the
+  // global mesh node ids on the chare boundary. A node is on a chare boundary
+  // if it belongs to a face of a tetrahedron that has no neighbor tet at a
+  // face. The nodes are categorized to bins that will be sent to different
+  // chares to build point-to-point communication maps across all chares. The
+  // binning is determined by the global node id divided by the chunksizes. See
+  // discussion above on how we use two chunksizes for global node ids assigned
+  // by the hash algorithm in Refiner (if initial mesh refinement has been
+  // done).
+  std::map< int, std::unordered_set< std::size_t > > chbnd;
   auto el = tk::global2local( m_ginpoel );      // generate local mesh data
   const auto& inpoel = std::get< 0 >( el );     // local connectivity
   auto esup = tk::genEsup( inpoel, 4 );         // elements surrounding points
@@ -150,10 +147,7 @@ Sorter::setup( std::size_t npoin )
           if (bin >= N) bin = g / chunksize[1];
           if (bin >= N) bin = N - 1;
           Assert( bin < N, "Will index out of number of chares" );
-          auto& b = chbnd[ static_cast< int >( bin ) ];
-          b.get< tag::node >().insert( g );
-          auto h = m_ginpoel[ mark + tk::lpofa[ f ][ tk::lpoet[n][1] ] ];
-          b.get< tag::edge >().insert( { std::min(g,h), std::max(g,h) } );
+          chbnd[ static_cast< int >( bin ) ].insert( g );
         }
   }
 
@@ -164,16 +158,18 @@ Sorter::setup( std::size_t npoin )
   // is detected by having the receiver respond back and counting the responses
   // on the sender side, i.e., this chare.
   m_nbnd = chbnd.size();
-  if (m_nbnd == 0)
+  if (m_nbnd == 0) {
     contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
                 m_cbs.get< tag::queried >() );
-  else
-    for (const auto& [ targetchare, bnd ] : chbnd)
+  } else {
+    for (const auto& [ targetchare, bnd ] : chbnd) {
       thisProxy[ targetchare ].query( thisIndex, bnd );
+    }
+  }
 }
 
 void
-Sorter::query( int fromch, const tk::AllCommMaps& bnd )
+Sorter::query( int fromch, const std::unordered_set< std::size_t >& bnd  )
 // *****************************************************************************
 // Incoming query for a list of mesh nodes for which this chare compiles node
 // communication maps
@@ -182,14 +178,8 @@ Sorter::query( int fromch, const tk::AllCommMaps& bnd )
 // *****************************************************************************
 {
   // Store incoming nodes in node->chare and its inverse, chare->node, maps
-  const auto& nodes = bnd.get< tag::node >();
-  for (auto n : nodes) m_nodech[ n ].push_back( fromch );
-  m_chnode[ fromch ].insert( begin(nodes), end(nodes) );
-
-  // Store incoming edges in edge->chare and its inverse, chare->edge, maps
-  const auto& edges = bnd.get< tag::edge >();
-  for (const auto& e : edges) m_edgech[ e ].push_back( fromch );
-  m_chedge[ fromch ].insert( begin(edges), end(edges) );
+  for (auto n : bnd) m_nodech[ n ].push_back( fromch );
+  m_chnode[ fromch ].insert( begin(bnd), end(bnd) );
 
   // Report back to chare message received from
   thisProxy[ fromch ].recvquery();
@@ -212,7 +202,8 @@ Sorter::response()
 //  Respond to boundary node list queries
 // *****************************************************************************
 {
-  std::unordered_map< int, tk::CommMaps > exp;
+  std::unordered_map< int, std::map< int, std::unordered_set< std::size_t > > >
+    exp;
 
   // Compute node communication map to be sent back to chares
   for (const auto& [ neighborchare, bndnodes ] : m_chnode) {
@@ -220,16 +211,7 @@ Sorter::response()
     for (auto n : bndnodes)
       for (auto d : tk::cref_find(m_nodech,n))
         if (d != neighborchare)
-          nc[d].get< tag::node >().insert( n );
-  }
-
-  // Compute edge communication map to be sent back to chares
-  for (const auto& [ neighborchare, bndedges ] : m_chedge) {
-    auto& ec = exp[ neighborchare ];
-    for (const auto& e : bndedges)
-      for (auto d : tk::cref_find(m_edgech,e))
-        if (d != neighborchare)
-          ec[d].get< tag::edge >().insert( e );
+          nc[d].insert( n );
   }
 
   // Send communication maps to chares that issued a query to us. Communication
@@ -249,19 +231,16 @@ Sorter::response()
 }
 
 void
-Sorter::bnd( int fromch, const tk::CommMaps& msum )
+Sorter::bnd( int fromch,
+  const std::map< int, std::unordered_set< std::size_t > >& nodeCommMap )
 // *****************************************************************************
 // Receive boundary node communication maps for our mesh chunk
 //! \param[in] fromch Sender chare ID
-//! \param[in] msum Communication map(s) assembled by chare fromch
+//! \param[in] nodeCommMap Communication map assembled by chare fromch
 // *****************************************************************************
 {
-  for (const auto& [ neighborchare, maps ] : msum) {
-    auto& m = m_msum[ neighborchare ];
-    const auto& nodemap = maps.get< tag::node >();
-    m.get< tag::node >().insert( begin(nodemap), end(nodemap) );
-    const auto& edgemap = maps.get< tag::edge >();
-    m.get< tag::edge >().insert( begin(edgemap), end(edgemap) );
+  for (const auto& [ neighborchare, map ] : nodeCommMap) {
+    m_nodeCommMap[ neighborchare ].insert( begin(map), end(map) );
   }
 
   // Report back to chare message received from
@@ -285,17 +264,6 @@ Sorter::start()
 //  Start reordering (if enabled)
 // *****************************************************************************
 {
-  // Keep only those edges in edge comm map whose both end-points are in the
-  // node comm map
-  for (auto& [ neighborchare, maps ] : m_msum) {
-    const auto& nodes = maps.get< tag::node >();
-    tk::EdgeSet edges;
-    for (const auto& e : maps.get< tag::edge >())
-      if (nodes.find(e[0]) != end(nodes) && nodes.find(e[1]) != end(nodes))
-        edges.insert( e );
-    maps.get< tag::edge >() = std::move(edges);
-  }
-
   if (g_inputdeck.get< tag::cmd, tag::feedback >()) m_host.chcomm();
 
   tk::destroy( m_nodech );
@@ -319,24 +287,26 @@ Sorter::mask()
   // will need to receive new (reorderd) node IDs only from chares with lower
   // IDs than thisIndex during node reordering. Since it only stores data for
   // lower chare IDs, it is asymmetric. Note that because of this algorithm the
-  // type of m_msum is an ordered map, because of the std::none_of() algorithm
-  // needs to look at ALL chares this chare potentially communicates nodes with
-  // that have lower chare IDs that thisIndex. Since the map is ordered, it can
-  // walk through from the beginning of m_msum until the outer loop variable c,
-  // which is the chare ID the outer loop works on in a given cycle.
-  for (auto c=m_msum.cbegin(); c!=m_msum.cend(); ++c)
+  // type of m_nodeCommMap is an ordered map, because of the std::none_of()
+  // algorithm needs to look at ALL chares this chare potentially communicates
+  // nodes with that have lower chare IDs that thisIndex. Since the map is
+  // ordered, it can walk through from the beginning of m_nodeCommMap until the
+  // outer loop variable c, which is the chare ID the outer loop works on in a
+  // given cycle.
+  for (auto c=m_nodeCommMap.cbegin(); c!=m_nodeCommMap.cend(); ++c) {
     if (thisIndex > c->first) {
       auto& n = m_reordcomm[ c->first ];
-      for (auto j : c->second.get< tag::node >())
-        if (std::none_of( m_msum.cbegin(), c,
+      for (auto j : c->second) {
+        if (std::none_of( m_nodeCommMap.cbegin(), c,
              [j]( const auto& s ) {
-               const auto& nodemap = s.second.template get< tag::node >();
-               return nodemap.find(j) != end(nodemap); } ))
+               return s.second.find(j) != end(s.second); } ))
         {
           n.insert(j);
         }
+      }
       if (n.empty()) m_reordcomm.erase( c->first );
     }
+  }
 
   // Count up total number of nodes this chare will need to receive
   auto nrecv = tk::sumvalsize( m_reordcomm );
@@ -502,20 +472,10 @@ Sorter::finish()
   m_el = tk::global2local( m_ginpoel );
 
   // Update symmetric chare-node communication map with the reordered IDs
-  for (auto& [ neighborchare, maps ] : m_msum) {
-
-    tk::NodeSet n;
-    for (auto p : maps.get< tag::node >())
-      n.insert( tk::cref_find( m_newnodes, p ) );
-    maps.get< tag::node >() = std::move( n );
-
-    tk::EdgeSet e;
-    for (const auto& ed : maps.get< tag::edge >()) {
-      e.insert( { tk::cref_find(m_newnodes,ed[0]),
-                  tk::cref_find(m_newnodes,ed[1]) } );
-    }
-    maps.get< tag::edge >() = std::move( e );
-
+  for (auto& [ neighborchare, map ] : m_nodeCommMap) {
+    std::unordered_set< std::size_t > n;
+    for (auto p : map) n.insert( tk::cref_find( m_newnodes, p ) );
+    map = std::move( n );
   }
 
   // Update boundary face-node connectivity with the reordered node IDs
@@ -566,7 +526,7 @@ Sorter::createDiscWorkers()
   // insertion.
 
   m_discretization[ thisIndex ].insert( m_meshid, m_host,
-    m_meshwriter, m_coordmap, m_el, m_msum, m_nchare );
+    m_meshwriter, m_coordmap, m_el, m_nodeCommMap, m_nchare );
 
   contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
               m_cbs.get< tag::discinserted >() );
@@ -601,7 +561,7 @@ Sorter::createWorkers()
   tk::destroy( m_nodeset );
   tk::destroy( m_nodech );
   tk::destroy( m_chnode );
-  tk::destroy( m_msum );
+  tk::destroy( m_nodeCommMap );
   tk::destroy( m_reordcomm );
   tk::destroy( m_newnodes );
   tk::destroy( m_reqnodes );

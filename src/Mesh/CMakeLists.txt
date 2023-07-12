@@ -3,8 +3,7 @@ project(Mesh CXX)
 add_library(Mesh
             DerivedData.cpp
             Gradients.cpp
-            Reorder.cpp
-            CommMap.cpp)
+            Reorder.cpp)
 
 target_include_directories(Mesh PUBLIC
                            ${PROJECT_SOURCE_DIR}/..

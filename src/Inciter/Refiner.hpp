@@ -31,7 +31,6 @@
 #include "UnsMesh.hpp"
 #include "Base/Fields.hpp"
 #include "RieCG.hpp"
-#include "CommMap.hpp"
 
 #include "NoWarning/transporter.decl.h"
 #include "NoWarning/refiner.decl.h"
@@ -283,7 +282,7 @@ class Refiner : public CBase_Refiner {
     std::unordered_set< size_t> m_intermediates;
     //! \brief Global mesh node IDs bordering the mesh chunk held by fellow
     //!    worker chares associated to their chare IDs for the coarse mesh
-    tk::NodeCommMap m_nodeCommMap;
+    std::unordered_map< int, std::unordered_set< std::size_t > > m_nodeCommMap;
     //! Tetrahedra before refinement/derefinement step
     TetSet m_oldTets;
     //! Newly added mesh nodes (local id) and their parents (local ids)

@@ -23,7 +23,6 @@
 #include "PUPUtil.hpp"
 #include "PDFReducer.hpp"
 #include "UnsMesh.hpp"
-#include "CommMap.hpp"
 #include "History.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
 
@@ -70,7 +69,7 @@ class Discretization : public CBase_Discretization {
         const tk::CProxy_MeshWriter& meshwriter,
         const tk::UnsMesh::CoordMap& coordmap,
         const tk::UnsMesh::Chunk& el,
-        const tk::CommMaps& msum,
+        const std::map< int, std::unordered_set< std::size_t > >& nodeCommMap,
         int nc );
 
     #if defined(__clang__)
@@ -92,7 +91,8 @@ class Discretization : public CBase_Discretization {
     void resizePostAMR(
       const tk::UnsMesh::Chunk& chunk,
       const tk::UnsMesh::Coords& coord,
-      const tk::NodeCommMap& nodeCommMap,
+      const std::unordered_map< int, std::unordered_set< std::size_t > >&
+        nodeCommMap,
       const std::set< std::size_t >& removedNodes );
 
     //! Get ready for (re-)computing/communicating nodal volumes
@@ -205,10 +205,8 @@ class Discretization : public CBase_Discretization {
     }
 
     //! Node communication map accessor as const-ref
-    const tk::NodeCommMap& NodeCommMap() const { return m_nodeCommMap; }
-
-    //! Edge communication map accessor as const-ref
-    const tk::EdgeCommMap& EdgeCommMap() const { return m_edgeCommMap; }
+    const std::unordered_map< int, std::unordered_set< std::size_t > >&
+      NodeCommMap() const { return m_nodeCommMap; }
     //@}
 
     //! Set time step size
@@ -370,7 +368,6 @@ class Discretization : public CBase_Discretization {
       }
       p | m_coord;
       p | m_nodeCommMap;
-      p | m_edgeCommMap;
       p | m_meshvol;
       p | m_v;
       p | m_vol;
@@ -458,10 +455,7 @@ class Discretization : public CBase_Discretization {
     tk::UnsMesh::Coords m_coord;
     //! \brief Global mesh node IDs bordering the mesh chunk held by fellow
     //!   Discretization chares associated to their chare IDs
-    tk::NodeCommMap m_nodeCommMap;
-    //! \brief Edges with global node IDs bordering the mesh chunk held by
-    //!   fellow Discretization chares associated to their chare IDs
-    tk::EdgeCommMap m_edgeCommMap;
+    std::unordered_map< int, std::unordered_set< std::size_t > > m_nodeCommMap;
     //! Total mesh volume
     tk::real m_meshvol;
     //! Nodal mesh volumes

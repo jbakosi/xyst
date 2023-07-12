@@ -78,9 +78,6 @@ class RieCG : public CBase_RieCG {
     //! Return from migration
     void ResumeFromSync() override;
 
-    //! Setup node-neighborhood (no-op)
-    void nodeNeighSetup() {}
-
     //! Start setup for solution
     void setup();
 

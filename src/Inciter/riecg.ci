@@ -28,7 +28,6 @@ module riecg {
       initnode void registerReducers();
       entry void setup();
       entry void box( tk::real v );
-      entry void nodeNeighSetup();
       entry void start();
       entry void refine( const std::vector< tk::real >& l2ref );
       entry [reductiontarget] void advance( tk::real newdt );

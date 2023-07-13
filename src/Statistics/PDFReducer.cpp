@@ -28,6 +28,7 @@ serialize( std::size_t meshid, const std::vector< tk::UniPDF >& u )
 {
   // Prepare for serializing PDF to a raw binary stream, compute size
   PUP::sizer sizer;
+  // cppcheck-suppress uninitvar
   sizer | meshid;
   sizer | const_cast< std::vector< tk::UniPDF >& >( u );
 
@@ -36,6 +37,7 @@ serialize( std::size_t meshid, const std::vector< tk::UniPDF >& u )
 
   // Serialize PDF, the message will contain a univariate PDF
   PUP::toMem packer( flatData.get() );
+  // cppcheck-suppress uninitvar
   packer | meshid;
   packer | const_cast< std::vector< tk::UniPDF >& >( u );
 
@@ -61,6 +63,7 @@ mergeUniPDFs( int nmsg, CkReductionMsg **msgs )
   PUP::fromMem creator( msgs[0]->getData() );
 
   // Deserialize PDFs from raw stream
+  // cppcheck-suppress uninitvar
   creator | meshid;
   creator | updf;
 
@@ -69,15 +72,20 @@ mergeUniPDFs( int nmsg, CkReductionMsg **msgs )
     std::size_t mid;
     std::vector< tk::UniPDF > u;
     PUP::fromMem curCreator( msgs[m]->getData() );
+    // cppcheck-suppress uninitvar
     curCreator | mid;
     curCreator | u;
     // Merge PDFs
+    // cppcheck-suppress uninitvar
     meshid = mid;
     std::size_t i = 0;
+    // cppcheck-suppress knownEmptyContainer
+    // cppcheck-suppress containerOutOfBounds
     for (const auto& p : u) updf[i++].addPDF( p );
   }
 
   // Serialize vector of merged PDF to raw stream
+  // cppcheck-suppress uninitvar
   auto stream = tk::serialize( meshid, updf );
 
   // Forward serialized PDFs

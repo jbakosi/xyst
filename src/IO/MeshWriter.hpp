@@ -50,6 +50,7 @@ class MeshWriter : public CBase_MeshWriter {
       m_nmesh( nmesh ) {}
 
     //! Migrate constructor
+    // cppcheck-suppress uninitMemberVar
     explicit MeshWriter( CkMigrateMessage* m ) : CBase_MeshWriter( m ) {}
 
     #if defined(__clang__)

@@ -32,6 +32,7 @@ serialize( std::size_t meshid, const std::vector< std::map<int,tk::real> >& d )
 {
   // Prepare for serializing integrals to a raw binary stream, compute size
   PUP::sizer sizer;
+  // cppcheck-suppress uninitvar
   sizer | meshid;
   sizer | const_cast< std::vector< std::map< int, tk::real > >& >( d );
 
@@ -40,6 +41,7 @@ serialize( std::size_t meshid, const std::vector< std::map<int,tk::real> >& d )
 
   // Serialize integrals
   PUP::toMem packer( flatData.get() );
+  // cppcheck-suppress uninitvar
   packer | meshid;
   packer | const_cast< std::vector< std::map< int, tk::real > >& >( d );
 
@@ -65,6 +67,7 @@ mergeIntegrals( int nmsg, CkReductionMsg **msgs )
   PUP::fromMem creator( msgs[0]->getData() );
 
   // Deserialize vector from raw stream
+  // cppcheck-suppress uninitvar
   creator | meshid;
   creator | v;
 
@@ -73,22 +76,30 @@ mergeIntegrals( int nmsg, CkReductionMsg **msgs )
     std::size_t mid;
     std::vector< std::map< int, tk::real > > w;
     PUP::fromMem curCreator( msgs[m]->getData() );
+    // cppcheck-suppress uninitvar
     curCreator | mid;
     curCreator | w;
     // Aggregate integrals
+    // cppcheck-suppress uninitvar
+    // cppcheck-suppress unreadVariable
     meshid = mid;
     Assert( v.size() == w.size(), "Size mismatch during integrals aggregation");
     Assert( v.size() == NUMINT, "Size mismatch during integrals aggregation" );
     // Aggregate applying integrals aggregation policy
     // Copy ITER, TIME, DT
+    // cppcheck-suppress containerOutOfBounds
     v[ITER] = w[ITER];
+    // cppcheck-suppress containerOutOfBounds
     v[TIME] = w[TIME];
+    // cppcheck-suppress containerOutOfBounds
     v[DT] = w[DT];
     // Sum integrals
+    // cppcheck-suppress containerOutOfBounds
     for (const auto& [s,d] : w[MASS_FLOW_RATE]) v[MASS_FLOW_RATE][s] += d;
   }
 
   // Serialize concatenated diagnostics vector to raw stream
+  // cppcheck-suppress uninitvar
   auto stream = serialize( meshid, v );
 
   // Forward serialized diagnostics

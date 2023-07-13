@@ -34,6 +34,7 @@ if(CPPCHECK AND CPPCHECK_HTMLREPORT)
               -i${PROJECT_SOURCE_DIR}/tut
               -i${PROJECT_SOURCE_DIR}/zoltan
               ${CMAKE_CURRENT_SOURCE_DIR}
+              ${CMAKE_CURRENT_SOURCE_DIR}/../tests/unit
               2> doc/html/${CMAKE_BUILD_TYPE}/cppcheck/cppcheck-report.xml
       # Generate html output
       COMMAND ${CPPCHECK_HTMLREPORT}

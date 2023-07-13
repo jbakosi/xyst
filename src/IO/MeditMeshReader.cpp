@@ -34,6 +34,7 @@ MeditMeshReader::readMesh( UnsMesh& mesh )
 // *****************************************************************************
 {
   std::size_t ntet = 0;
+  // cppcheck-suppress unreadVariable
   std::size_t triid = 0;
 
   while (!m_inFile.eof()) {
@@ -100,8 +101,12 @@ MeditMeshReader::readMesh( UnsMesh& mesh )
   }
 
   // adjust boundary element ids in exo, since tets are written first
-  for (auto& [sid,triangles] : mesh.bface())
-    for (auto& tid : triangles) tid += ntet;
+  for (auto& [sid,triangles] : mesh.bface()) {
+    for (auto& tid : triangles) {
+      // cppcheck-suppress useStlAlgorithm
+      tid += ntet;
+    }
+  }
 
   // Shift node IDs to start from zero
   shiftToZero( mesh.triinpoel() );

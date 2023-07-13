@@ -288,8 +288,8 @@ genEdsup( const std::vector< std::size_t >& inpoel,
   Assert( *minmax.first == 0, "node ids should start from zero" );
   auto npoin = *minmax.second + 1;
 
-  auto& esup1 = esup.first;
-  auto& esup2 = esup.second;
+  const auto& esup1 = esup.first;
+  const auto& esup2 = esup.second;
 
   // allocate and fill with zeros a temporary array, only used locally
   std::vector< std::size_t > lpoin( npoin, 0 );
@@ -390,8 +390,8 @@ genInpoed( const std::vector< std::size_t >& inpoel,
   Assert( *minmax.first == 0, "node ids should start from zero" );
   auto npoin = *minmax.second + 1;
 
-  auto& esup1 = esup.first;
-  auto& esup2 = esup.second;
+  const auto& esup1 = esup.first;
+  const auto& esup2 = esup.second;
 
   // allocate and fill with zeros a temporary array, only used locally
   std::vector< std::size_t > lpoin( npoin, 0 );
@@ -477,8 +477,8 @@ genEsupel( const std::vector< std::size_t >& inpoel,
   Assert( !esup.second.empty(),
           "Attempt to call genEsupel() with empty esup2" );
 
-  auto& esup1 = esup.first;
-  auto& esup2 = esup.second;
+  const auto& esup1 = esup.first;
+  const auto& esup2 = esup.second;
 
   // linked lists storing elements surrounding points of elements, put in a
   // single zero in both
@@ -552,8 +552,8 @@ genEsuel( const std::vector< std::size_t >& inpoel,
   Assert( !esup.second.empty(),
           "Attempt to call genEsuel() with empty esuel2" );
 
-  auto& esup1 = esup.first;
-  auto& esup2 = esup.second;
+  const auto& esup1 = esup.first;
+  const auto& esup2 = esup.second;
 
   auto nelem = inpoel.size()/nnpe;
 
@@ -771,8 +771,8 @@ genEsued( const std::vector< std::size_t >& inpoel,
   Assert( *minmax.first == 0, "node ids should start from zero" );
   auto npoin = *minmax.second + 1;
 
-  auto& esup1 = esup.first;
-  auto& esup2 = esup.second;
+  const auto& esup1 = esup.first;
+  const auto& esup2 = esup.second;
 
   // allocate and fill with zeros a temporary array, only used locally
   std::vector< std::size_t > lpoin( npoin, 0 );
@@ -858,10 +858,9 @@ genEdpas( int mvecl, std::size_t nnpe, std::size_t npoin,
   for (std::size_t e=0; e<nedge; ++e) unedge.insert( e );
 
   std::size_t nenew = 0, ngrou = 0;
-  int nvecl;
 
   while (nenew < nedge) {
-    nvecl = 0;
+    int nvecl = 0;
     ++ngrou;
     edpas.second.emplace_back();
     for (auto ie = begin(unedge); ie != end(unedge); ) {
@@ -972,7 +971,8 @@ genNbfacTet( std::size_t tnbfac,
 //!   nodes with inpoel.
 // *****************************************************************************
 {
-  std::size_t nbfac(0), nnpf(3);
+  // cppcheck-suppress unreadVariable
+  std::size_t nbfac = 0, nnpf = 3;
 
   if (tnbfac > 0)
   {
@@ -1087,11 +1087,13 @@ genEsuelTet( const std::vector< std::size_t >& inpoel,
   auto& esup2 = esup.second;
 
   // set tetrahedron geometry
-  std::size_t nnpe(4), nfpe(4), nnpf(3);
+  // cppcheck-suppress unreadVariable
+  std::size_t nnpe = 4, nfpe = 4, nnpf = 3;
 
   Assert( inpoel.size()%nnpe == 0, "Size of inpoel must be divisible by four" );
 
   // get nelem and npoin
+  // cppcheck-suppress unreadVariable
   auto nelem = inpoel.size()/nnpe;
   auto minmax = std::minmax_element( begin(inpoel), end(inpoel) );
   Assert( *minmax.first == 0, "node ids should start from zero" );
@@ -1277,6 +1279,7 @@ genInpofaTet( std::size_t nipfac,
   std::vector< std::size_t > inpofa;
 
   // set tetrahedron geometry
+  // cppcheck-suppress unreadVariable
   std::size_t nnpe(4), nfpe(4), nnpf(3);
 
   Assert( esuelTet.size()%nfpe == 0,
@@ -1347,7 +1350,8 @@ genBelemTet( std::size_t nbfac,
   {
 
   // set tetrahedron geometry
-  std::size_t nnpf(3), tag(0);
+  // cppcheck-suppress unreadVariable
+  std::size_t nnpf = 3, tag = 0;
 
   // loop over all the boundary faces
   for(std::size_t f=0; f<nbfac; ++f)

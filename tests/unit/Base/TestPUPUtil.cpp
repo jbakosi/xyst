@@ -49,6 +49,7 @@ class Migrated : public CBase_Migrated {
   public:
 
   //! Constructor taking (and migrating) a default strongly-typed enum
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::Enum_default e ) : m_enum_default(e)
   {
     // Create test result struct, assume test is ok
@@ -80,6 +81,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a uint8_t strongly-typed enum
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::Enum_uint8_t e ) : m_enum_uint8_t(e)
   {
     // Create test result struct, assume test is ok
@@ -111,6 +113,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a C-style enum
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::Enum_cstyle e ) : m_enum_cstyle(e)
   {
     // Create test result struct, assume test is ok
@@ -138,6 +141,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::pair<int,double>
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::Pair p ) : m_pair(p)
   {
     // Create test result struct, assume test is ok
@@ -167,6 +171,8 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::vector< std::string >
+  // cppcheck-suppress uninitMemberVar
+  // cppcheck-suppress passedByValue
   explicit Migrated( charm::Vector v ) : m_vector(v)
   {
     // Create test result struct, assume test is ok
@@ -196,6 +202,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::tuple
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::Tuple t ) : m_tuple(t)
   {
     // Create test result struct, assume test is ok
@@ -262,6 +269,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::array
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::Array a ) : m_array(a)
   {
     // Create test result struct, assume test is ok
@@ -290,6 +298,8 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::unordered_map
+  // cppcheck-suppress uninitMemberVar
+  // cppcheck-suppress passedByValue
   explicit Migrated( charm::UnorderedMap m ) : m_unordered_map(m)
   {
     // Create test result struct, assume test is ok
@@ -302,7 +312,6 @@ class Migrated : public CBase_Migrated {
       std::string expected = R"([ {11, "eleven"} {12, "twelve"} ])";
       std::string actual = "[ ";
       for (const auto& n : m_unordered_map) {
-        // cppcheck-suppress useStlAlgorithm
         actual += "{" + std::to_string(n.first) + ", " + n.second + "} ";
       }
       actual += "]";
@@ -323,6 +332,8 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::unordered_set
+  // cppcheck-suppress uninitMemberVar
+  // cppcheck-suppress passedByValue
   explicit Migrated( charm::UnorderedSet s ) : m_unordered_set(s)
   {
     // Create test result struct, assume test is ok
@@ -353,6 +364,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::optional< std::string >
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::OptionalStr o ) : m_optional_str(o)
   {
     // Create test result struct, assume test is ok
@@ -380,6 +392,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) an uninitialized std::optional< int >
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::OptionalInt o ) : m_optional_int(o)
   {
     // Create test result struct, assume test is ok
@@ -407,6 +420,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a tk::tuple::tagged_tuple
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::TaggedTuple t ) : m_tagged_tuple(t)
   {
     // Create test result struct, assume test is ok
@@ -438,6 +452,7 @@ class Migrated : public CBase_Migrated {
 
   //! \brief Constructor taking (and migrating) a std::variant<int,double>
   //!   holding int
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::Variant v, int value ) : m_variant(v)
   {
     // Create test result struct, assume test is ok
@@ -467,6 +482,7 @@ class Migrated : public CBase_Migrated {
 
   //! \brief Constructor taking (and migrating) a std::variant<int,double>
   //!   holding double
+  // cppcheck-suppress uninitMemberVar
   explicit Migrated( charm::Variant v, double value ) : m_variant(v)
   {
     // Create test result struct, assume test is ok

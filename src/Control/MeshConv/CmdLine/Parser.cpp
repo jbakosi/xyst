@@ -87,6 +87,7 @@ CmdLineParser::CmdLineParser( int argc,
 
   // Make sure mandatory arguments are set
   auto ialias = kw::input().alias();
+  // cppcheck-suppress unreadVariable
   auto oalias = kw::output().alias();
   ErrChk( !(cmdline.get< tag::io, tag::input >().empty()),
           "Mandatory input file not specified. "

@@ -307,6 +307,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
       template< typename eq > void operator()( brigand::type_<eq> ) {
         const auto& eq_mesh_filename =
            inputdeck.get< tag::param, eq, tag::mesh, tag::filename >();
+        // cppcheck-suppress useStlAlgorithm
         for (const auto& f : eq_mesh_filename) filenames.push_back( f );
       }
     };
@@ -323,6 +324,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
         inputdeck(i), depvar(d) {}
       template< typename eq > void operator()( brigand::type_<eq> ) {
         const auto& eq_depvar = inputdeck.get< tag::param, eq, tag::depvar >();
+        // cppcheck-suppress useStlAlgorithm
         for (const auto& d : eq_depvar) depvar.push_back( d );
       }
     };

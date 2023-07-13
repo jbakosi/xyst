@@ -33,8 +33,6 @@ UGRIDMeshReader::readHeader()
 //  Read UGRID mesh header
 // *****************************************************************************
 {
-  std::string s;
-
   // Number_of_Nodes
   m_inFile >> m_nnode;
 

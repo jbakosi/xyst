@@ -50,7 +50,6 @@ bool g_trace = true;
 
 //! \brief Charm++ main chare for the mesh converter executable, meshconv.
 //! \details Note that this object should not be in a namespace.
-// cppcheck-suppress noConstructor
 class Main : public CBase_Main {
 
   public:
@@ -70,7 +69,7 @@ class Main : public CBase_Main {
     //!   calls back to Main::finalize() when it finished. Then finalize() exits
     //!   by calling Charm++'s CkExit(), shutting down the runtime system.
     //! \see http://charm.cs.illinois.edu/manuals/html/charm++/manual.html
-    Main( CkArgMsg* msg )
+    explicit Main( CkArgMsg* msg )
     try :
       m_signal( tk::setSignalHandlers() ),
       m_cmdline(),
@@ -137,7 +136,7 @@ class Main : public CBase_Main {
 //!    has finished migrating all global-scoped read-only objects which happens
 //!    after the main chare constructor has finished.
 class execute : public CBase_execute {
-  public: execute() { mainProxy.execute(); }
+  public: explicit execute() { mainProxy.execute(); }
 };
 
 #include "NoWarning/meshconv.def.h"

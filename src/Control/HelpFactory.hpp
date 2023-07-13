@@ -47,6 +47,7 @@ struct KeywordInfo {
   ///@{
   //! \brief Pack/Unpack serialize member function
   //! \param[in,out] p Charm++'s PUP::er serializer object reference
+  // cppcheck-suppress constParameter
   void pup( PUP::er& p ) {
     p | shortDescription;
     p | longDescription;
@@ -80,6 +81,7 @@ struct HelpKw {
   ///@{
   //! \brief Pack/Unpack serialize member function
   //! \param[in,out] p Charm++'s PUP::er serializer object reference
+  // cppcheck-suppress constParameter
   void pup( PUP::er& p ) { p|keyword; p|info; p|cmd; }
   //! \brief Pack/Unpack serialize operator|
   //! \param[in,out] p Charm++'s PUP::er serializer object reference

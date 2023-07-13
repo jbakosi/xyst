@@ -28,18 +28,15 @@ using meshconv::MeshConvDriver;
 extern CProxy_Main mainProxy;
 
 MeshConvDriver::MeshConvDriver( const ctr::CmdLine& cmdline ) :
-  m_reorder( cmdline.get< tag::reorder >() )
+  m_reorder( cmdline.get< tag::reorder >() ),
+  m_input( cmdline.get< tag::io, tag::input >() ),
+  m_output( cmdline.get< tag::io, tag::output >() )
 // *****************************************************************************
 //  Constructor
 //! \param[in] cmdline Command line object storing data parsed from the command
 //!   line arguments
 // *****************************************************************************
 {
-  // Save input file name
-  m_input = cmdline.get< tag::io, tag::input >();
-  // Save output file name
-  m_output = cmdline.get< tag::io, tag::output >();
-
   // Output command line object to file
   auto logfilename = tk::meshconv_executable() + "_input.log";
   tk::Writer log( logfilename );
@@ -58,7 +55,9 @@ MeshConvDriver::execute( int sig ) const
 
   std::vector< std::pair< std::string, tk::real > > times;
 
-  m_print.section( "Converting mesh" );
+  tk::Print print;
+
+  print.section( "Converting mesh" );
 
   // If input filename contains a '%', we aggregate multiple files
   if (m_input.find('%') == std::string::npos) {
@@ -66,8 +65,8 @@ MeshConvDriver::execute( int sig ) const
     // Convert single mesh
 
     times.push_back( {} );
-    auto mesh = tk::readUnsMesh( m_print, m_input, times[0] );
-    auto wtimes = tk::writeUnsMesh( m_print, m_output, mesh, m_reorder );
+    auto mesh = tk::readUnsMesh( print, m_input, times[0] );
+    auto wtimes = tk::writeUnsMesh( print, m_output, mesh, m_reorder );
     times.insert( end(times), begin(wtimes), end(wtimes) );
 
   } else {
@@ -86,14 +85,14 @@ MeshConvDriver::execute( int sig ) const
     ss >> nfile;
     ErrChk( nfile > 0, "The percent sign must be preceded by an integer, as in "
               "'.<nfile>.%', with <nfile> the number of files to aggregate" );
-    m_print << "Aggregating " + std::to_string(nfile) +
-               " files from base filename: '" << input_basename << "\'\n";
+    print << "Aggregating " + std::to_string(nfile) +
+             " files from base filename: '" << input_basename << "\'\n";
 
     const auto eps = std::numeric_limits< tk::real >::epsilon();
 
     // Lambda to echo some diagnostics on the mesh being processes to screen
     auto diag = [&]( const std::string& name, const tk::UnsMesh& mesh ){
-      m_print << name + ": ntri: " +
+      print << name + ": ntri: " +
         std::to_string(mesh.triinpoel().size()/3) +
         ", ntime: " + std::to_string(mesh.vartimes().size()) +
         (!mesh.nodevars().empty() ? ", nvar: " +
@@ -117,7 +116,7 @@ MeshConvDriver::execute( int sig ) const
     for (std::size_t m=0; m<nfile; ++m) {
       std::string name = input_basename + std::to_string(m);
       times.push_back( {} );
-      auto mesh = tk::readUnsMesh( m_print, name, times.back() );
+      auto mesh = tk::readUnsMesh( print, name, times.back() );
       const auto& triinpoel = mesh.triinpoel();
       // Skip meshes with a single triange cell
       if (triinpoel.size() == 3) continue;
@@ -179,7 +178,7 @@ MeshConvDriver::execute( int sig ) const
     // Echo diagnostics on the aggreegate output mesh
     diag( m_output, outmesh );
     // Write output mesh to file
-    auto wtimes = tk::writeUnsMesh( m_print, m_output, outmesh, m_reorder );
+    auto wtimes = tk::writeUnsMesh( print, m_output, outmesh, m_reorder );
     // Collect wall-clock time data
     times.insert( end(times), begin(wtimes), end(wtimes) );
 

@@ -139,6 +139,7 @@ length( const std::array< real, 3 >& v ) {
 inline void
 unit( std::array< real, 3 >& v ) noexcept(ndebug) {
   auto len = length( v );
+  // cppcheck-suppress throwInNoexceptFunction
   Assert( len > std::numeric_limits< tk::real >::epsilon(), "div by zero" );
   v[0] /= len;
   v[1] /= len;

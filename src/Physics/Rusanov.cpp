@@ -355,6 +355,7 @@ grad( const std::vector< std::size_t >& bpoin,
     #pragma GCC diagnostic ignored "-Wvla"
   #endif
 
+  // cppcheck-suppress unreadVariable
   auto ncomp = U.nprop();
 
   Assert( G.nunk() == U.nunk(), "Size mismatch" );
@@ -493,6 +494,7 @@ adv( const tk::UnsMesh::Coords& coord,
      const std::array< std::vector< tk::real >, 2 >& bsupint,
      const tk::Fields& G,
      const tk::Fields& U,
+     // cppcheck-suppress constParameter
      tk::Fields& R )
 // *****************************************************************************
 //! Compute integrals for advection

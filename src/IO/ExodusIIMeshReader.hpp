@@ -60,9 +60,6 @@ class ExodusIIMeshReader {
     //! Read ExodusII mesh from file
     void readMesh( UnsMesh& mesh );
 
-    //! Read only connectivity graph from file
-    void readGraph( UnsMesh& mesh );
-
     //! Return total number of mesh points in mesh file
     std::size_t npoin() { return readHeader(); }
 

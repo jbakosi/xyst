@@ -37,6 +37,7 @@ static std::streambuf* cerr_old;
 using tk::QuietCerr;
 
 void
+// cppcheck-suppress unusedFunction
 QuietCerr::quiet()
 // *****************************************************************************
 //!   Section "Initializations at Program Startup" at in the Charm++ manual

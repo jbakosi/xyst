@@ -244,6 +244,7 @@ void DerivedData_object::test< 4 >() {
   tk::shiftToZero( inpoel );
 
   // Generate elements surrounding points
+  // cppcheck-suppress unreadVariable
   auto esup = tk::genEsup( inpoel, 4 );
 
   // Generate correct solution for elements surrounding points
@@ -327,6 +328,7 @@ void DerivedData_object::test< 5 >() {
   tk::shiftToZero( inpoel );
 
   // Generate elements surrounding points
+  // cppcheck-suppress unreadVariable
   auto esup = tk::genEsup( inpoel, 3 );
 
   // Generate correct solution for elements surrounding points
@@ -509,6 +511,7 @@ void DerivedData_object::test< 11 >() {
   tk::shiftToZero( inpoel );
 
   // Generate elements surrounding points
+  // cppcheck-suppress unreadVariable
   auto psup = tk::genPsup( inpoel, 4, tk::genEsup(inpoel,4) );
 
   // Generate correct solution for points surrounding points
@@ -592,6 +595,7 @@ void DerivedData_object::test< 12 >() {
   tk::shiftToZero( inpoel );
 
   // Generate elements surrounding points
+  // cppcheck-suppress unreadVariable
   auto psup = tk::genPsup( inpoel, 3, tk::genEsup(inpoel,3) );
 
   // Generate correct solution for points surrounding points
@@ -3424,6 +3428,7 @@ void DerivedData_object::test< 81 >() {
 
   // Generate points of edges
   auto esup = tk::genEsup( inpoel, 4 );
+  // cppcheck-suppress unreadVariable
   auto inpoed = tk::genInpoed( inpoel, 4, esup );
 
   // Find number of points in mesh

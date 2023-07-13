@@ -407,6 +407,7 @@ Sorter::request( int c, const std::unordered_set< std::size_t >& nd )
 }
 
 void
+// cppcheck-suppress unusedFunction
 Sorter::prepare()
 // *****************************************************************************
 //  Find new node IDs for old ones and return them to the requestor(s)

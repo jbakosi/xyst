@@ -191,7 +191,6 @@ void ContainerUtil_object::test< 6 >() {
   #ifndef NDEBUG        // exception only thrown in DEBUG mode
   try {
     std::vector< tk::real > r1{{ 4.0, 9.0, 2.0 }}, r2;
-    // cppcheck-suppress unreadVariable
     r1 += r2;
     fail( "should throw exception in DEBUG mode" );
   }
@@ -205,7 +204,6 @@ void ContainerUtil_object::test< 6 >() {
   #ifndef NDEBUG        // exception only thrown in DEBUG mode
   try {
     std::vector< tk::real > q1, q2;
-    // cppcheck-suppress unreadVariable
     q1 += q2;
     fail( "should throw exception in DEBUG mode" );
   }
@@ -263,7 +261,6 @@ void ContainerUtil_object::test< 6 >() {
   #ifndef NDEBUG        // exception only thrown in DEBUG mode
   try {
     std::vector< tk::real > n1{{ 4.0, 9.0, 2.0 }}, n2{{ 3.0, -3.0 }};
-    // cppcheck-suppress unreadVariable
     n1 += n2;
     fail( "should throw exception in DEBUG mode" );
   }
@@ -365,7 +362,7 @@ void ContainerUtil_object::test< 11 >() {
 
   std::map< int, std::vector< std::size_t > > b{ {3,{4,5,6}}, {-2,{3,2,3}} };
   std::map< int, std::vector< std::size_t > > correct_result{ {3,{4,5,6}} };
-  tk::erase_if( b, []( decltype(b)::value_type& p ){ return p.first<0; } );
+  tk::erase_if( b, []( const decltype(b)::value_type& p ){return p.first<0;} );
   ensure( "erase_if on map incorrect", b == correct_result );
 }
 

@@ -307,6 +307,7 @@ Refiner::bndEdges()
   // Compute the number of edges (chunksize) a chare will respond to when
   // computing shared edges
   auto N = static_cast< std::size_t >( m_nchare );
+  // cppcheck-suppress unreadVariable
   std::size_t chunksize = std::numeric_limits< std::size_t >::max() / N;
 
   // Generate boundary edges of our mesh chunk
@@ -318,7 +319,9 @@ Refiner::bndEdges()
     for (std::size_t f=0; f<4; ++f) {
       if (esuel[mark+f] == -1) {
         auto A = m_ginpoel[ mark+tk::lpofa[f][0] ];
+        // cppcheck-suppress unreadVariable
         auto B = m_ginpoel[ mark+tk::lpofa[f][1] ];
+        // cppcheck-suppress unreadVariable
         auto C = m_ginpoel[ mark+tk::lpofa[f][2] ];
         Assert( m_lid.find( A ) != end(m_lid), "Local node ID not found" );
         Assert( m_lid.find( B ) != end(m_lid), "Local node ID not found" );
@@ -389,6 +392,7 @@ Refiner::response()
     for (const auto& ed : bndedges)
       for (auto d : tk::cref_find(m_edgech,ed))
         if (d != neighborchare)
+          // cppcheck-suppress useStlAlgorithm
           e.push_back( d );
   }
 
@@ -581,6 +585,7 @@ Refiner::correctref()
   std::size_t neigh_extra(0);
 
   // Vars for debugging purposes
+  // cppcheck-suppress unreadVariable
   std::size_t nlocked(0);
   std::array< std::size_t, 4 > ncorrcase{{0,0,0,0}};
 
@@ -596,8 +601,11 @@ Refiner::correctref()
         auto& local_needs_derefining = std::get<1>(local);
         auto& local_lock_case = std::get<2>(local);
 
+        // cppcheck-suppress unreadVariable
         auto local_needs_refining_orig = local_needs_refining;
+        // cppcheck-suppress unreadVariable
         auto local_needs_derefining_orig = local_needs_derefining;
+        // cppcheck-suppress unreadVariable
         auto local_lock_case_orig = local_lock_case;
 
         Assert( !(local_lock_case > unlocked && local_needs_refining),
@@ -669,6 +677,7 @@ Refiner::correctref()
               ++ncorrcase[3];
           }
           else {
+            // cppcheck-suppress unreadVariable
             ++nlocked;
           }
         }
@@ -1577,11 +1586,13 @@ Refiner::newVolMesh( const std::unordered_set< std::size_t >& old,
     }
   }
   // Add newly added nodes due to refinement to node id maps
+  // cppcheck-suppress unreadVariable
   decltype(m_addedNodes) addedNodes( m_addedNodes.size() );
   for (const auto& n : gid_add) {
     auto r = n.first;
     auto g = n.second;
     gid[l] = g;
+    // cppcheck-suppress unreadVariable
     rid[l] = r;
     Assert(m_lref.find(r) == m_lref.end(), "Overwriting lref");
     m_lref[r] = l;
@@ -1709,6 +1720,7 @@ Refiner::boundary()
 //  tk::destroy( m_oldparent );
   m_addedTets.clear();
   std::size_t p = 0;
+  // cppcheck-suppress unreadVariable
   std::size_t c = 0;
   const auto& tet_store = m_refiner.tet_store;
   for (const auto& t : tet_store.tets) {
@@ -1786,24 +1798,8 @@ Refiner::updateBndData(
   // storage for boundary nodes associated to side-set IDs of the refined mesh
   tk::destroy( m_bnode );
 
-  // face id counter
-  std::size_t facecnt = 0;
   // will collect unique faces added for each side set
   std::unordered_map< int, FaceSet > bf;
-
-  // Lambda to associate a boundary face and connectivity to a side set.
-  // Argument 's' is the list of faces (ids) to add the new face to. Argument
-  // 'ss' is the side set id to which the face is added. Argument 'f' is the
-  // triangle face connectivity to add.
-  auto addBndFace = [&]( std::vector< std::size_t >& s, int ss, const Face& f )
-  {
-    // only add face if it has not yet been aded to this side set
-    if (bf[ ss ].insert( f ).second) {
-      s.push_back( facecnt++ );
-      m_triinpoel.insert( end(m_triinpoel), begin(f), end(f) );
-      Assert(m_triinpoel.size()/3 == facecnt, "Incorrect size of triinpoel");
-    }
-  };
 
   // Lambda to search the parents in the coarsest mesh of a mesh node and if
   // found, add its global id to boundary node lists associated to the side
@@ -1842,6 +1838,23 @@ Refiner::updateBndData(
           m_bnode[ s ].push_back( m_gid[n] );
         }
       }
+    }
+  };
+
+  // face id counter
+  std::size_t facecnt = 0;
+
+  // Lambda to associate a boundary face and connectivity to a side set.
+  // Argument 's' is the list of faces (ids) to add the new face to. Argument
+  // 'ss' is the side set id to which the face is added. Argument 'f' is the
+  // triangle face connectivity to add.
+  auto addBndFace = [&]( std::vector< std::size_t >& s, int ss, const Face& f )
+  {
+    // only add face if it has not yet been aded to this side set
+    if (bf[ ss ].insert( f ).second) {
+      s.push_back( facecnt++ );
+      m_triinpoel.insert( end(m_triinpoel), begin(f), end(f) );
+      Assert(m_triinpoel.size()/3 == facecnt, "Incorrect size of triinpoel");
     }
   };
 

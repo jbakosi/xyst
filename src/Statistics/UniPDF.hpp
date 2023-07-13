@@ -113,6 +113,7 @@ class UniPDF {
     ///@{
     //! Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
+    // cppcheck-suppress constParameter
     void pup( PUP::er& p ) {
       p | m_binsize;
       p | m_nsample;

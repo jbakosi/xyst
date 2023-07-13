@@ -156,8 +156,8 @@ class TaggedTuple{
     //! \param[in] value Value to convert and store
     template< typename Tag, typename... Tags >
     void store_back_bool( const std::string& value ) noexcept {
-      if constexpr( is_tagged_tuple<Tag>::value and sizeof...(Tags) != 0 )
-      {
+      if constexpr( is_tagged_tuple<Tag>::value and sizeof...(Tags) != 0 ) {
+        // cppcheck-suppress throwInNoexceptFunction
         get< Tag, Tags... >().push_back( convert_bool( value ) );
       } else {
         get< Tag >().push_back( convert_bool( value ) );
@@ -251,6 +251,7 @@ class TaggedTuple{
     ///@{
     //! \brief Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
+    // cppcheck-suppress constParameter
     void pup( PUP::er& p ) { p | m_members; }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference

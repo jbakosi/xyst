@@ -79,6 +79,7 @@ namespace tut {
 
 //! All tests in group inherited from this base
 struct Gradients_common {
+  // cppcheck-suppress unusedStructMember
   const tk::real pr = 5.0*std::numeric_limits< tk::real >::epsilon();
 
   // mesh node coordinates

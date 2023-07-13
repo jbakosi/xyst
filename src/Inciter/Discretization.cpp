@@ -495,6 +495,7 @@ Discretization::boxvol(
 {
   // Compute partial box IC volume (just add up all boxes)
   tk::real boxvol = 0.0;
+  // cppcheck-suppress useStlAlgorithm
   for (const auto& b : nodes) for (auto i : b) boxvol += m_v[i];
 
   // Sum up box IC volume across all chares

@@ -15,7 +15,6 @@
 
 #include <iosfwd>
 
-#include "Print.hpp"
 #include "MeshConv/CmdLine/CmdLine.hpp"
 
 //! Mesh converter declarations and definitions
@@ -32,7 +31,6 @@ class MeshConvDriver {
     void execute( int sig ) const;
 
   private:
-    const tk::Print m_print;            //!< Pretty printer
     const bool m_reorder;               //!< Whether to also reorder mesh nodes
     std::string m_input;                //!< Input file name
     std::string m_output;               //!< Output file name

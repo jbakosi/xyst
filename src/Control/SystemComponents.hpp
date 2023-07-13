@@ -175,8 +175,9 @@ class ncomponents : public
     //!   systems operate on during the numerical solution) and get to the
     //!   beginning of data for a given differential equation system.
     template< typename tag >
-    ncomp_t offset( ncomp_t c ) const noexcept {
+    ncomp_t offset( ncomp_t c ) const {
       ncomp_t offset = 0;
+      // cppcheck-suppress knownConditionTrueFalse
       bool found = false;
       ( ... , [&](){
         if (std::is_same_v< tag, Tags >) {
@@ -187,6 +188,7 @@ class ncomponents : public
           // given system index and add those to the offset
           for (ncomp_t q=0; q<c; ++q) offset += v[q];
           found = true;
+        // cppcheck-suppress knownConditionTrueFalse
         } else if (!found) {
           // If we have not found the tag we are looking for, we add all the
           // number of scalars for that tag to the offset
@@ -203,10 +205,10 @@ class ncomponents : public
     OffsetMap offsetmap( const InputDeck& d ) const {
       OffsetMap map;
       ( ... ,  [&](){
-        const auto& depvar = d.template get< tag::param, Tags, tag::depvar >();
+        const auto& dv = d.template get< tag::param, Tags, tag::depvar >();
         ncomp_t c = 0;
         const auto& ncomps = d.template get< tag::component >();
-        for (auto v : depvar)
+        for (auto v : dv)
           map[ v ] = ncomps.template offset< Tags >( c++ ); }() );
       return map;
     }
@@ -219,12 +221,12 @@ class ncomponents : public
     NcompMap ncompmap( const InputDeck& d ) const {
       NcompMap map;
       ( ... , [&](){
-        const auto& depvar = d.template get< tag::param, Tags, tag::depvar >();
+        const auto& dv = d.template get< tag::param, Tags, tag::depvar >();
         const auto& ncomps = d.template get< tag::component >();
         const auto& ncvec = ncomps.template get<Tags>();
-        Assert( ncvec.size() == depvar.size(), "ncompsize != depvarsize" );
+        Assert( ncvec.size() == dv.size(), "ncompsize != depvarsize" );
         ncomp_t c = 0;
-        for (auto v : depvar) map[ v ] = ncvec[c++]; }() );
+        for (auto v : dv) map[ v ] = ncvec[c++]; }() );
       return map;
     }
 

@@ -73,7 +73,7 @@ namespace AMR {
                 add(keyAB, edgeAB);
             }
 
-            bool exists(edge_t key)
+            bool exists(edge_t key) const
             {
                 if (edges.find(key) != edges.end())
                 {

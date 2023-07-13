@@ -43,6 +43,7 @@ Exception::Exception( std::string&& message,
 //!   exceptions.
 //! \see Assert, ErrChk, Throw
 // *****************************************************************************
+// cppcheck-suppress syntaxError
 try :
   m_file( std::move(file) ),
   m_func( std::move(function) ),
@@ -99,10 +100,8 @@ Exception::saveTrace() noexcept
 //!   Requires stdio.h, execinfo.h.
 // *****************************************************************************
 {
-#ifndef HOST_OS_ALPINE
   // Retrieve current stack addresses
   m_addrLength = backtrace(m_addrList, sizeof(m_addrList)/sizeof(void*));
-#endif
 
   // Resolve addresses into strings containing "filename(function+address)"
   if (m_addrLength > 0)

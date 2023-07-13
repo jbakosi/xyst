@@ -74,6 +74,7 @@ class Partitioner : public CBase_Partitioner {
       #pragma clang diagnostic ignored "-Wundefined-func-template"
     #endif
     //! Migrate constructor
+    // cppcheck-suppress uninitMemberVar
     explicit Partitioner( CkMigrateMessage* m ) : CBase_Partitioner( m ) {}
     #if defined(__clang__)
       #pragma clang diagnostic pop

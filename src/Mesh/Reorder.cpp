@@ -155,6 +155,7 @@ remap( std::vector< std::size_t >& ids,
 {
   Assert( !map.empty(), "Map must not be empty" );
 
+  // cppcheck-suppress useStlAlgorithm
   for (auto& i : ids) i = tk::cref_find( map, i );
 }
 

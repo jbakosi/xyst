@@ -109,12 +109,16 @@ farbc( tk::Fields& U,
 
   const auto& fre = compflow.get< tag::farfield_density >();
   ErrChk( !fre.empty(), "No farfield density specified" );
+  // cppcheck-suppress unreadVariable
   tk::real fr = fre[0];
 
   const auto& fue = compflow.get< tag::farfield_velocity >();
   ErrChk( !fue.empty(), "No farfield velocity specified" );
+  // cppcheck-suppress unreadVariable
   tk::real fu = fue[0][0];
+  // cppcheck-suppress unreadVariable
   tk::real fv = fue[0][1];
+  // cppcheck-suppress unreadVariable
   tk::real fw = fue[0][2];
 
   const auto& fpe = compflow.get< tag::farfield_pressure >();

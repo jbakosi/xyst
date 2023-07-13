@@ -69,6 +69,7 @@ mergeDiag( int nmsg, CkReductionMsg **msgs )
   PUP::fromMem creator( msgs[0]->getData() );
 
   // Deserialize vector from raw stream
+  // cppcheck-suppress uninitvar
   creator | meshid;
   creator | v;
 
@@ -77,14 +78,18 @@ mergeDiag( int nmsg, CkReductionMsg **msgs )
     std::size_t mid;
     std::vector< std::vector< tk::real > > w;
     PUP::fromMem curCreator( msgs[m]->getData() );
+    // cppcheck-suppress uninitvar
     curCreator | mid;
     curCreator | w;
     // Aggregate diagnostics vector
+    // cppcheck-suppress uninitvar
+    // cppcheck-suppress unreadVariable
     meshid = mid;
     Assert( v.size() == w.size(),
             "Size mismatch during diagnostics aggregation" );
     Assert( v.size() == NUMDIAG,
             "Size mismatch during diagnostics aggregation" );
+    // cppcheck-suppress unsignedLessThanZero
     for (std::size_t i=0; i<v.size(); ++i)
       Assert( v[i].size() == w[i].size(),
               "Size mismatch during diagnostics aggregation" );

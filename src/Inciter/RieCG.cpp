@@ -121,6 +121,7 @@ RieCG::setupBC()
   auto d = Disc();
 
   // Query Dirichlet BC nodes associated to side sets
+  // cppcheck-suppress unreadVariable
   auto dir = d->bcnodes< bc, tag::dirichlet >( m_bface, m_triinpoel );
 
   auto ncomp = m_u.nprop();
@@ -152,6 +153,7 @@ RieCG::setupBC()
 
 
   // Query pressure BC nodes associated to side sets
+  // cppcheck-suppress unreadVariable
   auto pre = d->bcnodes< bc, tag::pressure >( m_bface, m_triinpoel );
 
   // Prepare density and pressure values for pressure BC nodes
@@ -398,6 +400,7 @@ RieCG::registerReducers()
 }
 
 void
+// cppcheck-suppress unusedFunction
 RieCG::ResumeFromSync()
 // *****************************************************************************
 //  Return from migration
@@ -827,6 +830,7 @@ RieCG::domsuped()
 }
 
 void
+// cppcheck-suppress unusedFunction
 RieCG::merge()
 // *****************************************************************************
 // Combine own and communicated portions of the integrals
@@ -902,6 +906,7 @@ RieCG::dt()
   // use constant dt if configured
   if (std::abs(const_dt - def_const_dt) > eps) {
 
+    // cppcheck-suppress redundantInitialization
     mindt = const_dt;
 
   } else {      // compute dt based on CFL
@@ -1072,6 +1077,7 @@ RieCG::comrhs(
 }
 
 void
+// cppcheck-suppress unusedFunction
 RieCG::solve()
 // *****************************************************************************
 //  Advance systems of equations
@@ -1444,6 +1450,7 @@ RieCG::integrals()
     ints[ DT ][ 0 ] = d->Dt();
     // Compute mass flow rate for surfaces requested
     for (const auto& [s,sint] : m_surfint) {
+      // cppcheck-suppress unreadVariable
       auto& mfr = ints[ MASS_FLOW_RATE ][ s ];
       const auto& nodes = sint.first;
       const auto& ndA = sint.second;

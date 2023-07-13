@@ -87,17 +87,6 @@ ExodusIIMeshReader::readMesh( UnsMesh& mesh )
 }
 
 void
-ExodusIIMeshReader::readGraph( UnsMesh& mesh )
-// *****************************************************************************
-//  Read only connectivity graph from file
-//! \param[in] mesh Unstructured mesh object
-// *****************************************************************************
-{
-  readHeader( mesh );
-  readAllElements( mesh );
-}
-
-void
 ExodusIIMeshReader::readMeshPart(
   std::vector< std::size_t >& ginpoel,
   std::vector< std::size_t >& inpoel,
@@ -323,6 +312,7 @@ ExodusIIMeshReader::readElemBlockIDs()
 // *****************************************************************************
 {
   // Read ExodusII file header
+  // cppcheck-suppress unreadVariable
   auto nnode = readHeader();
 
   std::vector< int > bid( m_neblk );
@@ -631,6 +621,7 @@ ExodusIIMeshReader::readSidesetNodes()
       tk::unique( nodes );
       // Store 0-based node ID list as std::size_t vector instead of ints
       auto& list = side[ i ];
+      // cppcheck-suppress useStlAlgorithm
       for (auto n : nodes) list.push_back( static_cast<std::size_t>(n-1) );
     }
   }
@@ -874,6 +865,7 @@ ExodusIIMeshReader::readNodeVarNames( std::vector< std::string >& nv ) const
 
     nv.resize( static_cast< std::size_t >( numvars ) );
     std::size_t i = 0;
+    // cppcheck-suppress useStlAlgorithm
     for (auto& n : nv) n = names[ i++ ];
 
   }

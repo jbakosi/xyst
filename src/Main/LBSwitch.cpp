@@ -27,6 +27,7 @@ LBSwitch::LBSwitch()
 }
 
 void
+// cppcheck-suppress unusedFunction
 LBSwitch::off()
 // *****************************************************************************
 //  Turn off automatic load balancing

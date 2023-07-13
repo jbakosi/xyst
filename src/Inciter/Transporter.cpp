@@ -163,6 +163,7 @@ Transporter::input()
   if (not ctrinput.empty()) {
      const auto& ctr = g_inputdeck.get< tag::cmd, tag::io, tag::control >();
      auto path = ctr.substr( 0, ctr.find_last_of("/")+1 );
+    // cppcheck-suppress useStlAlgorithm
      for (auto& f : ctrinput) f = path + f;
   }
 
@@ -232,6 +233,7 @@ Transporter::createPartitioner()
 // Create mesh partitioner AND boundary conditions group
 // *****************************************************************************
 {
+  // cppcheck-suppress unreadVariable
   auto print = tk::Print();
 
   // Create partitioner callbacks (order important)
@@ -789,6 +791,7 @@ Transporter::integralsHeader()
 
   // Collect variables names for integral output
   std::vector< std::string > var;
+  // cppcheck-suppress useStlAlgorithm
   for (auto s : sidesets_integral) var.push_back( "|rudA" + std::to_string(s) );
 
   // Write integrals header
@@ -924,10 +927,12 @@ Transporter::pdfstat( CkReductionMsg* msg )
 
   // Deserialize final PDF
   PUP::fromMem creator( msg->getData() );
+  // cppcheck-suppress uninitvar
   creator | meshid;
   creator | pdf;
   delete msg;
 
+  // cppcheck-suppress uninitvar
   auto id = std::to_string(meshid);
 
   // Create new PDF file (overwrite if exists)
@@ -940,12 +945,14 @@ Transporter::pdfstat( CkReductionMsg* msg )
   // Create new PDF file (overwrite if exists)
   tk::PDFWriter pdfv( "mesh_vol_pdf." + id + ".txt" );
   // Output cell volume cubic root PDF
+  // cppcheck-suppress containerOutOfBounds
   pdfv.writeTxt( pdf[1],
                  tk::ctr::PDFInfo{ {"PDF"}, {}, {"V^{1/3}"}, 0, 0.0 } );
 
   // Create new PDF file (overwrite if exists)
   tk::PDFWriter pdfn( "mesh_ntet_pdf." + id + ".txt" );
   // Output number of cells PDF
+  // cppcheck-suppress containerOutOfBounds
   pdfn.writeTxt( pdf[2],
                  tk::ctr::PDFInfo{ {"PDF"}, {}, {"ntets"}, 0, 0.0 } );
 
@@ -1058,30 +1065,38 @@ Transporter::diagnostics( CkReductionMsg* msg )
 
   // Deserialize diagnostics vector
   PUP::fromMem creator( msg->getData() );
+  // cppcheck-suppress uninitvar
   creator | meshid;
   creator | d;
   delete msg;
 
+  // cppcheck-suppress uninitvar
+  // cppcheck-suppress unreadVariable
   auto id = std::to_string(meshid);
   auto ncomp = g_inputdeck.get< tag::component, tag::compflow >()[0];
 
   Assert( ncomp > 0, "Number of scalar components must be positive");
   Assert( d.size() == NUMDIAG, "Diagnostics vector size mismatch" );
 
-  for (std::size_t i=0; i<d.size(); ++i)
+  // cppcheck-suppress unsignedLessThanZero
+  for (std::size_t i=0; i<d.size(); ++i) {
      Assert( d[i].size() == ncomp, "Size mismatch at final stage of "
              "diagnostics aggregation for mesh " + id );
+  }
 
   // Allocate storage for those diagnostics that are always computed
   std::vector< tk::real > diag( ncomp, 0.0 );
 
   // Finish computing the L2 norm of conserved variables
-  for (std::size_t i=0; i<d[L2SOL].size(); ++i)
+  for (std::size_t i=0; i<d[L2SOL].size(); ++i) {
+    // cppcheck-suppress uninitvar
     diag[i] = sqrt( d[L2SOL][i] / m_meshvol[meshid] );
+  }
  
   // Finish computing the L2 norm of the residuals of conserverd variables
   std::vector< tk::real > l2res( d[L2RES].size(), 0.0 );
   for (std::size_t i=0; i<d[L2RES].size(); ++i) {
+    // cppcheck-suppress uninitvar
     l2res[i] = std::sqrt( d[L2RES][i] / m_meshvol[meshid] );
     diag.push_back( l2res[i] );
   }
@@ -1091,10 +1106,14 @@ Transporter::diagnostics( CkReductionMsg* msg )
 
   // Finish computing norms of the numerical - analytical solution
   if (problems::SOL()) {
-    for (std::size_t i=0; i<d[L2ERR].size(); ++i)
+    for (std::size_t i=0; i<d[L2ERR].size(); ++i) {
+      // cppcheck-suppress uninitvar
       diag.push_back( std::sqrt( d[L2ERR][i] / m_meshvol[meshid] ) );
-    for (std::size_t i=0; i<d[L1ERR].size(); ++i)
+    }
+    for (std::size_t i=0; i<d[L1ERR].size(); ++i) {
+      // cppcheck-suppress uninitvar
       diag.push_back( d[L1ERR][i] / m_meshvol[meshid] );
+    }
   }
  
   // Append diagnostics file at selected times
@@ -1107,6 +1126,7 @@ Transporter::diagnostics( CkReductionMsg* msg )
   dw.write( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
 
   // Continue time step
+  // cppcheck-suppress uninitvar
   m_riecg[ meshid ].refine( l2res );
 }
 
@@ -1119,17 +1139,20 @@ Transporter::integrals( CkReductionMsg* msg )
 {
   using namespace integrals;
 
+  // cppcheck-suppress unassignedVariable
   std::size_t meshid;
   std::vector< std::map< int, tk::real > > d;
 
   // Deserialize integrals vector
   PUP::fromMem creator( msg->getData() );
+  // cppcheck-suppress uninitvar
   creator | meshid;
   creator | d;
   delete msg;
 
   const auto& sidesets_integral =
     g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
+  // cppcheck-suppress
   if (not sidesets_integral.empty()) {
 
     Assert( d.size() == NUMINT, "Integrals vector size mismatch" );
@@ -1138,6 +1161,7 @@ Transporter::integrals( CkReductionMsg* msg )
     std::vector< tk::real > ints;
 
     // Collect integrals for output
+    // cppcheck-suppress containerOutOfBounds
     for (const auto& [s,m] : d[MASS_FLOW_RATE]) ints.push_back( m );
 
     // Append integrals file at selected times
@@ -1146,13 +1170,17 @@ Transporter::integrals( CkReductionMsg* msg )
                        g_inputdeck.get< tag::flformat, tag::integral >(),
                        g_inputdeck.get< tag::prec, tag::integral >(),
                        std::ios_base::app );
+    // cppcheck-suppress containerOutOfBounds
     dw.write( static_cast<uint64_t>(tk::cref_find( d[ITER], 0 )),
+              // cppcheck-suppress containerOutOfBounds
               tk::cref_find( d[TIME], 0 ),
+              // cppcheck-suppress containerOutOfBounds
               tk::cref_find( d[DT], 0 ),
               ints );
   }
 
   // Continue time step
+  // cppcheck-suppress uninitvar
   m_riecg[ meshid ].step();
 }
 

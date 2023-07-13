@@ -27,6 +27,7 @@ namespace tut {
 
 //! All tests in group inherited from this base
 struct Data_common {
+  // cppcheck-suppress unusedStructMember
   const tk::real prec = std::numeric_limits< tk::real >::epsilon();
 };
 

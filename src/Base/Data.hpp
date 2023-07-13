@@ -514,6 +514,7 @@ class Data {
     ///@{
     //! \brief Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
+    // cppcheck-suppress constParameter
     void pup( PUP::er &p ) {
       p | m_vec;
       p | m_nunk;

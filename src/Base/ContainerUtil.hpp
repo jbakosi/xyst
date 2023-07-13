@@ -36,6 +36,7 @@ unique( Container& c )
   std::sort( begin(c), end(c) );
   auto it = std::unique( begin(c), end(c) );
   auto d = std::distance( begin(c), it );
+  // cppcheck-suppress unsignedPositive
   Assert( d >= 0, "Distance must be non-negative in tk::unique()" );
   c.resize( static_cast< std::size_t >( d ) );
 }
@@ -64,6 +65,7 @@ noexcept(ndebug)
   -> const typename Container::mapped_type&
 {
   const auto it = map.find( key );
+  // cppcheck-suppress throwInNoexceptFunction
   Assert( it != end(map), "Can't find key" );
   return it->second;
 }
@@ -79,6 +81,7 @@ auto ref_find( const Container& map, const typename Container::key_type& key )
 noexcept(ndebug)
   -> typename Container::mapped_type&
 {
+  // cppcheck-suppress throwInNoexceptFunction
   return const_cast< typename Container::mapped_type& >( cref_find(map,key) );
 }
 

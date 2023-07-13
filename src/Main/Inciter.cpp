@@ -109,7 +109,6 @@ int main( int, char** ) {
 //!   of the Charm++ runtime system is required since the mesh partitioning is
 //!   done by Zoltan, an MPI library. Note that this Charm++ main chare object
 //!   should not be in a namespace.
-// cppcheck-suppress noConstructor
 class Main : public CBase_Main {
 
   public:
@@ -131,7 +130,7 @@ class Main : public CBase_Main {
     //!   in the future when all work has been finished. finalize() then exits
     //!   by calling Charm++'s CkExit(), shutting down the runtime system.
     //! \see http://charm.cs.illinois.edu/manuals/html/charm++/manual.html
-    Main( CkArgMsg* msg )
+    explicit Main( CkArgMsg* msg )
     try :
       m_signal( tk::setSignalHandlers() ),
       m_cmdline(),
@@ -229,7 +228,7 @@ class Main : public CBase_Main {
 class execute : public CBase_execute {
   public:
     //! Constructor
-    execute() { mainProxy.execute(); }
+    explicit execute() { mainProxy.execute(); }
     //! Migrate constructor
     explicit execute( CkMigrateMessage* m ) : CBase_execute( m ) {}
 };

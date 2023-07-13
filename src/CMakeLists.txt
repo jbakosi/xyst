@@ -34,7 +34,7 @@ set(BUILD_TYPE ${CMAKE_BUILD_TYPE})
 string(TOLOWER "${BUILD_TYPE}" BUILD_TYPE)
 
 # Echo install prefix
-message(STATUS "CMAKE_INSTALL_PREFIX: " ${CMAKE_INSTALL_PREFIX})
+message(STATUS "Install prefix: " ${CMAKE_INSTALL_PREFIX})
 
 macro (add_compiler_flag flag)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")

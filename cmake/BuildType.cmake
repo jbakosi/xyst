@@ -6,7 +6,7 @@ if(NOT CMAKE_BUILD_TYPE)
   # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 else()
-  message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+  message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 endif()
 
 string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)

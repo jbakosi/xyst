@@ -97,7 +97,7 @@ void echoBuildEnv( const Print& print, const std::string& executable )
   print.item( "Hostname", build_hostname() );
   print.item( "Executable", executable );
   if (!git_commit().empty()) print.item( "Git sha1", git_commit() );
-  print.item( "CMake build type", build_type() );
+  print.item( "Build type", build_type() );
 
 #ifdef NDEBUG
   print.item( "Asserts", "off (turn on: CMAKE_BUILD_TYPE=DEBUG)" );

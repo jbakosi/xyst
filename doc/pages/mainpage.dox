@@ -59,7 +59,7 @@ Clone, build, test
 @code
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build && cmake ../src && make -sj$(grep -c processor /proc/cpuinfo) && cd -
-cd build && ./charmrun +p $(grep -c processor /proc/cpuinfo) Main/unittest -v && ctest -j $(grep -c processor /proc/cpuinfo) && cd -
+cd build && ./charmrun +p$(grep -c processor /proc/cpuinfo) Main/unittest && ctest -j$(grep -c processor /proc/cpuinfo) && cd -
 @endcode
 
 All executables will be under `build/Main/`.

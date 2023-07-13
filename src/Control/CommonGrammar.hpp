@@ -35,12 +35,6 @@ namespace grm {
 
   using ncomp_t = kw::ncomp::info::expect::type;
 
-  //! Parser's printer: this should be defined once per library in global-scope
-  //! (still in namespace, of course) by a parser. It is defined in
-  //! Control/[executable]/CmdLine/Parser.C, since every executable has at least
-  //! a command line parser.
-  extern Print g_print;
-
   // Common InputDeck state
 
   //! Out-of-struct storage of field ID for pushing terms for statistics
@@ -458,11 +452,11 @@ namespace grm {
       // diagnostics. We still provide location information here though.
       if (stack.template get< tags... >() != opt.value( value ) &&
           stack.template get< tags... >() != defaults.template get< tags... >())
-        g_print << "\n>>> WARNING: Multiple definitions for '"
-                << opt.group() << "' option. Overwriting '"
-                << opt.name( stack.template get< tags... >() ) << "' with '"
-                << opt.name( opt.value( value ) ) << "' at "
-                << pos.line << ',' << pos.byte_in_line << ".\n\n";
+        tk::Print() << "\n>>> WARNING: Multiple definitions for '"
+                    << opt.group() << "' option. Overwriting '"
+                    << opt.name( stack.template get< tags... >() ) << "' with '"
+                    << opt.name( opt.value( value ) ) << "' at "
+                    << pos.line << ',' << pos.byte_in_line << ".\n\n";
       stack.template get< tags... >() = opt.value( value );
     } else {
       Message< Stack, ERROR, MsgKey::NOOPTION >( stack, in );

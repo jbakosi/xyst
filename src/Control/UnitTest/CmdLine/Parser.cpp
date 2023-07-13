@@ -20,14 +20,6 @@
 #include "UnitTest/CmdLine/Grammar.hpp"
 #include "UnitTest/CmdLine/CmdLine.hpp"
 
-namespace tk {
-namespace grm {
-
-tk::Print g_print;
-
-} // grm::
-} // tk::
-
 using unittest::CmdLineParser;
 
 CmdLineParser::CmdLineParser( int argc,
@@ -39,7 +31,6 @@ CmdLineParser::CmdLineParser( int argc,
 //  Contructor: parse the command line for UnitTest
 //! \param[in] argc Number of C-style character arrays in argv
 //! \param[in] argv C-style character array of character arrays
-//! \param[in] print Pretty printer
 //! \param[inout] cmdline Command-line stack where data is stored from parsing
 //! \param[inout] helped Boolean indicating if command-line help was requested
 // *****************************************************************************

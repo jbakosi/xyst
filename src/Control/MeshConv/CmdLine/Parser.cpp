@@ -33,7 +33,6 @@ CmdLineParser::CmdLineParser( int argc,
 //  Contructor: parse the command line for MeshConv
 //! \param[in] argc Number of C-style character arrays in argv
 //! \param[in] argv C-style character array of character arrays
-//! \param[in] print Pretty printer
 //! \param[inout] cmdline Command-line stack where data is stored from parsing
 // *****************************************************************************
 {

@@ -25,14 +25,6 @@
 #include "Inciter/CmdLine/CmdLine.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
 
-namespace tk {
-namespace grm {
-
-tk::Print g_print;
-
-} // grm::
-} // tk::
-
 namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;

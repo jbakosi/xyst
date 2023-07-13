@@ -70,4 +70,4 @@ RUN rm -rf charm
 # ARG CHARM_INSTALL_DIR
 # RUN cd xyst && mkdir -p build && cd build && cmake -Wno-dev -DCHARM_INSTALL_DIR=${CHARM_INSTALL_DIR} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && make -sj$(grep -c processor /proc/cpuinfo)
 # # Test
-# RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -v -q && ctest -j $(grep -c processor /proc/cpuinfo) --output-on-failure
+# RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q && ctest -j $(grep -c processor /proc/cpuinfo) --output-on-failure

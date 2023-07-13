@@ -24,4 +24,4 @@ pipeline:
   test:
     image: jbakosi/${IMAGE}
     commands:
-      - cd build && mpirun --allow-run-as-root -n 2 Main/unittest -v -q && ctest -j2 --output-on-failure
+      - cd build && mpirun --allow-run-as-root -n 2 Main/unittest -q && ctest -j2 --output-on-failure

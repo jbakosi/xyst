@@ -28,15 +28,6 @@ namespace cmd {
   template< typename keyword >
   using use = tk::grm::use< keyword, ctr::CmdLine::keywords::set >;
 
-  // UnitTest's CmdLine state
-
-  // UnitTest's CmdLine grammar
-
-  //! \brief Match and set verbose switch (i.e., verbose or quiet output)
-  struct verbose :
-         tk::grm::process_cmd_switch< use, kw::verbose,
-                                      tag::verbose > {};
-
   //! \brief Match help on command-line parameters
   struct help :
          tk::grm::process_cmd_switch< use, kw::help,
@@ -81,9 +72,13 @@ namespace cmd {
 
   //! \brief Match all command line keywords
   struct keywords :
-         pegtl::sor< verbose, help, helpkw, group,
-                     quiescence, trace, version,
-                     io< kw::screen, tag::screen > > {};
+         pegtl::sor< help
+                   , helpkw
+                   , group
+                   , quiescence
+                   , trace
+                   , version
+                   > {};
 
   //! \brief Grammar entry point: parse keywords until end of string
   struct read_string :

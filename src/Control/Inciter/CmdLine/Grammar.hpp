@@ -30,11 +30,6 @@ namespace cmd {
 
   // Inciter's CmdLine grammar
 
-  //! Match and set verbose switch (i.e., verbose or quiet output)
-  struct verbose :
-         tk::grm::process_cmd_switch< use, kw::verbose,
-                                      tag::verbose > {};
-
   //! Match and set non-blocking (migration) switch
   struct nonblocking :
          tk::grm::process_cmd_switch< use, kw::nonblocking,
@@ -115,8 +110,7 @@ namespace cmd {
 
   //! Match all command line keywords
   struct keywords :
-         pegtl::sor< verbose,
-                     nonblocking,
+         pegtl::sor< nonblocking,
                      benchmark,
                      feedback,
                      virtualization,
@@ -132,7 +126,6 @@ namespace cmd {
                      io< kw::input, tag::input >,
                      io< kw::output, tag::output >,
                      io< kw::diagnostics_cmd, tag::diag >,
-                     io< kw::screen, tag::screen >,
                      io< kw::restart, tag::restart > > {};
 
   //! Grammar entry point: parse keywords until end of string

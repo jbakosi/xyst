@@ -20,12 +20,15 @@
 
 #include "Timer.hpp"
 #include "Types.hpp"
-#include "InciterPrint.hpp"
 #include "Partitioner.hpp"
 #include "Progress.hpp"
 #include "ContainerUtil.hpp"
+#include "Inciter/InputDeck/InputDeck.hpp"
 
 namespace inciter {
+
+extern ctr::InputDeck g_inputdeck_defaults;
+extern ctr::InputDeck g_inputdeck;
 
 //! Indices for progress report on mesh preparation
 enum ProgMesh{ PART=0, DIST, REFINE, BND, COMM, MASK, REORD };
@@ -134,17 +137,17 @@ class Transporter : public CBase_Transporter {
     void responded( std::size_t meshid );
 
     //! Non-reduction target for receiving progress report on partitioning mesh
-    void pepartitioned() { m_progMesh.inc< PART >( printer() ); }
+    void pepartitioned() { m_progMesh.inc< PART >( tk::Print() ); }
     //! Non-reduction target for receiving progress report on distributing mesh
-    void pedistributed() { m_progMesh.inc< DIST >( printer() ); }
+    void pedistributed() { m_progMesh.inc< DIST >( tk::Print() ); }
     //! Non-reduction target for receiving progress report on node ID comm map
-    void chcomm() { m_progMesh.inc< COMM >( printer() ); }
+    void chcomm() { m_progMesh.inc< COMM >( tk::Print() ); }
     //! Non-reduction target for receiving progress report on node ID mask
-    void chmask() { m_progMesh.inc< MASK >( printer() ); }
+    void chmask() { m_progMesh.inc< MASK >( tk::Print() ); }
     //! Non-reduction target for receiving progress report on reordering mesh
-    void chreordered() { m_progMesh.inc< REORD >( printer() ); }
+    void chreordered() { m_progMesh.inc< REORD >( tk::Print() ); }
     //! Non-reduction target for receiving progress report on creating workers
-    void chcreated() { m_progWork.inc< CREATE >( printer() ); }
+    void chcreated() { m_progWork.inc< CREATE >( tk::Print() ); }
 
     //! Reduction target indicating that the communication maps have been setup
     void comfinal( std::size_t summeshid );
@@ -310,22 +313,10 @@ class Transporter : public CBase_Transporter {
     void integralsHeader();
 
     //! Print out time integration header to screen
-    void inthead( const InciterPrint& print );
+    void inthead( const tk::Print& print );
 
     //! Echo diagnostics on mesh statistics
     void stat();
-
-    //! Create pretty printer specialized to Inciter
-    //! \return Pretty printer
-    InciterPrint printer() const {
-      const auto& def =
-        g_inputdeck_defaults.get< tag::cmd, tag::io, tag::screen >();
-      auto nrestart = g_inputdeck.get< tag::cmd, tag::io, tag::nrestart >();
-      return InciterPrint(
-        g_inputdeck.get< tag::cmd >().logname( def, nrestart ),
-        g_inputdeck.get< tag::cmd, tag::verbose >() ? std::cout : std::clog,
-        std::ios_base::app );
-    }
 
     //! Function object for querying the side set ids the user configured
     //! \details Used to query and collect the side set ids the user has

@@ -46,8 +46,14 @@ void echoBuildEnv( const Print& print, const std::string& executable );
 
 //! Echo runtime environment
 void echoRunEnv( const Print& print, int argc, char** argv,
-                 bool verbose, bool quiescence, bool trace,
-                 const std::string& screen_log, const std::string& input_log );
+                 bool quiescence, bool trace,
+                 const std::string& input_log );
+
+//! Finalize function for different executables
+void finalize( const std::vector< tk::Timer >& timer,
+               std::vector< std::pair< std::string,
+                                       tk::Timer::Watch > >& timestamp,
+               bool clean = true );
 
 //! \brief Generic Main() used for all executables for code-reuse and a uniform
 //!    output
@@ -65,39 +71,30 @@ void echoRunEnv( const Print& print, int argc, char** argv,
 //! \param[in] header Header type enum indicating which executable header to
 //!   print
 //! \param[in] executable Name of the executable
-//! \param[in] def Default log file name
-//! \param[in] nrestart Number of times restarted
 //! \return Instantiated driver object which can then be used to execute()
 //!   whatever it is intended to drive
 template< class Driver, class CmdLine >
 Driver Main( int argc, char* argv[],
              const CmdLine& cmdline,
              HeaderType header,
-             const std::string& executable,
-             const std::string& def,
-             int nrestart )
+             const std::string& executable )
 {
   // Create pretty printer
-  tk::Print
-    print( cmdline.logname( def, nrestart ),
-           cmdline.template get< tag::verbose >() ? std::cout : std::clog );
+  tk::Print print;
 
   // Echo program header
   echoHeader( print, header );
 
-  // Echo environment
-  print.part( "Environment" );
   // Build environment
   echoBuildEnv( print, executable );
   // Runtime environment
-  echoRunEnv( print, argc, argv, cmdline.template get< tag::verbose >(),
+  echoRunEnv( print, argc, argv,
               cmdline.template get< tag::quiescence >(),
               cmdline.template get< tag::trace >(),
-              cmdline.logname( def, nrestart ),
               executable + "_input.log" );
 
   // Create and return driver
-  return Driver( cmdline, nrestart );
+  return Driver( cmdline );
 }
 
 //! Generic Main Charm++ module constructor for all executables
@@ -127,39 +124,6 @@ void MainCtor( MainProxy& mp,
 
   // Start new timer measuring the migration of global-scope data
   timer.emplace_back();
-}
-
-//! Generic finalize function for different executables
-//! \param[in] cmdline Command line grammar stack for the executable
-//! \param[in] timer Vector of timers, held by the main chare
-//! \param[in,out] timestamp Vector of time stamps in h:m:s with labels
-//! \param[in] def Default log file name
-//! \param[in] nrestart Number of times restarted
-//! \param[in] clean True if we should exit with a zero exit code, false to
-//!   exit with a nonzero exit code
-template< class CmdLine >
-void finalize( const CmdLine& cmdline,
-               const std::vector< tk::Timer >& timer,
-               std::vector< std::pair< std::string,
-                                       tk::Timer::Watch > >& timestamp,
-               const std::string& def,
-               int nrestart,
-               bool clean = true )
-{
-  try {
-
-    if (!timer.empty()) {
-      timestamp.emplace_back( "Total runtime", timer[0].hms() );
-       tk::Print print( cmdline.logname( def, nrestart ),
-         cmdline.template get< tag::verbose >() ? std::cout : std::clog,
-         std::ios_base::app );
-      print.time( "Timers (h:m:s)", timestamp );
-      print.endpart();
-    }
-
-    if (clean) CkExit(); else CkAbort("Failed");
-
-  } catch (...) { tk::processExceptionCharm(); }
 }
 
 } // tk::

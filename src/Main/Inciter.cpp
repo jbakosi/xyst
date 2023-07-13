@@ -29,7 +29,6 @@
 #include "Timer.hpp"
 #include "Exception.hpp"
 #include "ProcessException.hpp"
-#include "InciterPrint.hpp"
 #include "InciterDriver.hpp"
 #include "Inciter/CmdLine/Parser.hpp"
 #include "Inciter/CmdLine/CmdLine.hpp"
@@ -137,17 +136,13 @@ class Main : public CBase_Main {
       m_signal( tk::setSignalHandlers() ),
       m_cmdline(),
       // Parse command line into m_cmdline using default simple pretty printer
-      m_cmdParser( msg->argc, msg->argv, tk::Print(), m_cmdline ),
+      m_cmdParser( msg->argc, msg->argv, m_cmdline ),
       // Create Inciter driver
       m_driver( tk::Main< inciter::InciterDriver >
                         ( msg->argc, msg->argv,
                           m_cmdline,
                           tk::HeaderType::INCITER,
-                          tk::inciter_executable(),
-                          inciter::g_inputdeck_defaults.get< tag::cmd, tag::io,
-                            tag::screen >(),
-                          inciter::g_inputdeck_defaults.get< tag::cmd, tag::io,
-                            tag::nrestart >() ) ),
+                          tk::inciter_executable() ) ),
       // Start new timer measuring the total runtime
       m_timer(1),
       m_timestamp()
@@ -169,18 +164,13 @@ class Main : public CBase_Main {
       m_cmdline(),
       m_cmdParser( reinterpret_cast<CkArgMsg*>(msg)->argc,
                    reinterpret_cast<CkArgMsg*>(msg)->argv,
-                   tk::Print(),
                    m_cmdline ),
       m_driver( tk::Main< inciter::InciterDriver >
                         ( reinterpret_cast<CkArgMsg*>(msg)->argc,
                           reinterpret_cast<CkArgMsg*>(msg)->argv,
                           m_cmdline,
                           tk::HeaderType::INCITER,
-                          tk::inciter_executable(),
-                          inciter::g_inputdeck_defaults.get< tag::cmd,
-                            tag::io, tag::screen >(),
-                          inciter::g_inputdeck.get< tag::cmd,
-                            tag::io, tag::nrestart >()+1 ) ),
+                          tk::inciter_executable() ) ),
       m_timer(1),
       m_timestamp()
     {
@@ -201,9 +191,7 @@ class Main : public CBase_Main {
 
     //! Towards normal exit but collect chare state first (if any)
     void finalize() {
-      tk::finalize( m_cmdline, m_timer, m_timestamp,
-        inciter::g_inputdeck_defaults.get< tag::cmd, tag::io, tag::screen >(),
-        inciter::g_inputdeck.get< tag::cmd, tag::io, tag::nrestart >() );
+      tk::finalize( m_timer, m_timestamp );
     }
 
     //! Entry method triggered when quiescence is detected

@@ -80,10 +80,12 @@ StringParser::diagnostics( const tk::Print& print,
   // Output errors and warnings underlined (if any) to quiet stream, list errors
   // and warnings, and exit
   if (!messages.empty()) {
-    print % '\n';
-    print % ">>> Command line parsed: '" % m_string % "'\n";
-    print % ">>>                       " % underline % "\n";
-    for (const auto& e : messages) print % ">>> " % e % std::endl;   // messages
+    print << '\n';
+    print << ">>> Command line parsed: '" << m_string.c_str() << "'\n";
+    print << ">>>                       " << underline.c_str() << '\n';
+    for (const auto& e : messages) {
+      print << ">>> " << e.c_str() << '\n';   // messages
+    }
     // Exit if there were any errors
     if (err) Throw( "Error(s) occurred while parsing the command line\n" );
   }

@@ -6,7 +6,7 @@
 add_regression_test(compflow_euler_sedov ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES sedov.q sedov_coarse.exo
-                    ARGS -c sedov.q -i sedov_coarse.exo -v
+                    ARGS -c sedov.q -i sedov_coarse.exo
                     BIN_BASELINE sedov.std.exo
                     BIN_RESULT out.e-s.0.1.0
                     BIN_DIFF_PROG_CONF exodiff.cfg
@@ -21,7 +21,7 @@ add_regression_test(compflow_euler_sedov_u0.8_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES sedov.q sedov_coarse.exo
-                    ARGS -c sedov.q -i sedov_coarse.exo -v -u 0.8
+                    ARGS -c sedov.q -i sedov_coarse.exo -u 0.8
                          +balancer RecBipartLB +LBDebug 1
                     BIN_BASELINE sedov_pe4_u0.8.std.exo.0
                                  sedov_pe4_u0.8.std.exo.1

@@ -27,14 +27,8 @@ using meshconv::MeshConvDriver;
 
 extern CProxy_Main mainProxy;
 
-MeshConvDriver::MeshConvDriver( const ctr::CmdLine& cmdline, int ) :
-  m_print( cmdline.logname( cmdline.get< tag::io, tag::screen >(),
-                            cmdline.get< tag::io, tag::nrestart >() ),
-           cmdline.get< tag::verbose >() ? std::cout : std::clog,
-           std::ios_base::app ),
-  m_reorder( cmdline.get< tag::reorder >() ),
-  m_input(),
-  m_output()
+MeshConvDriver::MeshConvDriver( const ctr::CmdLine& cmdline ) :
+  m_reorder( cmdline.get< tag::reorder >() )
 // *****************************************************************************
 //  Constructor
 //! \param[in] cmdline Command line object storing data parsed from the command
@@ -59,12 +53,12 @@ MeshConvDriver::execute( int sig ) const
 //! \param[in] sig Optional signal to raise (for testing)
 // *****************************************************************************
 {
-  m_print.endsubsection();
-
   // Raise signal (for testing) if requested
   if (sig) std::raise( sig );
 
   std::vector< std::pair< std::string, tk::real > > times;
+
+  m_print.section( "Converting mesh" );
 
   // If input filename contains a '%', we aggregate multiple files
   if (m_input.find('%') == std::string::npos) {
@@ -92,20 +86,20 @@ MeshConvDriver::execute( int sig ) const
     ss >> nfile;
     ErrChk( nfile > 0, "The percent sign must be preceded by an integer, as in "
               "'.<nfile>.%', with <nfile> the number of files to aggregate" );
-    m_print.diag( "Aggregating " + std::to_string(nfile) +
-                  " files from base filename: '" + input_basename +'\'' );
+    m_print << "Aggregating " + std::to_string(nfile) +
+               " files from base filename: '" << input_basename << "\'\n";
 
     const auto eps = std::numeric_limits< tk::real >::epsilon();
 
     // Lambda to echo some diagnostics on the mesh being processes to screen
     auto diag = [&]( const std::string& name, const tk::UnsMesh& mesh ){
-      m_print.diag( name + ": ntri: " +
+      m_print << name + ": ntri: " +
         std::to_string(mesh.triinpoel().size()/3) +
         ", ntime: " + std::to_string(mesh.vartimes().size()) +
         (!mesh.nodevars().empty() ? ", nvar: " +
            std::to_string(mesh.nodevars()[0].size()) : "") +
         (!mesh.nodevars()[0].empty() ? ", npoin: " +
-           std::to_string(mesh.nodevars()[0][0].size()) : "") );
+           std::to_string(mesh.nodevars()[0][0].size()) : "") << '\n';
     };
 
     // Output-mesh containers, will store aggregated surface(s) and field output
@@ -127,6 +121,7 @@ MeshConvDriver::execute( int sig ) const
       const auto& triinpoel = mesh.triinpoel();
       // Skip meshes with a single triange cell
       if (triinpoel.size() == 3) continue;
+      tk::Timer aggrtime;
       const auto& x = mesh.x();
       const auto& y = mesh.y();
       const auto& z = mesh.z();
@@ -174,6 +169,9 @@ MeshConvDriver::execute( int sig ) const
         }
       }
       ++k;        // increase number of non-empty meshes processed
+      times.emplace_back(
+        "Aggregate surface output from file " + std::to_string(m),
+        aggrtime.dsec() );
     }
 
     // Construct aggregated output mesh

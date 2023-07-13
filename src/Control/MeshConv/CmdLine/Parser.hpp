@@ -17,8 +17,6 @@
 #include "StringParser.hpp"
 #include "MeshConv/CmdLine/CmdLine.hpp"
 
-namespace tk { class Print; }
-
 namespace meshconv {
 
 //! \brief Command-line parser for MeshConv.
@@ -28,10 +26,7 @@ class CmdLineParser : public tk::StringParser {
 
   public:
     //! Constructor
-    explicit CmdLineParser( int argc,
-                            char** argv,
-                            const tk::Print& print,
-                            ctr::CmdLine& cmdline );
+    explicit CmdLineParser( int argc, char** argv, ctr::CmdLine& cmdline );
 };
 
 } // meshconv::

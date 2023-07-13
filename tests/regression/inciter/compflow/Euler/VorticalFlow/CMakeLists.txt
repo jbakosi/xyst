@@ -6,7 +6,7 @@
 add_regression_test(compflow_euler_vorticalflow_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES vortical_flow.q unitcube_1k.exo
-                    ARGS -c vortical_flow.q -i unitcube_1k.exo -v
+                    ARGS -c vortical_flow.q -i unitcube_1k.exo
                     BIN_BASELINE vortical_flow.std.exo
                     BIN_RESULT out.e-s.0.1.0
                     BIN_DIFF_PROG_CONF exodiff.cfg
@@ -19,7 +19,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_steady
                     ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES vortical_flow_steady.q unitcube_1k.exo
-                    ARGS -c vortical_flow_steady.q -i unitcube_1k.exo -v
+                    ARGS -c vortical_flow_steady.q -i unitcube_1k.exo
                     BIN_BASELINE vortical_flow_steady.std.exo
                     BIN_RESULT out.e-s.0.1.0
                     BIN_DIFF_PROG_CONF exodiff.cfg
@@ -34,7 +34,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_steady
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES vortical_flow_steady.q unitcube_1k.exo
-                    ARGS -c vortical_flow_steady.q -i unitcube_1k.exo -v
+                    ARGS -c vortical_flow_steady.q -i unitcube_1k.exo
                     BIN_BASELINE vortical_flow_steady_pe4.std.exo.0
                                  vortical_flow_steady_pe4.std.exo.1
                                  vortical_flow_steady_pe4.std.exo.2
@@ -55,7 +55,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_steady
 add_regression_test(compflow_euler_vorticalflow_riecg_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES vortical_flow.q unitcube_1k.exo
-                    ARGS -f -c vortical_flow.q -i unitcube_1k.exo -v -u 0.5
+                    ARGS -f -c vortical_flow.q -i unitcube_1k.exo -u 0.5
                     BIN_BASELINE vortical_flow_pe4_u0.5.std.exo.0
                                  vortical_flow_pe4_u0.5.std.exo.1
                                  vortical_flow_pe4_u0.5.std.exo.2
@@ -83,7 +83,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_reord_u0.5
                     ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES vortical_flow_reord.q unitcube_1k.exo
-                    ARGS -c vortical_flow_reord.q -i unitcube_1k.exo -v -u 0.5
+                    ARGS -c vortical_flow_reord.q -i unitcube_1k.exo -u 0.5
                          -f
                     BIN_BASELINE vortical_flow_pe4_u0.5.std.exo.0
                                  vortical_flow_pe4_u0.5.std.exo.1
@@ -114,7 +114,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_u0.9_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES vortical_flow.q unitcube_1k.exo
-                    ARGS -c vortical_flow.q -i unitcube_1k.exo -v -u 0.9
+                    ARGS -c vortical_flow.q -i unitcube_1k.exo -u 0.9
                          -l 10 +balancer RecBipartLB +LBDebug 1 +cs
                     BIN_BASELINE vortical_flow_pe4_u0.9.std.exo.0
                                  vortical_flow_pe4_u0.9.std.exo.1

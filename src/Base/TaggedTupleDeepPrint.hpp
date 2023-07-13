@@ -18,7 +18,6 @@
 #include <brigand/algorithms/for_each.hpp>
 #include <brigand/sequences/has_key.hpp>
 
-#include "NoWarning/format.hpp"
 #include "NoWarning/set.hpp"
 
 #include "Has.hpp"
@@ -67,8 +66,7 @@ struct DeepTuplePrinter {
         --depth;
       } else {
         std::string indent( depth * 2, ' ' );
-        os << boost::format("\n%s%-15s : ") % indent % key;
-        os << std::boolalpha << value;
+        os << '\n' << indent << key  << " : " << std::boolalpha << value;
       }
     }
   }

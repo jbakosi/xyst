@@ -6,7 +6,7 @@
 add_regression_test(compflow_euler_nleg_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES nleg.q unitcube_1k.exo
-                    ARGS -c nleg.q -i unitcube_1k.exo -v
+                    ARGS -c nleg.q -i unitcube_1k.exo
                     BIN_BASELINE nleg.std.exo
                     BIN_RESULT out.e-s.0.1.0
                     BIN_DIFF_PROG_CONF exodiff.cfg
@@ -20,7 +20,7 @@ add_regression_test(compflow_euler_nleg_riecg ${INCITER_EXECUTABLE}
 add_regression_test(compflow_euler_nleg_riecg ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES nleg.q unitcube_1k.exo
-                    ARGS -c nleg.q -i unitcube_1k.exo -v
+                    ARGS -c nleg.q -i unitcube_1k.exo
                     BIN_BASELINE nleg_pe4.std.exo.0
                                  nleg_pe4.std.exo.1
                                  nleg_pe4.std.exo.2
@@ -41,7 +41,7 @@ add_regression_test(compflow_euler_nleg_riecg ${INCITER_EXECUTABLE}
 add_regression_test(compflow_euler_nleg_riecg_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES nleg.q unitcube_1k.exo
-                    ARGS -c nleg.q -i unitcube_1k.exo -v -u 0.5
+                    ARGS -c nleg.q -i unitcube_1k.exo -u 0.5
                     BIN_BASELINE nleg_pe4_u0.5.std.exo.0
                                  nleg_pe4_u0.5.std.exo.1
                                  nleg_pe4_u0.5.std.exo.2

@@ -171,7 +171,6 @@ using ios = tk::TaggedTuple< brigand::list<
   , tag::output,    kw::output::info::expect::type  //!< Output filename
     //! Refined output (output field data on a refined mesh)
   , tag::refined,   kw::refined::info::expect::type
-  , tag::screen,    kw::screen::info::expect::type  //!< Screen output filename
   , tag::surface,   surface
     //! Diagnostics filename
   , tag::diag,      kw::diagnostics_cmd::info::expect::type

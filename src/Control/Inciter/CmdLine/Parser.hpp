@@ -17,8 +17,6 @@
 #include "StringParser.hpp"
 #include "Inciter/CmdLine/CmdLine.hpp"
 
-namespace tk { class Print; }
-
 namespace inciter {
 
 //! \brief Command-line parser for Inciter.
@@ -29,9 +27,7 @@ class CmdLineParser : public tk::StringParser {
 
   public:
     //! Constructor
-    explicit CmdLineParser( int argc, char** argv,
-                            const tk::Print& print,
-                            ctr::CmdLine& cmdline );
+    explicit CmdLineParser( int argc, char** argv, ctr::CmdLine& cmdline );
 };
 
 } // inciter::

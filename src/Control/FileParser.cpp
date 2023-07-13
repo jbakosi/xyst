@@ -146,11 +146,12 @@ FileParser::diagnostics( const tk::Print& print,
   // Output errors and warnings underlined to quiet stream and message
   for (const auto& l : lines) {
     const auto& e = l.second;
-    print % '\n';
-    print % ">>> Line " % l.first % ": '" % e.parsed % "'\n";
-    print % ">>>" % std::string( e.dlnum+9, ' ' ) % e.underline % "\n";
-    for (const auto& m : e.msg) print % ">>> " % m % '\n';
-    print % '\n';
+    print << '\n';
+    print << ">>> Line " << l.first << ": '" << e.parsed << "'\n";
+    print << ">>>" << std::string(e.dlnum+9,' ').c_str()
+                   << e.underline.c_str() << "\n";
+    for (const auto& m : e.msg) print << ">>> " << m << '\n';
+    print << '\n';
   }
 
   // Exit if there were any errors

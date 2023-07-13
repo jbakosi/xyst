@@ -6,7 +6,7 @@
 add_regression_test(transport_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES slot_cyl.q unitsquare_01_3.6k.exo
-                    ARGS -c slot_cyl.q -i unitsquare_01_3.6k.exo -v
+                    ARGS -c slot_cyl.q -i unitsquare_01_3.6k.exo
                     BIN_BASELINE slot_cyl.std.exo
                     BIN_RESULT out.e-s.0.1.0
                     BIN_DIFF_PROG_CONF exodiff.cfg
@@ -20,7 +20,7 @@ add_regression_test(transport_riecg ${INCITER_EXECUTABLE}
 add_regression_test(transport_riecg_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl.q unitsquare_01_3.6k.exo
-                    ARGS -f -c slot_cyl.q -i unitsquare_01_3.6k.exo -v -u 0.5
+                    ARGS -f -c slot_cyl.q -i unitsquare_01_3.6k.exo -u 0.5
                     BIN_BASELINE slot_cyl_pe4_u0.5.std.exo.0
                                  slot_cyl_pe4_u0.5.std.exo.1
                                  slot_cyl_pe4_u0.5.std.exo.2
@@ -50,7 +50,7 @@ add_regression_test(transport_riecg_u0.9_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl.q unitsquare_01_3.6k.exo
-                    ARGS -c slot_cyl.q -i unitsquare_01_3.6k.exo -v -u 0.9
+                    ARGS -c slot_cyl.q -i unitsquare_01_3.6k.exo -u 0.9
                          -l 10 +balancer RecBipartLB +LBDebug 1 +cs
                     BIN_BASELINE slot_cyl_pe4_u0.9.std.exo.0
                                  slot_cyl_pe4_u0.9.std.exo.1

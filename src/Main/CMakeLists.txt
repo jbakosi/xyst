@@ -40,7 +40,6 @@ target_include_directories(Init PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_BINARY_DIR}/../Main
-                           ${Boost_INCLUDE_DIRS}
                            ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS})
@@ -62,7 +61,6 @@ if (ENABLE_TESTS)
                  ../../tests/unit/Base/TestException.cpp
                  ../../tests/unit/Base/TestFlip_map.cpp
                  ../../tests/unit/Base/TestHas.cpp
-                 ../../tests/unit/Base/TestPrint.cpp
                  ../../tests/unit/Base/TestPUPUtil.cpp
                  ../../tests/unit/Base/TestReader.cpp
                  ../../tests/unit/Base/TestPrintUtil.cpp
@@ -122,7 +120,6 @@ endif()
 
 add_executable(${INCITER_EXECUTABLE}
                InciterDriver.cpp
-               InciterPrint.cpp
                LBSwitch.cpp
                Inciter.cpp)
 

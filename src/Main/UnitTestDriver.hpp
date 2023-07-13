@@ -22,7 +22,7 @@ class UnitTestDriver {
 
   public:
     //! Constructor
-    explicit UnitTestDriver( const ctr::CmdLine& cmdline, int );
+    explicit UnitTestDriver( const ctr::CmdLine& cmdline );
 
     //! Execute driver
     void execute() const {}

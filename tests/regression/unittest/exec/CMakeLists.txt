@@ -18,10 +18,10 @@ add_regression_test(helpkw ${UNITTEST_EXECUTABLE}
 
 add_regression_test(singlegroup ${UNITTEST_EXECUTABLE}
                     NUMPES 2
-                    ARGS --group DerivedData -v
+                    ARGS --group DerivedData
                     EXTRA_PASS_REGEXP "Groups: DerivedData")
 
 add_regression_test(nogroup ${UNITTEST_EXECUTABLE}
                     NUMPES 1
-                    ARGS --group group_definitely_does_not_exist -v
+                    ARGS --group group_definitely_does_not_exist
                     EXTRA_PASS_REGEXP "No test groups to be executed")

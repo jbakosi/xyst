@@ -8,7 +8,7 @@
 add_regression_test(amr_dtref_u_trans_diagcg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES slot_cyl_amr_diagcg.q unitsquare_01_955.exo
-                    ARGS -c slot_cyl_amr_diagcg.q -i unitsquare_01_955.exo -v
+                    ARGS -c slot_cyl_amr_diagcg.q -i unitsquare_01_955.exo
                     BIN_BASELINE slot_cyl_diagcg_pe1_u_u0.0.std.e-s.0.1.0
                                  slot_cyl_diagcg_pe1_u_u0.0.std.e-s.1.1.0
                     BIN_RESULT out.e-s.0.1.0 out.e-s.1.1.0
@@ -24,7 +24,6 @@ add_regression_test(amr_dtref_u_trans_reord_diagcg ${INCITER_EXECUTABLE}
                     INPUTFILES slot_cyl_amr_reord_diagcg.q
                                unitsquare_01_955.exo
                     ARGS -c slot_cyl_amr_reord_diagcg.q -i unitsquare_01_955.exo
-                         -v
                     BIN_BASELINE slot_cyl_diagcg_pe1_u_u0.0.std.e-s.0.1.0
                                  slot_cyl_diagcg_pe1_u_u0.0.std.e-s.1.1.0
                     BIN_RESULT out.e-s.0.1.0 out.e-s.1.1.0
@@ -40,7 +39,7 @@ add_regression_test(amr_dtref_u_trans_reord_diagcg ${INCITER_EXECUTABLE}
 add_regression_test(amr_dtref_u_trans_diagcg ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl_amr_diagcg.q unitsquare_01_955.exo
-                    ARGS -c slot_cyl_amr_diagcg.q -i unitsquare_01_955.exo -v
+                    ARGS -c slot_cyl_amr_diagcg.q -i unitsquare_01_955.exo
                     BIN_BASELINE slot_cyl_diagcg_pe4_u_u0.0.std.e-s.0.4.0
                                  slot_cyl_diagcg_pe4_u_u0.0.std.e-s.0.4.1
                                  slot_cyl_diagcg_pe4_u_u0.0.std.e-s.0.4.2
@@ -67,7 +66,7 @@ add_regression_test(amr_dtref_u_trans_diagcg ${INCITER_EXECUTABLE}
 add_regression_test(amr_dtref_u_compflow_nleg_diagcg ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES nleg_diagcg_amr.q unitcube_1k.exo
-                    ARGS -c nleg_diagcg_amr.q -i unitcube_1k.exo -v
+                    ARGS -c nleg_diagcg_amr.q -i unitcube_1k.exo
                     BIN_BASELINE nleg_diagcg_pe4_u.std.e-s.0.4.0
                                  nleg_diagcg_pe4_u.std.e-s.0.4.1
                                  nleg_diagcg_pe4_u.std.e-s.0.4.2
@@ -102,7 +101,7 @@ add_regression_test(amr_dtref_u_compflow_nleg_diagcg ${INCITER_EXECUTABLE}
 add_regression_test(amr_dtref_u_compflow_nleg_diagcg_migr ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES nleg_diagcg_amr.q unitcube_1k.exo
-                    ARGS -c nleg_diagcg_amr.q -i unitcube_1k.exo -v
+                    ARGS -c nleg_diagcg_amr.q -i unitcube_1k.exo
                          +balancer RecBipartLB +LBDebug 1 +cs
                     BIN_BASELINE nleg_diagcg_pe4_u.std.e-s.0.4.0
                                  nleg_diagcg_pe4_u.std.e-s.0.4.1
@@ -138,7 +137,7 @@ add_regression_test(amr_dtref_u_compflow_nleg_diagcg_migr ${INCITER_EXECUTABLE}
 add_regression_test(amr_dtref_u_compflow_nleg_reord_diagcg ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES nleg_reord_diagcg_amr.q unitcube_1k.exo
-                    ARGS -c nleg_reord_diagcg_amr.q -i unitcube_1k.exo -v
+                    ARGS -c nleg_reord_diagcg_amr.q -i unitcube_1k.exo
                     BIN_BASELINE nleg_diagcg_pe4_u.std.e-s.0.4.0
                                  nleg_diagcg_pe4_u.std.e-s.0.4.1
                                  nleg_diagcg_pe4_u.std.e-s.0.4.2
@@ -174,7 +173,7 @@ add_regression_test(amr_dtref_u_compflow_nleg_reord_diagcg ${INCITER_EXECUTABLE}
                      ${INCITER_EXECUTABLE}
                      NUMPES 4
                      INPUTFILES nleg_reord_diagcg_amr.q unitcube_1k.exo
-                     ARGS -c nleg_reord_diagcg_amr.q -i unitcube_1k.exo -v
+                     ARGS -c nleg_reord_diagcg_amr.q -i unitcube_1k.exo
                           +balancer RecBipartLB +LBDebug 1 +cs
                      BIN_BASELINE nleg_diagcg_pe4_u.std.e-s.0.4.0
                                   nleg_diagcg_pe4_u.std.e-s.0.4.1
@@ -210,7 +209,7 @@ add_regression_test(amr_dtref_u_compflow_nleg_reord_diagcg ${INCITER_EXECUTABLE}
 add_regression_test(amr_dtref_u_compflow_diagcg ${INCITER_EXECUTABLE}
                     NUMPES 2
                     INPUTFILES sod_amr_diagcg.q rectangle_01_112.exo
-                    ARGS -c sod_amr_diagcg.q -i rectangle_01_112.exo -v
+                    ARGS -c sod_amr_diagcg.q -i rectangle_01_112.exo
                     BIN_BASELINE sod_diagcg_pe2_u0.0.std.e-s.0.2.0
                                  sod_diagcg_pe2_u0.0.std.e-s.0.2.1
                                  sod_diagcg_pe2_u0.0.std.e-s.1.2.0
@@ -228,7 +227,7 @@ add_regression_test(amr_dtref_u_compflow_diagcg ${INCITER_EXECUTABLE}
 add_regression_test(amr_dtref_u_trans_diagcg_u0.8 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl_amr_diagcg.q unitsquare_01_955.exo
-                    ARGS -c slot_cyl_amr_diagcg.q -i unitsquare_01_955.exo -v
+                    ARGS -c slot_cyl_amr_diagcg.q -i unitsquare_01_955.exo
                          -u 0.8
                     BIN_BASELINE slot_cyl_diagcg_pe4_u_u0.8.std.e-s.0.19.0
                                  slot_cyl_diagcg_pe4_u_u0.8.std.e-s.0.19.1
@@ -316,7 +315,7 @@ add_regression_test(amr_dtref_u_trans_diagcg_u0.8 ${INCITER_EXECUTABLE}
 add_regression_test(amr_dtref_u_trans_diagcg_u0.8_migr ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl_amr_diagcg.q unitsquare_01_955.exo
-                    ARGS -c slot_cyl_amr_diagcg.q -i unitsquare_01_955.exo -v
+                    ARGS -c slot_cyl_amr_diagcg.q -i unitsquare_01_955.exo
                          -u 0.8 +balancer RecBipartLB +LBDebug 1 +cs
                     BIN_BASELINE slot_cyl_diagcg_pe4_u_u0.8.std.e-s.0.19.0
                                  slot_cyl_diagcg_pe4_u_u0.8.std.e-s.0.19.1

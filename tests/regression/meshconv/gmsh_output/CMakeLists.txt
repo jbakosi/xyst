@@ -4,7 +4,7 @@
 add_regression_test(asc2gmsh ${MESHCONV_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES cube_coarse.asc_mesh
-                    ARGS -i cube_coarse.asc_mesh -o cube_coarse.msh -v
+                    ARGS -i cube_coarse.asc_mesh -o cube_coarse.msh
                     POSTPROCESS_PROG ${GMSH_EXECUTABLE}
                     POSTPROCESS_PROG_ARGS -check cube_coarse.msh
                                   COMMAND grep -v binary
@@ -19,7 +19,7 @@ add_regression_test(asc2gmsh ${MESHCONV_EXECUTABLE}
 add_regression_test(exo2gmsh ${MESHCONV_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES box_24.exo
-                    ARGS -i box_24.exo -o box_24.msh -v
+                    ARGS -i box_24.exo -o box_24.msh
                     POSTPROCESS_PROG ${GMSH_EXECUTABLE}
                     POSTPROCESS_PROG_ARGS -check box_24.msh
                                   COMMAND grep -v binary
@@ -34,7 +34,7 @@ add_regression_test(exo2gmsh ${MESHCONV_EXECUTABLE}
 add_regression_test(gmshtxt2gmsh ${MESHCONV_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES box_24.txt.msh
-                    ARGS -i box_24.txt.msh -o box_24.msh -v
+                    ARGS -i box_24.txt.msh -o box_24.msh
                     POSTPROCESS_PROG ${GMSH_EXECUTABLE}
                     POSTPROCESS_PROG_ARGS -check box_24.msh
                                   COMMAND grep -v binary
@@ -49,7 +49,7 @@ add_regression_test(gmshtxt2gmsh ${MESHCONV_EXECUTABLE}
 add_regression_test(netgen2gmsh ${MESHCONV_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES torus.mesh
-                    ARGS -i torus.mesh -o torus.msh -v
+                    ARGS -i torus.mesh -o torus.msh
                     POSTPROCESS_PROG ${GMSH_EXECUTABLE}
                     POSTPROCESS_PROG_ARGS -check torus.msh
                                   COMMAND grep -v binary

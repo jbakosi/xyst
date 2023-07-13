@@ -21,10 +21,6 @@ libraries (TPLs) used by Xyst.
   - Web: http://mrzechonek.github.io/tut-framework
   - License: @subpage tut_license_page
 
-\subsection boost_license Boost C++ libraries
-  - Web: http://www.boost.org
-  - License: @subpage boost_license_page
-
 \subsection hdf5_license The HDF5 data model, required by Exodus
   - Web: http://www.hdfgroup.org/HDF5
   - License: @subpage hdf5_license_page

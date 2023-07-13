@@ -26,7 +26,7 @@ function(add_async_test scheme virt npes ppn migr)
     ${INCITER_EXECUTABLE}
     NUMPES ${npes} PPN ${ppn}
     INPUTFILES ${scheme}.q unitcube_1k.exo
-    ARGS -c ${scheme}.q -i unitcube_1k.exo -v -u ${virt} -b ${migr_cmd}
+    ARGS -c ${scheme}.q -i unitcube_1k.exo -u ${virt} -b ${migr_cmd}
     TEXT_BASELINE noop.ndiff.cfg
     TEXT_RESULT diag
     TEXT_DIFF_PROG_ARGS --trunc

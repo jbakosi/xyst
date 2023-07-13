@@ -129,8 +129,8 @@ Transporter::Transporter( CkMigrateMessage* m ) :
 //! \param[in] m Charm++ migrate message
 // *****************************************************************************
 {
-   auto print = printer();
-   print.diag( "Restarted from checkpoint" );
+   auto print = tk::Print();
+   print << "Restarted from checkpoint\n";
    inthead( print );
 }
 
@@ -232,7 +232,7 @@ Transporter::createPartitioner()
 // Create mesh partitioner AND boundary conditions group
 // *****************************************************************************
 {
-  auto print = printer();
+  auto print = tk::Print();
 
   // Create partitioner callbacks (order important)
   tk::PartitionerCallback cbp {{
@@ -266,7 +266,7 @@ Transporter::createPartitioner()
   ErrChk( !m_input.empty(), "No input mesh" );
 
   // Start preparing mesh(es)
-  print.diag( "Reading mesh" + std::string(m_input.size()>1?"es":"") );
+  print.section( "Reading mesh" + std::string(m_input.size()>1?"es":"") );
 
   // Read boundary (side set) data from a list of input mesh files
   std::size_t meshid = 0;
@@ -352,16 +352,17 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
 
   if (++m_nload == m_nelem.size()) {     // all meshes have been loaded
     m_nload = 0;
-    auto print = printer();
+    auto print = tk::Print();
 
     // Start timer measuring preparation of the mesh for partitioning
     const auto& timer = tk::cref_find( m_timer, TimerTag::MESH_READ );
-    print.diag( "Mesh read time: " + std::to_string( timer.dsec() ) + " sec" );
+    print << "Mesh read time: " + std::to_string( timer.dsec() ) + " sec\n";
 
     // Print out mesh partitioning configuration
-    print.section( "Mesh partitioning" );
-    print.Item< tk::ctr::PartitioningAlgorithm,
-                tag::discr, tag::partitioner >();
+    print.section( "Partitioning mesh" );
+    tk::ctr::PartitioningAlgorithm alg;
+    print.item( alg.group(),
+                alg.name( g_inputdeck.get< tag::discr, tag::partitioner >() ) );
     print.item( "Virtualization [0.0...1.0]",
                 g_inputdeck.get< tag::cmd, tag::virtualization >() );
     // Print out initial mesh statistics
@@ -422,18 +423,18 @@ Transporter::refinserted( std::size_t meshid, std::size_t error )
 {
   if (error) {
 
-    printer() << "\n>>> ERROR: A worker chare was not assigned any mesh "
-              "elements after distributing mesh " + std::to_string(meshid) +
-              ". This can happen in SMP-mode with a large +ppn "
-              "parameter (number of worker threads per logical node) and is "
-              "most likely the fault of the mesh partitioning algorithm not "
-              "tolerating the case when it is asked to divide the "
-              "computational domain into a number of partitions different "
-              "than the number of ranks it is called on, i.e., in case of "
-              "overdecomposition and/or calling the partitioner in SMP mode "
-              "with +ppn larger than 1. Solution 1: Try a different "
-              "partitioning algorithm (e.g., rcb instead of mj). Solution 2: "
-              "Decrease +ppn.";
+    tk::Print() <<
+        "\n>>> ERROR: A worker chare was not assigned any mesh "
+        "elements after distributing mesh " + std::to_string(meshid) +
+        ". This can happen in SMP-mode with a large +ppn "
+        "parameter (number of worker threads per logical node) and is "
+        "most likely the fault of the mesh partitioning algorithm not "
+        "tolerating the case when it is asked to divide the "
+        "computational domain into a number of partitions different "
+        "than the number of ranks it is called on, i.e., in case of "
+        "overdecomposition and/or calling the partitioner in SMP mode "
+        "with +ppn larger than 1. Solution 1: Try a different "
+        "partitioning algorithm. Solution 2: Decrease +ppn.";
     finish( meshid );
 
   } else {
@@ -509,7 +510,7 @@ Transporter::matched( std::size_t summeshid,
 
   } else {
 
-    auto print = printer();
+    tk::Print print;
 
     // decode refmode
     auto refmode = static_cast< Refiner::RefMode >(
@@ -663,7 +664,7 @@ Transporter::meshstat( const std::string& header ) const
 //! \param[in] header Section header
 // *****************************************************************************
 {
-  auto print = printer();
+  tk::Print print;
 
   print.section( header );
 
@@ -680,7 +681,7 @@ Transporter::meshstat( const std::string& header ) const
   print.item( "Total number of work units",
               std::accumulate( begin(m_nchare), end(m_nchare), 0 ) );
 
-  print.endsubsection();
+  print << '\n';
 }
 
 void
@@ -700,7 +701,7 @@ Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
 
   if (++m_ndisc == m_nelem.size()) { // all Disc arrays have been created
     m_ndisc = 0;
-    auto print = printer();
+    tk::Print print;
     m_progMesh.end( print );
     if (g_inputdeck.get< tag::amr, tag::t0ref >())
       meshstat( "Initially (t<0) refined mesh graph statistics" );
@@ -808,10 +809,10 @@ Transporter::comfinal( std::size_t summeshid )
   // Turn on automatic load balancing
   if (++m_ncom == m_nelem.size()) { // all worker arrays have finished
     m_ncom = 0;
-    auto print = printer();
+    tk::Print print;
     m_progWork.end( print );
     tk::CProxy_LBSwitch::ckNew();
-    print.diag( "Load balancing on (if enabled in Charm++)" );
+    print << "Load balancing on (if enabled in Charm++)\n";
   }
 }
 
@@ -957,33 +958,37 @@ Transporter::stat()
 // Echo diagnostics on mesh statistics
 // *****************************************************************************
 {
-  auto print = printer();
+  tk::Print print;
 
   if (++m_nstat == m_nelem.size()) {     // stats from all meshes have arrived
     m_nstat = 0;
     for (std::size_t i=0; i<m_nelem.size(); ++i) {
-      print.diag(
-        "Mesh " + std::to_string(i) +
-        " distribution statistics:\n\tmin/max/avg(edgelength) = " +
+      if (m_nelem.size() > 1) {
+        print.section("Mesh " + std::to_string(i) + " distribution statistics");
+      } else {
+        print.section( "Mesh distribution statistics" );
+      }
+      print <<
+        "min/max/avg(edgelength) = " +
         std::to_string( m_minstat[i][0] ) + " / " +
         std::to_string( m_maxstat[i][0] ) + " / " +
-        std::to_string( m_avgstat[i][0] ) + "\n\t" +
+        std::to_string( m_avgstat[i][0] ) + "\n" +
         "min/max/avg(V^{1/3}) = " +
         std::to_string( m_minstat[i][1] ) + " / " +
         std::to_string( m_maxstat[i][1] ) + " / " +
-        std::to_string( m_avgstat[i][1] ) + "\n\t" +
+        std::to_string( m_avgstat[i][1] ) + "\n" +
         "min/max/avg(nelem) = " +
         std::to_string( static_cast<std::size_t>(m_minstat[i][2]) ) + " / " +
         std::to_string( static_cast<std::size_t>(m_maxstat[i][2]) ) + " / " +
-        std::to_string( static_cast<std::size_t>(m_avgstat[i][2]) ) + "\n\t" +
+        std::to_string( static_cast<std::size_t>(m_avgstat[i][2]) ) + "\n" +
         "min/max/avg(npoin) = " +
         std::to_string( static_cast<std::size_t>(m_minstat[i][3]) ) + " / " +
         std::to_string( static_cast<std::size_t>(m_maxstat[i][3]) ) + " / " +
-        std::to_string( static_cast<std::size_t>(m_avgstat[i][3]) ) + "\n\t" +
+        std::to_string( static_cast<std::size_t>(m_avgstat[i][3]) ) + "\n" +
         "min/max/avg(nedge) = " +
         std::to_string( static_cast<std::size_t>(m_minstat[i][4]) ) + " / " +
         std::to_string( static_cast<std::size_t>(m_maxstat[i][4]) ) + " / " +
-        std::to_string( static_cast<std::size_t>(m_avgstat[i][4]) ) );
+        std::to_string( static_cast<std::size_t>(m_avgstat[i][4]) ) + '\n';
     }
 
     // Print out time integration header to screen
@@ -1005,12 +1010,12 @@ Transporter::boxvol( tk::real v, tk::real summeshid )
 // *****************************************************************************
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
-  if (v > 0.0) printer().diag( "IC-box-volume sum: " + std::to_string(v) );
+  if (v > 0.0) tk::Print() << "IC-box-volume sum: " + std::to_string(v) << '\n';
   m_riecg[ meshid ].box( v );
 }
 
 void
-Transporter::inthead( const InciterPrint& print )
+Transporter::inthead( const tk::Print& print )
 // *****************************************************************************
 // Print out time integration header to screen
 //! \param[in] print Pretty printer object to use for printing
@@ -1018,7 +1023,8 @@ Transporter::inthead( const InciterPrint& print )
 {
   auto refined = g_inputdeck.get< tag::cmd, tag::io, tag::refined >();
 
-  print.inthead( "Time integration", "Navier-Stokes solver",
+  print.section( "Time integration" );
+  print <<
   "Legend: it - iteration count\n"
   "         t - physics time\n"
   "        dt - physics time step size\n"
@@ -1033,9 +1039,9 @@ Transporter::inthead( const InciterPrint& print )
   "             t - physics time history output\n"
   "             h - h-refinement\n"
   "             l - load balancing\n"
-  "             c - checkpoint\n",
+  "             c - checkpoint\n" +
   "\n      it             t            dt        ETE        ETA        EGT  flg\n"
-    " -------------------------------------------------------------------------\n" );
+    " -------------------------------------------------------------------------\n";
 }
 
 void

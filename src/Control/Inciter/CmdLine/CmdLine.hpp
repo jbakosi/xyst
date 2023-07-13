@@ -32,7 +32,6 @@ namespace ctr {
 using CmdLineMembers = brigand::list<
     tag::io,             ios
   , tag::virtualization, kw::virtualization::info::expect::type
-  , tag::verbose,        bool
   , tag::nonblocking,    bool
   , tag::benchmark,      bool
   , tag::feedback,       bool
@@ -58,8 +57,7 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
   public:
     //! \brief Inciter command-line keywords
     //! \see tk::grm::use and its documentation
-    using keywords = tk::cmd_keywords< kw::verbose
-                                     , kw::nonblocking
+    using keywords = tk::cmd_keywords< kw::nonblocking
                                      , kw::benchmark
                                      , kw::feedback
                                      , kw::virtualization
@@ -69,7 +67,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
                                      , kw::control
                                      , kw::input
                                      , kw::output
-                                     , kw::screen
                                      , kw::restart
                                      , kw::diagnostics_cmd
                                      , kw::quiescence
@@ -120,13 +117,10 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
       get< tag::io, tag::nrestart >() = 0;
       get< tag::io, tag::output >() = "out";
       get< tag::io, tag::refined >() = false;
-      get< tag::io, tag::screen >() =
-        tk::baselogname( tk::inciter_executable() );
       get< tag::io, tag::diag >() = "diag";
       get< tag::io, tag::particles >() = "track.h5part";
       get< tag::io, tag::restart >() = "restart";
       get< tag::virtualization >() = 0.0;
-      get< tag::verbose >() = false; // Quiet output by default
       get< tag::nonblocking>() = false; // Blocking migration by default
       get< tag::benchmark >() = false; // No benchmark mode by default
       get< tag::feedback >() = false; // No detailed feedback by default
@@ -149,17 +143,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
     //! \param[in,out] c CmdLine object reference
     friend void operator|( PUP::er& p, CmdLine& c ) { c.pup(p); }
     //@}
-
-    //! Compute and return log file name
-    //! \param[in] def Default log file name (so we don't mess with user's)
-    //! \param[in] nrestart Number of times restarted
-    //! \return Log file name
-    std::string logname( const std::string& def, int nrestart ) const {
-      if (get< tag::io, tag::screen >() != def)
-        return get< tag::io, tag::screen >();
-      else
-        return tk::logname( tk::inciter_executable(), nrestart );
-    }
 };
 
 } // ctr::

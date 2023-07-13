@@ -32,7 +32,6 @@
 #include "NoWarning/tutsuite.decl.h"
 #include "NoWarning/unittest.decl.h"
 
-#include "Print.hpp"
 #include "Timer.hpp"
 #include "Tags.hpp"
 #include "Exception.hpp"
@@ -41,7 +40,6 @@
 #include "Assessment.hpp"
 #include "ProcessException.hpp"
 #include "UnitTest/CmdLine/CmdLine.hpp"
-#include "UnitTestPrint.hpp"
 #include "UnitTestDriver.hpp"
 #include "UnitTest/CmdLine/Parser.hpp"
 #include "TUTConfig.hpp"
@@ -135,7 +133,7 @@ class Main : public CBase_Main {
     //! \details UnitTest's main chare constructor is the entry point of the
     //!   program, called by the Charm++ runtime system. The constructor does
     //!   basic initialization steps, e.g., parser the command-line, prints out
-    //!   some useful information to screen (in verbose mode), and instantiates
+    //!   some useful information to screen, and instantiates
     //!   a driver. Since Charm++ is fully asynchronous, the constructor
     //!   usually spawns asynchronous objects and immediately exits. Thus in the
     //!   body of the main chare constructor we fire up an 'execute' chare,
@@ -155,16 +153,14 @@ class Main : public CBase_Main {
       m_signal( tk::setSignalHandlers() ),
       m_helped( false ),
       m_cmdline(),
-      // Parse command line into m_cmdline using default simple pretty printer
-      m_cmdParser( msg->argc, msg->argv, tk::Print(), m_cmdline, m_helped ),
+      // Parse command line into m_cmdline
+      m_cmdParser( msg->argc, msg->argv, m_cmdline, m_helped ),
       // Create UnitTest driver
       m_driver( tk::Main< unittest::UnitTestDriver >
                         ( msg->argc, msg->argv,
                           m_cmdline,
                           tk::HeaderType::UNITTEST,
-                          tk::unittest_executable(),
-                          m_cmdline.get< tag::io, tag::screen >(),
-                          m_cmdline.get< tag::io, tag::nrestart >() ) ),
+                          tk::unittest_executable() ) ),
       m_timer(1), // Start new timer measuring the serial+Charm++ runtime
       m_timestamp()
     {
@@ -195,10 +191,7 @@ class Main : public CBase_Main {
 
     //! Towards normal exit but collect chare state first (if any)
     void finalize( bool pass ) {
-      tk::finalize( m_cmdline, m_timer, m_timestamp,
-        m_cmdline.get< tag::io, tag::screen >(),
-        m_cmdline.get< tag::io, tag::nrestart >(),
-        pass );
+      tk::finalize( m_timer, m_timestamp, pass );
     }
 
     //! Entry method triggered when quiescence is detected

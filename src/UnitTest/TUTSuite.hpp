@@ -22,7 +22,6 @@
 #include <cstddef>
 #include <cstring>
 
-#include "UnitTestPrint.hpp"
 #include "UnitTest/CmdLine/CmdLine.hpp"
 
 #include "NoWarning/tutsuite.decl.h"
@@ -74,16 +73,6 @@ class TUTSuite : public CBase_TUTSuite {
 
     //! Fire up all tests in a test group
     void spawngrp( const std::string& g );
-
-    //! Create UnitTest pretty printer
-    //! \return Pretty printer
-    UnitTestPrint printer() const {
-      return UnitTestPrint(
-        m_cmdline.logname( m_cmdline.get< tag::io, tag::screen >(),
-                           m_cmdline.get< tag::io, tag::nrestart >() ),
-        m_cmdline.get< tag::verbose >() ? std::cout : std::clog,
-        std::ios_base::app );
-    }
 };
 
 } // unittest::

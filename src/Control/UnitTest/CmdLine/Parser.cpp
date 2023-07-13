@@ -32,7 +32,6 @@ using unittest::CmdLineParser;
 
 CmdLineParser::CmdLineParser( int argc,
                               char** argv,
-                              const tk::Print& print,
                               ctr::CmdLine& cmdline,
                               bool& helped ) :
   StringParser( argc, argv )
@@ -48,20 +47,11 @@ CmdLineParser::CmdLineParser( int argc,
   // Create CmdLine (a tagged tuple) to store parsed input
   ctr::CmdLine cmd;
 
-  // Reset parser's output stream to that of print's. This is so that mild
-  // warnings emitted during parsing can be output using the pretty printer.
-  // Usually, errors and warnings are simply accumulated during parsing and
-  // printed during diagnostics after the parser has finished. However, in some
-  // special cases we can provide a more user-friendly message right during
-  // parsing since there is more information available to construct a more
-  // sensible message. This is done in e.g., tk::grm::store_option. Resetting
-  // the global g_print, to that of passed in as the constructor argument allows
-  // not to have to create a new pretty printer, but use the existing one.
-  tk::grm::g_print.reset( print.save() );
-
   // Parse command line string by populating the underlying tagged tuple
   tao::pegtl::memory_input<> in( m_string, "command line" );
   tao::pegtl::parse< cmd::read_string, tk::grm::action >( in, cmd );
+
+  tk::Print print;
 
   // Echo errors and warnings accumulated during parsing
   diagnostics( print, cmd.get< tag::error >() );
@@ -70,33 +60,27 @@ CmdLineParser::CmdLineParser( int argc,
   // and transfer it out
   cmdline = std::move( cmd );
 
-  // If we got here, the parser has succeeded
-  print.item("Parsed command line", "success");
-
   // Print out help on all command-line arguments if requested
   const auto helpcmd = cmdline.get< tag::help >();
   if (helpcmd) {
-    print.help< tk::QUIET >( tk::unittest_executable(),
-                             cmdline.get< tag::cmdinfo >(),
-                             "Command-line Parameters:", "-" );
-   print.mandatory< tk::QUIET >( "None of the arguments are mandatory." );
-    print.usage< tk::QUIET >(
-      tk::unittest_executable(),
-      "charmrun +p4 " + tk::unittest_executable() + " -" +
-        *kw::verbose().alias(),
-      "will execute all unit tests on 4 CPUs producing verbose screen output" );
+    print.help( tk::unittest_executable(),
+                cmdline.get< tag::cmdinfo >(),
+                "Command-line Parameters:", "-" );
+   print.mandatory( "None of the arguments are mandatory." );
+   print.usage( "charmrun +p4 " + tk::unittest_executable(),
+                "will execute all unit tests on 4 CPUs" );
   }
 
   // Print out verbose help for a single keyword if requested
   const auto helpkw = cmdline.get< tag::helpkw >();
   if (!helpkw.keyword.empty())
-    print.helpkw< tk::QUIET >( tk::unittest_executable(), helpkw );
+    print.helpkw( tk::unittest_executable(), helpkw );
 
   // Print out version information if it was requested
   const auto version = cmdline.get< tag::version >();
-  if (version)
-    print.version< tk::QUIET >( tk::unittest_executable(),
-                                tk::git_commit() );
+  if (version) {
+    print.version( tk::unittest_executable(), tk::git_commit() );
+  }
 
   // Will exit in main chare constructor if any help was output
   if (cmdline.get< tag::help >() ||           // help on all cmdline args

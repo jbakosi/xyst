@@ -26,7 +26,7 @@ class MeshConvDriver {
 
   public:
     //! Constructor
-    explicit MeshConvDriver( const ctr::CmdLine& cmdline, int );
+    explicit MeshConvDriver( const ctr::CmdLine& cmdline );
 
     //! Execute
     void execute( int sig ) const;

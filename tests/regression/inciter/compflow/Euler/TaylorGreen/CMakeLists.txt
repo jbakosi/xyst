@@ -6,7 +6,7 @@
 add_regression_test(compflow_euler_taylor_green_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES taylor_green.q unitcube_1k.exo
-                    ARGS -c taylor_green.q -i unitcube_1k.exo -v
+                    ARGS -c taylor_green.q -i unitcube_1k.exo
                     BIN_BASELINE taylor_green.std.exo
                     BIN_RESULT out.e-s.0.1.0
                     BIN_DIFF_PROG_CONF exodiff.cfg
@@ -20,7 +20,7 @@ add_regression_test(compflow_euler_taylor_green_riecg ${INCITER_EXECUTABLE}
 add_regression_test(compflow_euler_taylor_green_riecg ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES taylor_green.q unitcube_1k.exo
-                    ARGS -c taylor_green.q -i unitcube_1k.exo -v
+                    ARGS -c taylor_green.q -i unitcube_1k.exo
                     BIN_BASELINE taylor_green_pe4.std.exo.0
                                  taylor_green_pe4.std.exo.1
                                  taylor_green_pe4.std.exo.2
@@ -41,7 +41,7 @@ add_regression_test(compflow_euler_taylor_green_riecg ${INCITER_EXECUTABLE}
 add_regression_test(compflow_euler_taylor_green_riecg_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 2
                     INPUTFILES taylor_green.q unitcube_1k.exo
-                    ARGS -c taylor_green.q -i unitcube_1k.exo -v -u 0.5
+                    ARGS -c taylor_green.q -i unitcube_1k.exo -u 0.5
                     BIN_BASELINE taylor_green_pe4_u0.5.std.exo.0
                                  taylor_green_pe4_u0.5.std.exo.1
                                  taylor_green_pe4_u0.5.std.exo.2

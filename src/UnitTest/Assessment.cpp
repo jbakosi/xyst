@@ -69,20 +69,35 @@ assess( const tk::Print& print,
 // *****************************************************************************
 {
   if (!nfail && !nwarn && !nskip && !nexcp) {
-    print.note< tk::QUIET >
-              ( "All " + std::to_string(ncomplete) + " tests passed" );
+
+    print << "\nAll " + std::to_string(ncomplete) + " tests passed\n";
+
   } else {
+
     std::string skip, warn, fail, excp;
-    if (nwarn) warn = "finished with a warning: " + std::to_string(nwarn);
-    if (nskip) skip = std::string(nwarn ? ", " : "") +
-                      "(fully or partially) skipped: " + std::to_string(nskip);
-    if (nexcp) excp = std::string(nskip || nwarn ? ", " : "") +
-                      "threw exception: " + std::to_string(nexcp);
-    if (nfail) fail = std::string(nexcp || nskip || nwarn ?
-                      ", " : "") + "failed: " + std::to_string(nfail);
-    print.note< tk::QUIET >
-              ( "Of " + std::to_string(ncomplete) + " tests total: "
-                + warn + skip + excp + fail );
+
+    if (nwarn) {
+      warn = "finished with a warning: " + std::to_string(nwarn);
+    }
+
+    if (nskip) {
+      skip = std::string(nwarn ? ", " : "") +
+             "(fully or partially) skipped: " + std::to_string(nskip);
+    }
+
+    if (nexcp) {
+      excp = std::string(nskip || nwarn ? ", " : "") +
+             "threw exception: " + std::to_string(nexcp);
+    }
+
+    if (nfail) {
+      fail = std::string(nexcp || nskip || nwarn ?
+             ", " : "") + "failed: " + std::to_string(nfail);
+    }
+
+    print << "\nOf " + std::to_string(ncomplete) + " tests total: "
+          << warn << skip << excp << fail << '\n';
+
   }
 
   return (nfail || nexcp) ? false : true;

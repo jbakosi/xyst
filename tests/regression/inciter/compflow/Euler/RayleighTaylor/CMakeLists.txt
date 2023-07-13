@@ -6,7 +6,7 @@
 add_regression_test(compflow_euler_rayleigh_taylor_st ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES rayleigh_taylor_st.q unitcube_1k.exo
-                    ARGS -c rayleigh_taylor_st.q -i unitcube_1k.exo -v
+                    ARGS -c rayleigh_taylor_st.q -i unitcube_1k.exo
                     BIN_BASELINE rayleigh_taylor_st.std.exo
                     BIN_RESULT out.e-s.0.1.0
                     BIN_DIFF_PROG_CONF exodiff.cfg
@@ -20,7 +20,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_st ${INCITER_EXECUTABLE}
 add_regression_test(compflow_euler_rayleigh_taylor_st ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES rayleigh_taylor_st.q unitcube_1k.exo
-                    ARGS -c rayleigh_taylor_st.q -i unitcube_1k.exo -v
+                    ARGS -c rayleigh_taylor_st.q -i unitcube_1k.exo
                     BIN_BASELINE rayleigh_taylor_st_pe4.std.exo.0
                                  rayleigh_taylor_st_pe4.std.exo.1
                                  rayleigh_taylor_st_pe4.std.exo.2
@@ -39,7 +39,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_st ${INCITER_EXECUTABLE}
 add_regression_test(compflow_euler_rayleigh_taylor_nocfl ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES rayleigh_taylor_nocfl.q unitcube_1k.exo
-                    ARGS -c rayleigh_taylor_nocfl.q -i unitcube_1k.exo -v
+                    ARGS -c rayleigh_taylor_nocfl.q -i unitcube_1k.exo
                     EXTRA_PASS_REGEXP "No time step"
                     SKIP_RETURN_CODE true
                     LABELS riecg)
@@ -47,7 +47,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_nocfl ${INCITER_EXECUTABLE}
 add_regression_test(compflow_euler_rayleigh_taylor_muldt ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES rayleigh_taylor_muldt.q unitcube_1k.exo
-                    ARGS -c rayleigh_taylor_muldt.q -i unitcube_1k.exo -v
+                    ARGS -c rayleigh_taylor_muldt.q -i unitcube_1k.exo
                     EXCLUSIVE_PASS_REGEXP "Multiple time step calculation"
                     LABELS riecg)
 
@@ -56,7 +56,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_muldt ${INCITER_EXECUTABLE}
 add_regression_test(compflow_euler_rayleigh_taylor ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES rayleigh_taylor.q unitcube_1k.exo
-                    ARGS -c rayleigh_taylor.q -i unitcube_1k.exo -v
+                    ARGS -c rayleigh_taylor.q -i unitcube_1k.exo
                     BIN_BASELINE rayleigh_taylor.std.exo
                     BIN_RESULT out.e-s.0.1.0
                     BIN_DIFF_PROG_CONF exodiff.cfg
@@ -70,7 +70,7 @@ add_regression_test(compflow_euler_rayleigh_taylor ${INCITER_EXECUTABLE}
 add_regression_test(compflow_euler_rayleigh_taylor ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES rayleigh_taylor.q unitcube_1k.exo
-                    ARGS -c rayleigh_taylor.q -i unitcube_1k.exo -v
+                    ARGS -c rayleigh_taylor.q -i unitcube_1k.exo
                     BIN_BASELINE rayleigh_taylor_pe4.std.exo.0
                                  rayleigh_taylor_pe4.std.exo.1
                                  rayleigh_taylor_pe4.std.exo.2
@@ -90,7 +90,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_fieldrange
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 2
                     INPUTFILES rayleigh_taylor_fieldrange.q unitcube_1k.exo
-                    ARGS -c rayleigh_taylor_fieldrange.q -i unitcube_1k.exo -v
+                    ARGS -c rayleigh_taylor_fieldrange.q -i unitcube_1k.exo
                     BIN_BASELINE rayleigh_taylor_fieldrange_pe4.std.exo.0
                                  rayleigh_taylor_fieldrange_pe4.std.exo.1
                                  rayleigh_taylor_fieldrange_pe4.std.exo.2

@@ -39,7 +39,7 @@ LBSwitch::off()
 {
   TurnManualLBOn();
 
-  if (CkMyPe() == 0) Print( "", std::cout ).diag( "Load balancing off" );
+  if (CkMyPe() == 0) Print() << "Load balancing off\n";
 }
 
 #include "NoWarning/lbswitch.def.h"

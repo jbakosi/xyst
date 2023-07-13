@@ -634,13 +634,7 @@ Discretization::grindZero()
   m_prevstatus = std::chrono::high_resolution_clock::now();
 
   if (thisIndex == 0 && m_meshid == 0) {
-    const auto verbose = g_inputdeck.get< tag::cmd, tag::verbose >();
-    const auto& def =
-      g_inputdeck_defaults.get< tag::cmd, tag::io, tag::screen >();
-    tk::Print print( g_inputdeck.get< tag::cmd >().logname( def, m_nrestart ),
-                     verbose ? std::cout : std::clog,
-                     std::ios_base::app );
-    print.diag( "Starting time stepping ..." );
+    tk::Print() << "Starting time stepping ...\n";
   }
 }
 
@@ -936,7 +930,6 @@ Discretization::status()
     const auto diag = g_inputdeck.get< tag::output, tag::iter, tag::diag >();
     const auto lbfreq = g_inputdeck.get< tag::cmd, tag::lbfreq >();
     const auto rsfreq = g_inputdeck.get< tag::cmd, tag::rsfreq >();
-    const auto verbose = g_inputdeck.get< tag::cmd, tag::verbose >();
     const auto benchmark = g_inputdeck.get< tag::cmd, tag::benchmark >();
     const auto residual = g_inputdeck.get< tag::discr, tag::residual >();
 
@@ -945,11 +938,7 @@ Discretization::status()
     m_timer.eta( term-t0, m_t-t0, nstep, m_it, m_res0, m_res, residual,
                  ete, eta );
 
-    const auto& def =
-      g_inputdeck_defaults.get< tag::cmd, tag::io, tag::screen >();
-    tk::Print print( g_inputdeck.get< tag::cmd >().logname( def, m_nrestart ),
-                     verbose ? std::cout : std::clog,
-                     std::ios_base::app );
+    tk::Print print;
 
     // Output one-liner
     print << std::setfill(' ') << std::setw(8) << m_it << "  "
@@ -975,7 +964,7 @@ Discretization::status()
     if ((m_it % lbfreq == 0 || m_it == 2) && not finished()) print << 'l';
     if (not benchmark && (not (m_it % rsfreq) || finished())) print << 'c';
 
-    print << std::endl;
+    print << '\n';
   }
 }
 

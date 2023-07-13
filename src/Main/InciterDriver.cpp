@@ -11,13 +11,13 @@
 */
 // *****************************************************************************
 
-#include "InciterPrint.hpp"
 #include "InciterDriver.hpp"
 #include "Inciter/InputDeck/Parser.hpp"
 #include "Inciter/CmdLine/CmdLine.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
 #include "TaggedTupleDeepPrint.hpp"
 #include "Writer.hpp"
+#include "Print.hpp"
 
 #include "NoWarning/transporter.decl.h"
 
@@ -30,22 +30,17 @@ extern ctr::InputDeck g_inputdeck_defaults;
 
 using inciter::InciterDriver;
 
-InciterDriver::InciterDriver( const ctr::CmdLine& cmdline, int nrestart )
+InciterDriver::InciterDriver( const ctr::CmdLine& cmdline )
 // *****************************************************************************
 //  Constructor
 //! \param[in] cmdline Command line object storing data parsed from the command
 //!   line arguments
-//! \param[in] nrestart Number of times restarted
 // *****************************************************************************
 {
   // All global-scope data to be migrated to all PEs initialized here (if any)
 
   // Create pretty printer
-  const auto& def =
-    g_inputdeck_defaults.get< tag::cmd, tag::io, tag::screen >();
-  InciterPrint print( cmdline.logname( def, nrestart ),
-                      cmdline.get< tag::verbose >() ? std::cout : std::clog,
-                      std::ios_base::app );
+  tk::Print print;
 
   print.item( "Non-blocking migration, -" + *kw::nonblocking::alias(),
                cmdline.get< tag::nonblocking >() ? "on" : "off" );
@@ -61,9 +56,7 @@ InciterDriver::InciterDriver( const ctr::CmdLine& cmdline, int nrestart )
   // Parse input deck into g_inputdeck
   print.item( "Control file", cmdline.get< tag::io, tag::control >() );
   g_inputdeck = g_inputdeck_defaults;   // overwrite with defaults if restarted
-  InputDeckParser inputdeckParser( print, cmdline, g_inputdeck );
-  print.item( "Parsed control file", "success" );
-  print.endpart();
+  InputDeckParser inputdeckParser( cmdline, g_inputdeck );
 
   // Output command line object to file
   auto logfilename = tk::inciter_executable() + "_input.log";

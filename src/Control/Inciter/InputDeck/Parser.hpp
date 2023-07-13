@@ -11,13 +11,11 @@
     the computational shock hydrodynamics tool, Inciter.
 */
 // *****************************************************************************
-#ifndef InciterInputDeckParser_h
-#define InciterInputDeckParser_h
+#pragma once
 
 #include "FileParser.hpp"
 #include "Inciter/CmdLine/CmdLine.hpp"
-
-namespace tk { class Print; }
+#include "Inciter/InputDeck/InputDeck.hpp"
 
 namespace inciter {
 
@@ -29,11 +27,8 @@ class InputDeckParser : public tk::FileParser {
 
   public:
     //! Constructor
-    explicit InputDeckParser( const tk::Print& print,
-                              const ctr::CmdLine& cmdline,
+    explicit InputDeckParser( const ctr::CmdLine& cmdline,
                               ctr::InputDeck& inputdeck );
 };
 
 } // namespace inciter
-
-#endif // InciterInputDeckParser_h

@@ -28,14 +28,6 @@ namespace cmd {
   template< typename keyword >
   using use = tk::grm::use< keyword, ctr::CmdLine::keywords::set >;
 
-  // MeshConv's CmdLine state
-
-  // MeshConv's CmdLine grammar
-
-  //! Match and set verbose switch (i.e., verbose or quiet output)
-  struct verbose :
-         tk::grm::process_cmd_switch< use, kw::verbose, tag::verbose > {};
-
   //! Match and set reorder switch (i.e., reorder mesh nodes or not)
   struct reorder :
          tk::grm::process_cmd_switch< use, kw::reorder_cmd, tag::reorder > {};
@@ -81,8 +73,7 @@ namespace cmd {
 
   //! Match all command line keywords
   struct keywords :
-         pegtl::sor< verbose,
-                     reorder,
+         pegtl::sor< reorder,
                      help,
                      helpkw,
                      quiescence,
@@ -90,7 +81,6 @@ namespace cmd {
                      version,
                      raise_signal,
                      io< kw::input, tag::input >,
-                     io< kw::screen, tag::screen >,
                      io< kw::output, tag::output > > {};
 
   //! Grammar entry point: parse keywords until end of string

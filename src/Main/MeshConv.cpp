@@ -16,7 +16,6 @@
 #include <utility>
 #include <iostream>
 
-#include "Print.hpp"
 #include "Timer.hpp"
 #include "Types.hpp"
 #include "XystConfig.hpp"
@@ -75,16 +74,14 @@ class Main : public CBase_Main {
     try :
       m_signal( tk::setSignalHandlers() ),
       m_cmdline(),
-      // Parse command line into m_cmdline using default simple pretty printer
-      m_cmdParser( msg->argc, msg->argv, tk::Print(), m_cmdline ),
+      // Parse command line into m_cmdline
+      m_cmdParser( msg->argc, msg->argv, m_cmdline ),
       // Create MeshConv driver
       m_driver( tk::Main< meshconv::MeshConvDriver >
                         ( msg->argc, msg->argv,
                           m_cmdline,
                           tk::HeaderType::MESHCONV,
-                          tk::meshconv_executable(),
-                          m_cmdline.get< tag::io, tag::screen >(),
-                          m_cmdline.get< tag::io, tag::nrestart >() ) ),
+                          tk::meshconv_executable() ) ),
       m_timer(1),       // Start new timer measuring the total runtime
       m_timestamp()
     {
@@ -108,9 +105,7 @@ class Main : public CBase_Main {
 
     //! Towards normal exit but collect chare state first (if any)
     void finalize() {
-      tk::finalize( m_cmdline, m_timer, m_timestamp,
-        m_cmdline.get< tag::io, tag::screen >(),
-        m_cmdline.get< tag::io, tag::nrestart >() );
+      tk::finalize( m_timer, m_timestamp );
     }
 
     //! Add a time stamp contributing to final timers output

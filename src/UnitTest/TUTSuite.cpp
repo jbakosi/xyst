@@ -24,6 +24,7 @@
 #include "TUTTest.hpp"
 #include "MPIRunner.hpp"
 #include "Assessment.hpp"
+#include "Print.hpp"
 
 #include "NoWarning/unittest.decl.h"
 
@@ -56,12 +57,6 @@ TUTSuite::TUTSuite( const ctr::CmdLine& cmdline ) :
 {
   const auto& groups = g_runner.get().list_groups();
 
-  { auto print = printer();
-    print.part( "Factory" );
-    // Output registered test groups
-    print.list( "Registered test groups", groups );
-  } // ensure print is destructed (cannot collide with that of evaluate)
-
   // Get group name string passed in by -g
   const auto grp = cmdline.get< tag::group >();
 
@@ -78,17 +73,13 @@ TUTSuite::TUTSuite( const ctr::CmdLine& cmdline ) :
   // Quit if there is no work to be done
   if (!work) {
 
-    printer().note( "\nNo test groups to be executed because no test group "
-                    "names match '" + grp + "'.\n" );
+    tk::Print() << "\nNo test groups to be executed because no test group "
+                    "names match '" + grp + "'.\n";
     mainProxy.finalize( true );
 
   } else {
 
-    { auto print = printer();
-      print.endpart();
-      print.part( "Serial, Charm++, and MPI unit test suites" );
-      print.unithead( "Unit tests computed", grp );
-    } // ensure print is destructed (cannot collide with that of evaluate)
+    tk::Print().unithead( "Running unit tests", grp );
 
     // Create MPI unit test runner nodegroup
     m_mpirunner = CProxy_MPIRunner< CProxy_TUTSuite >::ckNew( thisProxy );
@@ -146,7 +137,7 @@ TUTSuite::evaluate( std::vector< std::string > status )
   // Evaluate test
   unittest::evaluate( status, m_ncomplete, m_nwarn, m_nskip, m_nexcp, m_nfail );
 
-  auto print = printer();
+  auto print = tk::Print();
 
   // Echo one-liner info on result of test
   print.test( m_ncomplete, m_nfail, status );

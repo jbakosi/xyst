@@ -88,11 +88,11 @@ R"(# vim: filetype=sh:
 # containers are in paretheses.
 
 'cmd' {
-  name            : Bob
-  age             : 32
+  name : Bob
+  age : 32
   'tag1' {
-    tag2            : string2
-    tag3            : string3
+    tag2 : string2
+    tag3 : string3
   }
 })" );
 }

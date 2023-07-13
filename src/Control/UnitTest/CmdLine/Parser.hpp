@@ -30,7 +30,6 @@ class CmdLineParser : public tk::StringParser {
     //! Constructor
     explicit CmdLineParser( int argc,
                             char** argv,
-                            const tk::Print& print,
                             ctr::CmdLine& cmdline,
                             bool& helped );
 };

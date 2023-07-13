@@ -23,19 +23,10 @@
 #include "MeshConv/CmdLine/Parser.hpp"
 #include "MeshConv/CmdLine/Grammar.hpp"
 
-namespace tk {
-namespace grm {
-
-tk::Print g_print;
-
-} // grm::
-} // tk::
-
 using meshconv::CmdLineParser;
 
 CmdLineParser::CmdLineParser( int argc,
                               char** argv,
-                              const tk::Print& print,
                               ctr::CmdLine& cmdline ) :
   StringParser( argc, argv )
 // *****************************************************************************
@@ -49,20 +40,11 @@ CmdLineParser::CmdLineParser( int argc,
   // Create CmdLine (a tagged tuple) to store parsed input
   ctr::CmdLine cmd;
 
-  // Reset parser's output stream to that of print's. This is so that mild
-  // warnings emitted during parsing can be output using the pretty printer.
-  // Usually, errors and warnings are simply accumulated during parsing and
-  // printed during diagnostics after the parser has finished. However, in some
-  // special cases we can provide a more user-friendly message right during
-  // parsing since there is more information available to construct a more
-  // sensible message. This is done in e.g., tk::grm::store_option. Resetting
-  // the global g_print, to that of passed in as the constructor argument allows
-  // not to have to create a new pretty printer, but use the existing one.
-  tk::grm::g_print.reset( print.save() );
-
   // Parse command line string by populating the underlying tagged tuple
   tao::pegtl::memory_input<> in( m_string, "command line" );
   tao::pegtl::parse< cmd::read_string, tk::grm::action >( in, cmd );
+
+  tk::Print print;
 
   // Echo errors and warnings accumulated during parsing
   diagnostics( print, cmd.get< tag::error >() );
@@ -71,37 +53,34 @@ CmdLineParser::CmdLineParser( int argc,
   // and transfer it out
   cmdline = std::move( cmd );
 
-  // If we got here, the parser has succeeded
-  print.item("Parsed command line", "success");
-
   // Print out help on all command-line arguments if the executable was invoked
   // without arguments or the help was requested
   const auto helpcmd = cmdline.get< tag::help >();
   if (argc == 1 || helpcmd) {
-    print.help< tk::QUIET >( tk::meshconv_executable(),
-                             cmdline.get< tag::cmdinfo >(),
-                             "Command-line Parameters:", "-" );
-    print.mandatory< tk::QUIET >(
+    print.help( tk::meshconv_executable(),
+                cmdline.get< tag::cmdinfo >(),
+                "Command-line Parameters:", "-" );
+    print.mandatory(
      "The '--" + kw::input().string() + " <filename>' and the "
      "'--" + kw::output().string() + " <filename>' arguments are mandatory." );
-    print.usage< tk::QUIET >(
-      tk::meshconv_executable(),
+    print.usage(
       tk::meshconv_executable() + " -" + *kw::input().alias() + " in.msh -" +
         *kw::output().alias() + " out.exo",
       "will read data from 'in.msh' (in Gmsh format) and output it to "
-      "out.exo' (in ExodusII format)" );
+      "'out.exo' (in ExodusII format)" );
   }
 
   // Print out verbose help for a single keyword if requested
   const auto helpkw = cmdline.get< tag::helpkw >();
-  if (!helpkw.keyword.empty())
-    print.helpkw< tk::QUIET >( tk::meshconv_executable(), helpkw );
+  if (!helpkw.keyword.empty()) {
+    print.helpkw( tk::meshconv_executable(), helpkw );
+  }
 
   // Print out version information if it was requested
   const auto version = cmdline.get< tag::version >();
-  if (version)
-    print.version< tk::QUIET >( tk::meshconv_executable(),
-                                tk::git_commit() );
+  if (version) {
+    print.version( tk::meshconv_executable(), tk::git_commit() );
+  }
 
   // Immediately exit if any help was output or was called without any argument
   // or version info was requested with zero exit code

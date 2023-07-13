@@ -867,19 +867,6 @@ struct control_info {
 };
 using control = keyword< control_info, TAOCPP_PEGTL_STRING("control") >;
 
-struct verbose_info {
-  static std::string name() { return "verbose"; }
-  static std::string shortDescription() { return
-    "Select verbose screen output"; }
-  static std::string longDescription() { return
-    R"(This keyword is used to select verbose screen-output as opposed to the
-    default quiet output. With quiet output only the most important messages
-    are echoed to screen.)";
-  }
-  using alias = Alias< v >;
-};
-using verbose = keyword< verbose_info, TAOCPP_PEGTL_STRING("verbose") >;
-
 struct benchmark_info {
   static std::string name() { return "benchmark"; }
   static std::string shortDescription() { return "Select benchmark mode"; }
@@ -1152,22 +1139,6 @@ struct refined_info {
   };
 };
 using refined =keyword< refined_info, TAOCPP_PEGTL_STRING("refined") >;
-
-struct screen_info {
-  static std::string name() { return "screen"; }
-  static std::string shortDescription() {
-    return "Specify the screen output file"; }
-  static std::string longDescription() { return
-    R"(This option is used to set the screen output file name. The default is
-    "<executable>_screen.log".)";
-  }
-  using alias = Alias< O >;
-  struct expect {
-    using type = std::string;
-    static std::string description() { return "string"; }
-  };
-};
-using screen = keyword< screen_info, TAOCPP_PEGTL_STRING("screen") >;
 
 struct restart_info {
   static std::string name() { return "checkpoint/restart directory name"; }

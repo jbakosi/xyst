@@ -842,8 +842,7 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/boost \
-                         @CMAKE_CURRENT_SOURCE_DIR@/brigand \
+EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/brigand \
                          @CMAKE_CURRENT_SOURCE_DIR@/exodus \
                          @CMAKE_CURRENT_SOURCE_DIR@/highwayhash \
                          @CMAKE_CURRENT_SOURCE_DIR@/tut \

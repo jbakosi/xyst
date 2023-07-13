@@ -49,21 +49,8 @@ class Migrated : public CBase_Migrated {
   public:
 
   //! Constructor taking (and migrating) a default strongly-typed enum
-  explicit Migrated( charm::Enum_default e ) :
-    m_enum_default(e),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant()
- {
+  explicit Migrated( charm::Enum_default e ) : m_enum_default(e)
+  {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 1,
                          "Charm:migrate enum 2",
@@ -93,20 +80,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a uint8_t strongly-typed enum
-  explicit Migrated( charm::Enum_uint8_t e ) :
-    m_enum_default(),
-    m_enum_uint8_t(e),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant()
+  explicit Migrated( charm::Enum_uint8_t e ) : m_enum_uint8_t(e)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 2,
@@ -137,20 +111,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a C-style enum
-  explicit Migrated( charm::Enum_cstyle e ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(e),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant()
+  explicit Migrated( charm::Enum_cstyle e ) : m_enum_cstyle(e)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 3,
@@ -177,20 +138,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::pair<int,double>
-  explicit Migrated( charm::Pair p ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(p),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant()
+  explicit Migrated( charm::Pair p ) : m_pair(p)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 4,
@@ -219,20 +167,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::vector< std::string >
-  explicit Migrated( charm::Vector v ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(v),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant()
+  explicit Migrated( charm::Vector v ) : m_vector(v)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 5,
@@ -261,20 +196,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::tuple
-  explicit Migrated( charm::Tuple t ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(t),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant()
+  explicit Migrated( charm::Tuple t ) : m_tuple(t)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 6,
@@ -340,20 +262,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::array
-  explicit Migrated( charm::Array a ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(a),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant()
+  explicit Migrated( charm::Array a ) : m_array(a)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 7,
@@ -381,20 +290,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::unordered_map
-  explicit Migrated( charm::UnorderedMap m ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(m),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant()
+  explicit Migrated( charm::UnorderedMap m ) : m_unordered_map(m)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 8,
@@ -427,20 +323,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::unordered_set
-  explicit Migrated( charm::UnorderedSet s ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(s),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant()
+  explicit Migrated( charm::UnorderedSet s ) : m_unordered_set(s)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 9,
@@ -470,20 +353,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a std::optional< std::string >
-  explicit Migrated( charm::OptionalStr o ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(o),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant()
+  explicit Migrated( charm::OptionalStr o ) : m_optional_str(o)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 10,
@@ -497,8 +367,7 @@ class Migrated : public CBase_Migrated {
       // Evaluate test
       ensure( "std::optional<str> different after migrated: "
               "expected `" + expected + "` actual `" + actual + "`",
-              m_boost_optional_str ==
-                charm::OptionalStr{ { "blah" } } );
+              m_optional_str == charm::OptionalStr{ { "blah" } } );
     } catch ( const failure& ex ) {
       tr.result = ex.result();
       tr.exception_typeid = ex.type();
@@ -511,20 +380,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) an uninitialized std::optional< int >
-  explicit Migrated( charm::OptionalInt o ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(o),
-    m_tagged_tuple(),
-    m_variant()
+  explicit Migrated( charm::OptionalInt o ) : m_optional_int(o)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 11,
@@ -538,7 +394,7 @@ class Migrated : public CBase_Migrated {
       // Evaluate test
       ensure( "std::optional<int> different after migrated: "
               "expected `" + expected + "` actual `" + actual + "`",
-              m_boost_optional_int == charm::OptionalInt{ std::nullopt } );
+              m_optional_int == charm::OptionalInt{ std::nullopt } );
     } catch ( const failure& ex ) {
       tr.result = ex.result();
       tr.exception_typeid = ex.type();
@@ -551,20 +407,7 @@ class Migrated : public CBase_Migrated {
   }
 
   //! Constructor taking (and migrating) a tk::tuple::tagged_tuple
-  explicit Migrated( charm::TaggedTuple t ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(t),
-    m_variant()
+  explicit Migrated( charm::TaggedTuple t ) : m_tagged_tuple(t)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 12,
@@ -595,20 +438,7 @@ class Migrated : public CBase_Migrated {
 
   //! \brief Constructor taking (and migrating) a std::variant<int,double>
   //!   holding int
-  explicit Migrated( charm::Variant v, int value ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant(v)
+  explicit Migrated( charm::Variant v, int value ) : m_variant(v)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 13,
@@ -637,20 +467,7 @@ class Migrated : public CBase_Migrated {
 
   //! \brief Constructor taking (and migrating) a std::variant<int,double>
   //!   holding double
-  explicit Migrated( charm::Variant v, double value ) :
-    m_enum_default(),
-    m_enum_uint8_t(),
-    m_enum_cstyle(),
-    m_pair(),
-    m_vector(),
-    m_tuple(),
-    m_array(),
-    m_unordered_map(),
-    m_unordered_set(),
-    m_boost_optional_str(),
-    m_boost_optional_int(),
-    m_tagged_tuple(),
-    m_variant(v)
+  explicit Migrated( charm::Variant v, double value ) : m_variant(v)
   {
     // Create test result struct, assume test is ok
     tut::test_result tr( "Base/PUPUtil", 14,
@@ -687,8 +504,8 @@ class Migrated : public CBase_Migrated {
   charm::Array m_array;
   charm::UnorderedMap m_unordered_map;
   charm::UnorderedSet m_unordered_set;
-  charm::OptionalStr m_boost_optional_str;
-  charm::OptionalInt m_boost_optional_int;
+  charm::OptionalStr m_optional_str;
+  charm::OptionalInt m_optional_int;
   charm::TaggedTuple m_tagged_tuple;
   charm::Variant m_variant;
 };

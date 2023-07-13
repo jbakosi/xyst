@@ -28,7 +28,6 @@ if(CPPCHECK AND CPPCHECK_HTMLREPORT)
               -I${PROJECT_SOURCE_DIR}/Control
               -I${PROJECT_SOURCE_DIR}/NoWarning
               -I${PROJECT_BINARY_DIR}/Main
-              -i${PROJECT_SOURCE_DIR}/boost
               -i${PROJECT_SOURCE_DIR}/brigand
               -i${PROJECT_SOURCE_DIR}/highwayhash
               -i${PROJECT_SOURCE_DIR}/exodus

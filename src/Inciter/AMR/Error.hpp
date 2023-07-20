@@ -10,12 +10,10 @@
   \details   Class for computing error estimates for mesh refinement.
 */
 // *****************************************************************************
-#ifndef Error_h
-#define Error_h
+#pragma once
 
 #include "Fields.hpp"
 #include "Keywords.hpp"
-#include "Inciter/Options/AMRError.hpp"
 #include "AMR/edge.hpp"
 
 namespace AMR {
@@ -35,7 +33,7 @@ class Error {
                      const std::vector< std::size_t >& inpoel,
                      const std::pair< std::vector< std::size_t >,
                                       std::vector< std::size_t > >& esup,
-                     inciter::ctr::AMRErrorType err ) const;
+                     const std::string& err ) const;
 
   private:
     //! Estimate error for scalar quantity on edge based on jump in solution
@@ -56,5 +54,3 @@ class Error {
 };
 
 } // AMR::
-
-#endif // Error_h

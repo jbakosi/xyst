@@ -19,7 +19,6 @@
 
 #include <brigand/algorithms/for_each.hpp>
 
-#include "Macro.hpp"
 #include "XystConfig.hpp"
 #include "TaggedTuple.hpp"
 #include "HelpFactory.hpp"
@@ -40,7 +39,6 @@ using CmdLineMembers = brigand::list<
   , tag::version,    bool
   , tag::cmdinfo,    tk::ctr::HelpFactory
   , tag::ctrinfo,    tk::ctr::HelpFactory
-  , tag::helpkw,     tk::ctr::HelpKw
   , tag::group,      std::string
   , tag::error,      std::vector< std::string >
 >;
@@ -55,7 +53,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
     //! \brief UnitTest command-line keywords
     //! \see tk::grm::use and its documentation
     using keywords = tk::cmd_keywords< kw::help
-                                     , kw::helpkw
                                      , kw::group
                                      , kw::quiescence
                                      , kw::trace
@@ -65,8 +62,7 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
     //! Set of tags to ignore when printing this CmdLine
     using ignore =
       brigand::set< tag::cmdinfo
-                  , tag::ctrinfo
-                  , tag::helpkw >;
+                  , tag::ctrinfo >;
 
     //! \brief Constructor: set defaults.
     //! \details Anything not set here is initialized by the compiler using the

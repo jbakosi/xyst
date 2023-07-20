@@ -1,50 +1,40 @@
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+-- vim: filetype=lua:
 
-title "Euler equations computing vortical flow"
+print "Euler equations computing vortical flow, steady state test"
 
-inciter
+nstep = 10
+ttyi = 1
+cfl = 0.8
 
-  nstep 10
-  ttyi 1
-  cfl 0.8
+part = "rcb"
 
-  partitioning
-   algorithm rcb
-  end
+steady = true
+residual = 1.0e-8
+rescomp = 1
 
-  steady_state true
-  residual 1.0e-8
-  rescomp 1
+problem = {
+  name = "vortical_flow",
+  alpha = 0.1,
+  kappa = 1.0,
+  p0 = 10.0,
+}
 
-  problem vortical_flow
+mat = { spec_heat_ratio = 5/3 }
 
-  compflow
-    depvar c
-    alpha 0.1
-    beta 1.0
-    p0 10.0
-    material
-      gamma 1.66666666666667 end
-    end
-    bc_dirichlet
-      sideset 1 1 1 1 1 1 end
-      sideset 2 1 1 1 1 1 end 
-      sideset 3 1 1 1 1 1 end
-      sideset 4 1 1 1 1 1 end
-      sideset 5 1 1 1 1 1 end
-      sideset 6 1 1 1 1 1 end
-    end
-  end
+bc_dir = {
+  { 1, 1, 1, 1, 1, 1 },
+  { 2, 1, 1, 1, 1, 1 },
+  { 3, 1, 1, 1, 1, 1 },
+  { 4, 1, 1, 1, 1, 1 },
+  { 5, 1, 1, 1, 1, 1 },
+  { 6, 1, 1, 1, 1, 1 }
+}
 
-  field_output
-    interval 10
-  end
+fieldout = {
+  iter = 10
+}
 
-  diagnostics
-    interval 1
-    format scientific
-  end
-
-end
+diag = {
+  iter = 1,
+  format = "scientific"
+}

@@ -11,11 +11,6 @@ add_regression_test(help ${UNITTEST_EXECUTABLE}
                     ARGS --help
                     EXTRA_PASS_REGEXP "unittest Command-line Parameters")
 
-add_regression_test(helpkw ${UNITTEST_EXECUTABLE}
-                    NUMPES 1
-                    ARGS --helpkw group
-                    EXTRA_PASS_REGEXP "unittest command-line keyword")
-
 add_regression_test(singlegroup ${UNITTEST_EXECUTABLE}
                     NUMPES 2
                     ARGS --group DerivedData

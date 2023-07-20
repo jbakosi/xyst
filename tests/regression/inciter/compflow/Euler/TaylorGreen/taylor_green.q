@@ -1,42 +1,32 @@
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+-- vim: filetype=lua:
 
-title "Euler equations computing stationary Taylor-Green"
+print "Euler equations computing stationary Taylor-Green"
 
-inciter
+term = 1.0
+ttyi = 10
+cfl = 0.8
+part = "rcb"
 
-  term 1.0
-  ttyi 10
-  cfl 0.8
+mat = { spec_heat_ratio = 5/3 }
 
-  partitioning
-    algorithm rcb
-  end
+problem = {
+  name = "taylor_green"
+}
 
-  problem taylor_green
-  compflow
-    depvar c
-    material
-      gamma 1.66666666666667 end
-    end
-    bc_dirichlet
-      sideset 1 1 1 1 1 1 end
-      sideset 2 1 1 1 1 1 end 
-      sideset 3 1 1 1 1 1 end
-      sideset 4 1 1 1 1 1 end
-      sideset 5 1 1 1 1 1 end
-      sideset 6 1 1 1 1 1 end
-    end
-  end
+bc_dir = {
+  { 1, 1, 1, 1, 1, 1 },
+  { 2, 1, 1, 1, 1, 1 },
+  { 3, 1, 1, 1, 1, 1 },
+  { 4, 1, 1, 1, 1, 1 },
+  { 5, 1, 1, 1, 1, 1 },
+  { 6, 1, 1, 1, 1, 1 }
+}
 
-  field_output
-    interval 20
-  end
+fieldout = {
+  iter = 20
+}
 
-  diagnostics
-    interval 2
-    format scientific
-  end
-
-end
+diag = {
+  iter = 2,
+  format = "scientific"
+}

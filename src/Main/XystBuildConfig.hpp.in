@@ -11,8 +11,7 @@
   \see       src/CMakeListst.txt
 */
 // *****************************************************************************
-#ifndef XystBuildConfig_h
-#define XystBuildConfig_h
+#pragma once
 
 // Compile-time options
 
@@ -25,5 +24,3 @@
 
 // Use Charm++'s AMPI instead of MPI for MPI library calls
 #cmakedefine XYST_AMPI
-
-#endif // XystBuildConfig_h

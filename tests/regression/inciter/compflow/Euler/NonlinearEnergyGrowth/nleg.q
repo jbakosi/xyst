@@ -1,49 +1,38 @@
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+-- vim: filetype=lua:
 
-title "Euler equations computing nonlinear energy growth"
+print "Euler equations computing nonlinear energy growth"
 
-inciter
+term = 1.0
+ttyi = 1
+cfl = 0.8
 
-  term 1.0
-  ttyi 1
-  cfl 0.8
+part = "rcb"
 
-  partitioning
-    algorithm rcb
-  end
+problem = {
+  name = "nonlinear_energy_growth",
+  alpha = 0.25,
+  beta = { 1.0, 0.75, 0.5 },
+  r0 = 2.0,
+  ce = -1.0,
+  kappa = 0.8
+}
 
-  problem nonlinear_energy_growth
-  compflow
-    depvar c
-    alpha 0.25
-    betax 1.0
-    betay 0.75
-    betaz 0.5
-    r0 2.0
-    ce -1.0
-    kappa 0.8
-    material
-      gamma 1.66666666666667 end
-    end
-    bc_dirichlet
-      sideset 1 1 1 1 1 1 end
-      sideset 2 1 1 1 1 1 end 
-      sideset 3 1 1 1 1 1 end
-      sideset 4 1 1 1 1 1 end
-      sideset 5 1 1 1 1 1 end
-      sideset 6 1 1 1 1 1 end
-    end
-  end
+mat = { spec_heat_ratio = 5/3 }
 
-  field_output
-    interval 5
-  end
+bc_dir = {
+  { 1, 1, 1, 1, 1, 1 },
+  { 2, 1, 1, 1, 1, 1 },
+  { 3, 1, 1, 1, 1, 1 },
+  { 4, 1, 1, 1, 1, 1 },
+  { 5, 1, 1, 1, 1, 1 },
+  { 6, 1, 1, 1, 1, 1 }
+}
 
-  diagnostics
-    interval  1
-    format scientific
-  end
+fieldout = {
+  iter = 5
+}
 
-end
+diag = {
+  iter = 1,
+  format = "scientific"
+}

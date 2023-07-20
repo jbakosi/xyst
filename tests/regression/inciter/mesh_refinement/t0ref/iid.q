@@ -1,47 +1,39 @@
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+-- vim: filetype=lua:
 
-title "Initial uniform mesh refinement"
+print "Initial uniform mesh refinement"
 
-inciter
+nstep = 3
+cfl = 0.8
+ttyi = 1
 
-  nstep 3     # Max number of time steps
-  cfl   0.8   # CFL coefficient
-  ttyi  1     # TTY output interval
+part = "rcb"
 
-  partitioning
-    algorithm rcb
-  end
+problem = {
+  name = "slot_cyl"
+}
 
-  problem slot_cyl
+mat = { spec_heat_ratio = 5/3 }
 
-  compflow
-    depvar u
-    material
-      gamma 1.66666666666667 end
-    end
-    bc_dirichlet
-      sideset 1 1 1 1 1 1 1 end
-      sideset 2 1 1 1 1 1 1 end
-      sideset 3 1 1 1 1 1 1 end
-      sideset 4 1 1 1 1 1 0 end
-      sideset 5 1 1 1 1 1 1 end
-      sideset 6 1 1 1 1 1 0 end
-    end
-  end
+bc_dir = {
+ { 1, 1, 1, 1, 1, 1, 1 },
+ { 2, 1, 1, 1, 1, 1, 1 },
+ { 3, 1, 1, 1, 1, 1, 1 },
+ { 4, 1, 1, 1, 1, 1, 0 },
+ { 5, 1, 1, 1, 1, 1, 1 },
+ { 6, 1, 1, 1, 1, 1, 0 }
+}
 
-  amr
-    t0ref true
-    initial ic
-    initial ic
-    initial uniform_derefine
-    refvar u6 end
-    error hessian
-  end
+href = {
+  t0 = true,
+  init = {
+      "ic"
+    , "ic"
+    , "uniform_deref"
+  },
+  refvar = { 6 },
+  error = "hessian"
+}
 
-  field_output
-    interval 1
-  end
-
-end
+fieldout = {
+  iter = 1
+}

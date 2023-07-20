@@ -97,27 +97,6 @@ add_regression_test(compflow_euler_sod_userdef ${INCITER_EXECUTABLE}
                                         hist.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(nodepvar ${INCITER_EXECUTABLE}
-                    NUMPES 1
-                    INPUTFILES sod_nodepvar.q rectangle_01_1.5k.exo
-                    ARGS -c sod_nodepvar.q -i rectangle_01_1.5k.exo
-                    EXTRA_PASS_REGEXP "Dependent variable not specified"
-                    SKIP_RETURN_CODE true)
-
-add_regression_test(badrange ${INCITER_EXECUTABLE}
-                    NUMPES 1
-                    INPUTFILES sod_badrange.q rectangle_01_1.5k.exo
-                    ARGS -c sod_badrange.q -i rectangle_01_1.5k.exo
-                    EXTRA_PASS_REGEXP "time range"
-                    SKIP_RETURN_CODE true)
-
-add_regression_test(badrange_dt ${INCITER_EXECUTABLE}
-                    NUMPES 1
-                    INPUTFILES sod_badrange_dt.q rectangle_01_1.5k.exo
-                    ARGS -c sod_badrange_dt.q -i rectangle_01_1.5k.exo
-                    EXTRA_PASS_REGEXP "time range"
-                    SKIP_RETURN_CODE true)
-
 # Parallel
 
 add_regression_test(compflow_euler_sod_hist_range ${INCITER_EXECUTABLE}

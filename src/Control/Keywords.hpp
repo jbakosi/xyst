@@ -15,7 +15,7 @@
 
     The information contained in this file is used to build data structures for
     on-screen help on the command-line arguments and control file keywords,
-    available via the --help, --helpctr, and --helpkw command-line arguments.
+    available via the --help command-line arguments.
 
     A note on design: Defining structs that have static member functions
     returning a std::string is a way of storing C++-style strings at
@@ -202,35 +202,6 @@ struct help_info {
   using alias = Alias< h >;
 };
 using help = keyword< help_info, TAOCPP_PEGTL_STRING("help") >;
-
-struct helpctr_info {
-  static std::string name() { return "helpctr"; }
-  static std::string shortDescription() { return
-    "Display one-liner help on all control file keywords"; }
-  static std::string longDescription() { return
-    R"(This keyword can be used to get a short one-liner help on all control
-    file keywords from an executable.)";
-  }
-  using alias = Alias< C >;
-};
-using helpctr = keyword< helpctr_info, TAOCPP_PEGTL_STRING("helpctr") >;
-
-struct helpkw_info {
-  static std::string name() { return "helpkw"; }
-  static std::string shortDescription() { return
-    "Display verbose help on a single keyword"; }
-  static std::string longDescription() { return
-    R"(This keyword can be used to get a verbose help on a single command-line
-    argument or control-file keyword (i.e., help on keyword) from an
-    executable.)";
-  }
-  using alias = Alias< H >;
-  struct expect {
-    using type = std::string;
-    static std::string description() { return "string"; }
-  };
-};
-using helpkw = keyword< helpkw_info, TAOCPP_PEGTL_STRING("helpkw") >;
 
 struct txt_float_default_info {
   static std::string name() { return "default"; }

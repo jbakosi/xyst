@@ -32,7 +32,6 @@ namespace tk {
 //! \param[out] rx x coordinate of the product vector
 //! \param[out] ry y coordinate of the product vector
 //! \param[out] rz z coordinate of the product vector
-#pragma omp declare simd
 inline void
 cross( real v1x, real v1y, real v1z,
        real v2x, real v2y, real v2z,
@@ -65,7 +64,6 @@ cross( const std::array< real, 3 >& v1, const std::array< real, 3 >& v2 ) {
 //! \param[out] rx x coordinate of the product vector
 //! \param[out] ry y coordinate of the product vector
 //! \param[out] rz z coordinate of the product vector
-#pragma omp declare simd uniform(j)
 inline void
 crossdiv( real v1x, real v1y, real v1z,
           real v2x, real v2y, real v2z,
@@ -120,7 +118,6 @@ dot( const std::array< real, 3 >& v1, const std::array< real, 3 >& v2 ) {
 //! \param[in] y Y coordinate of vector
 //! \param[in] z Z coordinate of vector
 //! \return length
-#pragma omp declare simd
 inline real
 length( real x, real y, real z ) {
   return std::sqrt( x*x + y*y + z*z );
@@ -157,7 +154,6 @@ unit( std::array< real, 3 >& v ) noexcept(ndebug) {
 //! \param[in] v3y y coordinate of the 3rd vector
 //! \param[in] v3z z coordinate of the 3rd vector
 //! \return Scalar value of the triple product
-#pragma omp declare simd
 inline tk::real
 triple( real v1x, real v1y, real v1z,
         real v2x, real v2y, real v2z,
@@ -246,7 +242,6 @@ rotateZ( const std::array< real, 3 >& v, real angle )
 //! \param[out] ny y coordinate of the unit normal
 //! \param[out] nz z coordinate of the unit normal
 //! \return Triangle area
-#pragma omp declare simd
 inline real
 normal( real x1, real x2, real x3,
         real y1, real y2, real y3,

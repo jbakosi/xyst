@@ -50,7 +50,6 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   add_compiler_flag("-Wno-global-constructors")
   add_compiler_flag("-Wno-weak-vtables")
   add_compiler_flag("-Wno-reserved-id-macro")
-  add_compiler_flag("-Wno-unknown-pragmas")
   add_compiler_flag("-Wno-exit-time-destructors")
   add_compiler_flag("-Wno-source-uses-openmp")
 
@@ -64,7 +63,6 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   add_compiler_flag("-fdiagnostics-color")
   add_compiler_flag("-Wall")
   add_compiler_flag("-Wextra")
-  add_compiler_flag("-Wno-unknown-pragmas")
 
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
 

@@ -8,7 +8,8 @@ include(charm)
 add_library(InciterControl
             FileParser.cpp
             StringParser.cpp
-            Inciter/InputDeck/Parser.cpp
+            Lua.c
+            LuaParser.cpp
             Inciter/CmdLine/Parser.cpp)
 
 target_include_directories(InciterControl PUBLIC

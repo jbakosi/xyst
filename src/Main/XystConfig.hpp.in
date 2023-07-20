@@ -11,8 +11,7 @@
   \see       src/CMakeListst.txt
  */
 // *****************************************************************************
-#ifndef XystConfig_h
-#define XystConfig_h
+#pragma once
 
 #include <iosfwd>
 
@@ -34,5 +33,3 @@ std::string build_date();
 std::string regression_dir();
 
 } // tk::
-
-#endif // XystConfig_h

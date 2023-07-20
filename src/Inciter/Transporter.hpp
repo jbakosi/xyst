@@ -10,8 +10,7 @@
   \details   Transporter drives the time integration of transport equations.
 */
 // *****************************************************************************
-#ifndef Transporter_h
-#define Transporter_h
+#pragma once
 
 #include <map>
 #include <vector>
@@ -318,34 +317,11 @@ class Transporter : public CBase_Transporter {
     //! Echo diagnostics on mesh statistics
     void stat();
 
-    //! Function object for querying the side set ids the user configured
-    //! \details Used to query and collect the side set ids the user has
-    //!   configured for all PDE types querying all BC types. Used on a
-    //!   Carteisan product of 2 type lists: PDE types and BC types.
-    struct UserBC {
-      const ctr::InputDeck& inputdeck;
-      std::unordered_set< int >& userbc;
-      explicit UserBC( const ctr::InputDeck& i, std::unordered_set< int >& u )
-        : inputdeck(i), userbc(u) {}
-      template< typename U > void operator()( brigand::type_<U> ) {
-        using tag::param;
-        using eq = typename brigand::front< U >;
-        using bc = typename brigand::back< U >;
-        for (const auto& s : inputdeck.get< param, eq, tag::bc, bc >())
-          if (!s.empty()) userbc.insert(s[0]);
-      }
-    };
-
     //! Verify boundary condition (BC) side sets used exist in mesh file
     bool matchBCs( std::map< int, std::vector< std::size_t > >& bnd );
 
     //! Print out mesh statistics
     void meshstat( const std::string& header ) const;
-
-    //! Generate list of input mesh filenames configured by the user
-    std::vector< std::string > input();
 };
 
 } // inciter::
-
-#endif // Transporter_h

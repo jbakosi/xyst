@@ -10,7 +10,7 @@
 */
 // *****************************************************************************
 
-#include "Macro.hpp"
+#include "Compiler.hpp"
 
 #if defined(__clang__)
   #pragma clang diagnostic push
@@ -137,7 +137,7 @@ centroids( const std::vector< std::size_t >& inpoel,
 }
 
 std::vector< std::size_t >
-geomPartMesh( tk::ctr::PartitioningAlgorithmType alg,
+geomPartMesh( const char* alg,
               const std::vector< std::size_t >& inpoel,
               const std::array< std::vector< tk::real >, 3 >& coord,
               int npart )
@@ -176,8 +176,7 @@ geomPartMesh( tk::ctr::PartitioningAlgorithmType alg,
   zz = Zoltan_Create( MPI_COMM_WORLD );
 
   Zoltan_Set_Param( zz, "DEBUG_LEVEL", "0" );
-  Zoltan_Set_Param( zz, "LB_METHOD",
-                    tk::ctr::PartitioningAlgorithm().param(alg).c_str() );
+  Zoltan_Set_Param( zz, "LB_METHOD", alg );
   Zoltan_Set_Param( zz, "LB_APPROACH", "PARTITION" );
   Zoltan_Set_Param( zz, "NUM_GID_ENTRIES", "1" );
   Zoltan_Set_Param( zz, "NUM_LID_ENTRIES", "1" );

@@ -25,7 +25,6 @@
 #include "Exception.hpp"
 #include "Tags.hpp"
 #include "StatCtr.hpp"
-#include "Options/TxtFloatFormat.hpp"
 
 namespace tk {
 //! Toolkit general purpose grammar definition
@@ -919,75 +918,6 @@ namespace grm {
   };
 
   //! Rule used to trigger action
-  template< typename prec > struct store_precision : pegtl::success {};
-  //! \brief Set numeric precision for ASCII output of floating-point values
-  //! \details This struct and its apply function are used as a functor-like
-  //!   wrapper for setting the precision used for outputing floating-point
-  //!   values into text files. We also make sure that the precision to be set
-  //!   is between the correct bounds of the underlying floating-point type.
-  //! \see kw::precision_info
-  template< class prec >
-  struct action< store_precision< prec > > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      using PrEx = kw::precision::info::expect;
-      std::string low( in.string() );
-      std::transform( begin(low), end(low), begin(low), ::tolower );
-      if (low == "max") {
-        const auto maxprec = PrEx::upper;
-        stack.template get< tag::prec, prec >() = maxprec;
-      } else {
-        PrEx::type precision = std::cout.precision();  // set default
-        try {   //try to convert matched str to int
-          precision = std::stol( in.string() );
-        }
-        catch ( std::exception& ) {
-          Message< Stack, ERROR, MsgKey::BADPRECISION >( stack, in );
-        }
-        // only set precision given if it makes sense
-        if (precision >= PrEx::lower && precision <= PrEx::upper)
-          stack.template get< tag::prec, prec >() = precision;
-        else
-          Message< Stack, WARNING, MsgKey::PRECISIONBOUNDS >( stack, in );
-      }
-    }
-  };
-
-  //! Rule used to trigger action
-  struct helpkw : pegtl::success {};
-  //! \brief Find keyword among all keywords and if found, store the keyword
-  //!    and its info on which help was requested behind tag::helpkw in Stack
-  //! \details This struct and its apply function are used as a functor-like
-  //!    wrapper to search for a keyword in the pool of registered keywords
-  //!    recognized by a grammar and store the keyword and its info on which
-  //!    help was requested behind tag::helpkw. Note that this functor assumes
-  //!    a specific location for the std::maps of the command-line and control
-  //!    file keywords pools (behind tag::cmdinfo and tag::ctrinfo,
-  //!    respectively), and for the keyword and its info on which help was
-  //!    requested (behind tag::helpkw). This is the structure of CmdLine
-  //!    objects, thus this functor should be called from command line parsers.
-  template<>
-  struct action< helpkw > {
-    template< typename Input, typename Stack >
-    static void apply( const Input& in, Stack& stack ) {
-      const auto& cmdinfo = stack.template get< tag::cmdinfo >();
-      const auto& ctrinfo = stack.template get< tag::ctrinfo >();
-      auto it = cmdinfo.find( in.string() );
-      if (it != cmdinfo.end()) {
-        // store keyword and its info on which help was requested
-        stack.template get< tag::helpkw >() = { it->first, it->second, true };
-      } else {
-        it = ctrinfo.find( in.string() );
-        if (it != ctrinfo.end())
-          // store keyword and its info on which help was requested
-          stack.template get< tag::helpkw >() = { it->first, it->second, false };
-        else
-          Message< Stack, ERROR, MsgKey::KEYWORD >( stack, in );
-      }
-    }
-  };
-
-  //! Rule used to trigger action
   template< typename push > struct match_depvar : pegtl::success {};
   //! \brief Match depvar (dependent variable) to one of the selected ones
   //! \details This is used to check the set of dependent variables previously
@@ -1380,13 +1310,6 @@ namespace grm {
            pegtl::seq< var, act< pegtl::plus< pegtl::digit >, save_field > >,
            var > {};
 
-  //! Match precision of floating-point numbers in digits (for text output)
-  template< template< class > class use, class prec >
-  struct precision :
-         process< use< kw::precision >,
-                  store_precision< prec >,
-                  pegtl::alnum > {};
-
   //! Match control parameter, enforce bounds if defined
   template< typename keyword, class kw_type, template< class... > class store,
             typename... tags >
@@ -1401,11 +1324,6 @@ namespace grm {
              tk::HasVar_expect_upper< typename keyword::info >::value,
              check_upper_bound< keyword, tags... >,
              pegtl::success >::type > {};
-
-  //! Match discretization control parameter
-  template< template< class > class use, typename keyword, typename Tag >
-  struct discrparam :
-           control< use< keyword >, pegtl::digit, Store, tag::discr, Tag > {};
 
   //! Match component control parameter
   template< typename keyword, typename Tag >
@@ -1434,20 +1352,6 @@ namespace grm {
            tk::grm::block< use< kw::end >,
              tk::grm::scan< tk::grm::number,
                tk::grm::Store_back_back< tag, tags... > > > > {};
-
-  //! Parse diagnostics ... end block
-  template< template< class > class use, template< class... Ts > class store >
-  struct diagnostics :
-         pegtl::if_must< readkw< typename use< kw::diagnostics >::pegtl_string >,
-                         block< use< kw::end >,
-                                interval_iter< use< kw::interval_iter >,
-                                  tag::output, tag::iter, tag::diag >,
-                                process< use< kw::txt_float_format >,
-                                         store< tk::ctr::TxtFloatFormat,
-                                                tag::flformat,
-                                                tag::diag >,
-                                         pegtl::alpha >,
-                                precision< use, tag::diag > > > {};
 
   //! Match model parameter
   template< typename keyword, typename kw_type, typename model, typename Tag >

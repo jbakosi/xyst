@@ -1,41 +1,31 @@
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+-- vim: filetype=lua:
 
-title "Scalar transport: slotted cylinder, cone, hump"
+print "Scalar transport: slotted cylinder, cone, hump"
 
-inciter
+nstep = 20
+-- term 1.57
+ttyi = 10
+cfl = 0.9
 
-  nstep 20
-  #term 1.57
-  ttyi 10
-  cfl 0.9
+part = "rcb"
 
-  partitioning
-   algorithm rcb
-  end
+problem = {
+  name = "slot_cyl"
+}
 
-  problem slot_cyl
+mat = { spec_heat_ratio = 5/3 }
 
-  compflow
-    depvar u
-    material
-      gamma 1.66666666666667 end
-    end
-    bc_dirichlet
-      sideset 1 1 1 1 1 1 1 end
-      sideset 2 1 1 1 1 1 0 end 
-    end
-  end
+bc_dir = {
+ { 1, 1, 1, 1, 1, 1, 1 },
+ { 2, 1, 1, 1, 1, 1, 0 }
+}
 
-  field_output
-    interval 100
-  end
+fieldout = {
+  iter = 100
+}
 
-  diagnostics
-    interval 1
-    format scientific
-    precision 12
-  end
-
-end
+diag = {
+  iter = 1,
+  format = "scientific",
+  precision = 12
+}

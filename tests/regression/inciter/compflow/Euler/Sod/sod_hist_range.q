@@ -1,48 +1,43 @@
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+-- vim: filetype=lua:
 
-title "Sod shocktube"
+print "Sod shocktube"
 
-inciter
+term = 0.2
+ttyi = 1
+cfl = 0.1
 
-  term 0.2
-  ttyi 1
-  cfl 0.1
+part = "rcb"
 
-  partitioning
-    algorithm rcb
-  end
+problem = {
+  name = "sod"
+}
 
-  problem sod
+mat = { spec_heat_ratio = 1.4 }
 
-  compflow
-    depvar u
-    material
-      gamma 1.4 end
-    end
-    bc_sym
-      sideset 2 4 5 6 end
-    end
-  end
+bc_sym = {
+  sideset = { 2, 4, 5, 6 }
+}
 
-  field_output
-    interval 10000
-  end
+fieldout = {
+  iter = 10000
+}
 
-  history_output
-    interval 20
-    time_interval 4.0e-3
-    time_range 0.1 0.15 1.0e-3 end
-    time_range 0.05 0.12 1.0e-5 end
-    point p1 0.1 0.05 0.025 end
-    point p2 0.9 0.05 0.025 end
-    point p3 0.5 0.05 0.025 end
-  end
+histout = {
+  iter = 20,
+  time = 4.0e-3,
+  range = {
+    { 0.1,  0.15, 1.0e-3 },
+    { 0.05, 0.12, 1.0e-5 }
+  },
+  points = {
+    { 0.1, 0.05, 0.025 },
+    { 0.9, 0.05, 0.025 },
+    { 0.5, 0.05, 0.025 }
+  },
+  precision = 6
+}
 
-  diagnostics
-    interval 1
-    format scientific
-  end
-
-end
+diag = {
+  iter = 1,
+  format = "scientific"
+}

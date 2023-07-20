@@ -12,39 +12,97 @@
      computational shock hydrodynamics tool, Inciter.
 */
 // *****************************************************************************
-#ifndef InciterInputDeck_h
-#define InciterInputDeck_h
-
-#include <limits>
-#include <iomanip>
-#include <iostream>
+#pragma once
 
 #include <brigand/algorithms/for_each.hpp>
 
-#include "NoWarning/set.hpp"
-
 #include "Inciter/CmdLine/CmdLine.hpp"
-#include "Inciter/Components.hpp"
-#include "Inciter/Options/Problem.hpp"
 
 namespace inciter {
 namespace ctr {
 
 //! Member data for tagged tuple
 using InputDeckMembers = brigand::list<
-    tag::cmd,           CmdLine
-  , tag::title,         kw::title::info::expect::type
-  , tag::amr,           amr
-  , tag::discr,         discretization
-  , tag::problem,       ProblemType
-  , tag::prec,          precision
-  , tag::flformat,      floatformat
-  , tag::component,     ncomps
-  , tag::sys,           std::map< tk::ctr::ncomp_t, tk::ctr::ncomp_t >
-  , tag::output,        output_parameters
-  , tag::param,         parameters
-  , tag::error,         std::vector< std::string >
-  , tag::history,       history
+    tag::cmd, CmdLine
+  , tag::nstep, uint64_t
+  , tag::ttyi, uint64_t
+  , tag::term, double
+  , tag::cfl, double
+  , tag::t0, double
+  , tag::dt, double
+  , tag::reorder, bool
+  , tag::steady, bool
+  , tag::residual, double
+  , tag::rescomp, uint64_t
+  , tag::problem, std::string
+  , tag::problem_ncomp, uint64_t
+  , tag::problem_alpha, double
+  , tag::problem_kappa, double
+  , tag::problem_beta, std::vector< double >
+  , tag::problem_r0, double
+  , tag::problem_p0, double
+  , tag::problem_ce, double
+  , tag::problem_source, tk::TaggedTuple< brigand::list<
+                             tag::location, std::vector< double >
+                           , tag::radius, double
+                           , tag::release_time, double
+                         > >
+  , tag::part, std::string
+  , tag::fieldout, std::vector< int >
+  , tag::fieldout_iter, uint64_t
+  , tag::fieldout_time, double
+  , tag::fieldout_range, std::vector< std::vector< double > >
+  , tag::histout, std::vector< std::vector< double > >
+  , tag::histout_iter, uint64_t
+  , tag::histout_time, double
+  , tag::histout_range, std::vector< std::vector< double > >
+  , tag::histout_precision, std::streamsize
+  , tag::histout_format, std::string
+  , tag::integout, std::vector< int >
+  , tag::integout_iter, uint64_t
+  , tag::integout_time, double
+  , tag::integout_range, std::vector< std::vector< double > >
+  , tag::integout_precision, std::streamsize
+  , tag::integout_format, std::string
+  , tag::diag_iter, uint64_t
+  , tag::diag_precision, std::streamsize
+  , tag::diag_format, std::string
+  , tag::ic, std::vector<
+               tk::TaggedTuple< brigand::list<
+                   tag::x,              std::vector< double >
+                 , tag::y,              std::vector< double >
+                 , tag::z,              std::vector< double >
+                 , tag::ic_density,     double
+                 , tag::ic_pressure,    double
+                 , tag::ic_energy,      double
+                 , tag::ic_temperature, double
+                 , tag::ic_velocity,    std::vector< double >
+               > >
+             >
+  , tag::ic_density, double
+  , tag::ic_pressure, double
+  , tag::ic_energy, double
+  , tag::ic_temperature, double
+  , tag::ic_velocity,  std::vector< double >
+  , tag::bc_dir, std::vector< std::vector< int > >
+  , tag::bc_sym, std::vector< int >
+  , tag::bc_far, std::vector< int >
+  , tag::bc_far_density, double
+  , tag::bc_far_pressure, double
+  , tag::bc_far_velocity, std::vector< double >
+  , tag::bc_pre, std::vector< std::vector< int > >
+  , tag::bc_pre_density, std::vector< double >
+  , tag::bc_pre_pressure, std::vector< double >
+  , tag::mat_spec_heat_ratio, double
+  , tag::mat_spec_heat_const_vol, double
+  , tag::mat_heat_conductivity, double
+  , tag::href_t0, bool
+  , tag::href_dt, bool
+  , tag::href_dtfreq, uint64_t
+  , tag::href_maxlevels, uint64_t
+  , tag::href_refvar, std::vector< uint64_t >
+  , tag::href_error, std::string
+  , tag::href_init, std::vector< std::string >
 >;
 
 //! \brief InputDeck : Control< specialized to Inciter >, see Types.h,
@@ -55,134 +113,6 @@ using InputDeckMembers = brigand::list<
 class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
 
   public:
-    //! \brief Inciter input deck keywords
-    //! \see tk::grm::use and its documentation
-    using keywords = brigand::set< kw::title
-                                 , kw::nstep
-                                 , kw::term
-                                 , kw::t0
-                                 , kw::dt
-                                 , kw::ttyi
-                                 , kw::transport
-                                 , kw::end
-                                 , kw::shear_diff
-                                 , kw::point_src
-                                 , kw::slot_cyl
-                                 , kw::problem
-                                 , kw::field_output
-                                 , kw::history_output
-                                 , kw::integral_output
-                                 , kw::refined
-                                 , kw::interval_iter
-                                 , kw::interval_time
-                                 , kw::time_range
-                                 , kw::partitioning
-                                 , kw::algorithm
-                                 , kw::rcb
-                                 , kw::rib
-                                 , kw::hsfc
-                                 , kw::phg
-                                 , kw::inciter
-                                 , kw::ncomp
-                                 , kw::pde_diffusivity
-                                 , kw::pde_lambda
-                                 , kw::pde_u0
-                                 , kw::pde_source
-                                 , kw::bc_dirichlet
-                                 , kw::sideset
-                                 , kw::compflow
-                                 , kw::ic
-                                 , kw::box
-                                 , kw::materialid
-                                 , kw::density
-                                 , kw::velocity
-                                 , kw::move
-                                 , kw::pressure
-                                 , kw::energy
-                                 , kw::temperature
-                                 , kw::xmin
-                                 , kw::xmax
-                                 , kw::ymin
-                                 , kw::ymax
-                                 , kw::zmin
-                                 , kw::zmax
-                                 , kw::txt_float_format
-                                 , kw::txt_float_default
-                                 , kw::txt_float_fixed
-                                 , kw::txt_float_scientific
-                                 , kw::precision
-                                 , kw::diagnostics
-                                 , kw::mesh
-                                 , kw::filename
-                                 , kw::location
-                                 , kw::orientation
-                                 , kw::reference
-                                 , kw::material
-                                 , kw::id
-                                 , kw::eos
-                                 , kw::mat_gamma
-                                 , kw::mat_mu
-                                 , kw::mat_cv
-                                 , kw::mat_k
-                                 , kw::physics
-                                 , kw::advection
-                                 , kw::advdiff
-                                 , kw::navierstokes
-                                 , kw::euler
-                                 , kw::user_defined
-                                 , kw::vortical_flow
-                                 , kw::pde_alpha
-                                 , kw::pde_beta
-                                 , kw::pde_p0
-                                 , kw::cfl
-                                 , kw::depvar
-                                 , kw::nonlin_ener_growth
-                                 , kw::pde_betax
-                                 , kw::pde_betay
-                                 , kw::pde_betaz
-                                 , kw::pde_ce
-                                 , kw::pde_kappa
-                                 , kw::pde_r0
-                                 , kw::rayleigh_taylor
-                                 , kw::taylor_green
-                                 , kw::pelocal_reorder
-                                 , kw::steady_state
-                                 , kw::residual
-                                 , kw::rescomp
-                                 , kw::amr
-                                 , kw::amr_t0ref
-                                 , kw::amr_dtref
-                                 , kw::amr_dtref_uniform
-                                 , kw::amr_dtfreq
-                                 , kw::amr_maxlevels
-                                 , kw::amr_initial
-                                 , kw::amr_uniform
-                                 , kw::amr_uniform_deref
-                                 , kw::amr_initial_cond
-                                 , kw::amr_coords
-                                 , kw::amr_error
-                                 , kw::amr_jump
-                                 , kw::amr_hessian
-                                 , kw::amr_refvar
-                                 , kw::amr_tolref
-                                 , kw::amr_tolderef
-                                 , kw::amr_edgelist
-                                 , kw::amr_xminus
-                                 , kw::amr_xplus
-                                 , kw::amr_yminus
-                                 , kw::amr_yplus
-                                 , kw::amr_zminus
-                                 , kw::amr_zplus
-                                 , kw::bc_sym
-                                 , kw::bc_farfield
-                                 , kw::bc_pressure
-                                 , kw::point
-                                 , kw::radius
-                                 , kw::rotated_sod
-                                 , kw::sod
-                                 , kw::sedov
-                                 >;
-
     //! Set of tags to ignore when printing this InputDeck
     using ignore = CmdLine::ignore;
 
@@ -193,52 +123,6 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
     explicit InputDeck( const CmdLine& cl = {} ) {
       // Set previously parsed command line
       get< tag::cmd >() = cl;
-      // Default discretization parameters
-      get< tag::discr, tag::nstep >() =
-         std::numeric_limits< kw::nstep::info::expect::type >::max();
-      get< tag::discr, tag::term >() =
-         std::numeric_limits< kw::term::info::expect::type >::max();
-      get< tag::discr, tag::t0 >() = 0.0;
-      get< tag::discr, tag::dt >() = 0.0;
-      get< tag::discr, tag::cfl >() = 0.0;
-      get< tag::discr, tag::pelocal_reorder >() = false;
-      get< tag::discr, tag::steady_state >() = false;
-      get< tag::discr, tag::residual >() = 0.0;
-      get< tag::discr, tag::rescomp >() = 1;
-      // Default AMR settings
-      get< tag::amr, tag::amr >() = false;
-      get< tag::amr, tag::t0ref >() = false;
-      get< tag::amr, tag::dtref >() = false;
-      get< tag::amr, tag::dtref_uniform >() = false;
-      get< tag::amr, tag::dtfreq >() = 3;
-      get< tag::amr, tag::maxlevels >() = 2;
-      get< tag::amr, tag::error >() = AMRErrorType::JUMP;
-      get< tag::amr, tag::tolref >() = 0.2;
-      get< tag::amr, tag::tolderef >() = 0.05;
-      auto rmax =
-        std::numeric_limits< kw::amr_xminus::info::expect::type >::max() / 100;
-      get< tag::amr, tag::xminus >() = rmax;
-      get< tag::amr, tag::xplus >() = -rmax;
-      get< tag::amr, tag::yminus >() = rmax;
-      get< tag::amr, tag::yplus >() = -rmax;
-      get< tag::amr, tag::zminus >() = rmax;
-      get< tag::amr, tag::zplus >() = -rmax;
-      // Default txt floating-point output precision in digits
-      get< tag::prec, tag::diag >() = std::cout.precision();
-      get< tag::prec, tag::history >() = std::cout.precision();
-      get< tag::prec, tag::integral >() = std::cout.precision();
-      // Default intervals
-      get< tag::output, tag::iter, tag::tty >() = 1;
-      get< tag::output, tag::iter, tag::diag >() = 1;
-      get< tag::output, tag::iter, tag::field >() =
-        std::numeric_limits< kw::interval_iter::info::expect::type >::max();
-      get< tag::output, tag::iter, tag::history >() =
-        std::numeric_limits< kw::interval_iter::info::expect::type >::max();
-      get< tag::output, tag::iter, tag::integral >() =
-        std::numeric_limits< kw::interval_iter::info::expect::type >::max();
-      // Initialize help: fill own keywords
-      const auto& ctrinfoFill = tk::ctr::Info( get< tag::cmd, tag::ctrinfo >() );
-      brigand::for_each< keywords >( ctrinfoFill );
     }
 
     /** @name Pack/Unpack: Serialize InputDeck object for Charm++ */
@@ -251,86 +135,7 @@ class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
     //! \param[in,out] i InputDeck object reference
     friend void operator|( PUP::er& p, InputDeck& i ) { i.pup(p); }
     //@}
-
-    //! Extract surface side set ids along which user wants to save fields
-    //! \return Unique set of surface side set ids along which user wants to
-    //!   save solution field variables
-    //! \note This returns an ordered set so the order of the set ids are
-    //!   always the same.
-    std::set< int > fieldoutsets() const {
-      std::set< int > ids;
-      for (const auto& s : get< tag::cmd, tag::io, tag::surface, tag::field >())
-        ids.insert( s );
-      return ids;
-    }
-
-    //! Extract surface side set ids along which user wants to integrals
-    //! \return Unique set of surface side set ids along which user wants to
-    //!   save solution integral variables
-    //! \note This returns an ordered set so the order of the set ids are
-    //!   always the same.
-    std::set< int > integraloutsets() const {
-      std::set< int > ids;
-      const auto& sidesets_integral =
-        get< tag::cmd, tag::io, tag::surface, tag::integral >();
-      for (const auto& s : sidesets_integral) ids.insert( s );
-      return ids;
-    }
-
-    //! Extract list of mesh filenames (each assigned to a solver)
-    std::vector< std::string > mesh() const {
-      //using PDETypes = parameters::Keys;
-      std::vector< std::string > meshes;
-      //brigand::for_each< PDETypes >( Meshes( *this, meshes ) );
-      return meshes;
-    }
-
-    //! Extract list of dependent variables (each configuring a solver)
-    std::vector< char > depvar() const {
-      //using PDETypes = parameters::Keys;
-      std::vector< char > depvar;
-      //brigand::for_each< PDETypes >( Depvar( *this, depvar ) );
-      return depvar;
-    }
-
-  private:
-    //! Function object to extract the mesh filenames assigned to solvers
-    //! \details This is instantiated for all PDE types at compile time. It goes
-    //!   through all configured solvers (equation system configuration blocks)
-    //!   and builds a list of all mesh filenames associated to all solvers in
-    //!   the input file.
-    struct Meshes {
-      const InputDeck& inputdeck;
-      std::vector< std::string >& filenames;
-      explicit Meshes( const InputDeck& i, std::vector< std::string >& f )
-        : inputdeck(i), filenames(f) {}
-      template< typename eq > void operator()( brigand::type_<eq> ) {
-        const auto& eq_mesh_filename =
-           inputdeck.get< tag::param, eq, tag::mesh, tag::filename >();
-        // cppcheck-suppress useStlAlgorithm
-        for (const auto& f : eq_mesh_filename) filenames.push_back( f );
-      }
-    };
-
-    //! Function object to extract the dependent variables assigned to solvers
-    //! \details This is instantiated for all PDE types at compile time. It goes
-    //!   through all configured solvers (equation system configuration blocks)
-    //!   and builds a list of all dependent variables associated to all solvers
-    //!   in the input file.
-    struct Depvar {
-      const InputDeck& inputdeck;
-      std::vector< char >& depvar;
-      explicit Depvar( const InputDeck& i, std::vector< char >& d ) :
-        inputdeck(i), depvar(d) {}
-      template< typename eq > void operator()( brigand::type_<eq> ) {
-        const auto& eq_depvar = inputdeck.get< tag::param, eq, tag::depvar >();
-        // cppcheck-suppress useStlAlgorithm
-        for (const auto& d : eq_depvar) depvar.push_back( d );
-      }
-    };
 };
 
 } // ctr::
 } // inciter::
-
-#endif // InciterInputDeck_h

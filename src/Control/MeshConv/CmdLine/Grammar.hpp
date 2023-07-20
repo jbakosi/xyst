@@ -44,12 +44,6 @@ namespace cmd {
   struct help :
          tk::grm::process_cmd_switch< use, kw::help, tag::help > {};
 
-  //! Match help on a single command-line or control file keyword
-  struct helpkw :
-         tk::grm::process_cmd< use, kw::helpkw,
-                               tk::grm::helpkw,
-                               pegtl::alnum > {};
-
   //! Match raise_signal
   struct raise_signal :
          tk::grm::process_cmd< use, kw::raise_signal,
@@ -75,7 +69,6 @@ namespace cmd {
   struct keywords :
          pegtl::sor< reorder,
                      help,
-                     helpkw,
                      quiescence,
                      trace,
                      version,

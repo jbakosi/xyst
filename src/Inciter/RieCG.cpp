@@ -43,6 +43,7 @@ static const std::array< tk::real, 3 > rkcoef{{ 1.0/3.0, 1.0/2.0, 1.0 }};
 
 } // inciter::
 
+using inciter::g_inputdeck;
 using inciter::RieCG;
 
 RieCG::RieCG( const CProxy_Discretization& disc,
@@ -59,14 +60,13 @@ RieCG::RieCG( const CProxy_Discretization& disc,
   m_bnode( bnode ),
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
-  m_u( Disc()->Gid().size(),
-       g_inputdeck.get< tag::component, tag::compflow >()[0] ),
+  m_u( Disc()->Gid().size(), g_inputdeck.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
   m_grad( m_u.nunk(), m_u.nprop()*3 ),
   m_stage( 0 ),
   m_dtp( m_u.nunk(), 0.0 ),
-  m_tp( m_u.nunk(), g_inputdeck.get< tag::discr, tag::t0 >() ),
+  m_tp( m_u.nunk(), g_inputdeck.get< tag::t0 >() ),
   m_finished( 0 )
 // *****************************************************************************
 //  Constructor
@@ -115,20 +115,24 @@ RieCG::setupBC()
 // Prepare boundary condition data structures
 // *****************************************************************************
 {
-  using inciter::g_inputdeck; using tag::param; using tag::compflow;
-  using tag::bc; using tag::pressure_density; using tag::pressure_pressure;
-
-  auto d = Disc();
-
   // Query Dirichlet BC nodes associated to side sets
-  // cppcheck-suppress unreadVariable
-  auto dir = d->bcnodes< bc, tag::dirichlet >( m_bface, m_triinpoel );
-
-  auto ncomp = m_u.nprop();
-  auto nmask = ncomp + 1;
+  std::unordered_map< int, std::unordered_set< std::size_t > > dir;
+  for (const auto& s : g_inputdeck.get< tag::bc_dir >()) {
+    auto k = m_bface.find(s[0]);
+    if (k != end(m_bface)) {
+      auto& n = dir[ k->first ];
+      for (auto f : k->second) {
+        n.insert( m_triinpoel[f*3+0] );
+        n.insert( m_triinpoel[f*3+1] );
+        n.insert( m_triinpoel[f*3+2] );
+      }
+    }
+  }
 
   // Collect unique set of nodes + Dirichlet BC components mask
-  const auto& dbc = g_inputdeck.get< param, compflow, bc, tag::dirichlet >();
+  auto ncomp = m_u.nprop();
+  auto nmask = ncomp + 1;
+  const auto& dbc = g_inputdeck.get< tag::bc_dir >();
   std::unordered_map< std::size_t, std::vector< int > > dirbcset;
   for (const auto& mask : dbc) {
     ErrChk( mask.size() == nmask, "Incorrect Dirichlet BC mask ncomp" );
@@ -141,27 +145,36 @@ RieCG::setupBC()
           if (!m[c]) m[c] = mask[c+1];  // overwrite mask if 0 -> 1
       }
   }
-
   // Compile streamable list of nodes + Dirichlet BC components mask
   tk::destroy( m_dirbcmasks );
   for (const auto& [p,mask] : dirbcset) {
     m_dirbcmasks.push_back( p );
     m_dirbcmasks.insert( end(m_dirbcmasks), begin(mask), end(mask) );
   }
-
   ErrChk( m_dirbcmasks.size() % nmask == 0, "Dirichlet BC masks incomplete" );
 
-
   // Query pressure BC nodes associated to side sets
-  // cppcheck-suppress unreadVariable
-  auto pre = d->bcnodes< bc, tag::pressure >( m_bface, m_triinpoel );
+  std::unordered_map< int, std::unordered_set< std::size_t > > pre;
+  for (const auto& ss : g_inputdeck.get< tag::bc_pre >()) {
+    for (const auto& s : ss) {
+      auto k = m_bface.find(s);
+      if (k != end(m_bface)) {
+        auto& n = pre[ k->first ];
+        for (auto f : k->second) {
+          n.insert( m_triinpoel[f*3+0] );
+          n.insert( m_triinpoel[f*3+1] );
+          n.insert( m_triinpoel[f*3+2] );
+        }
+      }
+    }
+  }
 
   // Prepare density and pressure values for pressure BC nodes
-  const auto& pbc_set = g_inputdeck.get< param, compflow, bc, tag::pressure >();
+  const auto& pbc_set = g_inputdeck.get< tag::bc_pre >();
   if (!pbc_set.empty()) {
-    const auto& pbc_r = g_inputdeck.get< param, compflow, pressure_density >();
+    const auto& pbc_r = g_inputdeck.get< tag::bc_pre_density >();
     ErrChk( pbc_r.size() == pbc_set.size(), "Pressure BC density unspecified" );
-    const auto& pbc_p = g_inputdeck.get< param, compflow, pressure_pressure >();
+    const auto& pbc_p = g_inputdeck.get< tag::bc_pre_pressure >();
     ErrChk( pbc_p.size() == pbc_set.size(), "Pressure BC pressure unspecified" );
     tk::destroy( m_prebcnodes );
     tk::destroy( m_prebcvals );
@@ -182,11 +195,33 @@ RieCG::setupBC()
             "Pressure BC data incomplete" );
   }
 
-
   // Query symmetry BC nodes associated to side sets
-  auto sym = d->bcnodes< bc, tag::symmetry >( m_bface, m_triinpoel );
+  std::unordered_map< int, std::unordered_set< std::size_t > > sym;
+  for (auto s : g_inputdeck.get< tag::bc_sym >()) {
+    auto k = m_bface.find(s);
+    if (k != end(m_bface)) {
+      auto& n = sym[ k->first ];
+      for (auto f : k->second) {
+        n.insert( m_triinpoel[f*3+0] );
+        n.insert( m_triinpoel[f*3+1] );
+        n.insert( m_triinpoel[f*3+2] );
+      }
+    }
+  }
+
   // Query farfield BC nodes associated to side sets
-  auto far = d->bcnodes< bc, tag::farfield >( m_bface, m_triinpoel );
+  std::unordered_map< int, std::unordered_set< std::size_t > > far;
+  for (auto s : g_inputdeck.get< tag::bc_far >()) {
+    auto k = m_bface.find(s);
+    if (k != end(m_bface)) {
+      auto& n = far[ k->first ];
+      for (auto f : k->second) {
+        n.insert( m_triinpoel[f*3+0] );
+        n.insert( m_triinpoel[f*3+1] );
+        n.insert( m_triinpoel[f*3+2] );
+      }
+    }
+  }
 
   // Generate unique set of symmetry BC nodes
   tk::destroy( m_symbcnodeset );
@@ -431,8 +466,7 @@ RieCG::setup()
   d->boxvol( boxnodes );
 
   // Query time history field output labels from all PDEs integrated
-  const auto& hist_points = g_inputdeck.get< tag::history, tag::point >();
-  if (!hist_points.empty()) {
+  if (!g_inputdeck.get< tag::histout >().empty()) {
     std::vector< std::string > var
       {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
     auto ncomp = m_u.nprop();
@@ -539,10 +573,10 @@ RieCG::streamable()
   }
 
   // Query surface integral output nodes
-  const auto& sidesets_integral =
-    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
-  for (auto s : sidesets_integral) {
+  const auto& is = g_inputdeck.get< tag::integout >();
+  std::set< int > outsets( begin(is), end(is) );
+  for (auto s : outsets) {
     auto m = m_bface.find(s);
     if (m != end(m_bface)) {
       auto& n = surfintnodes[ m->first ];       // associate set id
@@ -583,12 +617,10 @@ RieCG::streamable()
   tk::destroy( m_domedgeint );
 
   // Convert symmetry BC data to streamable data structures
-  const auto& sbc =
-    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::symmetry >();
   tk::destroy( m_symbcnodes );
   tk::destroy( m_symbcnorms );
   for (auto p : m_symbcnodeset) {
-    for (const auto& s : sbc[0]) {
+    for (const auto& s : g_inputdeck.get< tag::bc_sym >()) {
       auto m = m_bnorm.find(s);
       if (m != end(m_bnorm)) {
         auto r = m->second.find(p);
@@ -604,12 +636,10 @@ RieCG::streamable()
   tk::destroy( m_symbcnodeset );
 
   // Convert farfield BC data to streamable data structures
-  const auto& fbc =
-    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::farfield >();
   tk::destroy( m_farbcnodes );
   tk::destroy( m_farbcnorms );
   for (auto p : m_farbcnodeset) {
-    for (const auto& s : fbc[0]) {
+    for (const auto& s : g_inputdeck.get< tag::bc_far >()) {
       auto n = m_bnorm.find(s);
       if (n != end(m_bnorm)) {
         auto a = n->second.find(p);
@@ -897,8 +927,8 @@ RieCG::dt()
 {
   tk::real mindt = std::numeric_limits< tk::real >::max();
 
-  auto const_dt = g_inputdeck.get< tag::discr, tag::dt >();
-  auto def_const_dt = g_inputdeck_defaults.get< tag::discr, tag::dt >();
+  auto const_dt = g_inputdeck.get< tag::dt >();
+  auto def_const_dt = g_inputdeck_defaults.get< tag::dt >();
   auto eps = std::numeric_limits< tk::real >::epsilon();
 
   auto d = Disc();
@@ -911,7 +941,7 @@ RieCG::dt()
 
   } else {      // compute dt based on CFL
 
-    if (g_inputdeck.get< tag::discr, tag::steady_state >()) {
+    if (g_inputdeck.get< tag::steady >()) {
 
       // compute new dt for each mesh point
       physics::dt( d->Vol(), m_u, m_dtp );
@@ -1022,12 +1052,10 @@ RieCG::rhs()
     for (std::size_t c=0; c<m_grad.nprop(); ++c)
       m_grad(p,c,0) /= vol[p];
 
-  const auto steady = g_inputdeck.get< tag::discr, tag::steady_state >();
-
   // Compute own portion of right-hand side for all equations
   auto prev_rkcoef = m_stage == 0 ? 0.0 : rkcoef[m_stage-1];
 
-  if (steady) {
+  if (g_inputdeck.get< tag::steady >()) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
   }
 
@@ -1035,7 +1063,7 @@ RieCG::rhs()
     m_bpoin, m_bpint, m_bpsym, d->Coord(), m_grad, m_u, d->V(), d->T(),
     m_tp, m_rhs );
 
-  if (steady) {
+  if (g_inputdeck.get< tag::steady >()) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= prev_rkcoef * m_dtp[p];
   }
 
@@ -1103,9 +1131,9 @@ RieCG::solve()
   if (m_stage == 0) m_un = m_u;
 
   // Solve the sytem
-  if (g_inputdeck.get< tag::discr, tag::steady_state >()) {
+  if (g_inputdeck.get< tag::steady >()) {
 
-    // Advance solution, converging to steady state
+    // Advance solution, converging to stationary state
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
       for (std::size_t c=0; c<m_u.nprop(); ++c) {
         m_u(i,c,0) = m_un(i,c,0) - rkcoef[m_stage] * m_dtp[i] * m_rhs(i,c,0);
@@ -1114,7 +1142,7 @@ RieCG::solve()
 
   } else {
 
-    // Advance unsteady solution
+    // Advance non-stationary solution
     m_u = m_un - rkcoef[m_stage] * d->Dt() * m_rhs;
 
   }
@@ -1144,7 +1172,7 @@ RieCG::solve()
     // Increase number of iterations and physical time
     d->next();
     // Advance physical time for local time stepping
-    if (g_inputdeck.get< tag::discr, tag::steady_state >()) {
+    if (g_inputdeck.get< tag::steady >()) {
       using tk::operator+=;
       m_tp += m_dtp;
     }
@@ -1164,10 +1192,10 @@ RieCG::refine( const std::vector< tk::real >& l2res )
 {
   auto d = Disc();
 
-  if (g_inputdeck.get< tag::discr, tag::steady_state >()) {
+  if (g_inputdeck.get< tag::steady >()) {
 
-    const auto residual = g_inputdeck.get< tag::discr, tag::residual >();
-    const auto rc = g_inputdeck.get< tag::discr, tag::rescomp >() - 1;
+    const auto residual = g_inputdeck.get< tag::residual >();
+    const auto rc = g_inputdeck.get< tag::rescomp >() - 1;
 
     // this is the last time step if max time of max number of time steps
     // reached or the residual has reached its convergence criterion
@@ -1183,8 +1211,8 @@ RieCG::refine( const std::vector< tk::real >& l2res )
 
   }
 
-  auto dtref = g_inputdeck.get< tag::amr, tag::dtref >();
-  auto dtfreq = g_inputdeck.get< tag::amr, tag::dtfreq >();
+  auto dtref = g_inputdeck.get< tag::href_dt >();
+  auto dtfreq = g_inputdeck.get< tag::href_dtfreq >();
 
   // if t>0 refinement enabled and we hit the frequency
   if (dtref && !(d->It() % dtfreq)) {   // refine
@@ -1362,7 +1390,9 @@ RieCG::writeFields( CkCallback cb )
 
   const auto& lid = d->Lid();
   auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
-  for (auto sideset : g_inputdeck.fieldoutsets()) {
+  const auto& f = g_inputdeck.get< tag::fieldout >();
+  std::set< int > outsets( begin(f), end(f) );
+  for (auto sideset : outsets) {
     auto b = bnode.find(sideset);
     if (b == end(bnode)) continue;
     const auto& nodes = b->second;
@@ -1440,7 +1470,7 @@ RieCG::integrals()
 {
   auto d = Disc();
 
-  if (d->intiter() or d->inttime() or d->intrange()) {
+  if (d->integiter() or d->integtime() or d->integrange()) {
     using namespace integrals;
     std::vector< std::map< int, tk::real > > ints( NUMINT );
     // Prepend integral vector with metadata on the current time step:

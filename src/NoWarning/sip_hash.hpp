@@ -13,7 +13,7 @@
 #ifndef nowarning_sip_hash_h
 #define nowarning_sip_hash_h
 
-#include "Macro.hpp"
+#include "Compiler.hpp"
 
 #if defined(__clang__)
   #pragma clang diagnostic push

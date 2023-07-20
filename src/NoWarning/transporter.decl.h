@@ -13,7 +13,7 @@
 #ifndef nowarning_transporter_decl_h
 #define nowarning_transporter_decl_h
 
-#include "Macro.hpp"
+#include "Compiler.hpp"
 
 #if defined(__clang__)
   #pragma clang diagnostic push

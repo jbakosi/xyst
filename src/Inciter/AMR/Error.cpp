@@ -18,7 +18,6 @@
 #include "Error.hpp"
 #include "Vector.hpp"
 #include "Gradients.hpp"
-#include "Inciter/Options/AMRError.hpp"
 
 using AMR::Error;
 
@@ -30,7 +29,7 @@ Error::scalar( const tk::Fields& u,
                const std::vector< std::size_t >& inpoel,
                const std::pair< std::vector< std::size_t >,
                                 std::vector< std::size_t > >& esup,
-               inciter::ctr::AMRErrorType err ) const
+               const std::string& err ) const
 // *****************************************************************************
 //  Estimate error for scalar quantity
 //! \param[in] u Solution vector
@@ -44,12 +43,13 @@ Error::scalar( const tk::Fields& u,
 //! \return Error indicator: a real number between [0...1] inclusive
 // *****************************************************************************
 {
-  if (err == inciter::ctr::AMRErrorType::JUMP)
+  if (err == "jump") {
     return error_jump( u, edge, c );
-  else if (err == inciter::ctr::AMRErrorType::HESSIAN)
+  } else if (err == "hessian") {
     return error_hessian( u, edge, c, coord, inpoel, esup );
-  else
+  } else {
     Throw( "No such AMR error indicator type" );
+  }
 }
 
 tk::real

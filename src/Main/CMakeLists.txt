@@ -73,7 +73,6 @@ if (ENABLE_TESTS)
                  ../../tests/unit/Base/TestLoadDistributor.cpp
                  ../../tests/unit/Control/TestFileParser.cpp
                  ../../tests/unit/Control/TestStringParser.cpp
-                 ../../tests/unit/Control/TestSystemComponents.cpp
                  ../../tests/unit/Control/TestToggle.cpp
                  ../../tests/unit/Inciter/AMR/TestError.cpp
                  ../../tests/unit/IO/TestExodusIIMeshReader.cpp

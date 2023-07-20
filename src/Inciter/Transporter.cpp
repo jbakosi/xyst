@@ -17,13 +17,10 @@
 // *****************************************************************************
 
 #include <string>
-#include <iostream>
+#include <iomanip>
 #include <cstddef>
 #include <unordered_set>
-#include <limits>
-#include <cmath>
 
-#include "Macro.hpp"
 #include "Transporter.hpp"
 #include "Fields.hpp"
 #include "UniPDF.hpp"
@@ -54,7 +51,7 @@ extern ctr::InputDeck g_inputdeck_defaults;
 using inciter::Transporter;
 
 Transporter::Transporter() :
-  m_input( input() ),
+  m_input{ g_inputdeck.get< tag::cmd, tag::io, tag::input >() },
   m_nchare( m_input.size() ),
   m_meshid(),
   m_ncit( m_nchare.size(), 0 ),
@@ -90,10 +87,10 @@ Transporter::Transporter() :
 //  Constructor
 // *****************************************************************************
 {
-  const auto nstep = g_inputdeck.get< tag::discr, tag::nstep >();
-  const auto t0 = g_inputdeck.get< tag::discr, tag::t0 >();
-  const auto term = g_inputdeck.get< tag::discr, tag::term >();
-  const auto constdt = g_inputdeck.get< tag::discr, tag::dt >();
+  const auto nstep = g_inputdeck.get< tag::nstep >();
+  const auto t0 = g_inputdeck.get< tag::t0 >();
+  const auto term = g_inputdeck.get< tag::term >();
+  const auto constdt = g_inputdeck.get< tag::dt >();
 
   // If the desired max number of time steps is larger than zero, and the
   // termination time is larger than the initial time, and the constant time
@@ -130,44 +127,8 @@ Transporter::Transporter( CkMigrateMessage* m ) :
 // *****************************************************************************
 {
    auto print = tk::Print();
-   print << "Restarted from checkpoint\n";
+   print << "\nRestarted from checkpoint\n";
    inthead( print );
-}
-
-std::vector< std::string >
-Transporter::input()
-// *****************************************************************************
-// Generate list of input mesh filenames configured by the user
-//! \return List of input mesh filenames configured by the user
-//! \details If the input file is given on the command line, a single solver
-//!   will be instantiated on the single mesh, solving potentially multiple
-//!   systems of (potentially coupled) equations. If the input file is not given
-//!   on the command line, the mesh files are expected to be configured in the
-//!   control/input file, associating a potentially different mesh to each
-//!   solver. Both configurations allow the solution of coupled systems, but the
-//!   first one solves all equations on the same mesh, while the latter can
-//!   couple solutions computed on multiple different meshes.
-// *****************************************************************************
-{
-  // Query input mesh filename specified on the command line
-  const auto& cmdinput = g_inputdeck.get< tag::cmd, tag::io, tag::input >();
-
-  // Extract mesh filenames specified in the control file (assigned to solvers)
-  auto ctrinput = g_inputdeck.mesh();
-
-  ErrChk( not cmdinput.empty() or not ctrinput.empty(),
-    "Either a single input mesh must be given on the command line or multiple "
-    "meshes must be configured in the control file." );
-
-   // Prepend control file path to mesh filenames in given in control file
-  if (not ctrinput.empty()) {
-     const auto& ctr = g_inputdeck.get< tag::cmd, tag::io, tag::control >();
-     auto path = ctr.substr( 0, ctr.find_last_of("/")+1 );
-    // cppcheck-suppress useStlAlgorithm
-     for (auto& f : ctrinput) f = path + f;
-  }
-
-  if (cmdinput.empty()) return ctrinput; else return { cmdinput };
 }
 
 bool
@@ -188,25 +149,29 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
 //! \return True if sidesets have been used and found in mesh
 // *****************************************************************************
 {
-  using tag::param; using tag::bc; using eq = tag::compflow;
+  std::unordered_set< int > usersets;
 
   // Collect side sets at which BCs are set
-  std::unordered_set< int > usersets;
-  for (const auto& s : g_inputdeck.get< param, eq, bc, tag::dirichlet >())
-    if (!s.empty()) usersets.insert( s[0] );
-  for (const auto& s : g_inputdeck.get< param, eq, bc, tag::symmetry >())
-    usersets.insert( s.begin(), s.end() );
-  for (const auto& s : g_inputdeck.get< param, eq, bc, tag::farfield >())
-    usersets.insert( s.begin(), s.end() );
+  for (const auto& s : g_inputdeck.get< tag::bc_dir >()) {
+    if (!s.empty()) {
+      usersets.insert( s[0] );
+    }
+  }
+
+  for (auto s : g_inputdeck.get< tag::bc_sym >()) usersets.insert( s );
+
+  for (auto s : g_inputdeck.get< tag::bc_far >()) usersets.insert( s );
+ 
+  for (auto s : g_inputdeck.get< tag::bc_pre >()) {
+    if (!s.empty()) {
+      usersets.insert( s[0] );
+    }
+  }
  
   // Add sidesets requested for field output
-  const auto& sidesets_field =
-    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::field >();
-  for (auto s : sidesets_field) usersets.insert( s );
+  for (auto s : g_inputdeck.get< tag::fieldout >()) usersets.insert( s );
   // Add sidesets requested for integral output
-  const auto& sidesets_integral =
-    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
-  for (auto s : sidesets_integral) usersets.insert( s );
+  for (auto s : g_inputdeck.get< tag::integout >()) usersets.insert( s );
 
   // Find user-configured side set ids among side sets read from mesh file
   std::unordered_set< int > sidesets_used;
@@ -362,9 +327,7 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
 
     // Print out mesh partitioning configuration
     print.section( "Partitioning mesh" );
-    tk::ctr::PartitioningAlgorithm alg;
-    print.item( alg.group(),
-                alg.name( g_inputdeck.get< tag::discr, tag::partitioner >() ) );
+    print.item( "Partitioner", g_inputdeck.get< tag::part >() );
     print.item( "Virtualization [0.0...1.0]",
                 g_inputdeck.get< tag::cmd, tag::virtualization >() );
     // Print out initial mesh statistics
@@ -375,13 +338,13 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
 
     // Query number of initial mesh refinement steps
     int nref = 0;
-    if (g_inputdeck.get< tag::amr, tag::t0ref >())
-      nref = static_cast<int>(g_inputdeck.get< tag::amr, tag::init >().size());
+    if (g_inputdeck.get< tag::href_t0 >()) {
+      nref = static_cast<int>(g_inputdeck.get< tag::href_init >().size());
+    }
 
     // Query if PE-local reorder is configured
     int nreord = 0;
-    if (g_inputdeck.get< tag::discr, tag::pelocal_reorder >())
-      nreord = m_nchare[0];
+    if (g_inputdeck.get< tag::reorder >()) nreord = m_nchare[0];
 
     m_progMesh.start( print, "Preparing mesh", {{ CkNumPes(), CkNumPes(), nref,
       m_nchare[0], m_nchare[0], nreord, nreord }} );
@@ -521,12 +484,11 @@ Transporter::matched( std::size_t summeshid,
     if (refmode == Refiner::RefMode::T0REF) {
 
       if (!g_inputdeck.get< tag::cmd, tag::feedback >()) {
-        const auto& initref = g_inputdeck.get< tag::amr, tag::init >();
-        ctr::AMRInitial opt;
+        const auto& initref = g_inputdeck.get< tag::href_init >();
         print.diag( { "meshid", "t0ref", "type", "nref", "nderef", "ncorr" },
                     { std::to_string(meshid),
                       std::to_string(m_nt0refit[meshid]),
-                      opt.code(initref[m_nt0refit[meshid]]),
+                      initref[ m_nt0refit[ meshid ] ],
                       std::to_string(nref),
                       std::to_string(nderef),
                       std::to_string(m_ncit[meshid]) } );
@@ -536,11 +498,10 @@ Transporter::matched( std::size_t summeshid,
 
     } else if (refmode == Refiner::RefMode::DTREF) {
 
-      auto dtref_uni = g_inputdeck.get< tag::amr, tag::dtref_uniform >();
       print.diag( { "meshid", "dtref", "type", "nref", "nderef", "ncorr" },
                   { std::to_string(meshid),
                     std::to_string(++m_ndtrefit[meshid]),
-                    (dtref_uni?"uniform":"error"),
+                    "error",
                     std::to_string(nref),
                     std::to_string(nderef),
                     std::to_string(m_ncit[meshid]) },
@@ -699,14 +660,15 @@ Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
   auto meshid = tk::cref_find( m_meshid, summeshid );
 
   // Update number of mesh points for mesh, since it may have been refined
-  if (g_inputdeck.get< tag::amr, tag::t0ref >()) m_npoin[meshid] = npoin;
+  if (g_inputdeck.get< tag::href_t0 >()) m_npoin[meshid] = npoin;
 
   if (++m_ndisc == m_nelem.size()) { // all Disc arrays have been created
     m_ndisc = 0;
     tk::Print print;
     m_progMesh.end( print );
-    if (g_inputdeck.get< tag::amr, tag::t0ref >())
+    if (g_inputdeck.get< tag::href_t0 >()) {
       meshstat( "Initially (t<0) refined mesh graph statistics" );
+    }
   }
 
   m_refiner[ meshid ].sendProxy();
@@ -732,12 +694,12 @@ Transporter::diagHeader()
 {
   // Output header for diagnostics output file
   tk::DiagWriter dw( g_inputdeck.get< tag::cmd, tag::io, tag::diag >(),
-                     g_inputdeck.get< tag::flformat, tag::diag >(),
-                     g_inputdeck.get< tag::prec, tag::diag >() );
+                     g_inputdeck.get< tag::diag_format >(),
+                     g_inputdeck.get< tag::diag_precision >() );
 
   // Collect variables names for integral/diagnostics output
   std::vector< std::string > var{ "r", "ru", "rv", "rw", "rE" };
-  auto ncomp = g_inputdeck.get< tag::component, tag::compflow >()[0];
+  auto ncomp = g_inputdeck.get< tag::problem_ncomp >();
   for (std::size_t c=5; c<ncomp; ++c)
     var.push_back( "c" + std::to_string(c-5) );
 
@@ -779,15 +741,14 @@ Transporter::integralsHeader()
 // Configure and write integrals file header
 // *****************************************************************************
 {
-  const auto& sidesets_integral =
-    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
+  const auto& sidesets_integral = g_inputdeck.get< tag::integout >();
 
   if (sidesets_integral.empty()) return;
 
   auto filename = g_inputdeck.get< tag::cmd, tag::io, tag::output >() + ".int";
   tk::DiagWriter dw( filename,
-                     g_inputdeck.get< tag::flformat, tag::integral >(),
-                     g_inputdeck.get< tag::prec, tag::integral >() );
+                     "default",//g_inputdeck.get< tag::flformat, tag::integral >(),
+                     3 );//g_inputdeck.get< tag::prec, tag::integral >() );
 
   // Collect variables names for integral output
   std::vector< std::string > var;
@@ -1073,8 +1034,8 @@ Transporter::diagnostics( CkReductionMsg* msg )
   // cppcheck-suppress uninitvar
   // cppcheck-suppress unreadVariable
   auto id = std::to_string(meshid);
-  auto ncomp = g_inputdeck.get< tag::component, tag::compflow >()[0];
 
+  auto ncomp = g_inputdeck.get< tag::problem_ncomp >();
   Assert( ncomp > 0, "Number of scalar components must be positive");
   Assert( d.size() == NUMDIAG, "Diagnostics vector size mismatch" );
 
@@ -1120,8 +1081,8 @@ Transporter::diagnostics( CkReductionMsg* msg )
   auto filename = g_inputdeck.get< tag::cmd, tag::io, tag::diag >();
   if (m_nelem.size() > 1) filename += '.' + id;
   tk::DiagWriter dw( filename,
-                     g_inputdeck.get< tag::flformat, tag::diag >(),
-                     g_inputdeck.get< tag::prec, tag::diag >(),
+                     g_inputdeck.get< tag::diag_format >(),
+                     g_inputdeck.get< tag::diag_precision >(),
                      std::ios_base::app );
   dw.write( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
 
@@ -1150,8 +1111,7 @@ Transporter::integrals( CkReductionMsg* msg )
   creator | d;
   delete msg;
 
-  const auto& sidesets_integral =
-    g_inputdeck.get< tag::cmd, tag::io, tag::surface, tag::integral >();
+  const auto& sidesets_integral = g_inputdeck.get< tag::integout >();
   // cppcheck-suppress
   if (not sidesets_integral.empty()) {
 
@@ -1167,8 +1127,8 @@ Transporter::integrals( CkReductionMsg* msg )
     // Append integrals file at selected times
     auto filename = g_inputdeck.get<tag::cmd, tag::io, tag::output>() + ".int";
     tk::DiagWriter dw( filename,
-                       g_inputdeck.get< tag::flformat, tag::integral >(),
-                       g_inputdeck.get< tag::prec, tag::integral >(),
+                       "default",//g_inputdeck.get< tag::flformat, tag::integral >(),
+                       3,//g_inputdeck.get< tag::prec, tag::integral >(),
                        std::ios_base::app );
     // cppcheck-suppress containerOutOfBounds
     dw.write( static_cast<uint64_t>(tk::cref_find( d[ITER], 0 )),

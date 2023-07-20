@@ -11,21 +11,6 @@ add_regression_test(help ${INCITER_EXECUTABLE}
                     ARGS --help
                     EXTRA_PASS_REGEXP "inciter Command-line Parameters")
 
-add_regression_test(helpctr ${INCITER_EXECUTABLE}
-                    NUMPES 1
-                    ARGS --helpctr
-                    EXTRA_PASS_REGEXP "inciter Control File Keywords")
-
-add_regression_test(helpkw ${INCITER_EXECUTABLE}
-                    NUMPES 1
-                    ARGS --helpkw compflow
-                    EXTRA_PASS_REGEXP "inciter control file keyword")
-
-add_regression_test(bounds ${INCITER_EXECUTABLE}
-                    NUMPES 1
-                    ARGS --helpkw precision
-                    EXTRA_PASS_REGEXP "inclusive")
-
 add_regression_test(unrecognized ${INCITER_EXECUTABLE}
                     NUMPES 1
                     ARGS --nosucharg

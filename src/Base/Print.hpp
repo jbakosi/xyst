@@ -111,10 +111,10 @@ class Print {
     {
       Assert( labels.size() == values.size(), "Size mismatch" );
       if (!labels.empty()) {
-        m_stream << (precr ? "\n" : "")
-                 << labels[0].c_str() << values[0].c_str();
-        for (std::size_t i=1; i<labels.size(); ++i)
-          m_stream << labels[i].c_str() << values[i].c_str();
+        m_stream << (precr ? "\n" : "") << labels[0] << ": " << values[0];
+        for (std::size_t i=1; i<labels.size(); ++i) {
+          m_stream << ", " << labels[i] << ": " << values[i];
+        }
         m_stream << (precr ? " " : "\n");
       }
     }
@@ -243,45 +243,6 @@ class Print {
         m_stream << splitLines( *info.lower, "  ", "Lower bound: " ).c_str();
       if (info.upper)
         m_stream << splitLines( *info.upper, "  ", "Upper bound: " ).c_str();
-    }
-
-    //! \brief Formatted print of verbose help on a single command-line
-    //!   parameter or control file keyword
-    //! \param[in] executable Name of executable to output help for
-    //! \param[in] kw Keyword help struct on which help is to be printed
-    template< class HelpKw >
-    void helpkw( const std::string& executable, const HelpKw& kw ) const {
-      Assert( !kw.keyword.empty(), "Empty keyword in Print::helpkw()" );
-      const auto& info = kw.info;
-      const auto& alias = info.alias;
-      const auto& expt = info.expt;
-      const auto& choices = info.choices;
-      // print keyword title
-      if (kw.cmd) {
-        m_stream << '\n' << executable.c_str() << " command-line keyword "
-                 << (alias ? std::string('-'+*alias+", ").c_str() : "")
-                 << "--" << kw.keyword.c_str() << "\n\n";
-      } else {
-        m_stream << '\n' << executable.c_str() << " control file keyword '"
-                 << kw.keyword.c_str() << "'\n\n";
-
-      }
-      // print short description
-      m_stream << splitLines( info.shortDescription, "  " ).c_str() << "\n\n";
-      // print long description
-      m_stream << splitLines( info.longDescription, "  " ).c_str() << "\n\n";
-      // print expected type description
-      if (expt) {
-         m_stream << splitLines(*expt,"  ","Expected type: ").c_str()
-                  << "\n\n";
-      }
-      // print lower bound if defined
-      bounds( info );
-      // print expected valied choices
-      if (choices) {
-        m_stream << splitLines(*choices,"  ","Expected valid choices: ").c_str()
-                  << "\n\n";
-      }
     }
 
     //! Print unit tests header (with legend)

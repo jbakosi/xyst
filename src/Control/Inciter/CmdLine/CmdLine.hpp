@@ -36,13 +36,11 @@ using CmdLineMembers = brigand::list<
   , tag::benchmark,      bool
   , tag::feedback,       bool
   , tag::help,           bool
-  , tag::helpctr,        bool
   , tag::quiescence,     bool
   , tag::trace,          bool
   , tag::version,        bool
   , tag::cmdinfo,        tk::ctr::HelpFactory
   , tag::ctrinfo,        tk::ctr::HelpFactory
-  , tag::helpkw,         tk::ctr::HelpKw
   , tag::error,          std::vector< std::string >
   , tag::lbfreq,         kw::lbfreq::info::expect::type
   , tag::rsfreq,         kw::rsfreq::info::expect::type
@@ -62,8 +60,6 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
                                      , kw::feedback
                                      , kw::virtualization
                                      , kw::help
-                                     , kw::helpctr
-                                     , kw::helpkw
                                      , kw::control
                                      , kw::input
                                      , kw::output
@@ -79,8 +75,7 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
     //! Set of tags to ignore when printing this CmdLine
     using ignore =
       brigand::set< tag::cmdinfo
-                  , tag::ctrinfo
-                  , tag::helpkw >;
+                  , tag::ctrinfo >;
 
     //! \brief Constructor: set all defaults.
     //! \param[in] ctrinfo std::map of control file keywords and their info

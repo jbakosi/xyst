@@ -69,12 +69,6 @@ CmdLineParser::CmdLineParser( int argc,
       "'out.exo' (in ExodusII format)" );
   }
 
-  // Print out verbose help for a single keyword if requested
-  const auto helpkw = cmdline.get< tag::helpkw >();
-  if (!helpkw.keyword.empty()) {
-    print.helpkw( tk::meshconv_executable(), helpkw );
-  }
-
   // Print out version information if it was requested
   const auto version = cmdline.get< tag::version >();
   if (version) {
@@ -83,7 +77,7 @@ CmdLineParser::CmdLineParser( int argc,
 
   // Immediately exit if any help was output or was called without any argument
   // or version info was requested with zero exit code
-  if (argc == 1 || helpcmd || !helpkw.keyword.empty() || version) CkExit();
+  if (argc == 1 || helpcmd || version) CkExit();
 
   // Make sure mandatory arguments are set
   auto ialias = kw::input().alias();

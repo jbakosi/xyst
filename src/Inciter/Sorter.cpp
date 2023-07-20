@@ -269,7 +269,7 @@ Sorter::start()
   tk::destroy( m_nodech );
   tk::destroy( m_chnode );
 
-  if (g_inputdeck.get< tag::discr, tag::pelocal_reorder >())
+  if (g_inputdeck.get< tag::reorder >())
     mask();   // continue with mesh node reordering if requested (or required)
   else
     createDiscWorkers();  // skip mesh node reordering

@@ -686,7 +686,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
   const auto& z = coord[2];
 
   for (std::size_t p=0; p<R.nunk(); ++p) {
-    if (g_inputdeck.get< tag::discr, tag::steady_state >()) t = tp[p];
+    if (g_inputdeck.get< tag::steady >()) t = tp[p];
     auto s = src( x[p], y[p], z[p], t );
     for (std::size_t c=0; c<s.size(); ++c) R(p,c,0) -= s[c] * v[p];
   }
@@ -745,7 +745,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 tk::real
 dt( const std::vector< tk::real >& vol, const tk::Fields& U )
 // *****************************************************************************
-//  Compute the minimum time step size (for unsteady time stepping)
+//  Compute the minimum time step size
 //! \param[in] vol Nodal volume (with contributions from other chares)
 //! \param[in] U Solution vector at recent time step
 //! \return Minimum time step size
@@ -768,7 +768,7 @@ dt( const std::vector< tk::real >& vol, const tk::Fields& U )
     mindt = std::min( mindt, euler_dt );
   }
 
-  mindt *= g_inputdeck.get< tag::discr, tag::cfl >();
+  mindt *= g_inputdeck.get< tag::cfl >();
 
   return mindt;
 }
@@ -778,14 +778,14 @@ dt( const std::vector< tk::real >& vol,
     const tk::Fields& U,
     std::vector< tk::real >& dtp )
 // *****************************************************************************
-//  Compute a time step size for each mesh node (for steady time stepping)
+//  Compute a time step size for each mesh node (toward stationary state)
 //! \param[in] vol Nodal volume (with contributions from other chares)
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] dtp Time step size for each mesh node
 // *****************************************************************************
 {
   using inciter::g_inputdeck;
-  auto cfl = g_inputdeck.get< tag::discr, tag::cfl >();
+  auto cfl = g_inputdeck.get< tag::cfl >();
 
   for (std::size_t p=0; p<U.nunk(); ++p) {
     auto r  = U(p,0,0);

@@ -20,7 +20,6 @@
 
 #include "ContainerUtil.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
-#include "Options/PartitioningAlgorithm.hpp"
 #include "DerivedData.hpp"
 #include "UnsMesh.hpp"
 #include "Sorter.hpp"

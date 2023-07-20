@@ -11,10 +11,7 @@
      discretization schemes.
 */
 // *****************************************************************************
-#ifndef Discretization_h
-#define Discretization_h
-
-#include <brigand/algorithms/for_each.hpp>
+#pragma once
 
 #include "Types.hpp"
 #include "Timer.hpp"
@@ -253,61 +250,6 @@ class Discretization : public CBase_Discretization {
     //! Remap mesh data due to new local ids
     void remap( const std::unordered_map< std::size_t, std::size_t >& map );
 
-    //! \brief Function object for querying the node ids that belong to side
-    //!   sets of the same type, called for each PDE type
-    template< typename... tags >
-    struct SidesetNodes {
-
-      const std::map< int, std::vector< std::size_t > >& m_bface;
-      const std::vector< std::size_t >& m_triinpoel;
-      std::unordered_map< int, std::unordered_set< std::size_t > >& m_nodes;
-
-      explicit
-        SidesetNodes( const std::map< int, std::vector< std::size_t > >& bface,
-                      const std::vector< std::size_t >& triinpoel,
-                      std::unordered_map< int,
-                        std::unordered_set< std::size_t > >& nodes )
-        : m_bface(bface), m_triinpoel(triinpoel), m_nodes(nodes) {}
-
-      template< typename Eq > void operator()( brigand::type_<Eq> ) {
-        const auto& ss =
-          g_inputdeck.template get< tag::param, Eq, tags... >();
-        for (const auto& eq : ss) {
-          for (const auto& s : eq) {
-            auto k = m_bface.find(s);
-            if (k != end(m_bface)) {
-              auto& n = m_nodes[ k->first ];  // associate set id
-              for (auto f : k->second) {      // face ids on side set
-                n.insert( m_triinpoel[f*3+0] );
-                n.insert( m_triinpoel[f*3+1] );
-                n.insert( m_triinpoel[f*3+2] );
-              }
-            }
-          }
-        }
-      }
-    };
-
-    //! \brief Query nodes that belong to side sets of the same type for all
-    //!   PDE types
-    //! \tparam tags Tags addressing the location of a vector of vectors of
-    //!   side set ids in the input deck
-    //! \param[in] bface Boundary-faces mapped to side set ids
-    //! \param[in] triinpoel Boundary-face connectivity
-    //! \return Node ids that belong side sets of the same type (value),
-    //!    associated to sides set id (key)
-    template< typename... tags >
-    std::unordered_map< int, std::unordered_set< std::size_t > >
-    bcnodes( const std::map< int, std::vector< std::size_t > >& bface,
-             const std::vector< std::size_t >& triinpoel ) const
-    {
-      using PDETypes = ctr::parameters::Keys;
-      std::unordered_map< int, std::unordered_set< std::size_t > > nodes;
-      brigand::for_each< PDETypes >(
-        SidesetNodes< tags... >( bface, triinpoel, nodes ) );
-      return nodes;
-    }
-
     //! Decide if field output iteration count interval is hit
     bool fielditer() const;
     //! Decide if field output physics time interval is hit
@@ -323,11 +265,11 @@ class Discretization : public CBase_Discretization {
     bool histrange() const;
 
     //! Decide if integral output iteration count interval is hit
-    bool intiter() const;
+    bool integiter() const;
     //! Decide if integral output physics time interval is hit
-    bool inttime() const;
+    bool integtime() const;
     //! Decide if physics time falls into a integral output time range
-    bool intrange() const;
+    bool integrange() const;
 
     //! Decide if this is the last time step
     bool finished() const;
@@ -350,10 +292,10 @@ class Discretization : public CBase_Discretization {
       p | m_lastDumpTime;
       p | m_physFieldFloor;
       p | m_physHistFloor;
-      p | m_physIntFloor;
+      p | m_physIntegFloor;
       p | m_rangeFieldFloor;
       p | m_rangeHistFloor;
-      p | m_rangeIntFloor;
+      p | m_rangeIntegFloor;
       p | m_dt;
       p | m_dtn;
       p | m_nvol;
@@ -418,13 +360,13 @@ class Discretization : public CBase_Discretization {
     //! Recent floor of physics time divided by history output interval time
     tk::real m_physHistFloor;
     //! Recent floor of physics time divided by integral output interval time
-    tk::real m_physIntFloor;
+    tk::real m_physIntegFloor;
     //! Recent floors of physics time divided by field output time for ranges
     std::vector< tk::real > m_rangeFieldFloor;
     //! Recent floors of physics time divided by history output time for ranges
     std::vector< tk::real > m_rangeHistFloor;
     //! Recent floors of physics time divided by integral output time for ranges
-    std::vector< tk::real > m_rangeIntFloor;
+    std::vector< tk::real > m_rangeIntegFloor;
     //! Physical time step size
     tk::real m_dt;
     //! Physical time step size at the previous time step
@@ -498,5 +440,3 @@ class Discretization : public CBase_Discretization {
 };
 
 } // inciter::
-
-#endif // Discretization_h

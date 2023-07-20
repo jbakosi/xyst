@@ -117,7 +117,7 @@ struct AMRError_common {
                                       14,  1,  9, 11 };
 
   //! Test jump error indicator (mostly bounds) for tetrahedron mesh
-  void TestErrorIndicator( inciter::ctr::AMRErrorType errtype ) {
+  void TestErrorIndicator( const char* errtype ) {
     // Shift node IDs to start from zero
     tk::shiftToZero( inpoel );
 
@@ -227,14 +227,14 @@ static AMRError_group AMRError( "Inciter/AMR/Error" );
 template<> template<>
 void AMRError_object::test< 1 >() {
   set_test_name( "jump indicator on scalar" );
-  TestErrorIndicator( inciter::ctr::AMRErrorType::JUMP );
+  TestErrorIndicator( "jump" );
 }
 
 //! Test jump error indicator for tetrahedron mesh
 template<> template<>
 void AMRError_object::test< 2 >() {
   set_test_name( "Hessian indicator on scalar" );
-  TestErrorIndicator( inciter::ctr::AMRErrorType::HESSIAN );
+  TestErrorIndicator( "hessian" );
 }
 
 } // tut::

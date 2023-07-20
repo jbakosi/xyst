@@ -12,7 +12,7 @@
 #ifndef nowarning_charmpp_h
 #define nowarning_charmpp_h
 
-#include "Macro.hpp"
+#include "Compiler.hpp"
 
 #if defined(__clang__)
   #pragma clang diagnostic push

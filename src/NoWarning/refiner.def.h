@@ -12,7 +12,7 @@
 #ifndef nowarning_refiner_def_h
 #define nowarning_refiner_def_h
 
-#include "Macro.hpp"
+#include "Compiler.hpp"
 
 #if defined(__clang__)
   #pragma clang diagnostic push

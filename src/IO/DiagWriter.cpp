@@ -16,15 +16,16 @@
 #include <iomanip>
 
 #include "DiagWriter.hpp"
+#include "Exception.hpp"
 
 using tk::DiagWriter;
 
 DiagWriter::DiagWriter( const std::string& filename,
-                              ctr::TxtFloatFormatType format,
-                              kw::precision::info::expect::type precision,
-                              std::ios_base::openmode mode ) :
+                        const std::string& format,
+                        std::streamsize precision,
+                        std::ios_base::openmode mode ) :
   Writer( filename, mode ),
-  m_precision( static_cast<int>(precision) ),
+  m_precision( static_cast< int >( precision ) ),
   m_width( std::max( 16, m_precision+8 ) )
 // *****************************************************************************
 //  Constructor
@@ -35,11 +36,11 @@ DiagWriter::DiagWriter( const std::string& filename,
 // *****************************************************************************
 {
   // Set floating-point format for output file stream
-  if (format == ctr::TxtFloatFormatType::DEFAULT)
+  if (format == "default")
     {} //m_outFile << std::defaultfloat;   GCC does not yet support this
-  else if (format == ctr::TxtFloatFormatType::FIXED)
+  else if (format == "fixed")
     m_outFile << std::fixed;
-  else if (format == ctr::TxtFloatFormatType::SCIENTIFIC)
+  else if (format == "scientific")
     m_outFile << std::scientific;
   else Throw( "Text floating-point format not recognized." );
 

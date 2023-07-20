@@ -1,66 +1,60 @@
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+-- vim: filetype=lua:
 
-title "Sod shocktube"
+print "Sod shocktube"
 
-inciter
+nstep = 10
+term = 0.2
+ttyi = 1
+cfl = 0.5
 
-  nstep 10
-  term 0.2
-  ttyi 1
-  cfl 0.5
+part = "rcb"
 
-  partitioning
-    algorithm rcb
-  end
+-- problem = {
+--   name = "sod"
+-- }
 
-  #problem sod
+ic = {
+  density = -1.0,                     -- overwritten by boxes
+  velocity = { 100.0, 100.0, 100.0 }, -- overwritten by boxes
+  pressure = -1.0,                    -- overwritten by boxes
+  boxes = {
+    { x = { -0.5, 0.5 },
+      y = { -0.5, 0.5 },
+      z = { -0.5, 0.5 },
+      density = 1.0,
+      pressure = 1.0,
+      velocity = { 0, 0, 0 }
+    },
+    { x = {  0.5, 1.5 },
+      y = { -0.5, 0.5 },
+      z = { -0.5, 0.5 },
+      density = 0.125,
+      pressure = 0.1,
+      velocity = { 0, 0, 0 }
+    }
+  }
+}
 
-  compflow
-    depvar u
+mat = { spec_heat_ratio = 1.4 }
 
-    ic
-      density -1.0 end                  # overwritten by boxes
-      velocity 100.0 100.0 100.0 end    # overwritten by boxes
-      pressure -1.0 end                 # overwritten by boxes
-      box
-        xmin -0.5 xmax 0.5
-        ymin -0.5 ymax 0.5
-        zmin -0.5 zmax 0.5
-        density 1.0
-        pressure 1.0
-      end
-      box
-        xmin  0.5 xmax 1.5
-        ymin -0.5 ymax 0.5
-        zmin -0.5 zmax 0.5
-        density 0.125
-        pressure 0.1
-      end
-    end
+bc_sym = {
+  sideset = { 2, 4, 5, 6 }
+}
 
-    material
-      gamma 1.4 end
-    end
-    bc_sym
-      sideset 2 4 5 6 end
-    end
-  end
+fieldout = {
+  iter = 10000
+}
 
-  field_output
-    interval 10000
-  end
+histout = {
+  iter = 1,
+  points = {
+    { 0.1, 0.05, 0.025 },
+    { 0.9, 0.05, 0.025 }
+  },
+  precision = 6
+}
 
-  history_output
-    interval  1
-    point p1 0.1 0.05 0.025 end
-    point p2 0.9 0.05 0.025 end
-  end
-
-  diagnostics
-    interval 1
-    format scientific
-  end
-
-end
+diag = {
+  iter = 1,
+  format = "scientific"
+}

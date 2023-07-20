@@ -1,67 +1,58 @@
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+-- vim: filetype=lua:
 
-title "Pipe computing mass flow rate"
+print "Pipe computing mass flow rate"
 
-# Percent error between inflow and outflow mass flow rate:
-# plot "out.int" u 2:(($4+$5)/$5*100)
+-- Percent error between inflow and outflow mass flow rate:
+-- plot "out.int" u 2:(($4+$5)/$5*100)
 
-inciter
+nstep = 20
+-- term = 0.01
+ttyi = 1
+cfl = 0.5
 
-  nstep 20
-  #term 0.01
-  ttyi 1
+part = "rcb"
 
-  cfl 0.5
+mat = { spec_heat_ratio = 1.4 }
 
-  partitioning
-    algorithm rcb
-  end
+ic = {
+  density = 1.0,
+  velocity = { 0, 0, 0 },
+  -- ic pressure = (p_in + p_out) / 2
+  pressure = 99950
+}
 
-  compflow
-    depvar u
-    material
-      gamma 1.4 end
-    end
-    ic
-      density 1.0 end
-      velocity 0 0 0 end
-      # ic pressure = (p_in + p_out) / 2
-      pressure 99950 end
-    end
-    bc_sym
-      sideset 2 4 5 6 end
-    end
-    bc_pressure  # inflow
-      sideset 1 end
-      density 1.0
-      pressure 100000
-    end
-    bc_pressure  # outflow
-      sideset 3 end
-      density 1.0
-      pressure 99900
-    end
-  end
+bc_sym = {
+  sideset = { 2, 4, 5, 6 }
+}
 
-  field_output
-    interval 10
-  end
+bc_pre = {
+  inlet = {
+    sideset = { 1 },
+    density = 1.0,
+    pressure = 100000
+  },
+  outlet = {
+    sideset = { 3 },
+    density = 1.0,
+    pressure = 99900
+  }
+}
 
-  integral_output
-    interval 1
-    #time_interval 4.0e-3
-    #time_range 0.05 0.12 1.0e-5 end
-    sideset 1 3 end
-    format scientific
-    #precision 12
-  end
+fieldout = {
+  iter = 10
+}
 
-  diagnostics
-    interval  1
-    format scientific
-    precision 12
-  end
+integout = {
+  iter = 1,
+  -- time = 4.0e-3
+  -- range = { 0.05, 0.12, 1.0e-5 },
+  sideset = { 1, 3 },
+  format = "scientific",
+  -- precision = 12
+}
 
-end
+diag = {
+  iter = 1,
+  format = "scientific",
+  precision = 12
+}

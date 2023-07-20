@@ -20,7 +20,6 @@
 #include "Types.hpp"
 #include "Writer.hpp"
 #include "Keywords.hpp"
-#include "Options/TxtFloatFormat.hpp"
 
 namespace tk {
 
@@ -31,11 +30,10 @@ class DiagWriter : public tk::Writer {
 
   public:
     //! Constructor
-    explicit DiagWriter(
-      const std::string& filename,
-      tk::ctr::TxtFloatFormatType format = tk::ctr::TxtFloatFormatType::DEFAULT,
-      kw::precision::info::expect::type precision = std::cout.precision(),
-      std::ios_base::openmode mode = std::ios_base::out );
+    explicit DiagWriter( const std::string& filename,
+                         const std::string& format = "default",
+                         std::streamsize precision = std::cout.precision(),
+                         std::ios_base::openmode mode = std::ios_base::out );
 
     //! Write out diagnostics file header
     void header( const std::vector< std::string >& name ) const;
@@ -46,12 +44,9 @@ class DiagWriter : public tk::Writer {
                        tk::real dt,
                        const std::vector< tk::real >& diagnostics );
 
-    //! Precision accessor
-    int prec() const { return m_precision; }
-
   private:
-    int m_precision;    //!< Floating-point precision in digits
-    int m_width;        //!< Floating-point number width
+    int m_precision;     //!< Floating-point precision in digits
+    int m_width;         //!< Floating-point number width
 };
 
 } // tk::

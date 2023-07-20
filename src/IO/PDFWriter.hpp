@@ -12,18 +12,15 @@
     various configurations.
 */
 // *****************************************************************************
-#ifndef PDFWriter_h
-#define PDFWriter_h
+#pragma once
 
 #include <string>
 #include <iostream>
 
-#include "Macro.hpp"
 #include "Writer.hpp"
 #include "UniPDF.hpp"
 #include "StatCtr.hpp"
 #include "Options/PDFCentering.hpp"
-#include "Options/TxtFloatFormat.hpp"
 
 namespace tk {
 
@@ -34,7 +31,7 @@ class PDFWriter : public tk::Writer {
     //! Constructor
     explicit PDFWriter(
       const std::string& filename,
-      tk::ctr::TxtFloatFormatType format = tk::ctr::TxtFloatFormatType::DEFAULT,
+      const std::string& format = "default",
       kw::precision::info::expect::type precision = std::cout.precision() );
 
     //! Write univariate PDF to text file
@@ -71,5 +68,3 @@ class PDFWriter : public tk::Writer {
 };
 
 } // tk::
-
-#endif // PDFWriter_h

@@ -48,11 +48,11 @@ std::function< void( const std::array< std::vector< tk::real >, 3 >&,
                      tk::Fields& ) >
 PHYS_SRC();
 
-//! Initalize the compressible flow equations, prepare for time integration
+//! Set inital conditions
 void
 initialize( const std::array< std::vector< tk::real >, 3 >& coord,
             tk::Fields& U,
             tk::real t,
-            const std::vector<std::unordered_set< std::size_t >>& inbox = {} );
+            const std::vector< std::unordered_set<std::size_t> >& inbox = {} );
 
 } // problems::

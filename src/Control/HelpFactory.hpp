@@ -68,28 +68,6 @@ struct KeywordInfo {
 //!   information stored in a KeywordInfo struct
 using HelpFactory = std::map< std::string, KeywordInfo >;
 
-//! \brief Help bundle on a single keyword
-//! \details This is used for delivering help on a single keyword. This struct
-//!    also differentiates between command-line arguments and control file
-//!    keywords.
-struct HelpKw {
-  HelpFactory::key_type keyword;        //!< Keyword string
-  HelpFactory::mapped_type info;        //!< Keyword information
-  bool cmd;                             //!< True if command-line keyword
-
-  /** @name Pack/Unpack: Serialize HelpKw object for Charm++ */
-  ///@{
-  //! \brief Pack/Unpack serialize member function
-  //! \param[in,out] p Charm++'s PUP::er serializer object reference
-  // cppcheck-suppress constParameter
-  void pup( PUP::er& p ) { p|keyword; p|info; p|cmd; }
-  //! \brief Pack/Unpack serialize operator|
-  //! \param[in,out] p Charm++'s PUP::er serializer object reference
-  //! \param[in,out] h HelpKw object reference
-  friend void operator|( PUP::er& p, HelpKw& h ) { h.pup(p); }
-  ///@}
-};
-
 //! \brief Function object for filling a HelpFactory (std::map) with keywords
 //!   and their associated information bundle
 //! \details This struct is used as a functor to loop through a set of keywords

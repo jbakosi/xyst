@@ -152,7 +152,7 @@ Partitioner::partition( int nchare )
 
   m_nchare = nchare;
   const auto che =
-    zoltan::partMesh( g_inputdeck.get< tag::discr, tag::partitioner >(),
+    zoltan::partMesh( g_inputdeck.get< tag::part >(),
                       m_inpoel, m_ginpoel, m_coord, nchare );
 
   if ( g_inputdeck.get< tag::cmd, tag::feedback >() ) m_host.pepartitioned();

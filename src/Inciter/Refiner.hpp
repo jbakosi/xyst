@@ -16,15 +16,13 @@
    refiner object as a library.
 */
 // *****************************************************************************
-#ifndef Refiner_h
-#define Refiner_h
+#pragma once
 
 #include <vector>
 #include <unordered_map>
 
 #include "PUPAMR.hpp"
 #include "AMR/mesh_adapter.hpp"
-#include "Inciter/Options/AMRInitial.hpp"
 #include "TaggedTuple.hpp"
 #include "Tags.hpp"
 #include "Callback.hpp"
@@ -253,7 +251,7 @@ class Refiner : public CBase_Refiner {
     //! True if initial AMR, false if during time stepping
     RefMode m_mode;
     //! Initial mesh refinement type list (in reverse order)
-    std::vector< ctr::AMRInitialType > m_initref;
+    std::vector< std::string > m_initref;
     //! Number of initial mesh refinement/derefinement steps
     std::size_t m_ninitref;
     //! Mesh refiner (library) object
@@ -430,5 +428,3 @@ class Refiner : public CBase_Refiner {
 };
 
 } // inciter::
-
-#endif // Refiner_h

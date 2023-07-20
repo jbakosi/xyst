@@ -12,8 +12,7 @@
 #ifndef nowarning_tuttest_decl_h
 #define nowarning_tuttest_decl_h
 
-#include "Macro.hpp"
-#include "XystBuildConfig.hpp"
+#include "Compiler.hpp"
 
 #if defined(__clang__)
   #pragma clang diagnostic push

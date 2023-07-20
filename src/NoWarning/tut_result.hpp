@@ -13,7 +13,7 @@
 #ifndef nowarning_tut_result_h
 #define nowarning_tut_result_h
 
-#include "Macro.hpp"
+#include "Compiler.hpp"
 
 #if defined(__clang__)
   #pragma clang diagnostic push

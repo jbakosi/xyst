@@ -24,7 +24,7 @@
 using tk::PDFWriter;
 
 PDFWriter::PDFWriter( const std::string& filename,
-                      ctr::TxtFloatFormatType format,
+                      const std::string& format,
                       kw::precision::info::expect::type precision ) :
   Writer( filename )
 // *****************************************************************************
@@ -35,11 +35,11 @@ PDFWriter::PDFWriter( const std::string& filename,
 // *****************************************************************************
 {
   // Set floating-point format for output file stream
-  if (format == ctr::TxtFloatFormatType::DEFAULT)
+  if (format == "default")
     {} //m_outFile << std::defaultfloat;   GCC does not yet support this
-  else if (format == ctr::TxtFloatFormatType::FIXED)
+  else if (format == "fixed")
     m_outFile << std::fixed;
-  else if (format == ctr::TxtFloatFormatType::SCIENTIFIC)
+  else if (format == "scientific")
     m_outFile << std::scientific;
   else Throw( "Text floating-point format not recognized." );
 

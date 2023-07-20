@@ -12,19 +12,18 @@
 // *****************************************************************************
 
 #include "InciterDriver.hpp"
-#include "Inciter/InputDeck/Parser.hpp"
 #include "Inciter/CmdLine/CmdLine.hpp"
 #include "Inciter/InputDeck/InputDeck.hpp"
 #include "TaggedTupleDeepPrint.hpp"
 #include "Writer.hpp"
 #include "Print.hpp"
+#include "LuaParser.hpp"
 
 #include "NoWarning/transporter.decl.h"
 
 namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
-extern ctr::InputDeck g_inputdeck_defaults;
 
 } // inciter::
 
@@ -54,14 +53,18 @@ InciterDriver::InciterDriver( const ctr::CmdLine& cmdline )
                std::to_string(cmdline.get< tag::rsfreq >()) );
 
   // Parse input deck into g_inputdeck
-  print.item( "Control file", cmdline.get< tag::io, tag::control >() );
-  g_inputdeck = g_inputdeck_defaults;   // overwrite with defaults if restarted
-  InputDeckParser inputdeckParser( cmdline, g_inputdeck );
+  auto controlfile = cmdline.get< tag::io, tag::control >();
+
+  print.section( "Parsing control file: " + controlfile );
+  auto err = inciter::parseLua( controlfile.c_str() );
+  ErrChk( err.empty(), "Lua errror during input file parsing: " + err );
+  g_inputdeck.get< tag::cmd >() = cmdline;
 
   // Output command line object to file
   auto logfilename = tk::inciter_executable() + "_input.log";
   tk::Writer log( logfilename );
   tk::print( log.stream(), "inputdeck", g_inputdeck );
+  print << "Parsed data saved in " << logfilename << '\n';
 }
 
 void

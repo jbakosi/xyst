@@ -24,6 +24,8 @@ extern ctr::InputDeck g_inputdeck;
 
 namespace physics {
 
+using inciter::g_inputdeck;
+
 void
 dirbc( tk::Fields& U,
        tk::real t,
@@ -37,6 +39,8 @@ dirbc( tk::Fields& U,
 //! \param[in] dirbcmasks Nodes and component masks for Dirichlet BCs
 // *****************************************************************************
 {
+  if (g_inputdeck.get< tag::bc_dir >().empty()) return;
+
   auto ncomp = U.nprop();
   auto nmask = ncomp + 1;
 
@@ -67,11 +71,7 @@ symbc( tk::Fields& U,
 //! \param[in] symbcnorms Normals at nodes at which to set symmetry BCs
 // *****************************************************************************
 {
-  using inciter::g_inputdeck;
-
-  const auto& sbc =
-    g_inputdeck.get< tag::param, tag::compflow, tag::bc, tag::symmetry >();
-  if (sbc.empty()) return;
+  if (g_inputdeck.get< tag::bc_sym >().empty()) return;
 
   Assert( symbcnodes.size()*3 == symbcnorms.size(), "Size mismatch" );
 
@@ -98,32 +98,23 @@ farbc( tk::Fields& U,
 //! \param[in] farbcnorms Normals at nodes at which to set farfield BCs
 // *****************************************************************************
 {
-  using inciter::g_inputdeck;
-
-  const auto& compflow = g_inputdeck.get< tag::param, tag::compflow >();
-
-  const auto& fbc = compflow.get< tag::bc, tag::farfield >();
-  if (fbc.empty()) return;
+  if (g_inputdeck.get< tag::bc_far >().empty()) return;
 
   Assert( farbcnodes.size()*3 == farbcnorms.size(), "Size mismatch" );
 
-  const auto& fre = compflow.get< tag::farfield_density >();
-  ErrChk( !fre.empty(), "No farfield density specified" );
   // cppcheck-suppress unreadVariable
-  tk::real fr = fre[0];
+  tk::real fr = g_inputdeck.get< tag::bc_far_density >();
 
-  const auto& fue = compflow.get< tag::farfield_velocity >();
+  const auto& fue = g_inputdeck.get< tag::bc_far_velocity >();
   ErrChk( !fue.empty(), "No farfield velocity specified" );
   // cppcheck-suppress unreadVariable
-  tk::real fu = fue[0][0];
+  tk::real fu = fue[0];
   // cppcheck-suppress unreadVariable
-  tk::real fv = fue[0][1];
+  tk::real fv = fue[1];
   // cppcheck-suppress unreadVariable
-  tk::real fw = fue[0][2];
+  tk::real fw = fue[2];
 
-  const auto& fpe = compflow.get< tag::farfield_pressure >();
-  ErrChk( !fpe.empty(), "No farfield pressure specified" );
-  tk::real fp = fpe[0];
+  tk::real fp = g_inputdeck.get< tag::bc_far_pressure >();
 
   for (std::size_t i=0; i<farbcnodes.size(); ++i) {
     auto p  = farbcnodes[i];
@@ -176,8 +167,6 @@ prebc( tk::Fields& U,
 //! \param[in] prebcvals Density and pressure values at pressure BC nodes
 // *****************************************************************************
 {
-  using inciter::g_inputdeck;
-
   Assert( prebcnodes.size()*2 == prebcvals.size(), "Size mismatch" );
 
   for (std::size_t i=0; i<prebcnodes.size(); ++i) {

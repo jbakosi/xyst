@@ -33,13 +33,6 @@ namespace cmd {
          tk::grm::process_cmd_switch< use, kw::help,
                                       tag::help > {};
 
-  //! \brief Match help on a command-line keyword
-  struct helpkw :
-         tk::grm::process_cmd< use, kw::helpkw,
-                               tk::grm::helpkw,
-                               pegtl::alnum,
-                               tag::discr /* = unused */ > {};
-
   //! \brief Match test group name(s) and only run those
   struct group :
          tk::grm::process_cmd< use, kw::group,
@@ -73,7 +66,6 @@ namespace cmd {
   //! \brief Match all command line keywords
   struct keywords :
          pegtl::sor< help
-                   , helpkw
                    , group
                    , quiescence
                    , trace

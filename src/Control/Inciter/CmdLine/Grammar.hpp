@@ -67,18 +67,6 @@ namespace cmd {
                                       tag::help > {};
 
 
-  //! Match help on control file keywords
-  struct helpctr :
-         tk::grm::process_cmd_switch< use, kw::helpctr,
-                                      tag::helpctr > {};
-
-  //! Match help on a command-line or control file keyword
-  struct helpkw :
-         tk::grm::process_cmd< use, kw::helpkw,
-                               tk::grm::helpkw,
-                               pegtl::alnum,
-                               tag::discr /* = unused */ > {};
-
   //! Match on quiescence switch
   struct quiescence :
          tk::grm::process_cmd_switch< use, kw::quiescence,
@@ -115,8 +103,6 @@ namespace cmd {
                      feedback,
                      virtualization,
                      help,
-                     helpctr,
-                     helpkw,
                      quiescence,
                      lbfreq,
                      rsfreq,

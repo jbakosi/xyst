@@ -62,11 +62,6 @@ CmdLineParser::CmdLineParser( int argc,
                 "will execute all unit tests on 4 CPUs" );
   }
 
-  // Print out verbose help for a single keyword if requested
-  const auto helpkw = cmdline.get< tag::helpkw >();
-  if (!helpkw.keyword.empty())
-    print.helpkw( tk::unittest_executable(), helpkw );
-
   // Print out version information if it was requested
   const auto version = cmdline.get< tag::version >();
   if (version) {
@@ -74,10 +69,9 @@ CmdLineParser::CmdLineParser( int argc,
   }
 
   // Will exit in main chare constructor if any help was output
-  if (cmdline.get< tag::help >() ||           // help on all cmdline args
-      !cmdline.get< tag::helpkw >().keyword.empty() || // help on a keyword
-      version)                                // version output
+  if (cmdline.get< tag::help >() || version) {
     helped = true;
-  else
+  } else {
     helped = false;
+  }
 }

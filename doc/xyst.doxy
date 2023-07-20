@@ -847,6 +847,7 @@ EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/brigand \
                          @CMAKE_CURRENT_SOURCE_DIR@/highwayhash \
                          @CMAKE_CURRENT_SOURCE_DIR@/tut \
                          @CMAKE_CURRENT_SOURCE_DIR@/zoltan \
+                         @CMAKE_CURRENT_SOURCE_DIR@/Control/minilua.h \
                          @CMAKE_CURRENT_SOURCE_DIR@/../tests/regression/numdiff \
                          @CMAKE_CURRENT_SOURCE_DIR@/../external
 

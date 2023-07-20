@@ -836,7 +836,6 @@ std::tuple< std::vector< std::string >,
 Refiner::refinementFields() const
 // *****************************************************************************
 //  Collect mesh output fields from refiner lib
-//! \param[in,out] ncomp Number of scalar components in solution vector
 //! \return Names and fields of mesh refinement data in mesh cells and nodes
 // *****************************************************************************
 {

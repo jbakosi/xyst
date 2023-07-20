@@ -77,9 +77,11 @@ Quinoa, Xyst
 ([walker](https://wlkr.cc)),
 
 2. replaces all of Quinoa's solvers with an edge-based implementation of
-Quinoa's ALECG, renamed here as @ref inciter_riecg, and
+Quinoa's ALECG, renamed here as @ref inciter_riecg,
 
-3. significantly simplifies Quinoa's original code and its build system.
+3. uses [Lua](https://www.lua.org) for input files, and
+
+4. significantly simplifies Quinoa's original code and its build system.
 
 Development on [Quinoa](https://github.com/quinoacomputing/quinoa) and
 [Xyst](https://codeberg.org/xyst/xyst) continues on two different forks.

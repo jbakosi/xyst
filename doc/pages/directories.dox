@@ -76,9 +76,6 @@ unittest_main.
 @dir src/Control/Inciter/InputDeck
 @brief Input file parsing and grammar for _Inciter_
 
-@dir src/Control/Inciter/Options
-@brief Options for _Inciter_
-
 @dir src/Control/MeshConv
 @brief Types, command line parsing, and grammar for _MeshConv_
 

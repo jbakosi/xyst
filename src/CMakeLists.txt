@@ -427,17 +427,7 @@ if (BUILD_DOC)
   if (DOXYGEN_FOUND AND MCSS_FOUND AND PYTHONINTERP_FOUND AND PYGMENTS_FOUND AND
       JINJA2_FOUND AND LATEX_FOUND)
 
-    find_program( PERL perl )
-    find_program( AWK awk )
-    find_program( XARGS xargs )
-    find_program( GIT git )
-    find_program( HEAD head )
-    find_program( EXTRACT_CMD_KEYWORDS
-                  ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_cmd_keywords.sh )
-    find_program( EXTRACT_CTR_KEYWORDS
-                  ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_ctr_keywords.sh )
-
-    if (PERL AND AWK AND XARGS AND GIT AND HEAD)
+    if (Git_FOUND)
 
       configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../doc/xyst.doxy
                      ${CMAKE_CURRENT_BINARY_DIR}/doc/xyst.doxy @ONLY)
@@ -450,35 +440,9 @@ if (BUILD_DOC)
 
       file(COPY ../doc/images DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/doc/html)
 
-      # Generate targets <executable>_cmd_keywords for extracting and generating
-      # reference documentation pages for command line keywords
-      set(executables_cmd_keywords)
-      foreach(exe IN LISTS EXECUTABLES)
-        add_custom_target(${exe}_cmd_keywords
-                          DEPENDS ${exe} ${doc_pages}
-                          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
-                          COMMAND ${EXTRACT_CMD_KEYWORDS} ${exe}
-                          COMMENT "Extract ${exe}'s command-line keywords")
-        list(APPEND executables_cmd_keywords "${exe}_cmd_keywords")
-      endforeach()
-
-      # Generate targets <executable>_ctr_keywords for extracting and generating
-      # reference documentation pages for control file keywords
-      set(executables_ctr_keywords)
-      foreach(exe IN LISTS EXECUTABLES)
-        add_custom_target(${exe}_ctr_keywords
-                          DEPENDS ${exe} ${doc_pages}
-                          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
-                          COMMAND ${EXTRACT_CTR_KEYWORDS} ${exe}
-                          COMMENT "Extract ${exe}'s control file keywords")
-        list(APPEND executables_ctr_keywords "${exe}_ctr_keywords")
-      endforeach()
-
       add_custom_command(OUTPUT xml
                          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
                          DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/doc/xyst.doxy
-                                 ${executables_cmd_keywords}
-                                 ${executables_ctr_keywords}
                          COMMAND ${DOXYGEN_EXECUTABLE} xyst.doxy
                          COMMAND ${MCSS_DOX2HTML5} --no-doxygen xyst.doxy
                          VERBATIM USES_TERMINAL)

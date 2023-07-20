@@ -36,8 +36,6 @@ numerical method and @ref papers for more details.
 @section inciter_pages Related pages
 - @ref inciter_riecg "RieCG hydrodynamics"
 - @ref inciter_amr "Adaptive Mesh Refinement (TetAMR)"
-- @ref inciter_cmd "Command line arguments"
-- @ref inciter_ctr "Control file keywords"
 - @ref papers "Publications"
 - @ref inciter_design "Software design"
 - @ref layout "Data layout"

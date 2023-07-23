@@ -1,0 +1,73 @@
+################################################################################
+# vim: filetype=dockerfile:
+#
+# \file      docker/debian-clang
+# \copyright 2012-2015 J. Bakosi,
+#            2016-2018 Los Alamos National Security, LLC.,
+#            2019-2021 Triad National Security, LLC.
+#            2022-2023 J. Bakosi
+#            All rights reserved. See the LICENSE file for details.
+# \brief     Install xyst external libraries ready for CI
+# \details
+#   This image is intended to prepare a docker image that contains the external
+#   libraries pre-installed. The image is parked at
+#
+#   https://hub.docker.com/repository/docker/jbakosi/
+#
+#   which can then be pulled by continuous integration (CI) to build and test.
+#   This ensures the external libs do not have to be rebuilt, any time the test
+#   suite needs to run, which reduces load on CI.
+#
+#   Build image, squash, and push:
+#   docker build -f debian-clang -t xyst-clang .
+#   docker-squash --cleanup xyst-clang -t jbakosi/xyst-clang
+#   docker push jbakosi/xyst-clang
+#
+#   Test in non-SMP or SMP mode, after uncommenting Clone, Build, and Test:
+#   docker build -f debian-clang -t xyst-clang --build-arg CHARM_INSTALL_DIR=/charm-non-smp .
+#   docker build -f debian-clang -t xyst-clang --build-arg CHARM_INSTALL_DIR=/charm-smp .
+#
+################################################################################
+
+FROM debian:bullseye
+
+# Install system-wide prerequisites
+RUN apt-get update -y && apt-get install -y git autoconf libtool-bin bzip2 cmake g++ clang zlib1g-dev
+
+# Install OpenMPI
+ADD https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.4.tar.bz2 /openmpi/
+RUN cd /openmpi/ && tar xjf openmpi-4.1.4.tar.bz2 && cd openmpi-4.1.4 && ./configure CC=clang CXX=clang++ --prefix=/opt/openmpi && make -sj$(grep -c processor /proc/cpuinfo) install
+ENV CC /opt/openmpi/bin/mpicc
+ENV CXX /opt/openmpi/bin/mpicxx
+ENV PATH /opt/openmpi/bin:$PATH
+ENV LD_LIBRARY_PATH /opt/openmpi/lib:$LD_LIBRARY_PATH
+RUN rm -rf /openmpi
+
+# Install HDF5 using the above OpenMPI
+RUN git clone https://github.com/HDFGroup/hdf5.git && cd hdf5 && git checkout hdf5-1_13_0-rc5
+RUN cd hdf5 && ./autogen.sh && ./configure CFLAGS=-fPIE --prefix=/opt/hdf5 --disable-static --enable-shared --enable-parallel --enable-build-mode=production && make -sj$(grep -c processor /proc/cpuinfo) install
+ENV HDF5_ROOT /opt/hdf5
+RUN rm -rf /hdf5
+
+# Install NetCDF using the above OpenMPI and HDF5
+RUN git clone https://github.com/Unidata/netcdf-c.git /netcdf && cd netcdf && git checkout v4.4.1.1
+RUN cd netcdf && ./configure CFLAGS=-I/opt/hdf5/include LDFLAGS=-L/opt/hdf5/lib --prefix=/opt/netcdf --disable-static --enable-shared --enable-netcdf4 --disable-examples --disable-fsync --disable-dap && make -sj$(grep -c processor /proc/cpuinfo) install
+ENV NETCDF_DIR /opt/netcdf
+RUN rm -rf /netcdf
+
+# Install Charm++ in both non-SMP and SMP mode
+RUN git clone https://github.com/UIUC-PPL/charm && cd charm && git checkout v7.0.0-rc2
+ADD charm-fortran.patch /charm
+RUN cd charm && patch -p1 -t -i charm-fortran.patch && rm charm-fortran.patch
+RUN cd charm && mkdir nonsmp && cd nonsmp && cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DSMP=off -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-non-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
+RUN cd charm && mkdir smp && cd smp && cmake -DSMP=on -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
+RUN rm -rf charm
+
+# # Clone
+# ARG COMMIT
+# RUN git clone https://codeberg.org/xyst/xyst.git && cd xyst && git checkout $COMMIT && git log -1 HEAD
+# # Build
+# ARG CHARM_INSTALL_DIR
+# RUN cd xyst && mkdir -p build && cd build && cmake -Wno-dev -DCHARM_INSTALL_DIR=${CHARM_INSTALL_DIR} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && make -sj$(grep -c processor /proc/cpuinfo)
+# # Test
+# RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q && ctest -j $(grep -c processor /proc/cpuinfo) --output-on-failure

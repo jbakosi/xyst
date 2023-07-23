@@ -2,10 +2,10 @@
 
 _Xyst_ is a Navier-Stokes solver for engineering flows.
 
-Our ultimate goal is to simulate engineering problems with a production-quality
-code that is extensible and maintainable, using hardware resources efficiently,
-even for problems with a priori unknown, heterogeneous, and dynamic load
-distribution.
+The goal of this project is to simulate engineering problems with a
+production-quality code that is extensible and maintainable, using hardware
+resources efficiently, even for problems with a priori unknown, heterogeneous,
+and dynamic compute-load distribution.
 
 The software implementation facilitates the effective use of hardware of any
 size, from laptops to the largest distributed-memory clusters, by combining

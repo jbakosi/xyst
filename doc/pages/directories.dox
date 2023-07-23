@@ -18,78 +18,7 @@ executables built by Xyst.
 @brief Command line and input file parsing and grammars for all executables
 
 @details This directory contains parsing-related functionality for all
-executables. It has multiple grammar definitions for
- - _command line_ parsers for all executables, in subdirectories
-   `src/Control/<executable>/CmdLine`, and
- - _input file_ parsers for those executables that take an input file, in
-   subdirectories `src/Control/<executable>/InputDeck`.
-
-Grammar definitions are defined using the [Parsing Expression Grammar Template
-Library (PEGTL)](https://github.com/taocpp/PEGTL) according to [Parsing
-Expression Grammar (PEG)](https://en.wikipedia.org/wiki/Parsing_expression_grammar).
-As the PEGTL documentation describes
-
-> Grammars are written as regular C++ code, created with template programming
-> (not template meta programming), i.e. nested template instantiations that
-> naturally correspond to the inductive definition of PEGs (and other
-> parser-combinator approaches).
-
-Grammars are thus written purely in C++ and the compiler generates the parsers
-using PEGTL.
-
-Files `src/Control/<executable>/Components.h` store the number of scalar
-components for systems of equations integrated, by e.g., @ref inciter_main.
-
-CommonGrammar.h defines the smallest building blocks of all grammars. It
-contains generic functions that are reused among multiple command line and
-input file grammars.
-
-The _state_ (or _stack_) of the grammar is a tagged tuple
-(tk::tuple::tagged_tuple), a hierarchical heterogeneous data structure that
-stores all information parsed. Files `src/Control/<executable>/Types.h` declare
-the types of the components of a grammar's state. The components are usually
-also tuples to nest multiple levels of hierarchies, to group related
-information together.
-
-Control.h defines a generic base class, tk::Control, used as grammar states, It
-defines helper functions, used to store a variety of data parsed.
-
-Tags.h defines empty structs that are used as labels during compile time. These
-labels are used to index into tagged tuples.
-
-Keywords.h defines all keywords accepted by all parsers together with their
-documentation.
-
-Toggle.h defines a generic _switch_ with multiple states, from which
-specialized switches derive. Directories `src/Control/Options` and
-`<executable>/Options` define specific switches, specializing a tk::Toggle. The
-former directory defines switches that are used by multiple executables, while
-the latter define those that are specific to a given `<executable>`, e.g., @ref
-unittest_main.
-
-@dir src/Control/Inciter
-@brief Types, options, command line parsing, and grammar for _Inciter_
-
-@dir src/Control/Inciter/CmdLine
-@brief Command line parsing and grammar for _Inciter_
-
-@dir src/Control/Inciter/InputDeck
-@brief Input file parsing and grammar for _Inciter_
-
-@dir src/Control/MeshConv
-@brief Types, command line parsing, and grammar for _MeshConv_
-
-@dir src/Control/MeshConv/CmdLine
-@brief Command line parsing and grammar for _MeshConv_
-
-@dir src/Control/Options
-@brief Options for multiple executables
-
-@dir src/Control/UnitTest
-@brief Types, command line parsing, and grammar for _UnitTest_
-
-@dir src/Control/UnitTest/CmdLine
-@brief Command line parsing and grammar for _UnitTest_
+executables.
 
 @dir src/Statistics
 @brief Estimating statistical moments and probablity distributions from ensembles

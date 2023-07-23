@@ -24,8 +24,8 @@ namespace meshconv {
 class MeshConvDriver {
 
   public:
-    void convert( const std::string& input,
-                  const std::string& output,
+    void convert( const std::string& inf,
+                  const std::string& outf,
                   bool reorder ) const;
 };
 

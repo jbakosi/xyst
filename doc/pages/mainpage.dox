@@ -7,10 +7,10 @@
 
 _Xyst_ is a Navier-Stokes solver for engineering flows.
 
-Our ultimate goal is to simulate engineering problems with a production-quality
-code that is extensible and maintainable, using hardware resources efficiently,
-even for problems with a priori unknown, heterogeneous, and dynamic load
-distribution.
+The goal of this project is to simulate engineering problems with a
+production-quality code that is extensible and maintainable, using hardware
+resources efficiently, even for problems with a priori unknown, heterogeneous,
+and dynamic compute-load distribution.
 
 The software implementation facilitates the effective use of hardware of any
 size, from laptops to the largest distributed-memory clusters, by combining
@@ -48,7 +48,7 @@ of testing serial, synchronous (e.g., MPI) parallel, and asynchronous parallel
 
 @section mainpage_build Build
 
-Install prerequisites: _Debian/Ubuntu linux_
+Install prerequisites: _Debian-based linux_
 
 @code
 apt-get install git autoconf cmake g++ libopenmpi-dev libhdf5-dev libhdf5-openmpi-dev libnetcdf-mpi-dev
@@ -73,18 +73,18 @@ All executables will be under `build/Main/`.
 Xyst is forked from [Quinoa](https://quinoacomputing.github.io/archive). Compared to
 Quinoa, Xyst
 
-1. removes the stochastic differential equation solver
+1. Removes the stochastic differential equation solver
 ([walker](https://wlkr.cc)),
 
-2. replaces Quinoa's solvers with an edge-based implementation of Quinoa's
-ALECG, renamed here as @ref inciter_riecg,
+2. Replaces Quinoa's solvers with an edge-based implementation of Quinoa's
+ALECG, as @ref inciter_riecg,
 
-3. uses [Lua](https://www.lua.org) for input files, and
+3. Uses [Lua](https://www.lua.org) for input files, and
 
-4. simplifies Quinoa's code and its build system.
+4. Simplifies Quinoa's code and its build system.
 
 Development on [Quinoa](https://github.com/quinoacomputing/quinoa) and
-[Xyst](https://codeberg.org/xyst/xyst) continues on two different forks.
+[Xyst](https://codeberg.org/xyst/xyst) continues on different forks.
 
 @section authors Authors
 

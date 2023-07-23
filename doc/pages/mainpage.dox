@@ -51,14 +51,14 @@ of testing serial, synchronous (e.g., MPI) parallel, and asynchronous parallel
 Install prerequisites: _Debian-based linux_
 
 @code
-apt-get install git autoconf cmake g++ libopenmpi-dev libhdf5-dev libhdf5-openmpi-dev libnetcdf-mpi-dev
+apt-get install git cmake g++ ninja-build libopenmpi-dev libhdf5-openmpi-dev libnetcdf-mpi-dev
 @endcode
 
 Clone, build, test
 
 @code
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
-mkdir build && cd build && cmake ../src && make -sj$(grep -c processor /proc/cpuinfo) && cd -
+mkdir build && cd build && cmake -GNinja ../src && ninja && cd -
 cd build && ./charmrun +p$(grep -c processor /proc/cpuinfo) Main/unittest && ctest -j$(grep -c processor /proc/cpuinfo) && cd -
 @endcode
 

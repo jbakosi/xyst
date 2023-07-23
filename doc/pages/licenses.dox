@@ -13,9 +13,9 @@ libraries (TPLs) used by Xyst.
   - Web: http://charm.cs.illinois.edu
   - License: @subpage charm_license_page
 
-\subsection pegtl_license The Parsing Expression Grammar Template Library
-  - Web: https://github.com/taocpp/PEGTL
-  - License: @subpage pegtl_license_page
+\subsection minilua_license The Parsing Expression Grammar Template Library
+  - Web: https://github.com/edubart/minilua
+  - License: @subpage minilua_license_page
 
 \subsection tut_license C++ Template Unit Test Framework
   - Web: http://mrzechonek.github.io/tut-framework

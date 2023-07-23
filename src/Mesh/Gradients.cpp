@@ -28,7 +28,7 @@ nodegrad( std::size_t node,
           const std::pair< std::vector< std::size_t >,
                            std::vector< std::size_t > >& esup,
           const tk::Fields& U,
-          ncomp_t c )
+          uint64_t c )
 // *****************************************************************************
 //  Compute gradient at a mesh node
 //! \param[in] node Node id at which to compute gradient
@@ -98,7 +98,7 @@ edgegrad( const std::array< std::vector< tk::real >, 3 >& coord,
           const std::vector< std::size_t >& inpoel,
           const std::vector< std::size_t >& esued,
           const tk::Fields& U,
-          ncomp_t c )
+          uint64_t c )
 // *****************************************************************************
 //  Compute gradient at a mesh edge
 //! \param[in] coord Mesh node coordinates

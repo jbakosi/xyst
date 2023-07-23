@@ -15,7 +15,7 @@
 
 #include <iosfwd>
 
-#include "MeshConv/CmdLine/CmdLine.hpp"
+#include "MeshConvCmdLine.hpp"
 
 //! Mesh converter declarations and definitions
 namespace meshconv {
@@ -24,16 +24,9 @@ namespace meshconv {
 class MeshConvDriver {
 
   public:
-    //! Constructor
-    explicit MeshConvDriver( const ctr::CmdLine& cmdline );
-
-    //! Execute
-    void execute( int sig ) const;
-
-  private:
-    const bool m_reorder;               //!< Whether to also reorder mesh nodes
-    std::string m_input;                //!< Input file name
-    std::string m_output;               //!< Output file name
+    void convert( const std::string& input,
+                  const std::string& output,
+                  bool reorder ) const;
 };
 
 } // meshconv::

@@ -40,7 +40,6 @@ target_include_directories(Init PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_BINARY_DIR}/../Main
-                           ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS})
 
@@ -54,7 +53,6 @@ INSTALL(TARGETS Init
 ## UnitTest executable ########################################################
 if (ENABLE_TESTS)
   add_executable(${UNITTEST_EXECUTABLE}
-                 UnitTestDriver.cpp
                  UnitTest.cpp
                  ../../tests/unit/Base/TestContainerUtil.cpp
                  ../../tests/unit/Base/TestData.cpp
@@ -71,9 +69,6 @@ if (ENABLE_TESTS)
                  ../../tests/unit/Base/TestVector.cpp
                  ../../tests/unit/Base/TestWriter.cpp
                  ../../tests/unit/Base/TestLoadDistributor.cpp
-                 ../../tests/unit/Control/TestFileParser.cpp
-                 ../../tests/unit/Control/TestStringParser.cpp
-                 ../../tests/unit/Control/TestToggle.cpp
                  ../../tests/unit/Inciter/AMR/TestError.cpp
                  ../../tests/unit/IO/TestExodusIIMeshReader.cpp
                  ../../tests/unit/IO/TestMesh.cpp
@@ -99,7 +94,6 @@ if (ENABLE_TESTS)
                         Init
                         MeshRefinement
                         UnitTest
-                        UnitTestControl
                         Mesh
                         NativeMeshIO
                         MeshDetect
@@ -118,7 +112,6 @@ endif()
 ## Inciter executable ##########################################################
 
 add_executable(${INCITER_EXECUTABLE}
-               InciterDriver.cpp
                LBSwitch.cpp
                Inciter.cpp)
 
@@ -161,6 +154,7 @@ add_executable(${MESHCONV_EXECUTABLE}
 config_executable(${MESHCONV_EXECUTABLE})
 
 target_include_directories(${MESHCONV_EXECUTABLE} PUBLIC
+                           ${PROJECT_SOURCE_DIR}/../IO
                            ${PROJECT_BINARY_DIR}/../Base)
 
 target_link_libraries(${MESHCONV_EXECUTABLE}
@@ -168,7 +162,6 @@ target_link_libraries(${MESHCONV_EXECUTABLE}
                       ExodusIIMeshIO
                       MeshDetect
                       Mesh
-                      MeshConvControl
                       Base
                       Config
                       Init

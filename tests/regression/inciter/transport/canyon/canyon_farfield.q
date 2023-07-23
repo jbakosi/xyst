@@ -11,7 +11,7 @@ part = "rcb"
 
 problem = {
   name = "point_src",
-  source = {
+  src = {
     location = { 3.0, 0.01, 0.0 },
     radius = 0.2,
     release_time = 0.0

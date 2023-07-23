@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <limits>
 
 #include "DiagWriter.hpp"
 #include "Exception.hpp"

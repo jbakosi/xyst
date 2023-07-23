@@ -13,14 +13,13 @@
 
 #include <iomanip>
 
-#include "Tags.hpp"
 #include "Reorder.hpp"
 #include "Vector.hpp"
 #include "DerivedData.hpp"
 #include "Discretization.hpp"
 #include "MeshWriter.hpp"
 #include "DiagWriter.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 #include "Print.hpp"
 #include "Around.hpp"
 #include "XystBuildConfig.hpp"
@@ -29,7 +28,6 @@ namespace inciter {
 
 static CkReduction::reducerType PDFMerger;
 extern ctr::InputDeck g_inputdeck;
-extern ctr::InputDeck g_inputdeck_defaults;
 
 } // inciter::
 
@@ -113,8 +111,7 @@ Discretization::Discretization(
     const auto& l = pt[p];
     for (std::size_t e=0; e<m_inpoel.size()/4; ++e) {
       if (tk::intet( m_coord, m_inpoel, l, e, N )) {
-        m_histdata.push_back(
-          HistData{{ "p"+std::to_string(p+1), e, {l[0],l[1],l[2]}, N }} );
+        m_histdata.push_back( HistData{{ "p"+std::to_string(p+1), e, N }} );
         break;
       }
     }
@@ -572,7 +569,7 @@ Discretization::write(
 
   m_meshwriter[ CkNodeFirst( CkMyNode() ) ].
     write( m_meshid, meshoutput, fieldoutput, m_itr, m_itf, m_t, thisIndex,
-           g_inputdeck.get< tag::cmd, tag::io, tag::output >(),
+           g_inputdeck.get< tag::cmd, tag::output >(),
            inpoel, coord, bface, bnode, triinpoel, elemfieldnames,
            nodefieldnames, elemsurfnames, nodesurfnames, elemfields, nodefields,
            elemsurfs, nodesurfs, outsets, c );
@@ -657,7 +654,7 @@ Discretization::restarted( int nrestart )
 {
   // Detect if just restarted from checkpoint:
   //   nrestart == -1 if there was no checkpoint this step
-  //   d->Nrestart() == nrestart if there was a checkpoint this step
+  //   m_nrestart == nrestart if there was a checkpoint this step
   //   if both false, just restarted from a checkpoint
   bool restarted = nrestart != -1 and m_nrestart != nrestart;
 
@@ -675,8 +672,7 @@ Discretization::restarted( int nrestart )
 }
 
 std::string
-Discretization::histfilename( const std::string& id,
-                              kw::precision::info::expect::type precision )
+Discretization::histfilename( const std::string& id, std::streamsize precision )
 // *****************************************************************************
 //  Construct history output filename
 //! \param[in] id History point id
@@ -684,7 +680,7 @@ Discretization::histfilename( const std::string& id,
 //! \return History file name
 // *****************************************************************************
 {
-  auto of = g_inputdeck.get< tag::cmd, tag::io, tag::output >();
+  auto of = g_inputdeck.get< tag::cmd, tag::output >();
   std::stringstream ss;
 
   ss << std::setprecision(static_cast<int>(precision)) << of << ".hist." << id;

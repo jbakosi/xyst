@@ -19,7 +19,7 @@
 #include <stddef.h>
 
 #include "ContainerUtil.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 #include "DerivedData.hpp"
 #include "UnsMesh.hpp"
 #include "Sorter.hpp"

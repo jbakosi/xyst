@@ -44,8 +44,8 @@ class MPIRunner : public CBase_MPIRunner< Proxy > {
         }
         // Send result (only one)
         if (CkNodeFirst(nd) == 0) {
-          m_host.evaluate( { tr.group, tr.name, std::to_string(tr.result),
-                             tr.message, tr.exception_typeid } );
+          m_host.evaluateTest( { tr.group, tr.name, std::to_string(tr.result),
+                                 tr.message, tr.exception_typeid } );
         }
       }
     }

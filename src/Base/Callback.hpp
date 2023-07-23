@@ -10,13 +10,26 @@
   \details   Tagged tuple types used for passing Charm++ callbacks.
 */
 // *****************************************************************************
-#ifndef Callbacks_h
-#define Callbacks_h
+#pragma once
 
 #include "NoWarning/charm++.hpp"
 
-#include "Tags.hpp"
 #include "TaggedTuple.hpp"
+
+namespace tag {
+struct load;
+struct partitioned;
+struct distributed;
+struct refinserted;
+struct queried;
+struct responded;
+struct compatibility;
+struct bndint;
+struct matched;
+struct refined;
+struct discinserted;
+struct workinserted;
+} // tag::
 
 namespace tk {
 
@@ -47,5 +60,3 @@ using SorterCallback =
   > >;
 
 } // tk::
-
-#endif // Callbacks_h

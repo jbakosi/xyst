@@ -17,7 +17,7 @@
 #include "NodeDiagnostics.hpp"
 #include "DiagReducer.hpp"
 #include "Discretization.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 #include "Problems.hpp"
 
 namespace inciter {

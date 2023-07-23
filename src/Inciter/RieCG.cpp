@@ -17,7 +17,7 @@
 #include "ContainerUtil.hpp"
 #include "UnsMesh.hpp"
 #include "ExodusIIMeshWriter.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 #include "DerivedData.hpp"
 #include "Discretization.hpp"
 #include "DiagReducer.hpp"
@@ -34,7 +34,6 @@
 namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
-extern ctr::InputDeck g_inputdeck_defaults;
 
 static CkReduction::reducerType IntegralsMerger;
 
@@ -928,13 +927,11 @@ RieCG::dt()
   tk::real mindt = std::numeric_limits< tk::real >::max();
 
   auto const_dt = g_inputdeck.get< tag::dt >();
-  auto def_const_dt = g_inputdeck_defaults.get< tag::dt >();
   auto eps = std::numeric_limits< tk::real >::epsilon();
-
   auto d = Disc();
 
   // use constant dt if configured
-  if (std::abs(const_dt - def_const_dt) > eps) {
+  if (std::abs(const_dt) > eps) {
 
     // cppcheck-suppress redundantInitialization
     mindt = const_dt;

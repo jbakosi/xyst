@@ -20,10 +20,8 @@
 #include "Types.hpp"
 #include "XystConfig.hpp"
 #include "Init.hpp"
-#include "Tags.hpp"
 #include "MeshConvDriver.hpp"
-#include "MeshConv/CmdLine/CmdLine.hpp"
-#include "MeshConv/CmdLine/Parser.hpp"
+#include "MeshConvCmdLine.hpp"
 #include "ProcessException.hpp"
 
 #include "NoWarning/charm.hpp"
@@ -37,12 +35,6 @@
 //! \brief Charm handle to the main proxy, facilitates call-back to finalize,
 //!    etc., must be in global scope, unique per executable
 CProxy_Main mainProxy;
-
-//! If true, call and stack traces are to be output with exceptions
-//! \note This is true by default so that the trace is always output between
-//!   program start and the Main ctor in which the user-input from command line
-//!   setting for this overrides this true setting.
-bool g_trace = true;
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
@@ -72,22 +64,18 @@ class Main : public CBase_Main {
     explicit Main( CkArgMsg* msg )
     try :
       m_signal( tk::setSignalHandlers() ),
-      m_cmdline(),
-      // Parse command line into m_cmdline
-      m_cmdParser( msg->argc, msg->argv, m_cmdline ),
-      // Create MeshConv driver
-      m_driver( tk::Main< meshconv::MeshConvDriver >
-                        ( msg->argc, msg->argv,
-                          m_cmdline,
-                          tk::HeaderType::MESHCONV,
-                          tk::meshconv_executable() ) ),
-      m_timer(1),       // Start new timer measuring the total runtime
-      m_timestamp()
+      m_cmdline( msg->argc, msg->argv ),
+      m_timer(1)
     {
+      tk::echoHeader( tk::HeaderType::MESHCONV );
+      tk::echoBuildEnv( msg->argv[0] );
+      tk::echoRunEnv(msg->argc, msg->argv, m_cmdline.get< tag::quiescence >());
       delete msg;
-      g_trace = m_cmdline.get< tag::trace >();
-      tk::MainCtor( mainProxy, thisProxy, m_timer, m_cmdline,
-                    CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
+      mainProxy = thisProxy;
+      if (m_cmdline.get< tag::quiescence >()) {
+        CkStartQD( CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
+      }
+      m_timer.emplace_back();
       // Fire up an asynchronous execute object, which when created at some
       // future point in time will call back to this->execute(). This is
       // necessary so that this->execute() can access already migrated
@@ -98,7 +86,8 @@ class Main : public CBase_Main {
     void execute() {
       try {
         m_timestamp.emplace_back("Migrate global-scope data", m_timer[1].hms());
-        m_driver.execute( m_cmdline.get< tag::signal >() );
+        meshconv::MeshConvDriver().convert( m_cmdline.get< tag::input >(),
+          m_cmdline.get< tag::output >(), m_cmdline.get< tag::reorder >() );
       } catch (...) { tk::processExceptionCharm(); }
     }
 
@@ -123,8 +112,6 @@ class Main : public CBase_Main {
   private:
     int m_signal;                               //!< Used to set signal handlers
     meshconv::ctr::CmdLine m_cmdline;           //!< Command line
-    meshconv::CmdLineParser m_cmdParser;        //!< Command line parser
-    meshconv::MeshConvDriver m_driver;          //!< Driver
     std::vector< tk::Timer > m_timer;           //!< Timers
 
     //! Time stamps in h:m:s with labels

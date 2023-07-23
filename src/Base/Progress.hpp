@@ -18,7 +18,6 @@
 
 #include "TaggedTuple.hpp"
 #include "Print.hpp"
-#include "Tags.hpp"
 
 namespace tk {
 

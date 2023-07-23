@@ -11,10 +11,9 @@
 // *****************************************************************************
 
 #include "BC.hpp"
-#include "Tags.hpp"
 #include "EOS.hpp"
 #include "Problems.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 
 namespace inciter {
 

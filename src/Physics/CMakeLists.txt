@@ -12,8 +12,7 @@ target_include_directories(Physics PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_BINARY_DIR}/../Main
-                           ${CHARM_INCLUDE_DIRS}
-                           ${PEGTL_INCLUDE_DIRS})
+                           ${CHARM_INCLUDE_DIRS})
 
 set_target_properties(Physics PROPERTIES LIBRARY_OUTPUT_NAME xyst_physics)
 

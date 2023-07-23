@@ -19,11 +19,9 @@
 
 #include "NoWarning/tut_runner.hpp"
 
-#include "Tags.hpp"
 #include "TUTSuite.hpp"
 #include "TUTTest.hpp"
 #include "MPIRunner.hpp"
-#include "Assessment.hpp"
 #include "Print.hpp"
 
 #include "NoWarning/unittest.decl.h"
@@ -39,9 +37,8 @@ extern int g_maxTestsInGroup;
 
 using unittest::TUTSuite;
 
-TUTSuite::TUTSuite( const ctr::CmdLine& cmdline ) :
-  m_cmdline( cmdline ),
-  m_mpirunner(),
+TUTSuite::TUTSuite( const std::string& grp ) :
+  m_group2run( grp ),
   m_nrun( 0 ),
   m_ngroup( 0 ),
   m_ncomplete( 0 ),
@@ -52,48 +49,45 @@ TUTSuite::TUTSuite( const ctr::CmdLine& cmdline ) :
   m_nspaw( 0 )
 // *****************************************************************************
 // Constructor
-//! \param[in] cmdline Data structure storing data from the command-line parser
+//! \param[in] grp Test group to run
 // *****************************************************************************
 {
   const auto& groups = g_runner.get().list_groups();
 
-  // Get group name string passed in by -g
-  const auto grp = cmdline.get< tag::group >();
-
   // If only select groups to be run, see if there is any that will run
   bool work = false;
   if (grp.empty() ||
-      std::any_of( groups.cbegin(), groups.cend(),
-         [&grp]( const std::string& g )
-         { return g.find(grp) != std::string::npos; } ))
+      std::any_of( groups.cbegin(), groups.cend(), [&]( const std::string& g ) {
+        return g.find(grp) != std::string::npos; } ))
   {
     work = true;
   }
 
-  // Quit if there is no work to be done
-  if (!work) {
-
-    tk::Print() << "\nNo test groups to be executed because no test group "
-                    "names match '" + grp + "'.\n";
-    mainProxy.finalize( true );
-
-  } else {
-
-    tk::Print().unithead( "Running unit tests", grp );
-
-    // Create MPI unit test runner nodegroup
+  if (!work) {  // Quit if there is no work to be done
+    tk::Print() << "\nNo test groups match '" + grp + "'.\n";
+    mainProxy.finalize( false );
+  } else {      // Create MPI unit test runner nodegroup
     m_mpirunner = CProxy_MPIRunner< CProxy_TUTSuite >::ckNew( thisProxy );
+  }
+}
 
-    // Fire up all tests in all groups using the Charm++ runtime system
-    for (const auto& g : groups) {
-      if (grp.empty()) {                        // consider all test groups
-        spawngrp( g );
-      } else if (g.find(grp) != std::string::npos) {
-        // spawn only the groups that match the string specified via -g string
-        spawngrp( g );
-      }
+void
+TUTSuite::run()
+// *****************************************************************************
+//  Run all tests
+// *****************************************************************************
+{
+  tk::Print().unithead( "Running unit tests", m_group2run );
+
+  const auto& groups = g_runner.get().list_groups();
+
+  // Fire up all tests in all groups using the Charm++ runtime system
+  for (const auto& g : groups) {
+    if (m_group2run.empty()) {  // consider all test groups
+      spawngrp( g );
+    } else if (g.find(m_group2run) != std::string::npos) {
+      spawngrp( g );            // spawn groups configured
     }
-
   }
 }
 
@@ -124,7 +118,7 @@ TUTSuite::spawngrp( const std::string& g )
 }
 
 void
-TUTSuite::evaluate( std::vector< std::string > status )
+TUTSuite::evaluateTest( std::vector< std::string >&& status )
 // *****************************************************************************
 // Evaluate a unit test
 //! \param[in] status Vector strings containing the test results. See
@@ -135,19 +129,72 @@ TUTSuite::evaluate( std::vector< std::string > status )
   ++m_nrun;
 
   // Evaluate test
-  unittest::evaluate( status, m_ncomplete, m_nwarn, m_nskip, m_nexcp, m_nfail );
-
-  auto print = tk::Print();
+  if (status[2] != "8") {             // only care about non-dummy tests
+    ++m_ncomplete;                    // count number of tests completed
+    if (status[2] == "3")             // count number of tests with a warning
+      ++m_nwarn;
+    else if (status[2] == "7")        // count number of skipped tests
+      ++m_nskip;
+    else if (status[2] == "2")        // count number of tests throwing
+      ++m_nexcp;
+    else if (status[2] != "0")        // count number of failed tests
+      ++m_nfail;
+  }
 
   // Echo one-liner info on result of test
-  print.test( m_ncomplete, m_nfail, status );
+  tk::Print().test( m_ncomplete, m_nfail, status );
 
   // Wait for all tests to finish, then quit
   if (m_nrun == m_ngroup*static_cast<std::size_t>(g_maxTestsInGroup) + m_nspaw)
   {
-    auto pass = assess(print, m_nfail, m_nwarn, m_nskip, m_nexcp, m_ncomplete);
+    auto pass = assess();
     mainProxy.finalize( pass );
   }
+}
+
+bool
+TUTSuite::assess()
+// *****************************************************************************
+// Echo final assessment after the full unit test suite has finished
+//! \return True of all tests passed, false if there was at least a failure or
+//!   an exception
+// *****************************************************************************
+{
+  tk::Print print;
+
+  if (!m_nfail && !m_nwarn && !m_nskip && !m_nexcp) {
+
+    print << "\nAll " + std::to_string(m_ncomplete) + " tests passed\n";
+
+  } else {
+
+    std::string skip, warn, fail, excp;
+
+    if (m_nwarn) {
+      warn = "finished with a warning: " + std::to_string(m_nwarn);
+    }
+
+    if (m_nskip) {
+      skip = std::string(m_nwarn ? ", " : "") +
+             "(fully or partially) skipped: " + std::to_string(m_nskip);
+    }
+
+    if (m_nexcp) {
+      excp = std::string(m_nskip || m_nwarn ? ", " : "") +
+             "threw exception: " + std::to_string(m_nexcp);
+    }
+
+    if (m_nfail) {
+      fail = std::string(m_nexcp || m_nskip || m_nwarn ? ", " : "")
+             + "failed: " + std::to_string(m_nfail);
+    }
+
+    print << "\nOf " + std::to_string(m_ncomplete) + " tests total: "
+          << warn << skip << excp << fail << '\n';
+
+  }
+
+  return (m_nfail || m_nexcp) ? false : true;
 }
 
 #include "NoWarning/tutsuite.def.h"

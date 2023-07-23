@@ -16,7 +16,6 @@
 
 #include "Types.hpp"
 #include "Exception.hpp"
-#include "Keywords.hpp"
 #include "PUPUtil.hpp"
 
 namespace tk {
@@ -33,10 +32,8 @@ enum class Moment : uint8_t { ORDINARY=0,      //!< Full variable
 //! \details Internally the numbering of field IDs starts from 0, but presented
 //!    to the user, e.g., in screen-output, as starting from 1.
 struct Term {
-  using ncomp_t = kw::ncomp::info::expect::type;
-
   char var;             //!< Variable name
-  ncomp_t field;        //!< Field ID
+  uint64_t field;       //!< Field ID
   Moment moment;        //!< Moment type: ordinary, central
 
   /** @name Pack/Unpack: Serialize Term object for Charm++ */
@@ -58,7 +55,7 @@ struct Term {
   //! \param[in] v Variable name
   //! \param[in] f Field ID
   //! \param[in] m Moment type enum: Moment::ORDINARY or Moment::CENTRAL
-  explicit Term( char v = 0, ncomp_t f = 0, Moment m = Moment::ORDINARY ) :
+  explicit Term( char v = 0, uint64_t f = 0, Moment m = Moment::ORDINARY ) :
     var( v ), field( f ), moment( m ) {}
 
   //! \brief Equal operator for, e.g., finding unique elements, used by, e.g.,
@@ -214,7 +211,7 @@ PDFInfo pdfInfo( const std::vector< std::vector< tk::real > >& binsizes,
 //! \return Constructed vector< Term > identifying the first ordinary moment
 //!   (mean) of field (component) c of variable var
 static inline Product
-mean( char var, kw::ncomp::info::expect::type c ) {
+mean( char var, uint64_t c ) {
   tk::ctr::Term m( static_cast<char>(std::toupper(var)), c, Moment::ORDINARY );
   return tk::ctr::Product( { m } );
 }
@@ -225,7 +222,7 @@ mean( char var, kw::ncomp::info::expect::type c ) {
 //! \return Constructed vector< Term > identifying the second central moment
 //!   (variance) of field (component) c of variable var
 static inline Product
-variance( char var, kw::ncomp::info::expect::type c ) {
+variance( char var, uint64_t c ) {
   tk::ctr::Term f( static_cast<char>(std::tolower(var)), c, Moment::CENTRAL );
   return tk::ctr::Product( { f, f } );
 }

@@ -29,10 +29,8 @@
 #include "Timer.hpp"
 #include "Exception.hpp"
 #include "ProcessException.hpp"
-#include "InciterDriver.hpp"
-#include "Inciter/CmdLine/Parser.hpp"
-#include "Inciter/CmdLine/CmdLine.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterCmdLine.hpp"
+#include "InciterInputDeck.hpp"
 #include "LBSwitch.hpp"
 
 #include "NoWarning/inciter.decl.h"
@@ -48,12 +46,6 @@ CProxy_Main mainProxy;
 
 //! Load balancer switch group proxy
 tk::CProxy_LBSwitch LBSwitchProxy;
-
-//! If true, call and stack traces are to be output with exceptions
-//! \note This is true by default so that the trace is always output between
-//!   program start and the Main ctor in which the user-input from command line
-//!   setting for this overrides this true setting.
-bool g_trace = true;
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
@@ -74,18 +66,15 @@ namespace inciter {
   #pragma clang diagnostic ignored "-Wmissing-variable-declarations"
 #endif
 
-//! Defaults of input deck, facilitates detection what is set by user
-//! \details This object is in global scope, it contains the default of all
-//!   possible user input, and thus it is made available to all PEs for
-//!   convenience reasons. The runtime system distributes it to all PEs during
-//!   initialization. Once distributed, the object does not change.
-ctr::InputDeck g_inputdeck_defaults;
 //! Input deck filled by parser, containing all input data
 //! \details This object is in global scope, it contains all of user input, and
 //!   thus it is made available to all PEs for convenience reasons. The runtime
 //!   system distributes it to all PEs during initialization. Once distributed,
 //!   the object does not change.
 ctr::InputDeck g_inputdeck;
+
+//! Number of times restarted counter
+int g_nrestart;
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
@@ -133,23 +122,20 @@ class Main : public CBase_Main {
     explicit Main( CkArgMsg* msg )
     try :
       m_signal( tk::setSignalHandlers() ),
-      m_cmdline(),
-      // Parse command line into m_cmdline using default simple pretty printer
-      m_cmdParser( msg->argc, msg->argv, m_cmdline ),
-      // Create Inciter driver
-      m_driver( tk::Main< inciter::InciterDriver >
-                        ( msg->argc, msg->argv,
-                          m_cmdline,
-                          tk::HeaderType::INCITER,
-                          tk::inciter_executable() ) ),
-      // Start new timer measuring the total runtime
-      m_timer(1),
-      m_timestamp()
+      m_cmdline( msg->argc, msg->argv ),
+      m_timer(1)
     {
+      tk::echoHeader( tk::HeaderType::INCITER );
+      tk::echoBuildEnv( msg->argv[0] );
+      tk::echoRunEnv(msg->argc, msg->argv, m_cmdline.get< tag::quiescence >());
       delete msg;
-      g_trace = m_cmdline.get< tag::trace >();
-      tk::MainCtor( mainProxy, thisProxy, m_timer, m_cmdline,
-                    CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
+      mainProxy = thisProxy;
+      if (m_cmdline.get< tag::quiescence >()) {
+        CkStartQD( CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
+      }
+      m_timer.emplace_back();
+      // Parse control file
+      inciter::g_inputdeck.parse( m_cmdline );
       // Fire up an asynchronous execute object, which when created at some
       // future point in time will call back to this->execute(). This is
       // necessary so that this->execute() can access already migrated
@@ -160,31 +146,32 @@ class Main : public CBase_Main {
     //! Migrate constructor: returning from a checkpoint
     explicit Main( CkMigrateMessage* msg ) : CBase_Main( msg ),
       m_signal( tk::setSignalHandlers() ),
-      m_cmdline(),
-      m_cmdParser( reinterpret_cast<CkArgMsg*>(msg)->argc,
-                   reinterpret_cast<CkArgMsg*>(msg)->argv,
-                   m_cmdline ),
-      m_driver( tk::Main< inciter::InciterDriver >
-                        ( reinterpret_cast<CkArgMsg*>(msg)->argc,
-                          reinterpret_cast<CkArgMsg*>(msg)->argv,
-                          m_cmdline,
-                          tk::HeaderType::INCITER,
-                          tk::inciter_executable() ) ),
-      m_timer(1),
-      m_timestamp()
+      m_cmdline( reinterpret_cast<CkArgMsg*>(msg)->argc,
+                 reinterpret_cast<CkArgMsg*>(msg)->argv ),
+      m_timer(1)
     {
+      tk::echoHeader( tk::HeaderType::INCITER );
+      tk::echoBuildEnv( reinterpret_cast<CkArgMsg*>(msg)->argv[0] );
+      tk::echoRunEnv( reinterpret_cast<CkArgMsg*>(msg)->argc,
+                      reinterpret_cast<CkArgMsg*>(msg)->argv,
+                      m_cmdline.get< tag::quiescence >() );
       // increase number of restarts (available for Transporter on PE 0)
-      ++inciter::g_inputdeck.get< tag::cmd, tag::io, tag::nrestart >();
-      g_trace = m_cmdline.get< tag::trace >();
-      tk::MainCtor( mainProxy, thisProxy, m_timer, m_cmdline,
-                    CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
+      ++inciter::g_nrestart;
+      mainProxy = thisProxy;
+      if (m_cmdline.get< tag::quiescence >()) {
+        CkStartQD( CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
+      }
+      m_timer.emplace_back();
+      // Parse control file
+      inciter::g_inputdeck.parse( m_cmdline );
     }
 
     //! Execute driver created and initialized by constructor
     void execute() {
       try {
         m_timestamp.emplace_back("Migrate global-scope data", m_timer[1].hms());
-        m_driver.execute();
+        // Instantiate Transporter chare on PE 0 which drives time-integration
+        inciter::CProxy_Transporter::ckNew( 0 );
       } catch (...) { tk::processExceptionCharm(); }
     }
 
@@ -214,8 +201,6 @@ class Main : public CBase_Main {
   private:
     int m_signal;                               //!< Used to set signal handlers
     inciter::ctr::CmdLine m_cmdline;            //!< Command line
-    inciter::CmdLineParser m_cmdParser;         //!< Command line parser
-    inciter::InciterDriver m_driver;            //!< Driver
     std::vector< tk::Timer > m_timer;           //!< Timers
     //! Time stamps in h:m:s with labels
     std::vector< std::pair< std::string, tk::Timer::Watch > > m_timestamp;

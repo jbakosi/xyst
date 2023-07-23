@@ -18,7 +18,7 @@
 #include "Reorder.hpp"
 #include "AMR/mesh_adapter.hpp"
 #include "AMR/Error.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 #include "DerivedData.hpp"
 #include "UnsMesh.hpp"
 #include "Centering.hpp"
@@ -31,7 +31,6 @@
 namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
-extern ctr::InputDeck g_inputdeck_defaults;
 
 } // inciter::
 
@@ -1274,21 +1273,21 @@ Refiner::coordRefine()
 // *****************************************************************************
 {
   // Get user-defined half-world coordinates
-  auto xminus = 0.0;//g_inputdeck.get< tag::amr, tag::xminus >();
-  auto xplus = 0.0;//g_inputdeck.get< tag::amr, tag::xplus >();
-  auto yminus = 0.0;//g_inputdeck.get< tag::amr, tag::yminus >();
-  auto yplus = 0.0;//g_inputdeck.get< tag::amr, tag::yplus >();
-  auto zminus = 0.0;//g_inputdeck.get< tag::amr, tag::zminus >();
-  auto zplus = 0.0;//g_inputdeck.get< tag::amr, tag::zplus >();
+  auto xminus = 0.0;
+  auto xplus = 0.0;
+  auto yminus = 0.0;
+  auto yplus = 0.0;
+  auto zminus = 0.0;
+  auto zplus = 0.0;
 
   // The default is the largest representable double
   auto eps = 1.0e-12;
-  auto xminus_default = 0.0;//g_inputdeck_defaults.get< tag::amr, tag::xminus >();
-  auto xplus_default = 0.0;//g_inputdeck_defaults.get< tag::amr, tag::xplus >();
-  auto yminus_default = 0.0;//g_inputdeck_defaults.get< tag::amr, tag::yminus >();
-  auto yplus_default = 0.0;//g_inputdeck_defaults.get< tag::amr, tag::yplus >();
-  auto zminus_default = 0.0;//g_inputdeck_defaults.get< tag::amr, tag::zminus >();
-  auto zplus_default = 0.0;//g_inputdeck_defaults.get< tag::amr, tag::zplus >();
+  auto xminus_default = 0.0;
+  auto xplus_default = 0.0;
+  auto yminus_default = 0.0;
+  auto yplus_default = 0.0;
+  auto zminus_default = 0.0;
+  auto zplus_default = 0.0;
 
   // Decide if user has configured the half-world
   bool xm = std::abs(xminus - xminus_default) > eps ? true : false;

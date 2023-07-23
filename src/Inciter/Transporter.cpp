@@ -28,8 +28,7 @@
 #include "ContainerUtil.hpp"
 #include "LoadDistributor.hpp"
 #include "ExodusIIMeshReader.hpp"
-#include "Inciter/Types.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 #include "DiagWriter.hpp"
 #include "Diagnostics.hpp"
 #include "Integrals.hpp"
@@ -44,14 +43,14 @@ extern CProxy_Main mainProxy;
 namespace inciter {
 
 extern ctr::InputDeck g_inputdeck;
-extern ctr::InputDeck g_inputdeck_defaults;
+extern int g_nrestart;
 
 }
 
 using inciter::Transporter;
 
 Transporter::Transporter() :
-  m_input{ g_inputdeck.get< tag::cmd, tag::io, tag::input >() },
+  m_input{ g_inputdeck.get< tag::cmd, tag::input >() },
   m_nchare( m_input.size() ),
   m_meshid(),
   m_ncit( m_nchare.size(), 0 ),
@@ -127,7 +126,7 @@ Transporter::Transporter( CkMigrateMessage* m ) :
 // *****************************************************************************
 {
    auto print = tk::Print();
-   print << "\nRestarted from checkpoint\n";
+   print << "\nXyst> Restarted from checkpoint\n";
    inthead( print );
 }
 
@@ -306,7 +305,7 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
   uint64_t chunksize, remainder;
   m_nchare[meshid] = static_cast<int>(
     tk::linearLoadDistributor(
-       g_inputdeck.get< tag::cmd, tag::virtualization >(),
+       g_inputdeck.get< tag::cmd, tag::virt >(),
        m_nelem[meshid], CkNumPes(), chunksize, remainder ) );
 
   // Store sum of meshids (across all chares, key) for each meshid (value).
@@ -329,7 +328,7 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
     print.section( "Partitioning mesh" );
     print.item( "Partitioner", g_inputdeck.get< tag::part >() );
     print.item( "Virtualization [0.0...1.0]",
-                g_inputdeck.get< tag::cmd, tag::virtualization >() );
+                g_inputdeck.get< tag::cmd, tag::virt >() );
     // Print out initial mesh statistics
     meshstat( "Initial load distribution" );
 
@@ -693,7 +692,7 @@ Transporter::diagHeader()
 // *****************************************************************************
 {
   // Output header for diagnostics output file
-  tk::DiagWriter dw( g_inputdeck.get< tag::cmd, tag::io, tag::diag >(),
+  tk::DiagWriter dw( g_inputdeck.get< tag::cmd, tag::diag >(),
                      g_inputdeck.get< tag::diag_format >(),
                      g_inputdeck.get< tag::diag_precision >() );
 
@@ -745,7 +744,7 @@ Transporter::integralsHeader()
 
   if (sidesets_integral.empty()) return;
 
-  auto filename = g_inputdeck.get< tag::cmd, tag::io, tag::output >() + ".int";
+  auto filename = g_inputdeck.get< tag::cmd, tag::output >() + ".int";
   tk::DiagWriter dw( filename,
                      "default",//g_inputdeck.get< tag::flformat, tag::integral >(),
                      3 );//g_inputdeck.get< tag::prec, tag::integral >() );
@@ -776,7 +775,7 @@ Transporter::comfinal( std::size_t summeshid )
     tk::Print print;
     m_progWork.end( print );
     tk::CProxy_LBSwitch::ckNew();
-    print << "Load balancing on (if enabled in Charm++)\n";
+    print << "Xyst> Load balancing on (if enabled in Charm++)\n";
   }
 }
 
@@ -989,8 +988,6 @@ Transporter::inthead( const tk::Print& print )
 //! \param[in] print Pretty printer object to use for printing
 // *****************************************************************************
 {
-  auto refined = g_inputdeck.get< tag::cmd, tag::io, tag::refined >();
-
   print.section( "Time integration" );
   print <<
   "Legend: it - iteration count\n"
@@ -1000,16 +997,15 @@ Transporter::inthead( const tk::Print& print )
   "       ETA - estimated wall-clock time for accomplishment (h:m:s)\n"
   "       EGT - estimated grind wall-clock time (ms/timestep)\n"
   "       flg - status flags, legend:\n"
-  "             f - " + std::string(refined ? "refined " : "")
-                      + "field (volume and surface) output\n"
+  "             f - field (volume and surface) output\n"
   "             i - integral output\n"
   "             d - diagnostics output\n"
   "             t - physics time history output\n"
   "             h - h-refinement\n"
   "             l - load balancing\n"
-  "             c - checkpoint\n" +
+  "             c - checkpoint\n"
   "\n      it             t            dt        ETE        ETA        EGT  flg\n"
-    " -------------------------------------------------------------------------\n";
+    "--------------------------------------------------------------------------\n";
 }
 
 void
@@ -1078,7 +1074,7 @@ Transporter::diagnostics( CkReductionMsg* msg )
   }
  
   // Append diagnostics file at selected times
-  auto filename = g_inputdeck.get< tag::cmd, tag::io, tag::diag >();
+  auto filename = g_inputdeck.get< tag::cmd, tag::diag >();
   if (m_nelem.size() > 1) filename += '.' + id;
   tk::DiagWriter dw( filename,
                      g_inputdeck.get< tag::diag_format >(),
@@ -1125,7 +1121,7 @@ Transporter::integrals( CkReductionMsg* msg )
     for (const auto& [s,m] : d[MASS_FLOW_RATE]) ints.push_back( m );
 
     // Append integrals file at selected times
-    auto filename = g_inputdeck.get<tag::cmd, tag::io, tag::output>() + ".int";
+    auto filename = g_inputdeck.get< tag::cmd, tag::output >() + ".int";
     tk::DiagWriter dw( filename,
                        "default",//g_inputdeck.get< tag::flformat, tag::integral >(),
                        3,//g_inputdeck.get< tag::prec, tag::integral >(),
@@ -1154,10 +1150,9 @@ Transporter::resume()
 {
   if (std::any_of(begin(m_finished), end(m_finished), [](auto f){return !f;})) {
     // If just restarted from a checkpoint, Main( CkMigrateMessage* msg ) has
-    // increased nrestart in g_inputdeck, but only on PE 0, so broadcast.
-    auto nrestart = g_inputdeck.get< tag::cmd, tag::io, tag::nrestart >();
+    // increased g_nrestart, but only on PE 0, so broadcast.
     for (std::size_t i=0; i<m_nelem.size(); ++i)
-      m_riecg[ i ].evalLB( nrestart );
+      m_riecg[i].evalLB( g_nrestart );
   } else {
     mainProxy.finalize();
   }
@@ -1176,9 +1171,9 @@ Transporter::checkpoint( std::size_t finished, std::size_t meshid )
   if (++m_nchk == m_nelem.size()) { // all worker arrays have checkpointed
     m_nchk = 0;
     if (not g_inputdeck.get< tag::cmd, tag::benchmark >()) {
-      const auto& restart = g_inputdeck.get< tag::cmd, tag::io, tag::restart >();
+      const auto& ckptdir = g_inputdeck.get< tag::cmd, tag::checkpoint >();
       CkCallback res( CkIndex_Transporter::resume(), thisProxy );
-      CkStartCheckpoint( restart.c_str(), res );
+      CkStartCheckpoint( ckptdir.c_str(), res );
       //CkStartMemCheckpoint( res );
     } else {
       resume();

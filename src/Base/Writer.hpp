@@ -12,8 +12,7 @@
     closing a file, and associated error handling.
 */
 // *****************************************************************************
-#ifndef Writer_h
-#define Writer_h
+#pragma once
 
 #include <fstream>
 
@@ -47,5 +46,3 @@ class Writer {
 };
 
 } // tk::
-
-#endif // Writer_h

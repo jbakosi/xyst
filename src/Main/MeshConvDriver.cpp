@@ -7,18 +7,12 @@
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
   \brief     Mesh converter driver
-  \details   Mesh converter driver.
 */
 // *****************************************************************************
 
-#include <csignal>
-
 #include "Types.hpp"
-#include "Tags.hpp"
 #include "MeshConvDriver.hpp"
 #include "MeshFactory.hpp"
-#include "TaggedTupleDeepPrint.hpp"
-#include "Writer.hpp"
 #include "ProcessException.hpp"
 
 #include "NoWarning/meshconv.decl.h"
@@ -27,32 +21,17 @@ using meshconv::MeshConvDriver;
 
 extern CProxy_Main mainProxy;
 
-MeshConvDriver::MeshConvDriver( const ctr::CmdLine& cmdline ) :
-  m_reorder( cmdline.get< tag::reorder >() ),
-  m_input( cmdline.get< tag::io, tag::input >() ),
-  m_output( cmdline.get< tag::io, tag::output >() )
-// *****************************************************************************
-//  Constructor
-//! \param[in] cmdline Command line object storing data parsed from the command
-//!   line arguments
-// *****************************************************************************
-{
-  // Output command line object to file
-  auto logfilename = tk::meshconv_executable() + "_input.log";
-  tk::Writer log( logfilename );
-  tk::print( log.stream(), "cmdline", cmdline );
-}
-
 void
-MeshConvDriver::execute( int sig ) const
+MeshConvDriver::convert( const std::string& inf,
+                         const std::string& outf,
+                         bool reorder ) const
 // *****************************************************************************
 //  Execute: Convert mesh file
-//! \param[in] sig Optional signal to raise (for testing)
+//! \param[in] inf Input file
+//! \param[in] outf Output file
+//! \param[in] reorder True to also reorder mesh nodes
 // *****************************************************************************
 {
-  // Raise signal (for testing) if requested
-  if (sig) std::raise( sig );
-
   std::vector< std::pair< std::string, tk::real > > times;
 
   tk::Print print;
@@ -60,13 +39,12 @@ MeshConvDriver::execute( int sig ) const
   print.section( "Converting mesh" );
 
   // If input filename contains a '%', we aggregate multiple files
-  if (m_input.find('%') == std::string::npos) {
+  if (inf.find('%') == std::string::npos) {
 
     // Convert single mesh
-
     times.push_back( {} );
-    auto mesh = tk::readUnsMesh( print, m_input, times[0] );
-    auto wtimes = tk::writeUnsMesh( print, m_output, mesh, m_reorder );
+    auto mesh = tk::readUnsMesh( print, inf, times[0] );
+    auto wtimes = tk::writeUnsMesh( print, outf, mesh, reorder );
     times.insert( end(times), begin(wtimes), end(wtimes) );
 
   } else {
@@ -75,11 +53,11 @@ MeshConvDriver::execute( int sig ) const
 
     // Find a '%' sign in the input filename, and assuming a syntax of
     // '.<nfile>.%', find '<nfile>' as the number of files to aggregate.
-    auto percent_pos = m_input.find( '%' );
-    auto input_basename = m_input.substr( 0, percent_pos );
-    auto dot1 = m_input.find_last_of( '.', percent_pos );
-    auto dot2 = m_input.find_last_of( '.', dot1-1 );
-    auto nfile_str = m_input.substr( dot2+1, dot1-dot2-1  );
+    auto percent_pos = inf.find( '%' );
+    auto input_basename = inf.substr( 0, percent_pos );
+    auto dot1 = inf.find_last_of( '.', percent_pos );
+    auto dot2 = inf.find_last_of( '.', dot1-1 );
+    auto nfile_str = inf.substr( dot2+1, dot1-dot2-1  );
     std::stringstream ss( nfile_str );
     std::size_t nfile;
     ss >> nfile;
@@ -176,9 +154,9 @@ MeshConvDriver::execute( int sig ) const
     // Construct aggregated output mesh
     tk::UnsMesh outmesh( coords, otriinpoel, nodevarnames, vartimes, nodevars );
     // Echo diagnostics on the aggreegate output mesh
-    diag( m_output, outmesh );
+    diag( outf, outmesh );
     // Write output mesh to file
-    auto wtimes = tk::writeUnsMesh( print, m_output, outmesh, m_reorder );
+    auto wtimes = tk::writeUnsMesh( print, outf, outmesh, reorder );
     // Collect wall-clock time data
     times.insert( end(times), begin(wtimes), end(wtimes) );
 

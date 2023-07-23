@@ -22,8 +22,6 @@
 #include <cstddef>
 #include <cstring>
 
-#include "UnitTest/CmdLine/CmdLine.hpp"
-
 #include "NoWarning/tutsuite.decl.h"
 #include "NoWarning/mpirunner.decl.h"
 
@@ -34,15 +32,18 @@ class TUTSuite : public CBase_TUTSuite {
 
   public:
     //! Constructor
-    explicit TUTSuite( const ctr::CmdLine& cmdline );
+    explicit TUTSuite( const std::string& grp );
+
+    //! Run all tests
+    void run();
 
     //! Evaluate a unit test
-    void evaluate( std::vector< std::string > status );
+    void evaluateTest( std::vector< std::string >&& status );
 
   private:
-    ctr::CmdLine m_cmdline;        //!< Command line user input
     //! MPI unit test runner nodegroup proxy
     CProxy_MPIRunner< CProxy_TUTSuite > m_mpirunner;
+    std::string m_group2run; //!< Test group to run
     std::size_t m_nrun;      //!< Number of tests ran (including dummies)
     std::size_t m_ngroup;    //!< Number of test groups
     std::size_t m_ncomplete; //!< Number of completed tests
@@ -73,6 +74,9 @@ class TUTSuite : public CBase_TUTSuite {
 
     //! Fire up all tests in a test group
     void spawngrp( const std::string& g );
+
+    //! Echo final assessment after the full unit test suite has finished
+    bool assess();
 };
 
 } // unittest::

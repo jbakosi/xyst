@@ -12,7 +12,7 @@
 
 #include "Problems.hpp"
 #include "EOS.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 
 namespace inciter {
 
@@ -661,7 +661,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 {
   if (U.nprop() == 5) return;
 
-  const auto& source = g_inputdeck.get< tag::problem_source >();
+  const auto& source = g_inputdeck.get< tag::problem_src >();
   const auto& location = source.get< tag::location >();
   auto radius = source.get< tag::radius >();
   auto release_time = source.get< tag::release_time >();

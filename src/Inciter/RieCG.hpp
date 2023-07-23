@@ -20,7 +20,7 @@
 #include "Table.hpp"
 #include "DerivedData.hpp"
 #include "NodeDiagnostics.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 
 #include "NoWarning/riecg.decl.h"
 

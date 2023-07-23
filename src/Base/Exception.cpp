@@ -21,8 +21,6 @@
 #include "XystBuildConfig.hpp"
 #include "Exception.hpp"
 
-extern bool g_trace;
-
 using tk::Exception;
 
 Exception::Exception( std::string&& message,
@@ -181,7 +179,7 @@ Exception::handleException() noexcept
 //!   throws exceptions.
 // *****************************************************************************
 {
-  if (m_addrLength > 0 && g_trace) {
+  if (m_addrLength > 0) {
     fprintf( stderr, ">>>\n>>> =========== CALL TRACE ===========\n>>>\n" );
     echoTrace();
     fprintf( stderr, ">>>\n>>> ======= END OF CALL TRACE ========\n>>>\n" );

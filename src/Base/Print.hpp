@@ -188,31 +188,6 @@ class Print {
       m_stream << ss.str().c_str();
     }
 
-    //! \brief Formatted print of help of one-liners on all command-line
-    //!   parameters or control file keywords
-    //! \param[in] executable Name of executable to output help for
-    //! \param[in] pool std::map of keywords and their associated information
-    //! \param[in] msg Message to print after exectuable in the title
-    //! \param[in] pfx Prefix in front of alias, double prefix in front of
-    //!   keyword
-    template< class Help >
-    void help( const std::string& executable,
-               const Help& pool,
-               const std::string& msg,
-               const std::string& pfx = "" ) const
-    {
-      m_stream << '\n' << executable.c_str() << ' ' << msg.c_str() << '\n';
-      for (const auto& keyword : pool) {
-        const auto& info = keyword.second;
-        const auto& alias = info.alias;
-        const auto& expt = info.expt;
-        m_stream << std::string( ( alias ? pfx + *alias + ", " : "") +
-                                   pfx + pfx + keyword.first ).c_str()
-                  << (expt ? expt->c_str() : "") << ": "
-                  << info.shortDescription.c_str() << '\n';
-      }
-    }
-
     //! Print version information
     //! \param[in] executable Name of executable to output version for
     //! \param[in] git_commit Git commit sha1 to output
@@ -232,8 +207,8 @@ class Print {
     //! \param[in] example Example command line to output
     //! \param[in] msg Message to output after example
     void usage( const std::string& example, const std::string& msg ) const {
-      m_stream << "\nExample usage:\n\n$ " << example.c_str() << "\n\n"
-               << msg.c_str() << "\n\n";
+      m_stream << "\nUsage: " << example.c_str() << '\n'
+               << msg.c_str() << ". See also -h." << "\n\n";
     }
 
     //! Print lower and upper bounds for a keyword if defined
@@ -322,7 +297,7 @@ ____  ___                __    __      _____                .__    _________
     }
 
   private:
-    std::ostream& m_stream;     //!< Verbose stream
+    std::ostream& m_stream;     //!< Output stream
 
     //! Return human-readable test result based on result code
     //! \param[in] code Result code

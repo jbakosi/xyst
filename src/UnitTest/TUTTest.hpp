@@ -36,8 +36,8 @@ class TUTTest : public CBase_TUTTest< Proxy > {
     explicit TUTTest( Proxy&& proxy, const std::string& groupname, int t ) {
       tut::test_result tr;
       g_runner.get().run_test( groupname, t, tr );
-      proxy.evaluate( { tr.group, tr.name, std::to_string(tr.result),
-                        tr.message, tr.exception_typeid } );
+      proxy.evaluateTest( { tr.group, tr.name, std::to_string(tr.result),
+                            tr.message, tr.exception_typeid } );
     }
 };
 

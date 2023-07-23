@@ -24,7 +24,7 @@ using AMR::Error;
 tk::real
 Error::scalar( const tk::Fields& u,
                const edge_t& edge,
-               ncomp_t c,
+               uint64_t c,
                const std::array< std::vector< tk::real >, 3 >& coord,
                const std::vector< std::size_t >& inpoel,
                const std::pair< std::vector< std::size_t >,
@@ -55,7 +55,7 @@ Error::scalar( const tk::Fields& u,
 tk::real
 Error::error_jump( const tk::Fields& u,
                    const edge_t& edge,
-                   ncomp_t c ) const
+                   uint64_t c ) const
 // *****************************************************************************
 //  Estimate error for scalar quantity on edge based on jump in solution
 //! \param[in] u Solution vector
@@ -77,7 +77,7 @@ Error::error_jump( const tk::Fields& u,
 tk::real
 Error::error_hessian( const tk::Fields& u,
                       const edge_t& edge,
-                      ncomp_t c,
+                      uint64_t c,
                       const std::array< std::vector< tk::real >, 3 >& coord,
                       const std::vector< std::size_t >& inpoel,
                       const std::pair< std::vector< std::size_t >,

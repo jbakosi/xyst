@@ -292,8 +292,6 @@ endif()
 
 message(STATUS "C++ compiler: " ${COMPILER})
 
-find_package(PEGTL 2.0.0 REQUIRED)
-
 add_subdirectory(exodus)
 add_subdirectory(zoltan)
 

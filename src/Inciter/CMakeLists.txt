@@ -28,7 +28,6 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Physics
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_C_INCLUDE_DIRS}
-                           ${PEGTL_INCLUDE_DIRS}
                            ${NETCDF_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Inciter
                            ${PROJECT_BINARY_DIR}/../Base
@@ -49,7 +48,6 @@ target_include_directories(MeshRefinement PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../Inciter
-                           ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${TPL_INCLUDE_DIR}
                            ${PROJECT_BINARY_DIR}/../Main)

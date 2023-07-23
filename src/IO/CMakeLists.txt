@@ -9,7 +9,6 @@ target_include_directories(IO PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_SOURCE_DIR}/../Statistics
-                           ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_C_INCLUDE_DIRS}
                            ${NETCDF_INCLUDE_DIRS}
@@ -43,7 +42,6 @@ target_include_directories(NativeMeshIO PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_C_INCLUDE_DIRS}
-                           ${PEGTL_INCLUDE_DIRS}
                            ${NETCDF_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Main)
 
@@ -102,8 +100,7 @@ target_include_directories(MeshWriter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_BINARY_DIR}/../Main
                            ${PROJECT_BINARY_DIR}/../IO
-                           ${CHARM_INCLUDE_DIRS}
-                           ${PEGTL_INCLUDE_DIRS})
+                           ${CHARM_INCLUDE_DIRS})
 
 set_target_properties(MeshWriter PROPERTIES LIBRARY_OUTPUT_NAME
                       xyst_meshwriter)

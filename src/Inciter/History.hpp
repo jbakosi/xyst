@@ -10,13 +10,15 @@
   \details   Types for collecting history output.
 */
 // *****************************************************************************
-#ifndef History_h
-#define History_h
+#pragma once
 
-#include <brigand/sequences/list.hpp>
-
-#include "Tags.hpp"
 #include "TaggedTuple.hpp"
+
+namespace tag {
+struct id;
+struct elem;
+struct fn;
+} // tag::
 
 namespace inciter {
 
@@ -24,10 +26,7 @@ namespace inciter {
 using HistData = tk::TaggedTuple< brigand::list<
     tag::id,    std::string               //!< Point identifier
   , tag::elem,  std::size_t               //!< Host elem id
-  , tag::coord, std::array< tk::real, 3 > //!< Point coordinates
   , tag::fn,    std::array< tk::real, 4 > //!< Shapefunctions evaluated at point
 > >;
 
 } // inciter::
-
-#endif // History_h

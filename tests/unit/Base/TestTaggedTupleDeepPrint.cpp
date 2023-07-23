@@ -32,8 +32,7 @@ struct TaggedTupleDeepPrint_common {
   struct tag2 { static std::string name() { return "tag2"; } };
   struct tag3 { static std::string name() { return "tag3"; } };
 
-  // Define a tk::TaggedTuple by inheriting from TaggedTuple (optionally)
-  // defining type ignore
+  // Define a tk::TaggedTuple by inheriting from TaggedTuple
   struct Cmd : public tk::TaggedTuple< brigand::list<
                         nam,  std::string,
                         age,   int,
@@ -41,10 +40,7 @@ struct TaggedTupleDeepPrint_common {
                         tag1,  tk::TaggedTuple< brigand::list <
                                   tag2, std::string,
                                   tag3, std::string > > > >
-  {
-    // ignore these tags when printing to a stream
-    using ignore = brigand::set< email >;
-  };
+  {};
 
   // Constructor
   TaggedTupleDeepPrint_common() {
@@ -76,25 +72,18 @@ void TaggedTupleDeepPrint_object::test< 1 >() {
   set_test_name( "print()" );
 
   std::stringstream s;
-  tk::print( s, "cmd", cmd );
+  tk::print( s, cmd );
   ensure_equals( "print()", s.str(),
-R"(# vim: filetype=sh:
-#
-# Contents of a tagged tuple.
-#
-# A string in single quotes denotes the name/tag of a (nested)
-# tagged tuple. The contents of tuples are enclosed within braces.
-# Vectors are enclosed within square brackets. Keys of associative
-# containers are in paretheses.
-
-'cmd' {
+R"({
   name : Bob
   age : 32
+  email : bob@google.com
   'tag1' {
     tag2 : string2
     tag3 : string3
   }
-})" );
+}
+)" );
 }
 
 } // tut::

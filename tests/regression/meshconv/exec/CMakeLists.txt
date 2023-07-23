@@ -3,10 +3,10 @@
 
 add_regression_test(version ${MESHCONV_EXECUTABLE}
                     NUMPES 1
-                    ARGS --version
-                    EXTRA_PASS_REGEXP "version")
+                    ARGS -v
+                    EXTRA_PASS_REGEXP "revision")
 
 add_regression_test(help ${MESHCONV_EXECUTABLE}
                     NUMPES 1
-                    ARGS --help
-                    EXTRA_PASS_REGEXP "meshconv Command-line Parameters")
+                    ARGS -h
+                    EXTRA_PASS_REGEXP "Usage")

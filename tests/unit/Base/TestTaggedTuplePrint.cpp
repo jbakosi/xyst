@@ -77,26 +77,15 @@ void TaggedTuplePrint_object::test< 1 >() {
     "email: 'bob@google.com' tag1: { tag2: 'string2' tag3: 'string3' } " );
 }
 
-//! Test print() with empty ignore list
+//! Test print()
 template<> template<>
 void TaggedTuplePrint_object::test< 2 >() {
-  set_test_name( "print() with empty ignore list" );
+  set_test_name( "print()" );
 
   std::stringstream s;
   tk::print( s, tup );
   ensure_equals( "print()", s.str(), "name: 'Bob' age: '32' "
     "email: 'bob@google.com' tag1: { tag2: 'string2' tag3: 'string3' } " );
-}
-
-//! Test print() with non-empty ignore list
-template<> template<>
-void TaggedTuplePrint_object::test< 3 >() {
-  set_test_name( "print() with non-empty ignore list" );
-
-  std::stringstream s;
-  tk::print< MemberList, brigand::set< email > >( s, tup );
-  ensure_equals( "print<ignore>()", s.str(), "name: 'Bob' age: '32' "
-    "tag1: { tag2: 'string2' tag3: 'string3' } " );
 }
 
 } // tut::

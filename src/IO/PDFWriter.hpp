@@ -20,7 +20,6 @@
 #include "Writer.hpp"
 #include "UniPDF.hpp"
 #include "StatCtr.hpp"
-#include "Options/PDFCentering.hpp"
 
 namespace tk {
 
@@ -32,7 +31,7 @@ class PDFWriter : public tk::Writer {
     explicit PDFWriter(
       const std::string& filename,
       const std::string& format = "default",
-      kw::precision::info::expect::type precision = std::cout.precision() );
+      std::streamsize precision = std::cout.precision() );
 
     //! Write univariate PDF to text file
     void writeTxt( const UniPDF& pdf, const tk::ctr::PDFInfo& info ) const;

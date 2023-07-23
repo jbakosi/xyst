@@ -11,15 +11,8 @@
 // *****************************************************************************
 #pragma once
 
-#include "Inciter/InputDeck/InputDeck.hpp"
 #include "EOS.hpp"
 #include "Fields.hpp"
-
-namespace inciter {
-
-extern ctr::InputDeck g_inputdeck;
-
-} // inciter::
 
 namespace problems {
 

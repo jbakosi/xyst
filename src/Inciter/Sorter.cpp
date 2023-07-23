@@ -17,7 +17,7 @@
 #include "Sorter.hpp"
 #include "Reorder.hpp"
 #include "DerivedData.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 
 namespace inciter {
 

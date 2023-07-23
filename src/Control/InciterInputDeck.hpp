@@ -1,6 +1,6 @@
 // *****************************************************************************
 /*!
-  \file      src/Control/Inciter/InputDeck/InputDeck.hpp
+  \file      src/Control/InciterInputDeck.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
@@ -14,9 +14,81 @@
 // *****************************************************************************
 #pragma once
 
-#include <brigand/algorithms/for_each.hpp>
+#include "InciterCmdLine.hpp"
 
-#include "Inciter/CmdLine/CmdLine.hpp"
+namespace tag {
+DEFTAG( cmd );
+DEFTAG( nstep );
+DEFTAG( ttyi );
+DEFTAG( term );
+DEFTAG( cfl );
+DEFTAG( t0 );
+DEFTAG( dt );
+DEFTAG( reorder );
+DEFTAG( steady );
+DEFTAG( residual );
+DEFTAG( rescomp );
+DEFTAG( problem );
+DEFTAG( problem_ncomp );
+DEFTAG( problem_alpha );
+DEFTAG( problem_kappa );
+DEFTAG( problem_beta );
+DEFTAG( problem_r0 );
+DEFTAG( problem_p0 );
+DEFTAG( problem_ce );
+DEFTAG( problem_src );
+DEFTAG( location );
+DEFTAG( radius );
+DEFTAG( release_time );
+DEFTAG( part );
+DEFTAG( fieldout );
+DEFTAG( fieldout_iter );
+DEFTAG( fieldout_time );
+DEFTAG( fieldout_range );
+DEFTAG( histout );
+DEFTAG( histout_iter );
+DEFTAG( histout_time );
+DEFTAG( histout_range );
+DEFTAG( histout_precision );
+DEFTAG( histout_format );
+DEFTAG( integout );
+DEFTAG( integout_iter );
+DEFTAG( integout_time );
+DEFTAG( integout_range );
+DEFTAG( integout_precision );
+DEFTAG( integout_format );
+DEFTAG( diag_iter );
+DEFTAG( diag_precision );
+DEFTAG( diag_format );
+DEFTAG( ic );
+DEFTAG( x );
+DEFTAG( y );
+DEFTAG( z );
+DEFTAG( ic_density );
+DEFTAG( ic_pressure );
+DEFTAG( ic_energy );
+DEFTAG( ic_temperature );
+DEFTAG( ic_velocity );
+DEFTAG( bc_dir );
+DEFTAG( bc_sym );
+DEFTAG( bc_far );
+DEFTAG( bc_far_density );
+DEFTAG( bc_far_pressure );
+DEFTAG( bc_far_velocity );
+DEFTAG( bc_pre );
+DEFTAG( bc_pre_density );
+DEFTAG( bc_pre_pressure );
+DEFTAG( mat_spec_heat_ratio );
+DEFTAG( mat_spec_heat_const_vol );
+DEFTAG( mat_heat_conductivity );
+DEFTAG( href_t0 );
+DEFTAG( href_dt );
+DEFTAG( href_dtfreq );
+DEFTAG( href_maxlevels );
+DEFTAG( href_error );
+DEFTAG( href_init );
+DEFTAG( href_refvar );
+} // tag::
 
 namespace inciter {
 namespace ctr {
@@ -42,11 +114,11 @@ using InputDeckMembers = brigand::list<
   , tag::problem_r0, double
   , tag::problem_p0, double
   , tag::problem_ce, double
-  , tag::problem_source, tk::TaggedTuple< brigand::list<
-                             tag::location, std::vector< double >
-                           , tag::radius, double
-                           , tag::release_time, double
-                         > >
+  , tag::problem_src, tk::TaggedTuple< brigand::list<
+                        tag::location, std::vector< double >
+                          , tag::radius, double
+                          , tag::release_time, double
+                      > >
   , tag::part, std::string
   , tag::fieldout, std::vector< int >
   , tag::fieldout_iter, uint64_t
@@ -113,17 +185,8 @@ using InputDeckMembers = brigand::list<
 class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
 
   public:
-    //! Set of tags to ignore when printing this InputDeck
-    using ignore = CmdLine::ignore;
-
-    //! \brief Constructor: set defaults
-    //! \param[in] cl Previously parsed and store command line
-    //! \details Anything not set here is initialized by the compiler using the
-    //!   default constructor for the corresponding type.
-    explicit InputDeck( const CmdLine& cl = {} ) {
-      // Set previously parsed command line
-      get< tag::cmd >() = cl;
-    }
+    //! Parse control file
+    void parse( const CmdLine& cmdline );
 
     /** @name Pack/Unpack: Serialize InputDeck object for Charm++ */
     ///@{

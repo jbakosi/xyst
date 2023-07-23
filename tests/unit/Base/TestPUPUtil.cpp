@@ -75,7 +75,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -107,7 +107,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -135,7 +135,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -165,7 +165,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -196,7 +196,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -263,7 +263,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -292,7 +292,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -326,7 +326,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -358,7 +358,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -386,7 +386,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -414,7 +414,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -445,7 +445,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -475,7 +475,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }
@@ -506,7 +506,7 @@ class Migrated : public CBase_Migrated {
       tr.message = ex.what();
     }
     // Send back a new test result, with tag "2", signaling the second part.
-    unittest::g_suiteProxy.evaluate(
+    unittest::g_suiteProxy.evaluateTest(
       { tr.group, tr.name, std::to_string(tr.result), tr.message,
         tr.exception_typeid } );
   }

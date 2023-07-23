@@ -40,7 +40,7 @@ LBSwitch::off()
 {
   TurnManualLBOn();
 
-  if (CkMyPe() == 0) Print() << "Load balancing off\n";
+  if (CkMyPe() == 0) Print() << "Xyst> Load balancing off\n";
 }
 
 #include "NoWarning/lbswitch.def.h"

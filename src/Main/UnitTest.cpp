@@ -33,15 +33,10 @@
 #include "NoWarning/unittest.decl.h"
 
 #include "Timer.hpp"
-#include "Tags.hpp"
 #include "Exception.hpp"
 #include "Init.hpp"
-#include "HelpFactory.hpp"
-#include "Assessment.hpp"
 #include "ProcessException.hpp"
-#include "UnitTest/CmdLine/CmdLine.hpp"
-#include "UnitTestDriver.hpp"
-#include "UnitTest/CmdLine/Parser.hpp"
+#include "UnitTestCmdLine.hpp"
 #include "TUTConfig.hpp"
 #include "QuietCerr.hpp"
 
@@ -53,12 +48,6 @@
 //! \brief Charm handle to the main proxy, facilitates call-back to finalize,
 //!    etc., must be in global scope, unique per executable
 CProxy_Main mainProxy;
-
-//! If true, call and stack traces are to be output with exceptions
-//! \note This is true by default so that the trace is always output between
-//!   program start and the Main ctor in which the user-input from command line
-//!   setting for this overrides this true setting.
-bool g_trace = true;
 
 #if defined(__clang__)
   #pragma clang diagnostic pop
@@ -150,45 +139,41 @@ class Main : public CBase_Main {
     explicit Main( CkArgMsg* msg )
     try :
       m_signal( tk::setSignalHandlers() ),
-      m_helped( false ),
-      m_cmdline(),
-      // Parse command line into m_cmdline
-      m_cmdParser( msg->argc, msg->argv, m_cmdline, m_helped ),
-      // Create UnitTest driver
-      m_driver( tk::Main< unittest::UnitTestDriver >
-                        ( msg->argc, msg->argv,
-                          m_cmdline,
-                          tk::HeaderType::UNITTEST,
-                          tk::unittest_executable() ) ),
-      m_timer(1), // Start new timer measuring the serial+Charm++ runtime
-      m_timestamp()
+      m_cmdline( msg->argc, msg->argv ),
+      m_timer(1)
     {
-      g_trace = m_cmdline.get< tag::trace >();
-      // Immediately exit if any help was requested; help is printed in main()
-      if (m_helped) CkExit();
-      // Save executable name to global-scope string so FileParser can access it
-      unittest::g_executable = msg->argv[0];
+      tk::echoHeader( tk::HeaderType::UNITTEST );
+      tk::echoBuildEnv( msg->argv[0] );
+      tk::echoRunEnv(msg->argc, msg->argv, m_cmdline.get< tag::quiescence >());
       delete msg;
-      // Call generic mainchare contructor
-      tk::MainCtor( mainProxy, thisProxy, m_timer, m_cmdline,
-                    CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
-      // Fire up an asynchronous execute object, which when created at some
-      // future point in time will call back to this->execute(). This is
-      // necessary so that this->execute() can access already migrated
-      // global-scope data.
+      mainProxy = thisProxy;
+      unittest::g_executable = msg->argv[0];
+      if (m_cmdline.get< tag::quiescence >()) {
+        CkStartQD( CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
+      }
+      m_timer.emplace_back();
+      // Create suite proxy (does not yet spawn tests)
+      unittest::g_suiteProxy =
+        unittest::CProxy_TUTSuite::ckNew( m_cmdline.get< tag::group >(), 0 );
+      // Fire up an asynchronous execute object, which when created will call
+      // back to this->execute(). This ensures that from this->execute()
+      // global-scope read-only data is already migrated and available to
+      // everyone.
       CProxy_execute::ckNew();
       // Quiet std::cerr
       tk::CProxy_QuietCerr::ckNew();
     } catch (...) { tk::processExceptionCharm(); }
 
+    //! Execute tests, global scope data have been migrated and available
     void execute() {
       try {
         m_timestamp.emplace_back("Migrate global-scope data", m_timer[1].hms());
-        m_driver.execute();       // fires up async chares
+        // Spawn tests
+        unittest::g_suiteProxy.run();
       } catch (...) { tk::processExceptionCharm(); }
     }
 
-    //! Towards normal exit but collect chare state first (if any)
+    //! Normal exit
     void finalize( bool pass ) {
       tk::finalize( m_timer, m_timestamp, pass );
     }
@@ -198,12 +183,8 @@ class Main : public CBase_Main {
 
   private:
     int m_signal;                               //!< Used to set signal handlers
-    bool m_helped;      //!< Indicates if help was requested on the command line
-    unittest::ctr::CmdLine m_cmdline;                   //!< Command line
-    unittest::CmdLineParser m_cmdParser;                //!< Command line parser
-    unittest::UnitTestDriver m_driver;                  //!< Driver
-    std::vector< tk::Timer > m_timer;                   //!< Timers
-
+    unittest::ctr::CmdLine m_cmdline;           //!< Command line
+    std::vector< tk::Timer > m_timer;           //!< Timers
     //! Time stamps in h:m:s with labels
     std::vector< std::pair< std::string, tk::Timer::Watch > > m_timestamp;
 };

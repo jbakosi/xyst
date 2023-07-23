@@ -4,7 +4,6 @@ project(UnitTest CXX)
 include(charm)
 
 add_library(UnitTest
-            Assessment.cpp
             TUTSuite.cpp
             TUTTest.cpp
             QuietCerr.cpp
@@ -20,7 +19,6 @@ target_include_directories(UnitTest PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../PDE
                            ${CHARM_INCLUDE_DIRS}
-                           ${PEGTL_INCLUDE_DIRS}
                            ${MPI_CXX_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Base
                            ${PROJECT_BINARY_DIR}/../Main

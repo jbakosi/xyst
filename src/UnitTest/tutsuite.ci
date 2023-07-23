@@ -12,8 +12,6 @@
 
 module tutsuite {
 
-  include "UnitTest/CmdLine/CmdLine.hpp";
-
   // Note that chare TUTSuite depends on chare TUTTest and in turn TUTTest
   // depends on TUTSuite (see also the interface file tuttest.ci). This is a
   // mutual dependency and it is made to work with one of the chares (TUTTest)
@@ -35,9 +33,10 @@ module tutsuite {
   namespace unittest {
 
     chare TUTSuite {
-      entry TUTSuite( const ctr::CmdLine& cmdline );
+      entry TUTSuite( const std::string& grp );
+      entry void run();
       entry [expedited] // expedited so one-liners are printed when tests finish
-        void evaluate( std::vector< std::string > status );
+        void evaluateTest( std::vector< std::string >&& status );
     }
 
   } // unittest::

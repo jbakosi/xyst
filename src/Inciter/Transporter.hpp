@@ -22,11 +22,10 @@
 #include "Partitioner.hpp"
 #include "Progress.hpp"
 #include "ContainerUtil.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 
 namespace inciter {
 
-extern ctr::InputDeck g_inputdeck_defaults;
 extern ctr::InputDeck g_inputdeck;
 
 //! Indices for progress report on mesh preparation

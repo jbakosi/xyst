@@ -19,8 +19,6 @@
 
 #include "XystConfig.hpp"
 #include "Exception.hpp"
-#include "Tags.hpp"
-#include "Keywords.hpp"
 #include "Init.hpp"
 
 namespace tk {
@@ -67,13 +65,13 @@ std::string curtime()
   return str;
 }
 
-void echoHeader( const Print& print, HeaderType header )
+void echoHeader( HeaderType header )
 // *****************************************************************************
 //  Echo program header
-//! \param[in] print Pretty printer
 //! \param[in] header Header type enum indicating which header to print
 // *****************************************************************************
 {
+  tk::Print print;
   if ( header == HeaderType::INCITER )
     print.headerInciter();
   else if ( header == HeaderType::UNITTEST )
@@ -84,15 +82,15 @@ void echoHeader( const Print& print, HeaderType header )
     Throw( "Header not available" );
 }
 
-void echoBuildEnv( const Print& print, const std::string& executable )
+void echoBuildEnv( const std::string& executable )
 // *****************************************************************************
 //  Echo build environment
 //! \details Echo information read from build_dir/Base/Config.h filled by
 //!    CMake based on src/Main/Config.h.in.
-//! \param[in] print Pretty printer
 //! \param[in] executable Name of the executable
 // *****************************************************************************
 {
+  tk::Print print;
   print.section( "Build environment" );
   print.item( "Hostname", build_hostname() );
   print.item( "Executable", executable );
@@ -109,19 +107,15 @@ void echoBuildEnv( const Print& print, const std::string& executable )
   print.item( "Build date", build_date() );
 }
 
-void echoRunEnv( const Print& print, int argc, char** argv,
-                 bool quiescence, bool trace,
-                 const std::string& input_log )
+void echoRunEnv( int argc, char** argv, int quiescence )
 // *****************************************************************************
 //  Echo runtime environment
-//! \param[in] print Pretty printer
 //! \param[in] argc Number of command-line arguments to executable
 //! \param[in] argv C-style string array to command-line arguments to executable
 //! \param[in] quiescence True if quiescence detection is enabled
-//! \param[in] trace True if call and stack trace output is enabled
-//! \param[in] input_log Input log file name
 // *****************************************************************************
 {
+  tk::Print print;
   print.section( "Run-time environment" );
 
   print.item( "Date, time", curtime() );
@@ -135,15 +129,11 @@ void echoRunEnv( const Print& print, int argc, char** argv,
   }
   print << "'\n";
 
-  print.item( "Input log file", input_log );
   print.item( "Number of processing elements",
               std::to_string( CkNumPes() ) + " (" +
               std::to_string( CkNumNodes() ) + 'x' +
               std::to_string( CkNumPes()/CkNumNodes() ) + ')' );
-  print.item( "Quiescence detection, -" + *kw::quiescence::alias(),
-              quiescence ? "on" : "off" );
-  print.item( "Call and stack trace, -" + *kw::trace::alias(),
-              trace ? "on" : "off" );
+  print.item( "Quiescence detection", quiescence ? "on" : "off" );
 }
 
 // *****************************************************************************

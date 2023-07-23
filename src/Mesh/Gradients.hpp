@@ -11,8 +11,7 @@
              functions on unstructured meshes for tetrahedra.
 */
 // *****************************************************************************
-#ifndef Gradients_h
-#define Gradients_h
+#pragma once
 
 #include <array>
 #include <stddef.h>
@@ -21,11 +20,8 @@
 
 #include "Fields.hpp"
 #include "Types.hpp"
-#include "Keywords.hpp"
 
 namespace tk {
-
-using ncomp_t = kw::ncomp::info::expect::type;
 
 //! Compute gradient at a mesh node
 std::array< tk::real, 3 >
@@ -35,7 +31,7 @@ nodegrad( std::size_t node,
           const std::pair< std::vector< std::size_t >,
                            std::vector< std::size_t > >& esup,
           const tk::Fields& U,
-          ncomp_t c );
+          uint64_t c );
 
 //! Compute gradient at a mesh edge
 std::array< tk::real, 3 >
@@ -43,8 +39,6 @@ edgegrad( const std::array< std::vector< tk::real >, 3 >& coord,
           const std::vector< std::size_t >& inpoel,
           const std::vector< std::size_t >& esued,
           const tk::Fields& U,
-          ncomp_t c );
+          uint64_t c );
 
 } // tk::
-
-#endif // Gradients_h

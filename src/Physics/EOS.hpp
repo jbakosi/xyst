@@ -10,7 +10,7 @@
 // *****************************************************************************
 #pragma once
 
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 
 namespace inciter {
 

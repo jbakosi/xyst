@@ -10,14 +10,13 @@
 */
 // *****************************************************************************
 
-#include "Tags.hpp"
 #include "Vector.hpp"
 #include "Around.hpp"
 #include "DerivedData.hpp"
 #include "EOS.hpp"
 #include "Rusanov.hpp"
 #include "Problems.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 
 namespace inciter {
 

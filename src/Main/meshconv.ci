@@ -16,7 +16,6 @@
 mainmodule meshconv {
 
   readonly CProxy_Main mainProxy;
-  readonly bool g_trace;
 
   mainchare Main {
     entry Main( CkArgMsg* msg );

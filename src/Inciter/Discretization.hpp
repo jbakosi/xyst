@@ -15,13 +15,12 @@
 
 #include "Types.hpp"
 #include "Timer.hpp"
-#include "Keywords.hpp"
 #include "Fields.hpp"
 #include "PUPUtil.hpp"
 #include "PDFReducer.hpp"
 #include "UnsMesh.hpp"
 #include "History.hpp"
-#include "Inciter/InputDeck/InputDeck.hpp"
+#include "InciterInputDeck.hpp"
 
 #include "NoWarning/discretization.decl.h"
 #include "NoWarning/refiner.decl.h"
@@ -217,7 +216,7 @@ class Discretization : public CBase_Discretization {
 
     //! Construct history output filename
     std::string histfilename( const std::string& id,
-                              kw::precision::info::expect::type precision );
+                              std::streamsize precision );
 
     //! Output headers for time history files (one for each point)
     void histheader( std::vector< std::string >&& names );

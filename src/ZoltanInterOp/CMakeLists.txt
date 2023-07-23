@@ -16,7 +16,6 @@ target_include_directories(ZoltanInterOp PUBLIC
                            ${PROJECT_SOURCE_DIR}/../zoltan/src/include
                            ${PROJECT_SOURCE_DIR}/../zoltan/src/all
                            ${PROJECT_BINARY_DIR}/../Main
-                           ${PEGTL_INCLUDE_DIRS}
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_C_INCLUDE_DIRS})
 

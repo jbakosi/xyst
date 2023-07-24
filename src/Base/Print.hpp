@@ -12,10 +12,10 @@
     simple client-side code.
 */
 // *****************************************************************************
-#ifndef Print_h
-#define Print_h
+#pragma once
 
 #include <iostream>
+#include <iomanip>
 #include <cmath>
 
 #include "Timer.hpp"
@@ -250,10 +250,10 @@ class Print {
     {
       if (status[2] != "8") {             // if not dummy
         std::stringstream ss;
-        ss << "[" << ncomplete << "/" << nfail << "] " << status[0] << ":"
+        ss << " [" << ncomplete << '/' << nfail << "] " << status[0] << ':'
            << status[1];
-        m_stream << ss.str() << ": "
-                 << result( status[2], status[3], status[4] ) << '\n';
+        auto s = ss.str() + ' ' + std::string(80-ss.str().size(),'.') + "  ";
+        m_stream << s << result( status[2], status[3], status[4] ) << '\n';
       }
     }
 
@@ -307,19 +307,17 @@ ____  ___                __    __      _____                .__    _________
                         const std::string& msg,
                         const std::string& ex ) const
     {
-      if (code == "0") return "ok";
-      else if (code == "1") return "fail: " + msg;
-      else if (code == "2") return "except: " + msg + ex;
-      else if (code == "3") return "warning: " + msg;
-      else if (code == "4") return "terminate: " + msg;
-      else if (code == "5") return "ex_ctor: " + msg + ex;
-      else if (code == "6") return "rethrown: " + msg + ex;
-      else if (code == "7") return "skipped: " + msg;
-      else if (code == "8") return "dummy";
+      if (code == "0") return "Pass";
+      else if (code == "1") return "Fail: " + msg;
+      else if (code == "2") return "Except: " + msg + ex;
+      else if (code == "3") return "Warning: " + msg;
+      else if (code == "4") return "Terminate: " + msg;
+      else if (code == "5") return "Ex_ctor: " + msg + ex;
+      else if (code == "6") return "Rethrown: " + msg + ex;
+      else if (code == "7") return "Skipped: " + msg;
+      else if (code == "8") return "Dummy";
       else Throw( "No such unit test result code found" );
     }
 };
 
 } // tk::
-
-#endif // Print_h

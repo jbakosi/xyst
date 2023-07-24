@@ -18,7 +18,4 @@ framework](http://mrzechonek.github.io/tut-framework/). The tests are organized 
 directories under src/tests/unit/ mirroring the directories of the tested
 code.
 
-@section unittest_pages Related pages
-- @ref unittest_cmd "Command line arguments"
-
 */

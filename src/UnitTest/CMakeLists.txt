@@ -6,8 +6,7 @@ include(charm)
 add_library(UnitTest
             TUTSuite.cpp
             TUTTest.cpp
-            QuietCerr.cpp
-            MPIRunner.cpp)
+            QuietCerr.cpp)
 
 target_include_directories(UnitTest PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
@@ -19,7 +18,6 @@ target_include_directories(UnitTest PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Mesh
                            ${PROJECT_SOURCE_DIR}/../PDE
                            ${CHARM_INCLUDE_DIRS}
-                           ${MPI_CXX_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Base
                            ${PROJECT_BINARY_DIR}/../Main
                            ${PROJECT_BINARY_DIR}/../IO
@@ -31,8 +29,6 @@ addCharmModule( "migrated" "UnitTest" )
 addCharmModule( "quietcerr" "UnitTest" )
 addCharmModule( "tutsuite" "UnitTest" )
 addCharmModule( "tuttest" "UnitTest" )
-addCharmModule( "mpirunner" "UnitTest" )
-add_dependencies( "tutsuiteCharmModule" "mpirunnerCharmModule" )
 
 # Add extra dependency of UnitTest on unittestCharmModule. This is required as a
 # dependency of UnitTest, TUTSuite, refers to the main Charm++ proxy defined in

@@ -21,7 +21,6 @@
 
 #include "TUTSuite.hpp"
 #include "TUTTest.hpp"
-#include "MPIRunner.hpp"
 #include "Print.hpp"
 
 #include "NoWarning/unittest.decl.h"
@@ -66,8 +65,6 @@ TUTSuite::TUTSuite( const std::string& grp ) :
   if (!work) {  // Quit if there is no work to be done
     tk::Print() << "\nNo test groups match '" + grp + "'.\n";
     mainProxy.finalize( false );
-  } else {      // Create MPI unit test runner nodegroup
-    m_mpirunner = CProxy_MPIRunner< CProxy_TUTSuite >::ckNew( thisProxy );
   }
 }
 
@@ -100,20 +97,14 @@ TUTSuite::spawngrp( const std::string& g )
 {
   ++m_ngroup;         // increase number of test groups to run
 
-  if (g.find("MPISingle") != std::string::npos) {
-
-    m_mpirunner.rungroup( g );
-
-  } else {
-
-    // Add up number of additionally-spawned tests (this is so we know how many
-    // to expect results from)
-    const auto it = m_nspawned.find( g );
-    if (it != m_nspawned.end()) m_nspaw += it->second;
+  // Add up number of additionally-spawned tests (this is so we know how many
+  // to expect results from)
+  const auto it = m_nspawned.find( g );
+  if (it != m_nspawned.end()) m_nspaw += it->second;
   
-    // Asynchronously fire up all tests in test group
-    for (int t=1; t<=g_maxTestsInGroup; ++t)
-      CProxy_TUTTest< CProxy_TUTSuite >::ckNew( thisProxy, g, t );
+  // Asynchronously fire up all tests in test group
+  for (int t=1; t<=g_maxTestsInGroup; ++t) {
+    CProxy_TUTTest< CProxy_TUTSuite >::ckNew( thisProxy, g, t );
   }
 }
 

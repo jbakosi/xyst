@@ -23,7 +23,6 @@
 #include <cstring>
 
 #include "NoWarning/tutsuite.decl.h"
-#include "NoWarning/mpirunner.decl.h"
 
 namespace unittest {
 
@@ -41,8 +40,6 @@ class TUTSuite : public CBase_TUTSuite {
     void evaluateTest( std::vector< std::string >&& status );
 
   private:
-    //! MPI unit test runner nodegroup proxy
-    CProxy_MPIRunner< CProxy_TUTSuite > m_mpirunner;
     std::string m_group2run; //!< Test group to run
     std::size_t m_nrun;      //!< Number of tests ran (including dummies)
     std::size_t m_ngroup;    //!< Number of test groups

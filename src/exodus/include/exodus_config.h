@@ -1,0 +1,1 @@
+#define EXODUS_THREADSAFE 1

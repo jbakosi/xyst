@@ -74,7 +74,6 @@ if (ENABLE_TESTS)
                  ../../tests/unit/IO/TestMesh.cpp
                  ../../tests/unit/Mesh/TestAround.cpp
                  ../../tests/unit/Mesh/TestDerivedData.cpp
-                 ../../tests/unit/Mesh/TestDerivedData_MPISingle.cpp
                  ../../tests/unit/Mesh/TestGradients.cpp
                  ../../tests/unit/Mesh/TestReorder.cpp
   )
@@ -104,7 +103,6 @@ if (ENABLE_TESTS)
 
   # Add custom dependencies for UnitTest's main Charm++ module
   addCharmModule( "unittest" "${UNITTEST_EXECUTABLE}" )
-  add_dependencies( "unittestCharmModule" "mpirunnerCharmModule" )
 endif()
 
 ## Inciter executable ##########################################################

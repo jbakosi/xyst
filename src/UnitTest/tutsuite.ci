@@ -18,12 +18,6 @@ module tutsuite {
   // being a template chare.
   extern module tuttest;
 
-  // Note that chare MPIRunner depends on chare TUTTest and in turn MPIRunner
-  // depends on TUTSuite (see also the interface file mpirunner.ci). This is a
-  // mutual dependency and it is made to work with one of the chares
-  // (MPIRunner) being a template chare.
-  extern module mpirunner;
-
   // TUTSuite spawns chares defined in the modules defined below as extern. If
   // this is not included, Charm++ generates bad code and valgrind detects
   // memory errors as chares are fired up from unit tests inside TUTSuite.

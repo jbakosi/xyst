@@ -180,9 +180,7 @@ using Mesh_group = test_group< Mesh_common, MAX_TESTS_IN_GROUP >;
 using Mesh_object = Mesh_group::object;
 
 //! Define test group
-//! \note Those test groups whose name contains "MPISingle" will be started as
-//!    MPI tests (from a Charm++ nodegroup) and from only a single MPI rank.
-static Mesh_group Mesh( "IO/Mesh_MPISingle" );
+static Mesh_group Mesh( "IO/Mesh" );
 
 //! Test definitions for group
 

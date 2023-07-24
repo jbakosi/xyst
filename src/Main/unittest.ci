@@ -15,7 +15,6 @@
 mainmodule unittest {
 
   extern module tutsuite;
-  extern module mpirunner;
   extern module quietcerr;
 
   readonly CProxy_Main mainProxy;

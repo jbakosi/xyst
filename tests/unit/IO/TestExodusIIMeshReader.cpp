@@ -1388,10 +1388,8 @@ using ExodusIIMeshReader_group =
 using ExodusIIMeshReader_object = ExodusIIMeshReader_group::object;
 
 //! Define test group
-//! \note Those test groups whose name contains "MPISingle" will be started as
-//!    MPI tests (from a Charm++ nodegroup) and from only a single MPI rank.
 static ExodusIIMeshReader_group
-  ExodusIIMeshReader( "IO/ExoIIReader_MPISingle" );
+  ExodusIIMeshReader( "IO/ExoIIReader" );
 
 //! Test definitions for group
 

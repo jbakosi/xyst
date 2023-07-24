@@ -375,6 +375,11 @@ function(ADD_REGRESSION_TEST test_name executable)
   endif()
 
   set(EXECUTABLE "${CMAKE_BINARY_DIR}/Main/${executable}")
+
+  if("${EXECUTABLE}" MATCHES "${MESHCONV_EXECUTABLE}")
+    set(SERIAL true)
+  endif()
+
   # Wrap in signal handler if signal is expected
   if (ARG_EXPECT_SIGNAL)
     set(ARGUMENTS "${ARG_EXPECT_SIGNAL} ${EXECUTABLE} ${ARGUMENTS}")
@@ -385,6 +390,7 @@ function(ADD_REGRESSION_TEST test_name executable)
   add_test(NAME ${test_name}
            COMMAND ${CMAKE_COMMAND}
            -DTEST_NAME=${test_name}
+           -DSERIAL=${SERIAL}
            -DUSE_VALGRIND=${USE_VALGRIND}
            -DVALGRIND=${VALGRIND}
            -DWORKDIR=${workdir}

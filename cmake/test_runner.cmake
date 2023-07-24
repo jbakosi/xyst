@@ -38,11 +38,12 @@ message("  TEST_NAME (name of test)                                    : ${TEST_
 message("  WORKDIR (test run directory)                                : ${WORKDIR}")
 message("  USE_VALGRIND (true if we use valgrind)                      : ${USE_VALGRIND}")
 message("  VALGRIND (valgrind executable)                              : ${VALGRIND}")
+message("  SERIAL (run in serial, i.e., no runner)                     : ${SERIAL}")
 message("  RUNNER (used to run parallel and serial jobs inside cmake)  : ${RUNNER}")
 message("  RUNNER_NCPUS_ARG (used to specify the number of CPUs)       : ${RUNNER_NCPUS_ARG}")
-message("  SMP (true/false indicating Charm++ SMP mode)                : ${SMP}")
 message("  RUNNER_ARGS (parallel/serial job runner arguments)          : ${RUNNER_ARGS}")
 message("  POSTFIX_RUNNER_ARGS (postfix job runner arguments)          : ${POSTFIX_RUNNER_ARGS}")
+message("  SMP (true/false indicating Charm++ SMP mode)                : ${SMP}")
 message("  TEST_EXECUTABLE (executable tested)                         : ${TEST_EXECUTABLE}")
 message("  TEST_EXECUTABLE_ARGS (executable arguments)                 : ${TEST_EXECUTABLE_ARGS}")
 message("  TEST_LABELS (test labels)                                   : ${TEST_LABELS}")
@@ -107,7 +108,7 @@ else()
 
 endif()
 
-if("${executable}" STREQUAL "${MESHCONV_EXECUTABLE}")
+if(SERIAL)
   set(test_command ${TEST_EXECUTABLE} ${TEST_EXECUTABLE_ARGS})
 endif()
 

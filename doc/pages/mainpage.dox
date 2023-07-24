@@ -51,7 +51,7 @@ of testing serial, synchronous (e.g., MPI) parallel, and asynchronous parallel
 Install prerequisites: _Debian-based linux_
 
 @code
-apt-get install git cmake g++ ninja-build libopenmpi-dev libhdf5-openmpi-dev libnetcdf-mpi-dev
+apt install git cmake g++ ninja-build libopenmpi-dev libnetcdf-dev
 @endcode
 
 Clone, build, test

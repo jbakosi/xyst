@@ -16,7 +16,7 @@ if(NETCDF_INCLUDE_DIRS AND NETCDF_LIBRARIES)
   set(NETCDF_FIND_QUIETLY TRUE)
 endif()
 
-find_path(NETCDF_INCLUDE_DIR netcdf_par.h
+find_path(NETCDF_INCLUDE_DIR netcdf.h
           PATHS ${NETCDF_INSTALL_DIR}
                 $ENV{NETCDF_DIR}
                 ${CMAKE_BINARY_DIR}/netcdf/install

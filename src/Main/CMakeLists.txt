@@ -100,9 +100,7 @@ if (ENABLE_TESTS)
                         ExodusIIMeshIO
                         exodus
                         ${MPI_C_LIBRARIES}
-                        ${NETCDF_LIBRARIES}
-                        ${HDF5_HL_LIBRARIES}
-                        ${HDF5_C_LIBRARIES})
+                        ${NETCDF_LIBRARIES})
 
   # Add custom dependencies for UnitTest's main Charm++ module
   addCharmModule( "unittest" "${UNITTEST_EXECUTABLE}" )
@@ -135,9 +133,7 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       zoltan
                       exodus
                       ${MPI_C_LIBRARIES}
-                      ${NETCDF_LIBRARIES}
-                      ${HDF5_HL_LIBRARIES}
-                      ${HDF5_C_LIBRARIES})
+                      ${NETCDF_LIBRARIES})
 
 # Add custom dependencies for Inciter's main Charm++ module
 addCharmModule( "inciter" "${INCITER_EXECUTABLE}" "-I${PROJECT_BINARY_DIR}")
@@ -167,9 +163,7 @@ target_link_libraries(${MESHCONV_EXECUTABLE}
                       Init
                       exodus
                       ${MPI_C_LIBRARIES}
-                      ${NETCDF_LIBRARIES}
-                      ${HDF5_HL_LIBRARIES}
-                      ${HDF5_C_LIBRARIES})
+                      ${NETCDF_LIBRARIES})
 
 # Add custom dependencies for MeshConv's main Charm++ module
 addCharmModule( "meshconv" "${MESHCONV_EXECUTABLE}" )

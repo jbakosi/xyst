@@ -284,8 +284,6 @@ if(AMPI)
 
 else()
 
-  set(HDF5_PREFER_PARALLEL true)
-  find_package(HDF5 COMPONENTS C HL)
   find_package(NetCDF REQUIRED)
 
 endif()

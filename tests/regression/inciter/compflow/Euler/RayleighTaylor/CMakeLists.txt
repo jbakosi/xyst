@@ -18,7 +18,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_st ${INCITER_EXECUTABLE}
 # Parallel + no virtualization, stationary
 
 add_regression_test(compflow_euler_rayleigh_taylor_st ${INCITER_EXECUTABLE}
-                    NUMPES 4
+                    NUMPES 4 PPN 1
                     INPUTFILES rayleigh_taylor_st.q unitcube_1k.exo
                     ARGS -c rayleigh_taylor_st.q -i unitcube_1k.exo
                     BIN_BASELINE rayleigh_taylor_st_pe4.std.exo.0

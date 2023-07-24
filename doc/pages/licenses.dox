@@ -13,6 +13,14 @@ libraries (TPLs) used by Xyst.
   - Web: http://charm.cs.illinois.edu
   - License: @subpage charm_license_page
 
+\subsection openmpi_license OpenMPI for the message passing interface
+  - Web: http://www.open-mpi.org
+  - License: @subpage openmpi_license_page
+
+\subsection libstdcpp_license Libstdc++ for standard C++ containers and algorithms
+  - Web: https://gcc.gnu.org/libstdc++
+  - License: @subpage libstdcpp_license_page
+
 \subsection minilua_license The Parsing Expression Grammar Template Library
   - Web: https://github.com/edubart/minilua
   - License: @subpage minilua_license_page
@@ -32,18 +40,6 @@ libraries (TPLs) used by Xyst.
 \subsection zoltan_license Zoltan for static mesh partitioning
   - Web: http://www.cs.sandia.gov/Zoltan/Zoltan.html
   - License: @subpage zoltan_license_page
-
-\subsection libstdcpp_license Libstdc++ for standard C++ containers and algorithms
-  - Web: https://gcc.gnu.org/libstdc++
-  - License: @subpage libstdcpp_license_page
-
-\subsection libcpp_license Libc++ for standard C++ containers and algorithms
-  - Web: http://libcxx.llvm.org
-  - License: @subpage libcpp_license_page
-
-\subsection openmpi_license OpenMPI for the message passing interface
-  - Web: http://www.open-mpi.org
-  - License: @subpage openmpi_license_page
 
 \subsection highwayhash_license HighwayHash for generating hashes
   - Web: https://github.com/google/highwayhash

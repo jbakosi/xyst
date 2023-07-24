@@ -18,8 +18,7 @@
 #include <vector>
 #include <iostream>
 
-#include "XystConfig.hpp"
-
+#include "XystBuildConfig.hpp"
 #ifdef XYST_AMPI
   #include "NoWarning/mpi.hpp"
 #endif

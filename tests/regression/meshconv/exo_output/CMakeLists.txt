@@ -130,7 +130,7 @@ add_regression_test(signal_unhandled ${MESHCONV_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES cube_coarse.asc_mesh
                     ARGS -i cube_coarse.asc_mesh -o cube_coarse_reord.exo
-                         --signal 7
+                         -s 7
                     EXPECT_SIGNAL 7
                     EXCLUSIVE_PASS_REGEXP "handled signal: 7"
                     SKIP_RETURN_CODE true)
@@ -139,7 +139,7 @@ add_regression_test(signal_handled ${MESHCONV_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES cube_coarse.asc_mesh
                     ARGS -i cube_coarse.asc_mesh -o cube_coarse_reord.exo
-                         --signal 6
+                         -s 6
                     EXPECT_SIGNAL 6
                     EXCLUSIVE_PASS_REGEXP "handled signal: 6"
                     SKIP_RETURN_CODE true)

@@ -107,6 +107,10 @@ else()
 
 endif()
 
+if("${executable}" STREQUAL "${MESHCONV_EXECUTABLE}")
+  set(test_command ${TEST_EXECUTABLE} ${TEST_EXECUTABLE_ARGS})
+endif()
+
 string(REPLACE ";" " " test_command_string "${test_command}")
 
 # Run the test

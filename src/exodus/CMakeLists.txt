@@ -5,8 +5,7 @@ FILE(GLOB exodus_src src/ex_*.c)
 add_library(exodus ${exodus_src})
 set_property(TARGET exodus PROPERTY C_STANDARD 99)
 target_include_directories(exodus PUBLIC include
-                                         ${NETCDF_INCLUDE_DIRS}
-                                         ${MPI_C_INCLUDE_DIRS})
+                                         ${NETCDF_INCLUDE_DIRS})
 
 set(suplib_cpp_src
     ${CMAKE_CURRENT_SOURCE_DIR}/suplib_cpp/FileInfo.C
@@ -52,10 +51,6 @@ add_library(suplib_c ${suplib_c_src})
 target_include_directories(suplib_c PUBLIC suplib_c)
 
 project(exodiff CXX)
-if(AMPI)
-  STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>" "${AMPI_CXX_COMPILER}"
-         CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
-endif()
 SET(exodiff_src ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/ED_SystemInterface.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/exo_entity.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/exodiff.C
@@ -76,8 +71,7 @@ target_include_directories(exodiff PUBLIC exodiff
                                           suplib_c
                                           suplib_cpp
                                           include
-                                          ${NETCDF_INCLUDE_DIRS}
-                                          ${MPI_CXX_INCLUDE_DIRS})
+                                          ${NETCDF_INCLUDE_DIRS})
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   target_compile_options(exodiff PRIVATE -Wno-switch-enum
@@ -117,6 +111,5 @@ endif()
 target_link_libraries(exodiff PUBLIC exodus
                                      suplib_c
                                      suplib_cpp
-                                     ${MPI_CXX_LIBRARIES}
                                      ${NETCDF_LIBRARIES})
 set(EXODIFF_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/exodiff PARENT_SCOPE)

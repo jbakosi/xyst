@@ -201,94 +201,12 @@ if(NOT CHARM_FOUND)
 endif()
 
 if(AMPI)
-
   set(COMPILER ${AMPI_CXX_COMPILER})
-
-  find_package(HDF5AMPI)
-  if(NOT HDF5AMPI_FOUND)
-    build_external_project(hdf5 "
-      cmake_minimum_required(VERSION 3.0)
-      project(hdf5 C)
-      include(ExternalProject)
-      ExternalProject_Add(hdf5
-        PREFIX hdf5
-        GIT_REPOSITORY https://github.com/UIUC-PPL/hdf5-ampi.git
-        #GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/hdf5-ampi
-        CONFIGURE_COMMAND ${PROJECT_BINARY_DIR}/hdf5/build/hdf5/src/hdf5/configure
-                            CC=${AMPI_C_COMPILER}
-                            RUNSERIAL=${AMPI_RUN}\\t++quiet
-                            RUNPARALLEL=${AMPI_RUN}\\t++quiet\\t+p4
-                            --enable-build-mode=production
-                            --enable-parallel
-                            --enable-symbols=yes
-                            --disable-shared
-                            --enable-static
-                            --enable-cxx=no
-                            --enable-fortran=no
-                            --disable-dependency-tracking
-                            --enable-dconv-exception=no
-                            --with-pic
-                            --prefix=${CMAKE_BINARY_DIR}/hdf5/install
-        BUILD_COMMAND make -j${PROCESSOR_COUNT}
-        BUILD_IN_SOURCE 1
-        LOG_DOWNLOAD 1
-        LOG_CONFIGURE 1
-        LOG_BUILD 1
-        LOG_INSTALL 1)
-    ")
-    find_package(HDF5AMPI REQUIRED)
-  endif()
-
-  find_package(NetCDF)
-  if(NOT NetCDF_FOUND)
-    build_external_project(netcdf "
-      cmake_minimum_required(VERSION 3.0)
-      project(netcdf C)
-      include(ExternalProject)
-      ExternalProject_Add(netcdf
-        PREFIX netcdf
-        GIT_REPOSITORY https://github.com/Unidata/netcdf-c.git
-        #GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/netcdf-c
-        GIT_TAG v4.7.4
-        CMAKE_ARGS
-          -D USE_HDF5=on
-          -D CMAKE_C_COMPILER=${AMPI_C_COMPILER}
-          -D ENABLE_NETCDF_4=on
-          -D BUILD_SHARED_LIBS=off
-          -D ENABLE_EXAMPLES=off
-          -D ENABLE_FSYNC=off
-          -D ENABLE_DAP=off
-          -D ENABLE_TESTS=off
-          -D ENABLE_CONVERSION_WARNINGS=off
-          -D ENABLE_EXAMPLES=off
-          -D ENABLE_DAP_REMOTE_TESTS=off
-          -D ENABLE_TESTS=off
-          -D ENABLE_EXTREME_NUMBERS=off
-          -D ENABLE_PARALLEL4=on
-          -D ENABLE_PARALLEL_TESTS=off
-          -D ENABLE_BASH_SCRIPT_TESTING=off
-          -D ENABLE_V2_API=off
-          -D HDF5_C_LIBRARY=${HDF5_C_LIBRARIES}
-          -D HDF5_HL_LIBRARY=${HDF5_HL_LIBRARIES}
-          -D HDF5_INCLUDE_DIR=${HDF5_INCLUDE_DIRS}
-          -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/netcdf/install
-        CMAKE_GENERATOR \"Unix Makefiles\"
-        BUILD_COMMAND make -j${PROCESSOR_COUNT}
-        LOG_DOWNLOAD 1
-        LOG_CONFIGURE 1
-        LOG_BUILD 1
-        LOG_INSTALL 1)
-     ")
-    find_package(NetCDF REQUIRED)
-  endif()
-
-else()
-
-  find_package(NetCDF REQUIRED)
-
 endif()
 
 message(STATUS "C++ compiler: " ${COMPILER})
+
+find_package(NetCDF REQUIRED)
 
 add_subdirectory(exodus)
 add_subdirectory(zoltan)

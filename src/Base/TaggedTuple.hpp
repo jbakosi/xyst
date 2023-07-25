@@ -30,7 +30,7 @@
 #include "Exception.hpp"
 
 namespace tag {
-//! Printable tag for TaggedTuple that returns its name as ::key()
+//! Printable tag for TaggedTuple that returns its name
 #define DEFTAG(n) struct n { static const char* key() { return #n; } }
 } // tag::
 

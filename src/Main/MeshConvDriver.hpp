@@ -15,8 +15,6 @@
 
 #include <iosfwd>
 
-#include "MeshConvCmdLine.hpp"
-
 //! Mesh converter declarations and definitions
 namespace meshconv {
 

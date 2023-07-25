@@ -1,6 +1,6 @@
 // *****************************************************************************
 /*!
-  \file      src/Control/UnitTestCmdLine.hpp
+  \file      src/Control/UnitTestConfig.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
@@ -32,20 +32,17 @@ namespace unittest {
 namespace ctr {
 
 //! Member data for tagged tuple
-using CmdLineMembers = brigand::list<
+using ConfigMembers = brigand::list<
     tag::group, std::string     // groups to test
   , tag::quiescence, bool       // enable quiescence detection
 >;
 
-//! CmdLine is a TaggedTuple specialized to MeshConv
-class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
+//! Config is a TaggedTuple specialized to MeshConv
+class Config : public tk::TaggedTuple< ConfigMembers > {
 
   public:
-    //! Contructor: initialize members with default constructors
-    explicit CmdLine() = default;
-
-    //! Contructor: parse unittest command line
-    explicit CmdLine( int argc, char** argv ) {
+    //! Parse unittest command line
+    void cmdline( int argc, char** argv ) {
       tk::Print print;
 
       // Process command line arguments
@@ -96,15 +93,15 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
         "\n";
     }
 
-    /** @name Pack/Unpack: Serialize CmdLine object for Charm++ */
+    /** @name Pack/Unpack: Serialize Config object for Charm++ */
     ///@{
     //! \brief Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    void pup( PUP::er& p ) { tk::TaggedTuple< CmdLineMembers >::pup(p); }
+    void pup( PUP::er& p ) { tk::TaggedTuple< ConfigMembers >::pup(p); }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    //! \param[in,out] c CmdLine object reference
-    friend void operator|( PUP::er& p, CmdLine& c ) { c.pup(p); }
+    //! \param[in,out] c Config object reference
+    friend void operator|( PUP::er& p, Config& c ) { c.pup(p); }
     //@}
 };
 

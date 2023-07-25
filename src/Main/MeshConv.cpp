@@ -21,7 +21,7 @@
 #include "XystConfig.hpp"
 #include "Init.hpp"
 #include "MeshConvDriver.hpp"
-#include "MeshConvCmdLine.hpp"
+#include "MeshConvConfig.hpp"
 #include "ProcessException.hpp"
 
 #include "NoWarning/charm.hpp"
@@ -63,16 +63,17 @@ class Main : public CBase_Main {
     //! \see http://charm.cs.illinois.edu/manuals/html/charm++/manual.html
     explicit Main( CkArgMsg* msg )
     try :
-      m_signal( tk::setSignalHandlers() ),
-      m_cmdline( msg->argc, msg->argv ),
       m_timer(1)
     {
+      tk::setSignalHandlers();
+      // Parse command line
+      m_cfg.cmdline( msg->argc, msg->argv );
       tk::echoHeader( tk::HeaderType::MESHCONV );
       tk::echoBuildEnv( msg->argv[0] );
-      tk::echoRunEnv(msg->argc, msg->argv, m_cmdline.get< tag::quiescence >());
+      tk::echoRunEnv(msg->argc, msg->argv, m_cfg.get< tag::quiescence >());
       delete msg;
       mainProxy = thisProxy;
-      if (m_cmdline.get< tag::quiescence >()) {
+      if (m_cfg.get< tag::quiescence >()) {
         CkStartQD( CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
       }
       m_timer.emplace_back();
@@ -86,8 +87,8 @@ class Main : public CBase_Main {
     void execute() {
       try {
         m_timestamp.emplace_back("Migrate global-scope data", m_timer[1].hms());
-        meshconv::MeshConvDriver().convert( m_cmdline.get< tag::input >(),
-          m_cmdline.get< tag::output >(), m_cmdline.get< tag::reorder >() );
+        meshconv::MeshConvDriver().convert( m_cfg.get< tag::input >(),
+          m_cfg.get< tag::output >(), m_cfg.get< tag::reorder >() );
       } catch (...) { tk::processExceptionCharm(); }
     }
 
@@ -110,10 +111,8 @@ class Main : public CBase_Main {
     [[noreturn]] void quiescence() { Throw( "Quiescence detected" ); }
 
   private:
-    int m_signal;                               //!< Used to set signal handlers
-    meshconv::ctr::CmdLine m_cmdline;           //!< Command line
+    meshconv::ctr::Config m_cfg;                //!< Config parsed from cmdline
     std::vector< tk::Timer > m_timer;           //!< Timers
-
     //! Time stamps in h:m:s with labels
     std::vector< std::pair< std::string, tk::Timer::Watch > > m_timestamp;
 };

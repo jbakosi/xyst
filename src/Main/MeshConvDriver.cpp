@@ -14,6 +14,7 @@
 #include "MeshConvDriver.hpp"
 #include "MeshFactory.hpp"
 #include "ProcessException.hpp"
+#include "MeshConvConfig.hpp"
 
 #include "NoWarning/meshconv.decl.h"
 

@@ -1,6 +1,6 @@
 // *****************************************************************************
 /*!
-  \file      src/Control/MeshConvCmdLine.hpp
+  \file      src/Control/MeshConvConfig.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
@@ -35,22 +35,19 @@ namespace meshconv {
 namespace ctr {
 
 //! Member data for tagged tuple
-using CmdLineMembers = brigand::list<
+using ConfigMembers = brigand::list<
     tag::input, std::string     // input mesh file
   , tag::output, std::string    // output mesh file
   , tag::reorder, bool          // reorder nodes
   , tag::quiescence, bool       // enable quiescence detection
 >;
 
-//! CmdLine is a TaggedTuple specialized to MeshConv
-class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
+//! Config is a TaggedTuple specialized to MeshConv
+class Config : public tk::TaggedTuple< ConfigMembers > {
 
   public:
-    //! Contructor: initialize members with default constructors
-    explicit CmdLine() = default;
-
-    //! Contructor: parse meshconv command line
-    explicit CmdLine( int argc, char** argv ) {
+    //! Parse meshconv command line
+    void cmdline( int argc, char** argv ) {
       if (argc == 1) {
         help( argv );
         CkExit( EXIT_FAILURE );
@@ -119,15 +116,15 @@ class CmdLine : public tk::TaggedTuple< CmdLineMembers > {
         "\n";
     }
 
-    /** @name Pack/Unpack: Serialize CmdLine object for Charm++ */
+    /** @name Pack/Unpack: Serialize Config object for Charm++ */
     ///@{
     //! \brief Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    void pup( PUP::er& p ) { tk::TaggedTuple< CmdLineMembers >::pup(p); }
+    void pup( PUP::er& p ) { tk::TaggedTuple< ConfigMembers >::pup(p); }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    //! \param[in,out] c CmdLine object reference
-    friend void operator|( PUP::er& p, CmdLine& c ) { c.pup(p); }
+    //! \param[in,out] c Config object reference
+    friend void operator|( PUP::er& p, Config& c ) { c.pup(p); }
     //@}
 };
 

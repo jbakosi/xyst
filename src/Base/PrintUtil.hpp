@@ -10,8 +10,7 @@
   \details   Various string conversion utilities.
 */
 // *****************************************************************************
-#ifndef PrintUtil_h
-#define PrintUtil_h
+#pragma once
 
 #include <ostream>
 #include <sstream>
@@ -43,9 +42,9 @@ template< class T, typename Ch, typename Tr >
 inline std::basic_ostream< Ch, Tr >&
 operator<< ( std::basic_ostream< Ch, Tr >& os, const std::vector< T >& v ) {
   os << std::boolalpha;
-  os << "[ ";
+  os << "{ ";
   for (const auto& p : v) os << p << ' ';
-  os << ']';
+  os << '}';
   return os;
 }
 
@@ -60,7 +59,7 @@ operator<< ( std::basic_ostream< Ch, Tr >& os,
              const std::map< Key, Value, Compare >& m )
 {
   if constexpr( tk::HasTypedef_i_am_tagged_tuple_v< Value > )
-    for (const auto& [k,v] : m) os << '(' << k << ") : { " << v << "} ";
+    for (const auto& [k,v] : m) os << '(' << k << ") = { " << v << "} ";
   else
     for (const auto& [k,v] : m) os << '(' << k << ") " << v << ' ';
   return os;
@@ -89,13 +88,4 @@ operator<< ( std::basic_string< Ch, Tr >&& lhs, const T& e ) {
   return lhs << e;
 }
 
-//!  Clean up whitespaces and format a long string into multiple lines
-std::string
-splitLines( std::string str,
-            std::string indent,
-            const std::string& name = "",
-            std::size_t width = 80 );
-
 } // tk::
-
-#endif // PrintUtil_h

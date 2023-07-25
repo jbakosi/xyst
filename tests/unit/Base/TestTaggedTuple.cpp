@@ -24,18 +24,18 @@ namespace tut {
 //! All tests in group inherited from this base
 struct TaggedTuple_common {
   // Tags
-  struct name {};
-  struct age {};
-  struct email {};
-  struct tag1 {};
-  struct tag2 {};
-  struct tag3 {};
-  struct tag4 {};
-  struct tag5 {};
-  struct tag6 {};
-  struct tag7 {};
-  struct tag8 {};
-  struct tag9 {};
+  DEFTAG( name );
+  DEFTAG( age );
+  DEFTAG( email );
+  DEFTAG( tag1 );
+  DEFTAG( tag2 );
+  DEFTAG( tag3 );
+  DEFTAG( tag4 );
+  DEFTAG( tag5 );
+  DEFTAG( tag6 );
+  DEFTAG( tag7 );
+  DEFTAG( tag8 );
+  DEFTAG( tag9 );
 
   // Define a tagged tuple: odd template arguments are tags, even ones are types
   using record = tk::TaggedTuple< brigand::list< name,  std::string,

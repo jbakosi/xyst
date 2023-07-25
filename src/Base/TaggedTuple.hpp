@@ -36,8 +36,8 @@
 #include "Exception.hpp"
 
 namespace tag {
-//! Helper macro to define a printable tag for TaggedTuple
-#define DEFTAG(n) struct n { static const char* name() { return #n; } };
+//! Printable tag for TaggedTuple that returns its name as ::key()
+#define DEFTAG(n) struct n { static const char* key() { return #n; } }
 } // tag::
 
 namespace tk {

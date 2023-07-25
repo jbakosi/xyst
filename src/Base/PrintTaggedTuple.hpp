@@ -1,6 +1,6 @@
 // *****************************************************************************
 /*!
-  \file      src/Base/TaggedTuplePrint.hpp
+  \file      src/Base/PrintTaggedTuple.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
@@ -10,8 +10,7 @@
   \details   Simple (unformatted, one-line) TaggedTuple printer.
 */
 // *****************************************************************************
-#ifndef TaggedTuplePrint_h
-#define TaggedTuplePrint_h
+#pragma once
 
 #include <ostream>
 
@@ -34,12 +33,12 @@ struct TuplePrinter {
   //! Function call operator templated on the type being output
   template< typename Key > void operator()( brigand::type_<Key> ) {
     using Tuple = tk::TaggedTuple< List >;
-    const auto& key = Key::name();
+    const auto& key = Key::key();
     const auto& value = tuple.template get< Key >();
     if constexpr( Tuple::template is_tagged_tuple< Key >::value )
-      os << key << ": { " << value << "} ";
+      os << key << " = { " << value << "} ";
     else
-      os << key << ": '" << value << "' ";
+      os << key << " = " << value << ' ';
   }
 };
 
@@ -70,5 +69,3 @@ print( std::ostream& os, const tk::TaggedTuple< List >& t ) {
 }
 
 } // tk::
-
-#endif // TaggedTuplePrint_h

@@ -1,6 +1,6 @@
 // *****************************************************************************
 /*!
-  \file      src/Base/TaggedTupleDeepPrint.hpp
+  \file      src/Base/PrintTaggedTupleDeep.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
@@ -28,7 +28,7 @@
 // printer with depth, defined below.
 #include "PrintUtil.hpp"
 #include "TaggedTuple.hpp"
-#include "TaggedTuplePrint.hpp"
+#include "PrintTaggedTuple.hpp"
 
 namespace tk {
 
@@ -48,11 +48,11 @@ struct DeepTuplePrinter {
   //! Function call operator templated on the type being output
   template< typename Key > void operator()( brigand::type_<Key> ) {
     using Tuple = tk::TaggedTuple< List >;
-    const auto& key = Key::name();
+    const auto& key = Key::key();
     const auto& value = tuple.template get< Key >();
     if constexpr( Tuple::template is_tagged_tuple< Key >::value ) {
       std::string indent( depth * 2, ' ' );
-      os << '\n' << indent << '\'' << key << "' {";
+      os << '\n' << indent << key << " = {";
       using ituple = typename Tuple::template TupleElement< Key >;
       using ikeys = typename ituple::Keys;
       using ilist = typename ituple::PairList;
@@ -62,7 +62,7 @@ struct DeepTuplePrinter {
       --depth;
     } else {
       std::string indent( depth * 2, ' ' );
-      os << '\n' << indent << key  << " : " << std::boolalpha << value;
+      os << '\n' << indent << key  << " = " << value;
     }
   }
 };

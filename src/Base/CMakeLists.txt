@@ -10,7 +10,6 @@ add_library(Base
             Timer.cpp
             Reader.cpp
             Writer.cpp
-            PrintUtil.cpp
 )
 
 target_include_directories(Base PUBLIC

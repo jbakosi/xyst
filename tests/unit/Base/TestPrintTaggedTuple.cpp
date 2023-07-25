@@ -1,13 +1,12 @@
 // *****************************************************************************
 /*!
-  \file      tests/unit/Base/TestTaggedTuplePrint.cpp
+  \file      tests/unit/Base/TestPrintTaggedTuple.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Unit tests for tk::TaggedTuplePrint
-  \details   Unit tests for tk::TaggedTuplePrint
+  \brief     Unit tests for TaggedTuple printer
 */
 // *****************************************************************************
 
@@ -16,24 +15,24 @@
 #include "NoWarning/tut.hpp"
 
 #include "TUTConfig.hpp"
-#include "TaggedTuplePrint.hpp"
+#include "PrintTaggedTuple.hpp"
 
 #ifndef DOXYGEN_GENERATING_OUTPUT
 
 namespace tut {
 
 //! All tests in group inherited from this base
-struct TaggedTuplePrint_common {
+struct PrintTaggedTuple_common {
   // Tags
-  struct nam { static std::string name() { return "name"; } };
-  struct age { static std::string name() { return "age"; } };
-  struct email { static std::string name() {return "email"; } };
-  struct tag1 { static std::string name() { return "tag1"; } };
-  struct tag2 { static std::string name() { return "tag2"; } };
-  struct tag3 { static std::string name() { return "tag3"; } };
+  DEFTAG( name );
+  DEFTAG( age );
+  DEFTAG( email );
+  DEFTAG( tag1 );
+  DEFTAG( tag2 );
+  DEFTAG( tag3 );
 
   using MemberList = brigand::list<
-    nam,  std::string,
+    name,  std::string,
     age,   int,
     email, std::string,
     tag1,  tk::TaggedTuple< brigand::list <
@@ -44,8 +43,8 @@ struct TaggedTuplePrint_common {
   using record = tk::TaggedTuple< MemberList >;
 
   // Constructor
-  TaggedTuplePrint_common() {
-    tup.get< nam >() = "Bob";
+  PrintTaggedTuple_common() {
+    tup.get< name >() = "Bob";
     tup.get< age >() = 32;
     tup.get< email >() = "bob@google.com";
     auto& t1 = tup.get< tag1 >();
@@ -57,35 +56,35 @@ struct TaggedTuplePrint_common {
 };
 
 //! Test group shortcuts
-using TaggedTuplePrint_group =
-  test_group< TaggedTuplePrint_common, MAX_TESTS_IN_GROUP >;
-using TaggedTuplePrint_object = TaggedTuplePrint_group::object;
+using PrintTaggedTuple_group =
+  test_group< PrintTaggedTuple_common, MAX_TESTS_IN_GROUP >;
+using PrintTaggedTuple_object = PrintTaggedTuple_group::object;
 
 //! Define test group
-static TaggedTuplePrint_group TaggedTuplePrint( "Base/TaggedTuplePrint" );
+static PrintTaggedTuple_group PrintTaggedTuple( "Base/PrintTaggedTuple" );
 
 //! Test definitions for group
 
 //! Test operator<< of TaggedTuple
 template<> template<>
-void TaggedTuplePrint_object::test< 1 >() {
+void PrintTaggedTuple_object::test< 1 >() {
   set_test_name( "operator<<" );
 
   std::stringstream s;
   s << tup;
-  ensure_equals( "operator<<(TaggedTuple)", s.str(), "name: 'Bob' age: '32' "
-    "email: 'bob@google.com' tag1: { tag2: 'string2' tag3: 'string3' } " );
+  ensure_equals( "operator<<(TaggedTuple)", s.str(), "name = Bob age = 32 "
+    "email = bob@google.com tag1 = { tag2 = string2 tag3 = string3 } " );
 }
 
 //! Test print()
 template<> template<>
-void TaggedTuplePrint_object::test< 2 >() {
+void PrintTaggedTuple_object::test< 2 >() {
   set_test_name( "print()" );
 
   std::stringstream s;
   tk::print( s, tup );
-  ensure_equals( "print()", s.str(), "name: 'Bob' age: '32' "
-    "email: 'bob@google.com' tag1: { tag2: 'string2' tag3: 'string3' } " );
+  ensure_equals( "print()", s.str(), "name = Bob age = 32 "
+    "email = bob@google.com tag1 = { tag2 = string2 tag3 = string3 } " );
 }
 
 } // tut::

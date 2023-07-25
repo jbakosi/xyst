@@ -17,12 +17,9 @@
 #include "NodeDiagnostics.hpp"
 #include "DiagReducer.hpp"
 #include "Discretization.hpp"
-#include "InciterInputDeck.hpp"
 #include "Problems.hpp"
 
 namespace inciter {
-
-extern ctr::InputDeck g_inputdeck;
 
 static CkReduction::reducerType DiagMerger;
 
@@ -48,12 +45,14 @@ NodeDiagnostics::registerReducers()
 bool
 NodeDiagnostics::compute( Discretization& d,
                           const tk::Fields& u,
-                          const tk::Fields& un ) const
+                          const tk::Fields& un,
+                          uint64_t diag_iter ) const
 // *****************************************************************************
 //  Compute diagnostics, e.g., residuals, norms of errors, etc.
 //! \param[in] d Discretization proxy to read from
 //! \param[in] u Current solution vector
 //! \param[in] un Previous solution vector
+//! \param[in] diag_iter Diagnostics output frequency
 //! \return True if diagnostics have been computed
 //! \details Diagnostics are defined as some norm, e.g., L2 norm, of a quantity,
 //!   computed in mesh nodes, A, as ||A||_2 = sqrt[ sum_i(A_i)^2 V_i ],
@@ -69,10 +68,7 @@ NodeDiagnostics::compute( Discretization& d,
 
   using namespace diagnostics;
 
-  // Query after how many time steps user wants to dump diagnostics
-  auto diagfreq = g_inputdeck.get< tag::diag_iter >();
-
-  if ( !((d.It()+1) % diagfreq) ) {     // if remainder, don't dump
+  if ( !((d.It()+1) % diag_iter) ) {     // if remainder, don't dump
 
     auto ncomp = u.nprop();
 

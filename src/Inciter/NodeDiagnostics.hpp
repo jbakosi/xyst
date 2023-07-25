@@ -28,7 +28,8 @@ class NodeDiagnostics {
     //! Compute diagnostics, e.g., residuals, norms of errors, etc.
     bool compute( Discretization& d,
                   const tk::Fields& u,
-                  const tk::Fields& un ) const;
+                  const tk::Fields& un,
+                  uint64_t diag_iter ) const;
 
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{

@@ -17,7 +17,7 @@
 #include "ContainerUtil.hpp"
 #include "UnsMesh.hpp"
 #include "ExodusIIMeshWriter.hpp"
-#include "InciterInputDeck.hpp"
+#include "InciterConfig.hpp"
 #include "DerivedData.hpp"
 #include "Discretization.hpp"
 #include "DiagReducer.hpp"
@@ -33,7 +33,7 @@
 
 namespace inciter {
 
-extern ctr::InputDeck g_inputdeck;
+extern ctr::Config g_cfg;
 
 static CkReduction::reducerType IntegralsMerger;
 
@@ -42,7 +42,7 @@ static const std::array< tk::real, 3 > rkcoef{{ 1.0/3.0, 1.0/2.0, 1.0 }};
 
 } // inciter::
 
-using inciter::g_inputdeck;
+using inciter::g_cfg;
 using inciter::RieCG;
 
 RieCG::RieCG( const CProxy_Discretization& disc,
@@ -59,13 +59,13 @@ RieCG::RieCG( const CProxy_Discretization& disc,
   m_bnode( bnode ),
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
-  m_u( Disc()->Gid().size(), g_inputdeck.get< tag::problem_ncomp >() ),
+  m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
   m_grad( m_u.nunk(), m_u.nprop()*3 ),
   m_stage( 0 ),
   m_dtp( m_u.nunk(), 0.0 ),
-  m_tp( m_u.nunk(), g_inputdeck.get< tag::t0 >() ),
+  m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
   m_finished( 0 )
 // *****************************************************************************
 //  Constructor
@@ -116,7 +116,7 @@ RieCG::setupBC()
 {
   // Query Dirichlet BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > dir;
-  for (const auto& s : g_inputdeck.get< tag::bc_dir >()) {
+  for (const auto& s : g_cfg.get< tag::bc_dir >()) {
     auto k = m_bface.find(s[0]);
     if (k != end(m_bface)) {
       auto& n = dir[ k->first ];
@@ -131,7 +131,7 @@ RieCG::setupBC()
   // Collect unique set of nodes + Dirichlet BC components mask
   auto ncomp = m_u.nprop();
   auto nmask = ncomp + 1;
-  const auto& dbc = g_inputdeck.get< tag::bc_dir >();
+  const auto& dbc = g_cfg.get< tag::bc_dir >();
   std::unordered_map< std::size_t, std::vector< int > > dirbcset;
   for (const auto& mask : dbc) {
     ErrChk( mask.size() == nmask, "Incorrect Dirichlet BC mask ncomp" );
@@ -154,7 +154,7 @@ RieCG::setupBC()
 
   // Query pressure BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > pre;
-  for (const auto& ss : g_inputdeck.get< tag::bc_pre >()) {
+  for (const auto& ss : g_cfg.get< tag::bc_pre >()) {
     for (const auto& s : ss) {
       auto k = m_bface.find(s);
       if (k != end(m_bface)) {
@@ -169,11 +169,11 @@ RieCG::setupBC()
   }
 
   // Prepare density and pressure values for pressure BC nodes
-  const auto& pbc_set = g_inputdeck.get< tag::bc_pre >();
+  const auto& pbc_set = g_cfg.get< tag::bc_pre >();
   if (!pbc_set.empty()) {
-    const auto& pbc_r = g_inputdeck.get< tag::bc_pre_density >();
+    const auto& pbc_r = g_cfg.get< tag::bc_pre_density >();
     ErrChk( pbc_r.size() == pbc_set.size(), "Pressure BC density unspecified" );
-    const auto& pbc_p = g_inputdeck.get< tag::bc_pre_pressure >();
+    const auto& pbc_p = g_cfg.get< tag::bc_pre_pressure >();
     ErrChk( pbc_p.size() == pbc_set.size(), "Pressure BC pressure unspecified" );
     tk::destroy( m_prebcnodes );
     tk::destroy( m_prebcvals );
@@ -196,7 +196,7 @@ RieCG::setupBC()
 
   // Query symmetry BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > sym;
-  for (auto s : g_inputdeck.get< tag::bc_sym >()) {
+  for (auto s : g_cfg.get< tag::bc_sym >()) {
     auto k = m_bface.find(s);
     if (k != end(m_bface)) {
       auto& n = sym[ k->first ];
@@ -210,7 +210,7 @@ RieCG::setupBC()
 
   // Query farfield BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > far;
-  for (auto s : g_inputdeck.get< tag::bc_far >()) {
+  for (auto s : g_cfg.get< tag::bc_far >()) {
     auto k = m_bface.find(s);
     if (k != end(m_bface)) {
       auto& n = far[ k->first ];
@@ -444,7 +444,7 @@ RieCG::ResumeFromSync()
 {
   if (Disc()->It() == 0) Throw( "it = 0 in ResumeFromSync()" );
 
-  if (!g_inputdeck.get< tag::cmd, tag::nonblocking >()) next();
+  if (!g_cfg.get< tag::nonblocking >()) next();
 }
 
 void
@@ -465,7 +465,7 @@ RieCG::setup()
   d->boxvol( boxnodes );
 
   // Query time history field output labels from all PDEs integrated
-  if (!g_inputdeck.get< tag::histout >().empty()) {
+  if (!g_cfg.get< tag::histout >().empty()) {
     std::vector< std::string > var
       {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
     auto ncomp = m_u.nprop();
@@ -573,7 +573,7 @@ RieCG::streamable()
 
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
-  const auto& is = g_inputdeck.get< tag::integout >();
+  const auto& is = g_cfg.get< tag::integout >();
   std::set< int > outsets( begin(is), end(is) );
   for (auto s : outsets) {
     auto m = m_bface.find(s);
@@ -619,7 +619,7 @@ RieCG::streamable()
   tk::destroy( m_symbcnodes );
   tk::destroy( m_symbcnorms );
   for (auto p : m_symbcnodeset) {
-    for (const auto& s : g_inputdeck.get< tag::bc_sym >()) {
+    for (const auto& s : g_cfg.get< tag::bc_sym >()) {
       auto m = m_bnorm.find(s);
       if (m != end(m_bnorm)) {
         auto r = m->second.find(p);
@@ -638,7 +638,7 @@ RieCG::streamable()
   tk::destroy( m_farbcnodes );
   tk::destroy( m_farbcnorms );
   for (auto p : m_farbcnodeset) {
-    for (const auto& s : g_inputdeck.get< tag::bc_far >()) {
+    for (const auto& s : g_cfg.get< tag::bc_far >()) {
       auto n = m_bnorm.find(s);
       if (n != end(m_bnorm)) {
         auto a = n->second.find(p);
@@ -926,7 +926,7 @@ RieCG::dt()
 {
   tk::real mindt = std::numeric_limits< tk::real >::max();
 
-  auto const_dt = g_inputdeck.get< tag::dt >();
+  auto const_dt = g_cfg.get< tag::dt >();
   auto eps = std::numeric_limits< tk::real >::epsilon();
   auto d = Disc();
 
@@ -938,7 +938,7 @@ RieCG::dt()
 
   } else {      // compute dt based on CFL
 
-    if (g_inputdeck.get< tag::steady >()) {
+    if (g_cfg.get< tag::steady >()) {
 
       // compute new dt for each mesh point
       physics::dt( d->Vol(), m_u, m_dtp );
@@ -1052,7 +1052,7 @@ RieCG::rhs()
   // Compute own portion of right-hand side for all equations
   auto prev_rkcoef = m_stage == 0 ? 0.0 : rkcoef[m_stage-1];
 
-  if (g_inputdeck.get< tag::steady >()) {
+  if (g_cfg.get< tag::steady >()) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
   }
 
@@ -1060,7 +1060,7 @@ RieCG::rhs()
     m_bpoin, m_bpint, m_bpsym, d->Coord(), m_grad, m_u, d->V(), d->T(),
     m_tp, m_rhs );
 
-  if (g_inputdeck.get< tag::steady >()) {
+  if (g_cfg.get< tag::steady >()) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= prev_rkcoef * m_dtp[p];
   }
 
@@ -1128,7 +1128,7 @@ RieCG::solve()
   if (m_stage == 0) m_un = m_u;
 
   // Solve the sytem
-  if (g_inputdeck.get< tag::steady >()) {
+  if (g_cfg.get< tag::steady >()) {
 
     // Advance solution, converging to stationary state
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
@@ -1165,11 +1165,12 @@ RieCG::solve()
     // Activate SDAG waits for finishing a this time step stage
     thisProxy[ thisIndex ].wait4stage();
     // Compute diagnostics, e.g., residuals
-    auto diag_computed = m_diag.compute( *d, m_u, m_un );
+    auto diag_computed =
+      m_diag.compute( *d, m_u, m_un, g_cfg.get< tag::diag_iter >() );
     // Increase number of iterations and physical time
     d->next();
     // Advance physical time for local time stepping
-    if (g_inputdeck.get< tag::steady >()) {
+    if (g_cfg.get< tag::steady >()) {
       using tk::operator+=;
       m_tp += m_dtp;
     }
@@ -1189,10 +1190,10 @@ RieCG::refine( const std::vector< tk::real >& l2res )
 {
   auto d = Disc();
 
-  if (g_inputdeck.get< tag::steady >()) {
+  if (g_cfg.get< tag::steady >()) {
 
-    const auto residual = g_inputdeck.get< tag::residual >();
-    const auto rc = g_inputdeck.get< tag::rescomp >() - 1;
+    const auto residual = g_cfg.get< tag::residual >();
+    const auto rc = g_cfg.get< tag::rescomp >() - 1;
 
     // this is the last time step if max time of max number of time steps
     // reached or the residual has reached its convergence criterion
@@ -1208,8 +1209,8 @@ RieCG::refine( const std::vector< tk::real >& l2res )
 
   }
 
-  auto dtref = g_inputdeck.get< tag::href_dt >();
-  auto dtfreq = g_inputdeck.get< tag::href_dtfreq >();
+  auto dtref = g_cfg.get< tag::href_dt >();
+  auto dtfreq = g_cfg.get< tag::href_dtfreq >();
 
   // if t>0 refinement enabled and we hit the frequency
   if (dtref && !(d->It() % dtfreq)) {   // refine
@@ -1309,7 +1310,7 @@ RieCG::writeFields( CkCallback cb )
 //! \param[in] cb Function to continue with after the write
 // *****************************************************************************
 {
-  if (g_inputdeck.get< tag::cmd, tag::benchmark >()) { cb.send(); return; }
+  if (g_cfg.get< tag::benchmark >()) { cb.send(); return; }
 
   auto d = Disc();
   auto ncomp = m_u.nprop();
@@ -1387,7 +1388,7 @@ RieCG::writeFields( CkCallback cb )
 
   const auto& lid = d->Lid();
   auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
-  const auto& f = g_inputdeck.get< tag::fieldout >();
+  const auto& f = g_cfg.get< tag::fieldout >();
   std::set< int > outsets( begin(f), end(f) );
   for (auto sideset : outsets) {
     auto b = bnode.find(sideset);
@@ -1523,8 +1524,8 @@ RieCG::evalLB( int nrestart )
   // finished flag
   if (d->restarted( nrestart )) m_finished = 0;
 
-  const auto lbfreq = g_inputdeck.get< tag::cmd, tag::lbfreq >();
-  const auto nonblocking = g_inputdeck.get< tag::cmd, tag::nonblocking >();
+  const auto lbfreq = g_cfg.get< tag::lbfreq >();
+  const auto nonblocking = g_cfg.get< tag::nonblocking >();
 
   // Load balancing if user frequency is reached or after the second time-step
   if ( (d->It()) % lbfreq == 0 || d->It() == 2 ) {
@@ -1547,8 +1548,8 @@ RieCG::evalRestart()
 {
   auto d = Disc();
 
-  const auto rsfreq = g_inputdeck.get< tag::cmd, tag::rsfreq >();
-  const auto benchmark = g_inputdeck.get< tag::cmd, tag::benchmark >();
+  const auto rsfreq = g_cfg.get< tag::rsfreq >();
+  const auto benchmark = g_cfg.get< tag::benchmark >();
 
   if ( !benchmark && (d->It()) % rsfreq == 0 ) {
 

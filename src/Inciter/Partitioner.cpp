@@ -23,10 +23,11 @@
 #include "ContainerUtil.hpp"
 #include "Callback.hpp"
 #include "ZoltanInterOp.hpp"
+#include "InciterConfig.hpp"
 
 namespace inciter {
 
-extern ctr::InputDeck g_inputdeck;
+extern ctr::Config g_cfg;
 
 } // inciter::
 
@@ -152,10 +153,10 @@ Partitioner::partition( int nchare )
 
   m_nchare = nchare;
   const auto che =
-    zoltan::partMesh( g_inputdeck.get< tag::part >(),
+    zoltan::partMesh( g_cfg.get< tag::part >(),
                       m_inpoel, m_ginpoel, m_coord, nchare );
 
-  if ( g_inputdeck.get< tag::cmd, tag::feedback >() ) m_host.pepartitioned();
+  if ( g_cfg.get< tag::feedback >() ) m_host.pepartitioned();
 
   contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
               m_cbp.get< tag::partitioned >() );
@@ -247,7 +248,7 @@ Partitioner::recvMesh()
 // *****************************************************************************
 {
   if (--m_ndist == 0) {
-    if (g_inputdeck.get< tag::cmd, tag::feedback >()) m_host.pedistributed();
+    if (g_cfg.get< tag::feedback >()) m_host.pedistributed();
     contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
                 m_cbp.get< tag::distributed >() );
   }
@@ -501,7 +502,7 @@ Partitioner::distribute( std::unordered_map< int, MeshData >&& mesh )
 
   // Export chare IDs and mesh we do not own to fellow compute nodes
   if (exp.empty()) {
-    if ( g_inputdeck.get< tag::cmd, tag::feedback >() ) m_host.pedistributed();
+    if (g_cfg.get< tag::feedback >()) m_host.pedistributed();
     contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
                 m_cbp.get< tag::distributed >() );
   } else {

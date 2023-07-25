@@ -12,17 +12,17 @@
 
 #include "Problems.hpp"
 #include "EOS.hpp"
-#include "InciterInputDeck.hpp"
+#include "InciterConfig.hpp"
 
 namespace inciter {
 
-extern ctr::InputDeck g_inputdeck;
+extern ctr::Config g_cfg;
 
 } // ::inciter
 
 namespace problems {
 
-using inciter::g_inputdeck;
+using inciter::g_cfg;
 
 // *****************************************************************************
 //  Determine nodes that lie inside user-defined IC box(es)
@@ -32,7 +32,7 @@ using inciter::g_inputdeck;
 std::vector< std::unordered_set< std::size_t > >
 boxnodes( const std::array< std::vector< tk::real >, 3 >& coord ) {
 
-  const auto& icbox = g_inputdeck.get< tag::ic >();
+  const auto& icbox = g_cfg.get< tag::ic >();
 
   if (icbox.empty()) return {};
 
@@ -82,8 +82,8 @@ ic( tk::real, tk::real, tk::real, tk::real )
 //! \return Values of conserved variables
 // *****************************************************************************
 {
-  auto ic_density = g_inputdeck.get< tag::ic_density >();
-  const auto& ic_velocity = g_inputdeck.get< tag::ic_velocity >();
+  auto ic_density = g_cfg.get< tag::ic_density >();
+  const auto& ic_velocity = g_cfg.get< tag::ic_velocity >();
   ErrChk( ic_velocity.size() == 3, "ic_velocity must have 3 components" );
 
   std::vector< tk::real > u( 5, 0.0 );
@@ -93,9 +93,9 @@ ic( tk::real, tk::real, tk::real, tk::real )
   u[2] = u[0] * ic_velocity[1];
   u[3] = u[0] * ic_velocity[2];
 
-  auto ic_pressure = g_inputdeck.get< tag::ic_pressure >();
-  auto ic_energy = g_inputdeck.get< tag::ic_energy >();
-  auto ic_temperature = g_inputdeck.get< tag::ic_temperature >();
+  auto ic_pressure = g_cfg.get< tag::ic_pressure >();
+  auto ic_energy = g_cfg.get< tag::ic_energy >();
+  auto ic_temperature = g_cfg.get< tag::ic_temperature >();
 
   auto largereal = std::numeric_limits< double >::max();
 
@@ -110,7 +110,7 @@ ic( tk::real, tk::real, tk::real, tk::real )
 
   } else if (std::abs(ic_temperature - largereal) > 1.0e-12) {
 
-    auto cv = g_inputdeck.get< tag::mat_spec_heat_const_vol >();
+    auto cv = g_cfg.get< tag::mat_spec_heat_const_vol >();
     if (std::abs(cv - largereal) > 1.0e-12) {
       u[4] = u[0] * ic_temperature * cv;
     }
@@ -143,11 +143,11 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
   using std::cos;
 
   // manufactured solution parameters
-  auto ce = g_inputdeck.get< tag::problem_ce >();
-  auto r0 = g_inputdeck.get< tag::problem_r0 >();
-  auto a = g_inputdeck.get< tag::problem_alpha >();
-  auto k = g_inputdeck.get< tag::problem_kappa >();
-  const auto& b = g_inputdeck.get< tag::problem_beta >();
+  auto ce = g_cfg.get< tag::problem_ce >();
+  auto r0 = g_cfg.get< tag::problem_r0 >();
+  auto a = g_cfg.get< tag::problem_alpha >();
+  auto k = g_cfg.get< tag::problem_kappa >();
+  const auto& b = g_cfg.get< tag::problem_beta >();
 
   auto ec = [ ce, t ]( tk::real kappa, tk::real h, tk::real p ) {
     return std::pow( -3.0*(ce + kappa*h*h*t), p );
@@ -179,13 +179,13 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
   using std::sin; using std::cos; using std::pow;
 
   // manufactured solution parameters
-  auto a = g_inputdeck.get< tag::problem_alpha >();
-  const auto& b = g_inputdeck.get< tag::problem_beta >();
-  auto ce = g_inputdeck.get< tag::problem_ce >();
-  auto kappa = g_inputdeck.get< tag::problem_kappa >();
-  auto r0 = g_inputdeck.get< tag::problem_r0 >();
+  auto a = g_cfg.get< tag::problem_alpha >();
+  const auto& b = g_cfg.get< tag::problem_beta >();
+  auto ce = g_cfg.get< tag::problem_ce >();
+  auto kappa = g_cfg.get< tag::problem_kappa >();
+  auto r0 = g_cfg.get< tag::problem_r0 >();
   // ratio of specific heats
-  auto g = g_inputdeck.get< tag::mat_spec_heat_ratio >();
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
   // spatial component of density field
   auto gx = 1.0 - x*x - y*y - z*z;
   // derivative of spatial component of density field
@@ -242,11 +242,11 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
   using std::sin; using std::cos;
 
   // manufactured solution parameters
-  auto a = g_inputdeck.get< tag::problem_alpha >();
-  const auto& b = g_inputdeck.get< tag::problem_beta >();
-  auto p0 = g_inputdeck.get< tag::problem_p0 >();
-  auto r0 = g_inputdeck.get< tag::problem_r0 >();
-  auto k = g_inputdeck.get< tag::problem_kappa >();
+  auto a = g_cfg.get< tag::problem_alpha >();
+  const auto& b = g_cfg.get< tag::problem_beta >();
+  auto p0 = g_cfg.get< tag::problem_p0 >();
+  auto r0 = g_cfg.get< tag::problem_r0 >();
+  auto k = g_cfg.get< tag::problem_kappa >();
 
   // spatial component of density and pressure fields
   tk::real gx = b[0]*x*x + b[1]*y*y + b[2]*z*z;
@@ -277,11 +277,11 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
   using std::sin; using std::cos;
 
   // manufactured solution parameters
-  auto a = g_inputdeck.get< tag::problem_alpha >();
-  const auto& b = g_inputdeck.get< tag::problem_beta >();
-  auto k = g_inputdeck.get< tag::problem_kappa >();
-  auto p0 = g_inputdeck.get< tag::problem_p0 >();
-  auto g = g_inputdeck.get< tag::mat_spec_heat_ratio >();
+  auto a = g_cfg.get< tag::problem_alpha >();
+  const auto& b = g_cfg.get< tag::problem_beta >();
+  auto k = g_cfg.get< tag::problem_kappa >();
+  auto p0 = g_cfg.get< tag::problem_p0 >();
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
 
   // evaluate solution at x,y,z,t
   auto U = ic( x, y, z, t );
@@ -354,7 +354,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real )
   auto eps = std::numeric_limits< tk::real >::epsilon();
   tk::real p;
   if (abs(x) < eps && abs(y) < eps && abs(z) < eps) {
-    p = g_inputdeck.get< tag::problem_p0 >();
+    p = g_cfg.get< tag::problem_p0 >();
   } else {
     p = 0.67e-4;
   }
@@ -467,11 +467,11 @@ ic( tk::real x, tk::real y, tk::real z, tk::real )
 // *****************************************************************************
 {
   // manufactured solution parameters
-  tk::real a = g_inputdeck.get< tag::problem_alpha >();
-  tk::real k = g_inputdeck.get< tag::problem_kappa >();
-  tk::real p0 = g_inputdeck.get< tag::problem_p0 >();
+  tk::real a = g_cfg.get< tag::problem_alpha >();
+  tk::real k = g_cfg.get< tag::problem_kappa >();
+  tk::real p0 = g_cfg.get< tag::problem_p0 >();
   // ratio of specific heats
-  auto g = g_inputdeck.get< tag::mat_spec_heat_ratio >();
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
   // velocity
   tk::real ru = a*x - k*y;
   tk::real rv = k*x + a*y;
@@ -493,10 +493,10 @@ src( tk::real x, tk::real y, tk::real z, tk::real )
 // *****************************************************************************
 {
   // manufactured solution parameters
-  auto a = g_inputdeck.get< tag::problem_alpha >();
-  auto k = g_inputdeck.get< tag::problem_kappa >();
+  auto a = g_cfg.get< tag::problem_alpha >();
+  auto k = g_cfg.get< tag::problem_kappa >();
   // ratio of specific heats
-  auto g = g_inputdeck.get< tag::mat_spec_heat_ratio >();
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
   // evaluate solution at x,y,z
   auto u = ic( x, y, z, 0.0 );
 
@@ -661,7 +661,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 {
   if (U.nprop() == 5) return;
 
-  const auto& source = g_inputdeck.get< tag::problem_src >();
+  const auto& source = g_cfg.get< tag::problem_src >();
   const auto& location = source.get< tag::location >();
   auto radius = source.get< tag::radius >();
   auto release_time = source.get< tag::release_time >();
@@ -704,7 +704,7 @@ IC()
 //! \return The function to call to set initial conditions
 // *****************************************************************************
 {
-  const auto& problem = inciter::g_inputdeck.get< tag::problem >();
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
 
   std::function< std::vector< tk::real >
                ( tk::real, tk::real, tk::real, tk::real ) > ic;
@@ -741,7 +741,7 @@ SOL()
 //! \return The function to call to query analytic solutions
 // *****************************************************************************
 {
-  const auto& problem = inciter::g_inputdeck.get< tag::problem >();
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
 
   if (problem == "userdef" ||
       problem == "sod" ||
@@ -767,7 +767,7 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
 {
   Assert( coord[0].size() == U.nunk(), "Size mismatch" );
 
-  const auto& icbox = g_inputdeck.get< tag::ic >();
+  const auto& icbox = g_cfg.get< tag::ic >();
 
   auto ic = IC();
   const auto& x = coord[0];
@@ -812,7 +812,7 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
           re = r * (boxe + ke);
         }
         if (std::abs(boxt - largereal) > 1.0e-12 && boxt > 0.0) {
-          auto cv = g_inputdeck.get< tag::mat_spec_heat_const_vol >();
+          auto cv = g_cfg.get< tag::mat_spec_heat_const_vol >();
           if (std::abs(cv - largereal) > 1.0e-12 && cv > 0.0) {
             re = r * boxt * cv;
           }
@@ -839,7 +839,7 @@ SRC()
 //! \return The function to call to evaluate a problem-sepcific source term
 // *****************************************************************************
 {
-  const auto& problem = inciter::g_inputdeck.get< tag::problem >();
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
 
   std::function<
     std::vector< tk::real >( tk::real, tk::real, tk::real, tk::real ) > src;
@@ -867,7 +867,7 @@ PHYS_SRC()
 //! \return The function to call to evaluate a problem-sepcific source term
 // *****************************************************************************
 {
-  const auto& problem = inciter::g_inputdeck.get< tag::problem >();
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
 
   std::function< void( const std::array< std::vector< tk::real >, 3 >&,
                        tk::real,

@@ -28,8 +28,7 @@
 #include "Timer.hpp"
 #include "Exception.hpp"
 #include "ProcessException.hpp"
-#include "InciterCmdLine.hpp"
-#include "InciterInputDeck.hpp"
+#include "InciterConfig.hpp"
 #include "LBSwitch.hpp"
 
 #include "NoWarning/inciter.decl.h"
@@ -65,12 +64,12 @@ namespace inciter {
   #pragma clang diagnostic ignored "-Wmissing-variable-declarations"
 #endif
 
-//! Input deck filled by parser, containing all input data
+//! Configuration data structure, containing all input data
 //! \details This object is in global scope, it contains all of user input, and
 //!   thus it is made available to all PEs for convenience reasons. The runtime
 //!   system distributes it to all PEs during initialization. Once distributed,
 //!   the object does not change.
-ctr::InputDeck g_inputdeck;
+ctr::Config g_cfg;
 
 //! Number of times restarted counter
 int g_nrestart;
@@ -120,21 +119,23 @@ class Main : public CBase_Main {
     //! \see http://charm.cs.illinois.edu/manuals/html/charm++/manual.html
     explicit Main( CkArgMsg* msg )
     try :
-      m_signal( tk::setSignalHandlers() ),
-      m_cmdline( msg->argc, msg->argv ),
       m_timer(1)
     {
+      tk::setSignalHandlers();
+      using inciter::g_cfg;
+      // Parse command line
+      g_cfg.cmdline( msg->argc, msg->argv );
       tk::echoHeader( tk::HeaderType::INCITER );
       tk::echoBuildEnv( msg->argv[0] );
-      tk::echoRunEnv(msg->argc, msg->argv, m_cmdline.get< tag::quiescence >());
+      tk::echoRunEnv(msg->argc, msg->argv, g_cfg.get< tag::quiescence >());
       delete msg;
       mainProxy = thisProxy;
-      if (m_cmdline.get< tag::quiescence >()) {
+      if (g_cfg.get< tag::quiescence >()) {
         CkStartQD( CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
       }
       m_timer.emplace_back();
       // Parse control file
-      inciter::g_inputdeck.parse( m_cmdline );
+      inciter::g_cfg.control();
       // Fire up an asynchronous execute object, which when created at some
       // future point in time will call back to this->execute(). This is
       // necessary so that this->execute() can access already migrated
@@ -143,27 +144,30 @@ class Main : public CBase_Main {
     } catch (...) { tk::processExceptionCharm(); }
 
     //! Migrate constructor: returning from a checkpoint
-    explicit Main( CkMigrateMessage* msg ) : CBase_Main( msg ),
-      m_signal( tk::setSignalHandlers() ),
-      m_cmdline( reinterpret_cast<CkArgMsg*>(msg)->argc,
-                 reinterpret_cast<CkArgMsg*>(msg)->argv ),
-      m_timer(1)
+    explicit Main( CkMigrateMessage* msg )
+    try :
+      CBase_Main( msg ), m_timer(1)
     {
+      tk::setSignalHandlers();
+      using inciter::g_cfg;
+      // Parse command line after restart
+      g_cfg.cmdline( reinterpret_cast<CkArgMsg*>(msg)->argc,
+                     reinterpret_cast<CkArgMsg*>(msg)->argv );
       tk::echoHeader( tk::HeaderType::INCITER );
       tk::echoBuildEnv( reinterpret_cast<CkArgMsg*>(msg)->argv[0] );
       tk::echoRunEnv( reinterpret_cast<CkArgMsg*>(msg)->argc,
                       reinterpret_cast<CkArgMsg*>(msg)->argv,
-                      m_cmdline.get< tag::quiescence >() );
+                      g_cfg.get< tag::quiescence >() );
       // increase number of restarts (available for Transporter on PE 0)
       ++inciter::g_nrestart;
       mainProxy = thisProxy;
-      if (m_cmdline.get< tag::quiescence >()) {
+      if (g_cfg.get< tag::quiescence >()) {
         CkStartQD( CkCallback( CkIndex_Main::quiescence(), thisProxy ) );
       }
       m_timer.emplace_back();
-      // Parse control file
-      inciter::g_inputdeck.parse( m_cmdline );
-    }
+      // Parse control file after restart
+      g_cfg.control();
+    } catch (...) { tk::processExceptionCharm(); }
 
     //! Execute driver created and initialized by constructor
     void execute() {
@@ -198,8 +202,6 @@ class Main : public CBase_Main {
     //@}
 
   private:
-    int m_signal;                               //!< Used to set signal handlers
-    inciter::ctr::CmdLine m_cmdline;            //!< Command line
     std::vector< tk::Timer > m_timer;           //!< Timers
     //! Time stamps in h:m:s with labels
     std::vector< std::pair< std::string, tk::Timer::Watch > > m_timestamp;

@@ -27,7 +27,7 @@ mainmodule inciter {
   namespace inciter {
 
     // Order important: must be the same as in Main/Inciter.C
-    readonly ctr::InputDeck g_inputdeck;
+    readonly ctr::Config g_cfg;
     readonly int g_nrestart;
 
   } // inciter::

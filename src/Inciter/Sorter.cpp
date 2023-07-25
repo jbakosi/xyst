@@ -17,11 +17,11 @@
 #include "Sorter.hpp"
 #include "Reorder.hpp"
 #include "DerivedData.hpp"
-#include "InciterInputDeck.hpp"
+#include "InciterConfig.hpp"
 
 namespace inciter {
 
-extern ctr::InputDeck g_inputdeck;
+extern ctr::Config g_cfg;
 
 } // inciter::
 
@@ -264,12 +264,12 @@ Sorter::start()
 //  Start reordering (if enabled)
 // *****************************************************************************
 {
-  if (g_inputdeck.get< tag::cmd, tag::feedback >()) m_host.chcomm();
+  if (g_cfg.get< tag::feedback >()) m_host.chcomm();
 
   tk::destroy( m_nodech );
   tk::destroy( m_chnode );
 
-  if (g_inputdeck.get< tag::reorder >())
+  if (g_cfg.get< tag::reorder >())
     mask();   // continue with mesh node reordering if requested (or required)
   else
     createDiscWorkers();  // skip mesh node reordering
@@ -311,7 +311,7 @@ Sorter::mask()
   // Count up total number of nodes this chare will need to receive
   auto nrecv = tk::sumvalsize( m_reordcomm );
 
-  if ( g_inputdeck.get< tag::cmd, tag::feedback >() ) m_host.chmask();
+  if ( g_cfg.get< tag::feedback >() ) m_host.chmask();
 
   // Compute number of mesh node IDs we will assign IDs to
   auto nuniq = m_nodeset.size() - nrecv;
@@ -489,7 +489,7 @@ Sorter::finish()
   m_reorderRefiner.send();
 
   // Progress report to host
-  if ( g_inputdeck.get< tag::cmd, tag::feedback >() ) m_host.chreordered();
+  if ( g_cfg.get< tag::feedback >() ) m_host.chreordered();
 
   createDiscWorkers();
 }
@@ -548,7 +548,7 @@ Sorter::createWorkers()
 
   m_riecg[ thisIndex ].insert( m_discretization, m_bface, m_bnode, m_triinpoel );
 
-  if ( g_inputdeck.get< tag::cmd, tag::feedback >() ) m_host.chcreated();
+  if ( g_cfg.get< tag::feedback >() ) m_host.chcreated();
 
   contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
               m_cbs.get< tag::workinserted >() );

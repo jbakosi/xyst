@@ -3,7 +3,7 @@ project(Control C CXX)
 #### Inciter control ###########################################################
 add_library(InciterControl
             Lua.c
-            InciterInputDeck.cpp)
+            InciterConfig.cpp)
 
 target_include_directories(InciterControl PUBLIC
                            ${PROJECT_SOURCE_DIR}

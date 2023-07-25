@@ -10,25 +10,25 @@
 // *****************************************************************************
 #pragma once
 
-#include "InciterInputDeck.hpp"
+#include "InciterConfig.hpp"
 
 namespace inciter {
 
-extern ctr::InputDeck g_inputdeck;
+extern ctr::Config g_cfg;
 
 } // ::inciter
 
 namespace eos {
 
-using inciter::g_inputdeck;
+using inciter::g_cfg;
 
 //! Compute pressure
 //! \param[in] r Density
 //! \param[in] e Specific internal energy
 //! \return Pressure computed from the ideal gas equation of state
-inline tk::real
-pressure( tk::real r, tk::real e ) {
-  auto g = g_inputdeck.get< tag::mat_spec_heat_ratio >();
+inline double
+pressure( double r, double e ) {
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
   return r * e * (g-1.0);
 }
 
@@ -36,9 +36,9 @@ pressure( tk::real r, tk::real e ) {
 //! \param[in] rho Material density
 //! \param[in] pr Material pressure
 //! \return Material speed of sound using the stiffened-gas EOS
-inline tk::real
-soundspeed( tk::real rho, tk::real pr ) {
-  auto g = g_inputdeck.get< tag::mat_spec_heat_ratio >();
+inline double
+soundspeed( double rho, double pr ) {
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
   return std::sqrt( g * pr / rho );
 }
 
@@ -50,9 +50,9 @@ soundspeed( tk::real rho, tk::real pr ) {
 //! \param[in] w Z-velocity
 //! \param[in] pr Material pressure
 //! \return Material specific total energy using the stiffened-gas EOS
-inline tk::real
-totalenergy( tk::real rho, tk::real u, tk::real v, tk::real w, tk::real pr ) {
-  auto g = g_inputdeck.get< tag::mat_spec_heat_ratio >();
+inline double
+totalenergy( double rho, double u, double v, double w, double pr ) {
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
   return pr / (g-1.0) + 0.5 * rho * (u*u + v*v + w*w);
 }
 

@@ -1,23 +1,36 @@
 // *****************************************************************************
 /*!
-  \file      src/Control/InciterInputDeck.hpp
+  \file      src/Control/InciterConfig.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Inciter's input deck definition
-  \details   This file defines the heterogeneous stack that is used for storing
-     the data from user input during the control file parsing of the
-     computational shock hydrodynamics tool, Inciter.
+  \brief     Inciter confguration (parsed from cmdline and control file)
 */
 // *****************************************************************************
 #pragma once
 
-#include "InciterCmdLine.hpp"
+#include <getopt.h>
+
+#include "TaggedTuple.hpp"
 
 namespace tag {
-DEFTAG( cmd );
+DEFTAG( input );
+DEFTAG( control );
+DEFTAG( output );
+DEFTAG( diag );
+DEFTAG( diag_iter );
+DEFTAG( diag_precision );
+DEFTAG( diag_format );
+DEFTAG( checkpoint );
+DEFTAG( quiescence );
+DEFTAG( virt );
+DEFTAG( nonblocking );
+DEFTAG( benchmark );
+DEFTAG( feedback );
+DEFTAG( lbfreq );
+DEFTAG( rsfreq );
 DEFTAG( nstep );
 DEFTAG( ttyi );
 DEFTAG( term );
@@ -25,6 +38,7 @@ DEFTAG( cfl );
 DEFTAG( t0 );
 DEFTAG( dt );
 DEFTAG( reorder );
+DEFTAG( part );
 DEFTAG( steady );
 DEFTAG( residual );
 DEFTAG( rescomp );
@@ -40,7 +54,6 @@ DEFTAG( problem_src );
 DEFTAG( location );
 DEFTAG( radius );
 DEFTAG( release_time );
-DEFTAG( part );
 DEFTAG( fieldout );
 DEFTAG( fieldout_iter );
 DEFTAG( fieldout_time );
@@ -57,9 +70,6 @@ DEFTAG( integout_time );
 DEFTAG( integout_range );
 DEFTAG( integout_precision );
 DEFTAG( integout_format );
-DEFTAG( diag_iter );
-DEFTAG( diag_precision );
-DEFTAG( diag_format );
 DEFTAG( ic );
 DEFTAG( x );
 DEFTAG( y );
@@ -91,11 +101,26 @@ DEFTAG( href_refvar );
 } // tag::
 
 namespace inciter {
+//! Inciter control facilitating user input to internal data transfer
 namespace ctr {
 
 //! Member data for tagged tuple
-using InputDeckMembers = brigand::list<
-    tag::cmd, CmdLine
+using ConfigMembers = brigand::list<
+    tag::input, std::string
+  , tag::control, std::string
+  , tag::output, std::string
+  , tag::diag, std::string
+  , tag::diag_iter, uint64_t
+  , tag::diag_precision, std::streamsize
+  , tag::diag_format, std::string
+  , tag::checkpoint, std::string
+  , tag::quiescence, bool
+  , tag::virt, double
+  , tag::nonblocking, bool
+  , tag::benchmark, bool
+  , tag::feedback, bool
+  , tag::lbfreq, uint64_t
+  , tag::rsfreq, uint64_t
   , tag::nstep, uint64_t
   , tag::ttyi, uint64_t
   , tag::term, double
@@ -103,6 +128,7 @@ using InputDeckMembers = brigand::list<
   , tag::t0, double
   , tag::dt, double
   , tag::reorder, bool
+  , tag::part, std::string
   , tag::steady, bool
   , tag::residual, double
   , tag::rescomp, uint64_t
@@ -119,7 +145,6 @@ using InputDeckMembers = brigand::list<
                           , tag::radius, double
                           , tag::release_time, double
                       > >
-  , tag::part, std::string
   , tag::fieldout, std::vector< int >
   , tag::fieldout_iter, uint64_t
   , tag::fieldout_time, double
@@ -136,9 +161,6 @@ using InputDeckMembers = brigand::list<
   , tag::integout_range, std::vector< std::vector< double > >
   , tag::integout_precision, std::streamsize
   , tag::integout_format, std::string
-  , tag::diag_iter, uint64_t
-  , tag::diag_precision, std::streamsize
-  , tag::diag_format, std::string
   , tag::ic, std::vector<
                tk::TaggedTuple< brigand::list<
                    tag::x,              std::vector< double >
@@ -177,27 +199,30 @@ using InputDeckMembers = brigand::list<
   , tag::href_init, std::vector< std::string >
 >;
 
-//! \brief InputDeck : Control< specialized to Inciter >, see Types.h,
-//! \details The stack is a tagged tuple, a hierarchical heterogeneous data
-//!    structure where all parsed information is stored.
-//! \see Base/TaggedTuple.h
-//! \see Control/Inciter/Types.h
-class InputDeck : public tk::TaggedTuple< InputDeckMembers > {
+//! Config is a TaggedTuple specialized to Inciter
+class Config : public tk::TaggedTuple< ConfigMembers > {
 
   public:
-    //! Parse control file
-    void parse( const CmdLine& cmdline );
+    //! Contructor: parse inciter command line
+    void cmdline( int argc, char** argv );
 
-    /** @name Pack/Unpack: Serialize InputDeck object for Charm++ */
+    //! Parse control file
+    void control();
+
+    /** @name Pack/Unpack: Serialize Config object for Charm++ */
     ///@{
     //! \brief Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    void pup( PUP::er& p ) { tk::TaggedTuple< InputDeckMembers >::pup(p); }
+    void pup( PUP::er& p ) { tk::TaggedTuple< ConfigMembers >::pup(p); }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    //! \param[in,out] i InputDeck object reference
-    friend void operator|( PUP::er& p, InputDeck& i ) { i.pup(p); }
+    //! \param[in,out] c Config object reference
+    friend void operator|( PUP::er& p, Config& c ) { c.pup(p); }
     //@}
+
+  private:
+    //! Echo help on command line arguments
+    void help( char** argv );
 };
 
 } // ctr::

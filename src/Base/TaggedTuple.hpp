@@ -12,13 +12,7 @@
     having to index the elements by integers, it allows access by a tag, which
     can be an empty struct with a unique name. Credit goes to
     ecatmur_at_stackoverflow.com, for more details, see
-    http://stackoverflow.com/questions/13065166/c11-tagged-tuple. For tags, see
-    Control/Tags.h. Tagged tuples are extensively used for transferring data
-    from the parser to an internal data structure in a type-save manner, which
-    is a tagged tuple containing a hierarchy of various containers. As an
-    example on how tagged tuples are used for parsing an input file, see
-    Control/Walker/InputDeck/InputDeck.h. Another way to use a tagged tuple is a
-    compile-time associated container between tags and an arbitrary type.
+    http://stackoverflow.com/questions/13065166/c11-tagged-tuple.
 */
 // *****************************************************************************
 #pragma once

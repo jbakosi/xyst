@@ -1,6 +1,6 @@
 // *****************************************************************************
 /*!
-  \file      src/Control/InciterInputDeck.cpp
+  \file      src/Control/InciterConfig.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
@@ -25,7 +25,16 @@
   #pragma clang diagnostic pop
 #endif
 
-#include "InciterInputDeck.hpp"
+#include "InciterConfig.hpp"
+
+#include "NoWarning/charm++.hpp"
+
+#include "XystConfig.hpp"
+#include "Exception.hpp"
+#include "Print.hpp"
+#include "TaggedTuple.hpp"
+#include "PrintTaggedTupleDeep.hpp"
+#include "Writer.hpp"
 
 namespace inciter {
 namespace ctr {
@@ -33,6 +42,124 @@ namespace ctr {
 static constexpr auto largeint = std::numeric_limits< int64_t >::max();
 static constexpr auto largeuint = std::numeric_limits< uint64_t >::max();
 static constexpr auto largereal = std::numeric_limits< double >::max();
+
+void
+Config::cmdline( int argc, char** argv )
+// *****************************************************************************
+//! Contructor: parse inciter command line
+//! \param[in] argc Number of arguments to executable
+//! \param[in] argv Arguments to executable
+// *****************************************************************************
+{
+  // Defaults
+  get< tag::output >() = "out";
+  get< tag::diag >() = "diag";
+  get< tag::checkpoint >() = "restart";
+  get< tag::lbfreq >() = 1;
+  get< tag::rsfreq >() = 1000;
+
+  if (argc == 1) {
+    help( argv );
+    CkExit( EXIT_FAILURE );
+  }
+  tk::Print print;
+
+  // Process command line arguments
+  int c;
+  while ((c = getopt( argc, argv, "bc:d:fh?i:l:no:qr:s:u:v" )) != -1) {
+    switch (c) {
+      case '?':
+      case 'h':
+      default:
+        help( argv );
+        CkExit();
+        break;
+      case 'b':
+        get< tag::benchmark >() = true;
+        break;
+      case 'c':
+        get< tag::control >() = optarg;
+        break;
+      case 'd':
+        get< tag::diag >() = optarg;
+        break;
+      case 'f':
+        get< tag::feedback >() = true;
+        break;
+      case 'i':
+        get< tag::input >() = optarg;
+        break;
+      case 'l':
+        get< tag::lbfreq >() = std::stoul( optarg );
+        break;
+      case 'n':
+        get< tag::nonblocking >() = true;
+        break;
+      case 'o':
+        get< tag::output >() = optarg;
+        break;
+      case 'r':
+        get< tag::rsfreq >() = std::stoul( optarg );
+        break;
+      case 'q':
+        get< tag::quiescence >() = true;
+        break;
+      case 'u':
+        get< tag::virt >() = std::stod( optarg );
+        break;
+      case 'v':
+        print << '\n';
+        print.version( tk::inciter_executable(), tk::git_commit() );
+        CkExit();
+        break;
+    }
+  }
+
+  if (optind != argc) {
+    print << "\nA non-option was supplied";
+    help( argv );
+    CkExit( EXIT_FAILURE );
+  }
+  ErrChk( not get< tag::input >().empty(),
+          "Mandatory input mesh file not specified. Use -i <filename>." );
+  ErrChk( not get< tag::control >().empty(),
+          "Mandatory control file not specified. Use -c <filename>." );
+}
+
+void
+Config::help( char** argv )
+// *****************************************************************************
+// Echo help on command line arguments
+//! \param[in] argv Arguments to executable
+// *****************************************************************************
+{
+  tk::Print() <<
+    "\nUsage: " << argv[0] << " -i <in.msh> -c <config.q> [OPTION]...\n"
+    "\n"
+    "  -h, -?        Print out this help\n"
+    "  -b            Benchmark mode, "
+                     "default: " << get< tag::benchmark >() << "\n" <<
+    "  -c <config.q> Specify control file\n"
+    "  -d <diag>     Specify diagnostics file, "
+                     "default: " << get< tag::diag >() << "\n" <<
+    "  -f            Extra feedback, "
+                     "default: " << get< tag::feedback >() << "\n" <<
+    "  -i <in.msh>   Specify input mesh file\n"
+    "  -l <int>      Load balancing frequency, "
+                     "default: " << get< tag::lbfreq >() << "\n" <<
+    "  -n            Non-blocking migration, "
+                     "default: " << get< tag::nonblocking >() << "\n" <<
+    "  -o <outfile>  Base-filename for field output, "
+                     "default: " << get< tag::output >() << "\n" <<
+    "  -r <int>      Checkpoint frequency, "
+                     "default: " << get< tag::rsfreq >() << "\n" <<
+    "  -q            Enable quiescence detection, "
+                     "default: " << get< tag::quiescence >() << "\n" <<
+    "  -u <real>     Virtualization, "
+                     "default: " << get< tag::virt >() << "\n" <<
+    "  -v            Print revision information\n"
+    "\n";
+}
 
 [[maybe_unused]] static void
 dumpstack( lua_State *L )
@@ -411,44 +538,44 @@ range( lua_State* L, bool global = false )
 }
 
 static void
-fieldout( lua_State* L, InputDeck& deck )
+fieldout( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse fieldout table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "fieldout" );
 
-  deck.get< tag::fieldout_iter >() = unsigint( L, "iter" );
-  deck.get< tag::fieldout_time >() = real( L, "time" );
-  deck.get< tag::fieldout_range >() = range( L );
-  deck.get< tag::fieldout >() = sideset( L );
+  cfg.get< tag::fieldout_iter >() = unsigint( L, "iter" );
+  cfg.get< tag::fieldout_time >() = real( L, "time" );
+  cfg.get< tag::fieldout_range >() = range( L );
+  cfg.get< tag::fieldout >() = sideset( L );
 
   lua_pop( L, 1 );
 }
 
 static void
-histout( lua_State* L, InputDeck& deck )
+histout( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse histout table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "histout" );
 
-  deck.get< tag::histout_iter >() = unsigint( L, "iter" );
-  deck.get< tag::histout_time >() = real( L, "time" );
-  deck.get< tag::histout_range >() = range( L );
-  deck.get< tag::histout_precision >() = sigint( L, "precision", 8 );
-  deck.get< tag::histout_format >() = string( L, "format" );
+  cfg.get< tag::histout_iter >() = unsigint( L, "iter" );
+  cfg.get< tag::histout_time >() = real( L, "time" );
+  cfg.get< tag::histout_range >() = range( L );
+  cfg.get< tag::histout_precision >() = sigint( L, "precision", 8 );
+  cfg.get< tag::histout_format >() = string( L, "format" );
 
   if (lua_istable( L, -1 )) {
     lua_getfield( L, -1, "points" );
     if (!lua_isnil( L, -1 )) {
       ErrChk( lua_istable( L, -1 ), "histout points must be a table" );
-      auto& r = deck.get< tag::histout >();
+      auto& r = cfg.get< tag::histout >();
       int64_t n = luaL_len( L, -1 );
       for (int64_t i=1; i<=n; ++i) {
         lua_geti( L, -1, i );
@@ -472,54 +599,54 @@ histout( lua_State* L, InputDeck& deck )
 }
 
 static void
-integout( lua_State* L, InputDeck& deck )
+integout( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse integout table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "integout" );
 
-  deck.get< tag::integout_iter >() = unsigint( L, "iter" );
-  deck.get< tag::integout_time >() = real( L, "time" );
-  deck.get< tag::integout_range >() = range( L );
-  deck.get< tag::integout_precision >() = sigint( L, "precision", 8 );
-  deck.get< tag::integout_format >() = string( L, "format" );
-  deck.get< tag::integout >() = sideset( L );
+  cfg.get< tag::integout_iter >() = unsigint( L, "iter" );
+  cfg.get< tag::integout_time >() = real( L, "time" );
+  cfg.get< tag::integout_range >() = range( L );
+  cfg.get< tag::integout_precision >() = sigint( L, "precision", 8 );
+  cfg.get< tag::integout_format >() = string( L, "format" );
+  cfg.get< tag::integout >() = sideset( L );
 
   lua_pop( L, 1 );
 }
 
 static void
-diag( lua_State* L, InputDeck& deck )
+diag( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse diag table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "diag" );
 
-  deck.get< tag::diag_iter >() = unsigint( L, "iter", 1 );
-  deck.get< tag::diag_precision >() = sigint( L, "precision", 8 );
-  deck.get< tag::diag_format >() = string( L, "format" );
+  cfg.get< tag::diag_iter >() = unsigint( L, "iter", 1 );
+  cfg.get< tag::diag_precision >() = sigint( L, "precision", 8 );
+  cfg.get< tag::diag_format >() = string( L, "format" );
 
   lua_pop( L, 1 );
 }
 
 static void
-bc_dir( lua_State* L, InputDeck& deck )
+bc_dir( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse bc_dir table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "bc_dir" );
 
   if (lua_istable( L, -1 )) {
-    auto& s = deck.get< tag::bc_dir >();
+    auto& s = cfg.get< tag::bc_dir >();
     int64_t n = luaL_len( L, -1 );
     for (int64_t i=1; i<=n; ++i) {
       lua_geti( L, -1, i );
@@ -541,44 +668,44 @@ bc_dir( lua_State* L, InputDeck& deck )
 }
 
 static void
-bc_sym( lua_State* L, InputDeck& deck )
+bc_sym( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse bc_sym table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "bc_sym" );
 
-  deck.get< tag::bc_sym >() = sideset( L );
+  cfg.get< tag::bc_sym >() = sideset( L );
 
   lua_pop( L, 1 );
 }
 
 static void
-bc_far( lua_State* L, InputDeck& deck )
+bc_far( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse bc_far table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "bc_far" );
 
-  deck.get< tag::bc_far >() = sideset( L );
-  deck.get< tag::bc_far_velocity >() = vector( L, "velocity" );
-  deck.get< tag::bc_far_density >() = real( L, "density" );
-  deck.get< tag::bc_far_pressure >() = real( L, "pressure" );
+  cfg.get< tag::bc_far >() = sideset( L );
+  cfg.get< tag::bc_far_velocity >() = vector( L, "velocity" );
+  cfg.get< tag::bc_far_density >() = real( L, "density" );
+  cfg.get< tag::bc_far_pressure >() = real( L, "pressure" );
 
   lua_pop( L, 1 );
 }
 
 static void
-bc_pre( lua_State* L, InputDeck& deck )
+bc_pre( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse bc_pre table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "bc_pre" );
@@ -588,9 +715,9 @@ bc_pre( lua_State* L, InputDeck& deck )
       lua_getfield( L, -1, name );
       if (!lua_isnil( L, -1 )) {
         ErrChk( lua_istable( L, -1 ), "bc_pre must be a table" );
-        deck.get< tag::bc_pre >().push_back( sideset( L ) );
-        deck.get< tag::bc_pre_density >().push_back( real(L,"density") );
-        deck.get< tag::bc_pre_pressure >().push_back( real(L,"pressure") );
+        cfg.get< tag::bc_pre >().push_back( sideset( L ) );
+        cfg.get< tag::bc_pre_density >().push_back( real(L,"density") );
+        cfg.get< tag::bc_pre_pressure >().push_back( real(L,"pressure") );
       }
       lua_pop( L, 1 );
     };
@@ -603,20 +730,20 @@ bc_pre( lua_State* L, InputDeck& deck )
 }
 
 static void
-ic( lua_State* L, InputDeck& deck )
+ic( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse ic table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "ic" );
 
-  deck.get< tag::ic_velocity >() = vector( L, "velocity" );
-  deck.get< tag::ic_density >() = real( L, "density" );
-  deck.get< tag::ic_pressure >() = real( L, "pressure" );
-  deck.get< tag::ic_energy >() = real( L, "energy" );
-  deck.get< tag::ic_temperature >() = real( L, "temperature" );
+  cfg.get< tag::ic_velocity >() = vector( L, "velocity" );
+  cfg.get< tag::ic_density >() = real( L, "density" );
+  cfg.get< tag::ic_pressure >() = real( L, "pressure" );
+  cfg.get< tag::ic_energy >() = real( L, "energy" );
+  cfg.get< tag::ic_temperature >() = real( L, "temperature" );
 
   auto box_extent = [&]( const char* axis, auto& v ) {
     lua_getfield( L, -1, axis );
@@ -637,7 +764,7 @@ ic( lua_State* L, InputDeck& deck )
     lua_getfield( L, -1, "boxes" );
     if (!lua_isnil( L, -1 )) {
       ErrChk( lua_istable( L, -1 ), "ic boxes must be a table" );
-      auto& boxes = deck.get< tag::ic >();
+      auto& boxes = cfg.get< tag::ic >();
       int64_t n = luaL_len( L, -1 );
       for (int64_t i=1; i<=n; ++i) {
         lua_geti( L, -1, i );
@@ -662,45 +789,45 @@ ic( lua_State* L, InputDeck& deck )
 }
 
 static void
-mat( lua_State* L, InputDeck& deck )
+mat( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse mat table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "mat" );
 
-  deck.get< tag::mat_spec_heat_ratio >() = real( L, "spec_heat_ratio" );
-  deck.get< tag::mat_spec_heat_const_vol >() = real( L, "spec_heat_const_vol" );
-  deck.get< tag::mat_heat_conductivity >() = real( L, "heat_conductivity" );
+  cfg.get< tag::mat_spec_heat_ratio >() = real( L, "spec_heat_ratio" );
+  cfg.get< tag::mat_spec_heat_const_vol >() = real( L, "spec_heat_const_vol" );
+  cfg.get< tag::mat_heat_conductivity >() = real( L, "heat_conductivity" );
 
   lua_pop( L, 1 );
 }
 
 static void
-problem( lua_State* L, InputDeck& deck )
+problem( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse problem table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "problem" );
 
-  deck.get< tag::problem >() = string( L, "name", "userdef" );
-  deck.get< tag::problem_alpha >() = real( L, "alpha" );
-  deck.get< tag::problem_kappa >() = real( L, "kappa" );
-  deck.get< tag::problem_r0 >() = real( L, "r0" );
-  deck.get< tag::problem_p0 >() = real( L, "p0" );
-  deck.get< tag::problem_ce >() = real( L, "ce" );
-  deck.get< tag::problem_beta >() = vector( L, "beta" );
+  cfg.get< tag::problem >() = string( L, "name", "userdef" );
+  cfg.get< tag::problem_alpha >() = real( L, "alpha" );
+  cfg.get< tag::problem_kappa >() = real( L, "kappa" );
+  cfg.get< tag::problem_r0 >() = real( L, "r0" );
+  cfg.get< tag::problem_p0 >() = real( L, "p0" );
+  cfg.get< tag::problem_ce >() = real( L, "ce" );
+  cfg.get< tag::problem_beta >() = vector( L, "beta" );
 
   if (lua_istable( L, -1 )) {
     lua_getfield( L, -1, "src" );
     if (!lua_isnil( L, -1 )) {
       ErrChk( lua_istable( L, -1 ), "problem source must be a table" );
-      auto& s = deck.get< tag::problem_src >();
+      auto& s = cfg.get< tag::problem_src >();
       s.get< tag::location >() = vector( L, "location" );
       s.get< tag::radius >() = real( L, "radius" );
       s.get< tag::release_time >() = real( L, "release_time" );
@@ -708,8 +835,8 @@ problem( lua_State* L, InputDeck& deck )
     lua_pop( L, 1 );
   }
 
-  const auto& problem = deck.get< tag::problem >();
-  auto& n = deck.get< tag::problem_ncomp >();
+  const auto& problem = cfg.get< tag::problem >();
+  auto& n = cfg.get< tag::problem_ncomp >();
   n = 5;
   if (problem == "slot_cyl" || problem == "point_src") ++n;
 
@@ -717,36 +844,33 @@ problem( lua_State* L, InputDeck& deck )
 }
 
 static void
-href( lua_State* L, InputDeck& deck )
+href( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse href table
 //! \param[in,out] L Lua state
-//! \param[in,out] deck InputDeck state
+//! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "href" );
 
-  deck.get< tag::href_t0 >() = boolean( L, "t0" );
-  deck.get< tag::href_dt >() = boolean( L, "dt" );
-  deck.get< tag::href_dtfreq >() = unsigint( L, "dtfreq", 5 );
-  deck.get< tag::href_init >() = stringlist( L, "init" );
-  deck.get< tag::href_refvar >() = unsigints( L, "refvar" );
-  deck.get< tag::href_error >() = string( L, "error", "jump" );
-  deck.get< tag::href_maxlevels >() = unsigint( L, "maxlevels", 2 );
+  cfg.get< tag::href_t0 >() = boolean( L, "t0" );
+  cfg.get< tag::href_dt >() = boolean( L, "dt" );
+  cfg.get< tag::href_dtfreq >() = unsigint( L, "dtfreq", 5 );
+  cfg.get< tag::href_init >() = stringlist( L, "init" );
+  cfg.get< tag::href_refvar >() = unsigints( L, "refvar" );
+  cfg.get< tag::href_error >() = string( L, "error", "jump" );
+  cfg.get< tag::href_maxlevels >() = unsigint( L, "maxlevels", 2 );
 
   lua_pop( L, 1 );
 }
 
 void
-InputDeck::parse( const ctr::CmdLine& cmdline )
+Config::control()
 // *****************************************************************************
-// Parse input file
-//! \param[in] cmdline Populated cmdline object
+// Parse control file
 // *****************************************************************************
 {
-  get< tag::cmd >() = cmdline;
-
-  const auto& controlfile = cmdline.get< tag::control >();
+  const auto& controlfile = get< tag::control >();
 
   tk::Print print;
   print.section( "Parsing control file: " + controlfile );

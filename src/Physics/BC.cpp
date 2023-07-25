@@ -13,17 +13,17 @@
 #include "BC.hpp"
 #include "EOS.hpp"
 #include "Problems.hpp"
-#include "InciterInputDeck.hpp"
+#include "InciterConfig.hpp"
 
 namespace inciter {
 
-extern ctr::InputDeck g_inputdeck;
+extern ctr::Config g_cfg;
 
 } // ::inciter
 
 namespace physics {
 
-using inciter::g_inputdeck;
+using inciter::g_cfg;
 
 void
 dirbc( tk::Fields& U,
@@ -38,7 +38,7 @@ dirbc( tk::Fields& U,
 //! \param[in] dirbcmasks Nodes and component masks for Dirichlet BCs
 // *****************************************************************************
 {
-  if (g_inputdeck.get< tag::bc_dir >().empty()) return;
+  if (g_cfg.get< tag::bc_dir >().empty()) return;
 
   auto ncomp = U.nprop();
   auto nmask = ncomp + 1;
@@ -70,7 +70,7 @@ symbc( tk::Fields& U,
 //! \param[in] symbcnorms Normals at nodes at which to set symmetry BCs
 // *****************************************************************************
 {
-  if (g_inputdeck.get< tag::bc_sym >().empty()) return;
+  if (g_cfg.get< tag::bc_sym >().empty()) return;
 
   Assert( symbcnodes.size()*3 == symbcnorms.size(), "Size mismatch" );
 
@@ -97,14 +97,14 @@ farbc( tk::Fields& U,
 //! \param[in] farbcnorms Normals at nodes at which to set farfield BCs
 // *****************************************************************************
 {
-  if (g_inputdeck.get< tag::bc_far >().empty()) return;
+  if (g_cfg.get< tag::bc_far >().empty()) return;
 
   Assert( farbcnodes.size()*3 == farbcnorms.size(), "Size mismatch" );
 
   // cppcheck-suppress unreadVariable
-  tk::real fr = g_inputdeck.get< tag::bc_far_density >();
+  tk::real fr = g_cfg.get< tag::bc_far_density >();
 
-  const auto& fue = g_inputdeck.get< tag::bc_far_velocity >();
+  const auto& fue = g_cfg.get< tag::bc_far_velocity >();
   ErrChk( !fue.empty(), "No farfield velocity specified" );
   // cppcheck-suppress unreadVariable
   tk::real fu = fue[0];
@@ -113,7 +113,7 @@ farbc( tk::Fields& U,
   // cppcheck-suppress unreadVariable
   tk::real fw = fue[2];
 
-  tk::real fp = g_inputdeck.get< tag::bc_far_pressure >();
+  tk::real fp = g_cfg.get< tag::bc_far_pressure >();
 
   for (std::size_t i=0; i<farbcnodes.size(); ++i) {
     auto p  = farbcnodes[i];

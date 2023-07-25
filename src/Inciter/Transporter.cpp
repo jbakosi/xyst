@@ -28,7 +28,7 @@
 #include "ContainerUtil.hpp"
 #include "LoadDistributor.hpp"
 #include "ExodusIIMeshReader.hpp"
-#include "InciterInputDeck.hpp"
+#include "InciterConfig.hpp"
 #include "DiagWriter.hpp"
 #include "Diagnostics.hpp"
 #include "Integrals.hpp"
@@ -42,7 +42,7 @@ extern CProxy_Main mainProxy;
 
 namespace inciter {
 
-extern ctr::InputDeck g_inputdeck;
+extern ctr::Config g_cfg;
 extern int g_nrestart;
 
 }
@@ -50,7 +50,7 @@ extern int g_nrestart;
 using inciter::Transporter;
 
 Transporter::Transporter() :
-  m_input{ g_inputdeck.get< tag::cmd, tag::input >() },
+  m_input{ g_cfg.get< tag::input >() },
   m_nchare( m_input.size() ),
   m_meshid(),
   m_ncit( m_nchare.size(), 0 ),
@@ -78,25 +78,23 @@ Transporter::Transporter() :
   m_maxstat( m_nchare.size() ),
   m_avgstat( m_nchare.size() ),
   m_timer(),
-  m_progMesh( g_inputdeck.get< tag::cmd, tag::feedback >(),
-              ProgMeshPrefix, ProgMeshLegend ),
-  m_progWork( g_inputdeck.get< tag::cmd, tag::feedback >(),
-              ProgWorkPrefix, ProgWorkLegend )
+  m_progMesh( g_cfg.get< tag::feedback >(), ProgMeshPrefix, ProgMeshLegend ),
+  m_progWork( g_cfg.get< tag::feedback >(), ProgWorkPrefix, ProgWorkLegend )
 // *****************************************************************************
 //  Constructor
 // *****************************************************************************
 {
-  const auto nstep = g_inputdeck.get< tag::nstep >();
-  const auto t0 = g_inputdeck.get< tag::t0 >();
-  const auto term = g_inputdeck.get< tag::term >();
-  const auto constdt = g_inputdeck.get< tag::dt >();
+  const auto nstep = g_cfg.get< tag::nstep >();
+  const auto t0 = g_cfg.get< tag::t0 >();
+  const auto term = g_cfg.get< tag::term >();
+  const auto constdt = g_cfg.get< tag::dt >();
 
   // If the desired max number of time steps is larger than zero, and the
   // termination time is larger than the initial time, and the constant time
   // step size (if that is used) is smaller than the duration of the time to be
   // simulated, we have work to do, otherwise, finish right away. If a constant
   // dt is not used, that part of the logic is always true as the default
-  // constdt is zero, see inciter::ctr::InputDeck::InputDeck().
+  // constdt is zero.
   if ( nstep != 0 && term > t0 && constdt < term-t0 ) {
 
     // Enable SDAG waits for collecting mesh statistics
@@ -116,10 +114,8 @@ Transporter::Transporter() :
 
 Transporter::Transporter( CkMigrateMessage* m ) :
   CBase_Transporter( m ),
-  m_progMesh( g_inputdeck.get< tag::cmd, tag::feedback >(),
-              ProgMeshPrefix, ProgMeshLegend ),
-  m_progWork( g_inputdeck.get< tag::cmd, tag::feedback >(),
-              ProgWorkPrefix, ProgWorkLegend )
+  m_progMesh( g_cfg.get< tag::feedback >(), ProgMeshPrefix, ProgMeshLegend ),
+  m_progWork( g_cfg.get< tag::feedback >(), ProgWorkPrefix, ProgWorkLegend )
 // *****************************************************************************
 //  Migrate constructor: returning from a checkpoint
 //! \param[in] m Charm++ migrate message
@@ -151,26 +147,26 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
   std::unordered_set< int > usersets;
 
   // Collect side sets at which BCs are set
-  for (const auto& s : g_inputdeck.get< tag::bc_dir >()) {
+  for (const auto& s : g_cfg.get< tag::bc_dir >()) {
     if (!s.empty()) {
       usersets.insert( s[0] );
     }
   }
 
-  for (auto s : g_inputdeck.get< tag::bc_sym >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::bc_sym >()) usersets.insert( s );
 
-  for (auto s : g_inputdeck.get< tag::bc_far >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::bc_far >()) usersets.insert( s );
  
-  for (auto s : g_inputdeck.get< tag::bc_pre >()) {
+  for (auto s : g_cfg.get< tag::bc_pre >()) {
     if (!s.empty()) {
       usersets.insert( s[0] );
     }
   }
  
   // Add sidesets requested for field output
-  for (auto s : g_inputdeck.get< tag::fieldout >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::fieldout >()) usersets.insert( s );
   // Add sidesets requested for integral output
-  for (auto s : g_inputdeck.get< tag::integout >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::integout >()) usersets.insert( s );
 
   // Find user-configured side set ids among side sets read from mesh file
   std::unordered_set< int > sidesets_used;
@@ -275,7 +271,7 @@ Transporter::createPartitioner()
     // Create MeshWriter chare group for mesh
     m_meshwriter.push_back(
       tk::CProxy_MeshWriter::ckNew(
-        g_inputdeck.get< tag::cmd, tag::benchmark >(), m_input.size() ) );
+        g_cfg.get< tag::benchmark >(), m_input.size() ) );
 
     // Create mesh partitioner Charm++ chare nodegroup for all meshes
     m_partitioner.push_back(
@@ -305,7 +301,7 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
   uint64_t chunksize, remainder;
   m_nchare[meshid] = static_cast<int>(
     tk::linearLoadDistributor(
-       g_inputdeck.get< tag::cmd, tag::virt >(),
+       g_cfg.get< tag::virt >(),
        m_nelem[meshid], CkNumPes(), chunksize, remainder ) );
 
   // Store sum of meshids (across all chares, key) for each meshid (value).
@@ -326,9 +322,8 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
 
     // Print out mesh partitioning configuration
     print.section( "Partitioning mesh" );
-    print.item( "Partitioner", g_inputdeck.get< tag::part >() );
-    print.item( "Virtualization [0.0...1.0]",
-                g_inputdeck.get< tag::cmd, tag::virt >() );
+    print.item( "Partitioner", g_cfg.get< tag::part >() );
+    print.item( "Virtualization [0.0...1.0]", g_cfg.get< tag::virt >() );
     // Print out initial mesh statistics
     meshstat( "Initial load distribution" );
 
@@ -337,13 +332,13 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
 
     // Query number of initial mesh refinement steps
     int nref = 0;
-    if (g_inputdeck.get< tag::href_t0 >()) {
-      nref = static_cast<int>(g_inputdeck.get< tag::href_init >().size());
+    if (g_cfg.get< tag::href_t0 >()) {
+      nref = static_cast<int>(g_cfg.get< tag::href_init >().size());
     }
 
     // Query if PE-local reorder is configured
     int nreord = 0;
-    if (g_inputdeck.get< tag::reorder >()) nreord = m_nchare[0];
+    if (g_cfg.get< tag::reorder >()) nreord = m_nchare[0];
 
     m_progMesh.start( print, "Preparing mesh", {{ CkNumPes(), CkNumPes(), nref,
       m_nchare[0], m_nchare[0], nreord, nreord }} );
@@ -482,8 +477,8 @@ Transporter::matched( std::size_t summeshid,
 
     if (refmode == Refiner::RefMode::T0REF) {
 
-      if (!g_inputdeck.get< tag::cmd, tag::feedback >()) {
-        const auto& initref = g_inputdeck.get< tag::href_init >();
+      if (!g_cfg.get< tag::feedback >()) {
+        const auto& initref = g_cfg.get< tag::href_init >();
         print.diag( { "meshid", "t0ref", "type", "nref", "nderef", "ncorr" },
                     { std::to_string(meshid),
                       std::to_string(m_nt0refit[meshid]),
@@ -659,13 +654,13 @@ Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
   auto meshid = tk::cref_find( m_meshid, summeshid );
 
   // Update number of mesh points for mesh, since it may have been refined
-  if (g_inputdeck.get< tag::href_t0 >()) m_npoin[meshid] = npoin;
+  if (g_cfg.get< tag::href_t0 >()) m_npoin[meshid] = npoin;
 
   if (++m_ndisc == m_nelem.size()) { // all Disc arrays have been created
     m_ndisc = 0;
     tk::Print print;
     m_progMesh.end( print );
-    if (g_inputdeck.get< tag::href_t0 >()) {
+    if (g_cfg.get< tag::href_t0 >()) {
       meshstat( "Initially (t<0) refined mesh graph statistics" );
     }
   }
@@ -692,13 +687,13 @@ Transporter::diagHeader()
 // *****************************************************************************
 {
   // Output header for diagnostics output file
-  tk::DiagWriter dw( g_inputdeck.get< tag::cmd, tag::diag >(),
-                     g_inputdeck.get< tag::diag_format >(),
-                     g_inputdeck.get< tag::diag_precision >() );
+  tk::DiagWriter dw( g_cfg.get< tag::diag >(),
+                     g_cfg.get< tag::diag_format >(),
+                     g_cfg.get< tag::diag_precision >() );
 
   // Collect variables names for integral/diagnostics output
   std::vector< std::string > var{ "r", "ru", "rv", "rw", "rE" };
-  auto ncomp = g_inputdeck.get< tag::problem_ncomp >();
+  auto ncomp = g_cfg.get< tag::problem_ncomp >();
   for (std::size_t c=5; c<ncomp; ++c)
     var.push_back( "c" + std::to_string(c-5) );
 
@@ -740,14 +735,14 @@ Transporter::integralsHeader()
 // Configure and write integrals file header
 // *****************************************************************************
 {
-  const auto& sidesets_integral = g_inputdeck.get< tag::integout >();
+  const auto& sidesets_integral = g_cfg.get< tag::integout >();
 
   if (sidesets_integral.empty()) return;
 
-  auto filename = g_inputdeck.get< tag::cmd, tag::output >() + ".int";
+  auto filename = g_cfg.get< tag::output >() + ".int";
   tk::DiagWriter dw( filename,
-                     "default",//g_inputdeck.get< tag::flformat, tag::integral >(),
-                     3 );//g_inputdeck.get< tag::prec, tag::integral >() );
+                     g_cfg.get< tag::integout_format >(),
+                     g_cfg.get< tag::integout_precision >() );
 
   // Collect variables names for integral output
   std::vector< std::string > var;
@@ -1031,7 +1026,7 @@ Transporter::diagnostics( CkReductionMsg* msg )
   // cppcheck-suppress unreadVariable
   auto id = std::to_string(meshid);
 
-  auto ncomp = g_inputdeck.get< tag::problem_ncomp >();
+  auto ncomp = g_cfg.get< tag::problem_ncomp >();
   Assert( ncomp > 0, "Number of scalar components must be positive");
   Assert( d.size() == NUMDIAG, "Diagnostics vector size mismatch" );
 
@@ -1074,11 +1069,11 @@ Transporter::diagnostics( CkReductionMsg* msg )
   }
  
   // Append diagnostics file at selected times
-  auto filename = g_inputdeck.get< tag::cmd, tag::diag >();
+  auto filename = g_cfg.get< tag::diag >();
   if (m_nelem.size() > 1) filename += '.' + id;
   tk::DiagWriter dw( filename,
-                     g_inputdeck.get< tag::diag_format >(),
-                     g_inputdeck.get< tag::diag_precision >(),
+                     g_cfg.get< tag::diag_format >(),
+                     g_cfg.get< tag::diag_precision >(),
                      std::ios_base::app );
   dw.write( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
 
@@ -1107,7 +1102,7 @@ Transporter::integrals( CkReductionMsg* msg )
   creator | d;
   delete msg;
 
-  const auto& sidesets_integral = g_inputdeck.get< tag::integout >();
+  const auto& sidesets_integral = g_cfg.get< tag::integout >();
   // cppcheck-suppress
   if (not sidesets_integral.empty()) {
 
@@ -1121,10 +1116,10 @@ Transporter::integrals( CkReductionMsg* msg )
     for (const auto& [s,m] : d[MASS_FLOW_RATE]) ints.push_back( m );
 
     // Append integrals file at selected times
-    auto filename = g_inputdeck.get< tag::cmd, tag::output >() + ".int";
+    auto filename = g_cfg.get< tag::output >() + ".int";
     tk::DiagWriter dw( filename,
-                       "default",//g_inputdeck.get< tag::flformat, tag::integral >(),
-                       3,//g_inputdeck.get< tag::prec, tag::integral >(),
+                       g_cfg.get< tag::integout_format >(),
+                       g_cfg.get< tag::integout_precision >(),
                        std::ios_base::app );
     // cppcheck-suppress containerOutOfBounds
     dw.write( static_cast<uint64_t>(tk::cref_find( d[ITER], 0 )),
@@ -1170,8 +1165,8 @@ Transporter::checkpoint( std::size_t finished, std::size_t meshid )
 
   if (++m_nchk == m_nelem.size()) { // all worker arrays have checkpointed
     m_nchk = 0;
-    if (not g_inputdeck.get< tag::cmd, tag::benchmark >()) {
-      const auto& ckptdir = g_inputdeck.get< tag::cmd, tag::checkpoint >();
+    if (not g_cfg.get< tag::benchmark >()) {
+      const auto& ckptdir = g_cfg.get< tag::checkpoint >();
       CkCallback res( CkIndex_Transporter::resume(), thisProxy );
       CkStartCheckpoint( ckptdir.c_str(), res );
       //CkStartMemCheckpoint( res );

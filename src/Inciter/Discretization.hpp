@@ -20,14 +20,11 @@
 #include "PDFReducer.hpp"
 #include "UnsMesh.hpp"
 #include "History.hpp"
-#include "InciterInputDeck.hpp"
 
 #include "NoWarning/discretization.decl.h"
 #include "NoWarning/refiner.decl.h"
 
 namespace inciter {
-
-extern ctr::InputDeck g_inputdeck;
 
 //! \brief Discretization Charm++ chare array holding common functinoality to
 //!   all discretization schemes

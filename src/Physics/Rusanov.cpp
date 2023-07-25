@@ -16,11 +16,11 @@
 #include "EOS.hpp"
 #include "Rusanov.hpp"
 #include "Problems.hpp"
-#include "InciterInputDeck.hpp"
+#include "InciterConfig.hpp"
 
 namespace inciter {
 
-extern ctr::InputDeck g_inputdeck;
+extern ctr::Config g_cfg;
 
 } // ::inciter
 
@@ -28,6 +28,8 @@ namespace physics {
 
 static const tk::real muscl_eps = 1.0e-9;
 static const tk::real muscl_const = 1.0/3.0;
+
+using inciter::g_cfg;
 
 static void
 muscl( std::size_t p,
@@ -675,8 +677,6 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
 {
-  using inciter::g_inputdeck;
-
   auto src = problems::SRC();
   if (!src) return;
 
@@ -685,7 +685,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
   const auto& z = coord[2];
 
   for (std::size_t p=0; p<R.nunk(); ++p) {
-    if (g_inputdeck.get< tag::steady >()) t = tp[p];
+    if (g_cfg.get< tag::steady >()) t = tp[p];
     auto s = src( x[p], y[p], z[p], t );
     for (std::size_t c=0; c<s.size(); ++c) R(p,c,0) -= s[c] * v[p];
   }
@@ -750,8 +750,6 @@ dt( const std::vector< tk::real >& vol, const tk::Fields& U )
 //! \return Minimum time step size
 // *****************************************************************************
 {
-  using inciter::g_inputdeck;
-
   tk::real mindt = std::numeric_limits< tk::real >::max();
   for (std::size_t p=0; p<U.nunk(); ++p) {
     auto r  = U(p,0,0);
@@ -767,7 +765,7 @@ dt( const std::vector< tk::real >& vol, const tk::Fields& U )
     mindt = std::min( mindt, euler_dt );
   }
 
-  mindt *= g_inputdeck.get< tag::cfl >();
+  mindt *= g_cfg.get< tag::cfl >();
 
   return mindt;
 }
@@ -783,8 +781,7 @@ dt( const std::vector< tk::real >& vol,
 //! \param[in,out] dtp Time step size for each mesh node
 // *****************************************************************************
 {
-  using inciter::g_inputdeck;
-  auto cfl = g_inputdeck.get< tag::cfl >();
+  auto cfl = g_cfg.get< tag::cfl >();
 
   for (std::size_t p=0; p<U.nunk(); ++p) {
     auto r  = U(p,0,0);

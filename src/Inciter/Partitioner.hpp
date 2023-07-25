@@ -19,7 +19,6 @@
 #include <stddef.h>
 
 #include "ContainerUtil.hpp"
-#include "InciterInputDeck.hpp"
 #include "DerivedData.hpp"
 #include "UnsMesh.hpp"
 #include "Sorter.hpp"
@@ -29,8 +28,6 @@
 #include "NoWarning/partitioner.decl.h"
 
 namespace inciter {
-
-extern ctr::InputDeck g_inputdeck;
 
 //! Partitioner Charm++ chare nodegroup class
 //! \details Instantiations of Partitioner comprise a processor aware Charm++

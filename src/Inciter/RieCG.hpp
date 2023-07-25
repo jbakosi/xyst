@@ -20,13 +20,10 @@
 #include "Table.hpp"
 #include "DerivedData.hpp"
 #include "NodeDiagnostics.hpp"
-#include "InciterInputDeck.hpp"
 
 #include "NoWarning/riecg.decl.h"
 
 namespace inciter {
-
-extern ctr::InputDeck g_inputdeck;
 
 //! RieCG Charm++ chare array used to advance PDEs in time with RieCG+RK
 class RieCG : public CBase_RieCG {

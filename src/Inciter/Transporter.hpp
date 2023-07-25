@@ -22,11 +22,8 @@
 #include "Partitioner.hpp"
 #include "Progress.hpp"
 #include "ContainerUtil.hpp"
-#include "InciterInputDeck.hpp"
 
 namespace inciter {
-
-extern ctr::InputDeck g_inputdeck;
 
 //! Indices for progress report on mesh preparation
 enum ProgMesh{ PART=0, DIST, REFINE, BND, COMM, MASK, REORD };

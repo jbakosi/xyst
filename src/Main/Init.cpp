@@ -122,7 +122,7 @@ void echoRunEnv( int argc, char** argv, int quiescence )
   print.item( "Work directory", workdir() );
   print.item( "Executable (relative to work dir)", argv[0] );
 
-  print << "Command line arguments : \'";
+  print << "Command line arguments: \'";
   if (argc>1) {
     for (auto i=1; i<argc-1; ++i) print << argv[i] << ' ';
     print << argv[argc-1];

@@ -21,7 +21,7 @@ libraries (TPLs) used by Xyst.
   - Web: https://gcc.gnu.org/libstdc++
   - License: @subpage libstdcpp_license_page
 
-\subsection minilua_license The Parsing Expression Grammar Template Library
+\subsection minilua_license MiniLua for input file parsing
   - Web: https://github.com/edubart/minilua
   - License: @subpage minilua_license_page
 

@@ -39,14 +39,15 @@ class Print {
     //! \return The internal stream buffer of the stream
     template< typename T >
     friend const Print& operator<<( const Print& os, const T& t ) {
-      os.m_stream << t; return os;
+      os.m_stream << t << std::flush;
+      return os;
     }
 
     //! Formatted print of section title
     //! \param[in] t Section title to be printed
     void section( const std::string& t ) const {
       std::string underline( t.size(), '-' );
-      m_stream << '\n' << t.c_str() << '\n' << underline.c_str() << '\n';
+      m_stream << '\n' << t.c_str() << '\n' << underline.c_str() << std::endl;
     }
 
     //! Formatted print of item: name : value
@@ -60,7 +61,7 @@ class Print {
       } else {
         m_stream << value;
       }
-      m_stream << '\n';
+      m_stream << std::endl;
     }
 
     //! Formatted print of item: h:m:s.
@@ -71,14 +72,14 @@ class Print {
       m_stream << name.c_str() << ": "
                << watch.hrs.count() << ':'
                << watch.min.count() << ':'
-               << watch.sec.count() << '\n';
+               << watch.sec.count() << std::endl;
     }
 
     //! Formatted print of a performance statistic (an item of a list)
     //! \param[in] name Performance statistic name to be printed
     //! \param[in] value Performance statistic value
     void perfitem( const std::string& name, tk::real value ) const {
-      m_stream << name.c_str() << " : " << value << '\n';
+      m_stream << name.c_str() << " : " << value << std::endl;
     }
 
     //! Formatted print of elapsed times
@@ -96,25 +97,23 @@ class Print {
     {
       section( t );
       for (const auto& c : clock) item( c.first, c.second );
-      m_stream << '\n';
+      m_stream << std::endl;
     }
 
     //! Echo formatted print of a diagnostics message within a progress section
     //! \param[in] labels Label parts of diagnostics message
     //! \param[in] values Value parts of diagnostics message
-    //! \param[in] precr If true start with a CR/LF, if false end with it
     //! \note The number of labels and values must equal.
     void diag( const std::vector< std::string >& labels,
-               const std::vector< std::string >& values,
-               bool precr = true ) const
+               const std::vector< std::string >& values ) const
     {
       Assert( labels.size() == values.size(), "Size mismatch" );
       if (!labels.empty()) {
-        m_stream << (precr ? "\n" : "") << labels[0] << ": " << values[0];
+        m_stream << labels[0] << ": " << values[0];
         for (std::size_t i=1; i<labels.size(); ++i) {
           m_stream << ", " << labels[i] << ": " << values[i];
         }
-        m_stream << (precr ? " " : "\n");
+        m_stream << std::flush;
       }
     }
 
@@ -122,13 +121,13 @@ class Print {
     //! Start formatted print of a diagnostics message
     //! \param[in] msg First part of message to print as a diagnostics message
     void diagstart( const std::string& msg ) const {
-      m_stream << msg.c_str() << ' ';
+      m_stream << msg.c_str() << ' ' << std::flush;
     }
 
     //! Finish formatted print of a diagnostics message
     //! \param[in] msg Last part of message to print as a diagnostics message
     void diagend( const std::string& msg ) const {
-      m_stream << msg.c_str() << '\n';
+      m_stream << msg.c_str() << std::endl;
     }
 
     //! Echo formatted print of a progress message
@@ -184,7 +183,7 @@ class Print {
           ++progress_size;
         }
       }
-      m_stream << ss.str().c_str();
+      m_stream << ss.str().c_str() << std::flush;
     }
 
     //! Print version information
@@ -193,13 +192,13 @@ class Print {
     void version( const std::string& executable,
                   const std::string& git_commit ) const {
       m_stream << "\nXyst::" << executable.c_str()
-               << ", revision " << git_commit.c_str() << "\n\n";
+               << ", revision " << git_commit.c_str() << '\n' << std::endl;
     }
 
     //! Print mandatory arguments information
     //! \param[in] args Mandaatory-arguments infor to output
     void mandatory( const std::string& args ) const {
-      m_stream << "\n>>> ERROR: " << args.c_str() << '\n';
+      m_stream << "\n>>> ERROR: " << args.c_str() << std::endl;
     }
 
     //! Print example usage information
@@ -207,16 +206,19 @@ class Print {
     //! \param[in] msg Message to output after example
     void usage( const std::string& example, const std::string& msg ) const {
       m_stream << "\nUsage: " << example.c_str() << '\n'
-               << msg.c_str() << ". See also -h." << "\n\n";
+               << msg.c_str() << ". See also -h." << '\n' << std::endl;
     }
 
     //! Print lower and upper bounds for a keyword if defined
     template< typename Info >
     void bounds( const Info& info ) const {
-      if (info.lower)
+      if (info.lower) {
         m_stream << splitLines( *info.lower, "  ", "Lower bound: " ).c_str();
-      if (info.upper)
+      }
+      if (info.upper) {
         m_stream << splitLines( *info.upper, "  ", "Upper bound: " ).c_str();
+      }
+      m_stream << std::flush;
     }
 
     //! Print unit tests header (with legend)
@@ -226,7 +228,7 @@ class Print {
       section( t );
       m_stream << "Groups: " + (group.empty() ? "all" : group) +
                   " (use -g str to match groups)\n" +
-                  "Legend: [done/failed] group/test: result\n\n";
+                  "Legend: [done/failed] group/test: result\n" << std::endl;
     }
 
     //! Print one-liner info for test
@@ -252,7 +254,7 @@ class Print {
         ss << " [" << ncomplete << '/' << nfail << "] " << status[0] << ':'
            << status[1];
         auto s = ss.str() + ' ' + std::string(80-ss.str().size(),'.') + "  ";
-        m_stream << s << result( status[2], status[3], status[4] ) << '\n';
+        m_stream << s << result( status[2], status[3], status[4] ) << std::endl;
       }
     }
 
@@ -266,7 +268,7 @@ ____  ___                __    __   .___              .__  __
  /     \ \___  |\___ \  |  |    / / |   |   |  \  \___|  ||  | \  ___/|  | \/
 /___/\  \/ ____/____  > |__|   /_/  |___|___|  /\___  >__||__|  \___  >__|   
       \_/\/         \/                       \/     \/              \/)"
-      << '\n';
+      << std::endl;
     }
 
     //! Print UnitTest header. Text ASCII Art Generator used for executable
@@ -279,7 +281,7 @@ ____  ___                __    __    ____ ___      .__  __ ___________          
  /     \ \___  |\___ \  |  |    / / |    |  /   |  \  ||  |  |    |\  ___/ \___ \  |  |  
 /___/\  \/ ____/____  > |__|   /_/  |______/|___|  /__||__|  |____| \___  >____  > |__|  
       \_/\/         \/                           \/                     \/     \/)"
-      << '\n';
+      << std::endl;
     }
 
     //! Print MeshConv header. Text ASCII Art Generator used for executable
@@ -292,7 +294,7 @@ ____  ___                __    __      _____                .__    _________
  /     \ \___  |\___ \  |  |    / / /    Y    \  ___/ \___ \|   Y  \     \___(  <_> )   |  \   / 
 /___/\  \/ ____/____  > |__|   /_/  \____|__  /\___  >____  >___|  /\______  /\____/|___|  /\_/  
       \_/\/         \/                      \/     \/     \/     \/        \/            \/)"
-      << '\n';
+      << std::endl;
     }
 
   private:

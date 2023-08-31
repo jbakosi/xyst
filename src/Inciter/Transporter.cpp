@@ -340,6 +340,7 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
     int nreord = 0;
     if (g_cfg.get< tag::reorder >()) nreord = m_nchare[0];
 
+    print << '\n';
     m_progMesh.start( print, "Preparing mesh", {{ CkNumPes(), CkNumPes(), nref,
       m_nchare[0], m_nchare[0], nreord, nreord }} );
   }
@@ -479,6 +480,7 @@ Transporter::matched( std::size_t summeshid,
 
       if (!g_cfg.get< tag::feedback >()) {
         const auto& initref = g_cfg.get< tag::href_init >();
+        print << '\n';
         print.diag( { "meshid", "t0ref", "type", "nref", "nderef", "ncorr" },
                     { std::to_string(meshid),
                       std::to_string(m_nt0refit[meshid]),
@@ -487,6 +489,7 @@ Transporter::matched( std::size_t summeshid,
                       std::to_string(nderef),
                       std::to_string(m_ncit[meshid]) } );
         ++m_nt0refit[meshid];
+        if (m_nt0refit[meshid] == initref.size()) print << '\n';
       }
       m_progMesh.inc< REFINE >( print );
 
@@ -498,8 +501,7 @@ Transporter::matched( std::size_t summeshid,
                     "error",
                     std::to_string(nref),
                     std::to_string(nderef),
-                    std::to_string(m_ncit[meshid]) },
-                  false );
+                    std::to_string(m_ncit[meshid]) } );
 
     } else Throw( "RefMode not implemented" );
 
@@ -637,8 +639,6 @@ Transporter::meshstat( const std::string& header ) const
               std::accumulate( begin(m_npoin), end(m_npoin), 0UL ) );
   print.item( "Total number of work units",
               std::accumulate( begin(m_nchare), end(m_nchare), 0 ) );
-
-  print << '\n';
 }
 
 void
@@ -661,7 +661,7 @@ Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
     tk::Print print;
     m_progMesh.end( print );
     if (g_cfg.get< tag::href_t0 >()) {
-      meshstat( "Initially (t<0) refined mesh graph statistics" );
+      meshstat( "Initially refined mesh graph statistics" );
     }
   }
 

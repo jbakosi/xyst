@@ -11,6 +11,7 @@
   - \subpage riecg_example_sedov_lb
   - \subpage riecg_example_onera
   - \subpage riecg_example_slotcyl
+  - \subpage riecg_example_square_cavity
   - \subpage riecg_example_f16
 
 See @ref papers for more documentation and more examples.

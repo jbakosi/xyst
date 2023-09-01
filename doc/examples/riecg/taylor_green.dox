@@ -148,7 +148,7 @@ convergence of the computed numerical solution in all variables approaches 2.
 @section riecg_example_taylor_green_refs References
 
 @m_div{m-text m-noindent}
-[1] J.R. Kamm, [Enhanced verification test suite for phyics simulation codes](https://lanl-primo.hosted.exlibrisgroup.com/permalink/f/17admmo/01LANL_ALMA51106421210003761), LA-14379, SAND2008-7813, 2008.
+[1] J.R. Kamm, [Enhanced verification test suite for phyics simulation codes](https://library.lanl.gov/cgi-bin/getfile?LA-14379.pdf), LA-14379, SAND2008-7813, 2008.
 @m_enddiv
 
 @m_div{m-text m-noindent}

@@ -1,0 +1,163 @@
+/*!
+  \page      riecg_example_sod RieCG: Sod's shocktube
+
+This example uses @ref inciter_riecg in @ref inciter_main to compute the Sod
+problem [1], widely used to test numerical methods to model discontinuous
+solutions.  The problem consists of a pipe in which two different states of a
+gas is initially separated by a diaphragm. When the diaphragm is raptured at
+t=0, a wave structure is created and propagated in time. While the solution is
+1D, we modeled the process in 3D. The available analytic solution enables
+verification of the accuracy of the numerical method and the correctness of the
+software implementation.
+
+@section riecg_example_sod_setup Problem setup
+
+The problem is modeled as a 3D tube with a circular cross section of unit
+length with a diameter of 0.05, with the specific heat ratio as 1.4, and
+the following initial conditions
+\f[
+\begin{split}
+u_i & = 0.0 \\
+\rho(x_1) & = \left\{ \begin{array}{cc} 1.0 & x_1 < 0.5 \\ 0.125 & x_1 \ge 0.5
+\end{array} \right. \\
+p(x_1) & = \left\{ \begin{array}{cc} 1.0 & x_1 < 0.5 \\ 0.1 & x_1 \ge 0.5
+\end{array} \right.
+\end{split}
+\f]
+where \f$\color[HTML]{dcdcdc}x_1\f$ is the distance along the length of the
+tube.  Dirichlet boundary conditions were applied on all flow variables
+sampling their initial values at the end-faces of the domain and symmetry
+(free-slip) conditions were set along the surface of the tube. The numerical
+solution was advanced using the CFL number 0.5 using four different meshes
+whose properties are list in the following table:
+       Mesh     |  Points     | Tetrahedra   | h
+       :------: | ----------: | -----------: | ------:
+             0  |     7,294   |     34,181   | 0.008393
+             1  |    51,794   |    273,448   | 0.004138
+             2  |   389,139   |  2,187,584   | 0.002060
+             3  | 3,014,277   | 17,500,672   | 0.001028
+Here h is the average edge length along the length of the tube.
+
+@note For the meshes, contact us using the link at the bottom of the page.
+
+@section riecg_example_sod_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [60bbe39](https://codeberg.org/xyst/xyst/commit/60bbe390be00d4fc38e0396f1674562a71df1516) and the control file below.
+
+@section riecg_example_sod_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Sod shocktube"
+
+term = 0.2
+ttyi = 10
+cfl = 0.5
+
+part = "rcb"
+
+problem = {
+  name = "sod"
+}
+
+mat = { spec_heat_ratio = 1.4 }
+
+bc_sym = {
+  sideset = { 2 }
+}
+
+bc_dir = {
+ { 1, 1, 1, 1, 1, 1 },
+ { 3, 1, 1, 1, 1, 1 }
+}
+
+fieldout = {
+  iter = 10000
+}
+
+diag = {
+  iter = 1,
+  format = "scientific"
+}
+@endcode
+
+@section riecg_example_sod_run Run using mesh 1 on 4 CPUs
+
+@code{.bash}
+./charmrun +p4 Main/inciter -i tube01.exo -c sod.q
+@endcode
+
+@section riecg_example_sod_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed fields as
+
+@code{.bash}
+paraview out.e-s.0.4.0
+@endcode
+
+The surface mesh colored by the fluid density at t=0 and t=0.2 on mesh 1 are
+depicted below.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sod01_density_t0_white.png"/>
+<img src="images/sod01_density_t02_white.png"/>
+@m_enddiv
+
+The numerical solution is also extracted at t=0.2 along the center of the tube.
+The density, velocity, total energy, and pressure are depicted below for the
+successively finer meshes together with the analytical solution.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sod_density.png"/>
+<img src="images/sod_velocity.png"/>
+<img src="images/sod_energy.png"/>
+<img src="images/sod_pressure.png"/>
+@m_enddiv
+
+@section riecg_example_sod_error Numerical errors and convergence rate
+
+The table below shows the numerical L1 errors of the flow quantities computed.
+The L1 error is computed as
+\f[
+\left| \left| \varepsilon \right| \right|_1 = \frac{\sum_{v=1}^n V^v \left|
+\hat{U}^v - U^{v} \right|} {\sum_{v=1}^n V^v}
+\f]
+where n is the total number of points of the mesh,
+\f$\color[HTML]{dcdcdc}\hat{U}^v\f$ and \f$\color[HTML]{dcdcdc}U^v\f$ are the
+exact and computed solutions at mesh point v, and \f$\color[HTML]{dcdcdc}V^v\f$
+denotes the volume associated to mesh point v. The order of convergence is
+estimated as
+\f[
+p = \frac{ \log \left| \left| \varepsilon \right| \right|_1^{m+1} - \log \left|
+\left| \varepsilon \right| \right|_1^m}{ \log h^{m+1} - \log h^m}
+\f]
+where m is a mesh index. The following table summarizes the L1 errors in all
+flow variables at t=0.2.
+       Mesh     | h         | L1(r)      |  L1(u)    | L1(p)     | L1(E)
+       :------: | --------: | ---------: | --------: | --------: | --------:
+       0        | 0.008393  |  6.14e-3   | 1.01e-2   | 4.82e-3   | 2.47e-2
+       1        | 0.004138  |  3.53e-3   | 5.24e-3   | 2.77e-3   | 1.38e-2
+       2        | 0.002060  |  2.12e-3   | 2.79e-3   | 1.67e-3   | 8.12e-3
+       3        | 0.001028  |  1.31e-3   | 1.67e-3   | 1.05e-3   | 4.88e-3
+       p        |           |  0.69      | 0.73      | 0.67      | 0.73
+Here r, u, p, and E are the fluid density, velocity along the tube, pressure,
+and total energy, respectively. The data is also plotted in the folloowing
+figure
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/soderr.png"/>
+@m_enddiv
+
+Since the solution contains discontinuities, the error is dominated by their
+vicinity and thus the order of accuracy is expected to be approximately 1.0 or
+lower.
+
+@section riecg_example_sod_references References
+
+@m_div{m-text m-noindent}
+[1] J.R. Kamm, [Enhanced verification test suite for phyics simulation codes](https://library.lanl.gov/cgi-bin/getfile?LA-14379.pdf), LA-14379, SAND2008-7813, 2008.
+@m_enddiv
+
+*/

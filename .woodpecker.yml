@@ -14,7 +14,7 @@ matrix:
     #  IMAGE: "xyst-clang"
     #  CHARM_INSTALL_DIR: "/charm-non-smp"
 
-pipeline:
+steps:
   build:
     image: jbakosi/${IMAGE}
     #pull: true

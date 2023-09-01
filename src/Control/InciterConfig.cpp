@@ -890,7 +890,7 @@ Config::control()
     get< tag::t0 >() = real( L, "t0", 0.0, true );
     get< tag::reorder >() = boolean( L, "reorder", false, true );
     get< tag::steady >() = boolean( L, "steady", false, true );
-    get< tag::residual >() = real( L, "residual", 1.0e-14, true );
+    get< tag::residual >() = real( L, "residual", 0.0, true );
     get< tag::rescomp >() = unsigint( L, "rescomp", 1, true );
     get< tag::part >() = string( L, "part", "rcb", true );
 

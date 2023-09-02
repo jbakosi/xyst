@@ -108,7 +108,7 @@ else()
 
 endif()
 
-if(SERIAL)
+if(AMPI AND SERIAL)
   set(test_command ${TEST_EXECUTABLE} ${TEST_EXECUTABLE_ARGS})
 endif()
 

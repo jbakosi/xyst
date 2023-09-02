@@ -9,7 +9,6 @@ libraries (TPLs) used by Xyst.
 \section tpl_licenses Third-party libraries (TPLs)
 
 \subsection charm_license The Charm++ Parallel Programming System
-  - Searched for and if not found, built by default
   - Web: http://charm.cs.illinois.edu
   - License: @subpage charm_license_page
 

@@ -323,7 +323,7 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
     // Print out mesh partitioning configuration
     print.section( "Partitioning mesh" );
     print.item( "Partitioner", g_cfg.get< tag::part >() );
-    print.item( "Virtualization [0.0...1.0]", g_cfg.get< tag::virt >() );
+    print.item( "Virtualization", g_cfg.get< tag::virt >() );
     // Print out initial mesh statistics
     meshstat( "Initial load distribution" );
 

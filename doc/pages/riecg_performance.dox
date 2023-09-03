@@ -1,0 +1,100 @@
+/*!
+  \page      riecg_performance RieCG computational performance
+
+@tableofcontents{xml}
+
+This page discusses some aspects of the computational performance of the @ref
+inciter_riecg "RieCG hydrodynamics solver". The timings demonstrate that there
+is no singificant scalability bottleneck in either computational or I/O
+performance.
+
+@section riecg_strong_scaling Strong scaling of computation
+
+Using increasing number of compute cores with the same problem measures _strong
+scaling_, characteristic of the algorithm and its parallel implementation.
+Strong scalability helps answer questions, such as _How much faster one can
+obtain a given result (at a given level of numerical error) if larger
+computational resources were available_. To measure strong scaling we ran the
+@ref riecg_example_taylor_green "Taylor-Green problem" using a 794M-cell mesh
+on varying number of CPUs for a few time steps and measured the average
+wall-clock time it takes to advance a single time step. The figure below
+depicts timings measured on two different machines,
+[MeluXina](https://www.luxprovide.lu/meluxina/) and
+[LUMI](https://www.lumi-supercomputer.eu/lumi_supercomputer).
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/xyst_riecg_strong.png"/>
+@m_enddiv
+
+The figre shows that strong scaling of the RieCG solver is close to ideal into
+the range of O(10^4) CPU cores.
+
+As is usual with strong scaling, as more processors are used with the same-size
+problem communication will eventually overwhelm useful computation and the
+simulation does not get any faster with more resources. The above figure shows
+that this point has not yet been reached at approximately 65K CPUs for this
+problem. The point of diminishing returns is affected by the scalability of the
+algorithm, its implementation, the problem size, the efficiency of the
+underlying runtime system, the hardware, and its configuration. One practical
+result from this figure is that as the number of computatinoal elements (and
+points) per CPU core decreases with more resources available for a fixed-size
+problem, this solver implementation (on these machines) is scalable at least as
+low as 12K elements (and 2.8K points) per CPU core.  This can be used to
+estimate effective compute resources based on problem size.
+
+@section riecg_io_performance_read Strong scaling of mesh read
+
+Xyst outsources the input and output from and to files of the computational
+mesh and field-data to the [ExodusII
+library](https://github.com/sandialabs/seacas). ExodusII relies on the
+[NetCDF](http://www.unidata.ucar.edu/downloads/netcdf/index.jsp) (or optionally
+the HDF5) binary data formats, which facilitate out-of-order parallel reads and
+have been widely used in research and production for large scientific data in
+many fields. Xyst reads the computational mesh from a single ExodusII file in
+parallel and therefore this operation automatically benefits from available
+parallel hardware.
+
+The figure below depicts strong scalability of reading the mesh in parallel.
+These timings were performed on a 12-node cluster in Charm++'s SMP mode. On
+this machine each compute node contains 32 CPU cores but using Charm++'s SMP
+mode the mesh-read was configured with one stream per compute node in parallel.
+One can see that scalability is good for both mesh sizes at all node counts.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/readmesh_scaling.png"/>
+@m_enddiv
+
+@section riecg_io_performance_write Strong scaling of field write
+
+Writing large-field data (computed physics quantities associated to mesh nodes
+or elements) also uses the [ExodusII
+library](https://github.com/sandialabs/seacas) file format and software
+library. A different file is written for each mesh partition numbered so they
+can be automatically combined in memory by the visualization software,
+[ParaView](https://www.paraview.org) In Xyst every parallel thread of execution
+writes data into one or more files and each file is appended data after new
+time steps with a user-configured frequency. Without overdecomposition each
+thread writes a single file. With overdecomposition each thread writes multiple
+files sequentially to ensure thread-safety of the MPI I/O calls underlying the
+ExodusII library. Charm++'s SMP mode can be configured so that each logical
+node writes multiple files sequentially. Since the number of logical nodes need
+not equal the number of compute threads, SMP mode is flexible enough to
+optimize I/O performance as the number of CPUs can be decoupled from the number
+of parallel writes.
+
+The figure below depicts timings of writing the field output, physics variables
+computed in mesh nodes, appended to ExodusII files in parallel as time-stepping
+progresses. It is clear that for large data the strong-scalability of the
+writes is close to ideal.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/writemesh_scaling.png"/>
+@m_enddiv
+
+@note The flexibility and configurability of parallel I/O in Xyst, described
+above, are a clear demonstration of effective interoperation of the Charm++
+runtime system, existing MPI libraries, and the application. Due to Charm++'s
+high-level abstraction, such software combination also ensures productivity
+without sacrificing performance or scalability to parallel compute resources.
+
+*/

@@ -49,6 +49,20 @@ This increases the cost of the equation of state evaluation whose location
 propagates in space and time, which induces load imbalance across multiple mesh
 partitions in parallel.
 
+The images below depict the Spatial distributions of the extra load,
+corresponding to the fluid density exceeding the value 2.0, during time
+evolution of the Sedov solution: shortly after the onset of load imbalance and
+at a later time. As the computational domain decomposed into multiple
+partitions, worked on by different compute cores and nodes, the parallel load
+becomes inhomogeneous and work units must all wait for the slowest one.
+
+@m_div{m-col-m-6 m-left-m}
+<img src="images/sedov_load_ts14.svg"/>
+@m_enddiv
+@m_div{m-col-m-6 m-right-m}
+<img src="images/sedov_load_ts50.svg"/>
+@m_enddiv
+
 @section riecg_example_sedov_lb_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [aa29b26](https://codeberg.org/xyst/xyst/commit/aa29b264272ceda81089821731ea6ea678d42a14), the following patch

@@ -2,6 +2,10 @@
   \page      examples Examples
 
 \section riecg_examples RieCG
+
+The pages below discuss example calculations using the @ref inciter_riecg
+"RieCG hydrodynamics" solver.
+
   - \subpage riecg_example_vortical_flow
   - \subpage riecg_example_taylor_green
   - \subpage riecg_example_rayleigh_taylor

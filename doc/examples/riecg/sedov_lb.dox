@@ -159,7 +159,7 @@ subsequently. The -l 20 command line argument tells Charm++ to perform load
 balancing every 20th time step. Consult the [Charm++
 manual](https://charm.readthedocs.io) for details on load balancing.
 
-@section riecg_example_sedov_lb_timings Timings
+@section riecg_example_sedov_lb_timings Timings on a single workstation
 
 The figure and table below show the effect of load balancing on wall-clock
 time: in this particular case the extra load would make the simulation about
@@ -168,23 +168,70 @@ time: in this particular case the extra load would make the simulation about
 @m_div{m-col-m-10 m-center-m}
 <img src="images/sedov_lb.png"/>
 @m_enddiv
+
 Measured wall-clock time of each time step during the Sedov calculation without
 extra load, as well as with extra load without and with load balancing. The
 area below each curve is proportional to the total computational cost.
 
-Timings for the Sedov problem with and without load balancing.
+Timings for the Sedov problem with and without load balancing on a single
+(shared-memory) workstation.
        Case     |  Extra load  | Total time, s  | Speed-up
        :------: | -----------: | -------------: | --------:
              0  |          no  |           825  |    -
-             1  |         yes  |        30,276  |    -
-             2  |         yes  |         4,958  |    6.11x
+             1  |         yes  |        30,276  |    1.0x
+             2  |         yes  |         4,958  |    6.1x
+
+@section riecg_example_sedov_lb_run_dist Run on multiple compute nodes
+
+The following command line can be used to run the problem on a cluster of
+networked compute nodes each containing 32 CPU cores. Other than building
+Charm++ in SMP mode, no code changes are required.
+
+@code{.bash}
+# extra load, lb: apply the patch above, and run with
+./charmrun +p $((31*$SLURM_NNODES)) Main/inciter -v -i sedov02.exo -c sedov.q +ppn 31 +pemap 1-31 +commap 0 -b -u 0.992 -l 20 +balancer DistributedLB
+@endcode
+
+The above command line instructs the runtime system in SMP mode to execute on
+$SLURM_NNODES compute nodes. On each node it will assign 31 cores for
+computation and will designate 1 for communication only. Furthermore, Xyst will
+overdecompose the problem using a virtualization parameter of 0.992, which
+yields 30,962 mesh partitions assigned to the 248 compute cores. Such
+fine-grained work-units allow the runtime system to perform effective load
+balancing, which is invoked at every 20th time step.
+
+@section riecg_example_sedov_lb_timings_dist Timings on a cluster
+
+The following figure shows measured wall-clock times for each time step during
+computing the modified Sedov problem with and without extra load in SMP mode on
+8 network-connected compute nodes. The area below each curve is proportional to
+the total computational cost of that simulation.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sedov_lb_N8_SMP.png"/>
+@m_enddiv
+
+Timings for the Sedov problem with and without load balancing on 8
+(network-connected, distributed-memory) compute nodes.
+       Case                |  Extra load   | Total time, s  | Speed-up
+       :-----------------: | ------------: | -------------: | --------:
+       no extra load       |          no   |            95  |    -
+       extra load, no LB   |         yes   |        14,616  |    1.0x
+       extra load, LB      |         yes   |         1,399  |   10.5x
+
+@section riecg_example_sedov_lb_summary Summary
+
+The above examples show that combining overdecomposition and Charm++'s
+automatic load balancing results in an order of magnitude reduction in
+wall-clock times for this particular irregular work-load. In this case the
+speed-up is about 6x on a single workstation and over 10x on multiple compute
+nodes.
 
 @note _We emphasize that we wrote no load balancing code_: we simply ensure
 overdecomposition and turn on load balancing; the runtime system measures
 real-time CPU load and automatically performs object migration to homogenize
-the load. While this example was run on a single computer, experience shows
-that the benefits of such load-balancing can be even greater on large
-distributed-memory machines [1].
+the load. The above data clearly demonstrate that load balancing is effective
+on both single workstations as well as larger HPC machines.
 
 @section riecg_example_sedov_lb_references References
 

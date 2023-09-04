@@ -71,7 +71,7 @@ or elements) also uses the [ExodusII
 library](https://github.com/sandialabs/seacas) file format and software
 library. A different file is written for each mesh partition numbered so they
 can be automatically combined in memory by the visualization software,
-[ParaView](https://www.paraview.org) In Xyst every parallel thread of execution
+[ParaView](https://www.paraview.org). In Xyst every parallel thread of execution
 writes data into one or more files and each file is appended data after new
 time steps with a user-configured frequency. Without overdecomposition each
 thread writes a single file. With overdecomposition each thread writes multiple

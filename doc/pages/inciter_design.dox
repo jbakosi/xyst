@@ -6,7 +6,8 @@ namespace inciter {
 
 This page discusses the high-level software design and some implementation
 aspects of @ref inciter_main. The discussion roughly follows as execution
-happens in time, from program start to finish. On any of the Charm++ concepts
+happens in time, from program start to finish. It basically covers what happens
+from program start to start of time stepping. On any of the Charm++ concepts
 below, consult the [Charm++
 manual](http://charm.cs.illinois.edu/manuals/html/charm++/manual.html).
 
@@ -14,76 +15,42 @@ manual](http://charm.cs.illinois.edu/manuals/html/charm++/manual.html).
 
 @subsection inciter_startup_itself Startup
 
-As all other executables in Quinoa, Inciter uses the Charm++ runtime system.
-Runtime execution starts in the Charm++ `mainmodule` constructor, defined in
-Main/Inciter.C as `Main`. Starting down the constructor's initializer list, the
-command line is parsed, followed by creating a driver, InciterDriver, which
-parses the input file.
+All executables in Xyst use the Charm++ runtime system.  Runtime execution
+starts in the Charm++ `mainmodule` constructor, defined in Main/Inciter.cpp as
+`Main`. In Main's constructor, the command line is parsed, followed by echoing
+some information to the screen. Then the input (control) file is parsed and a
+log file is written that contains what was parsed, which helps debugging
+input-related problems.
 
-@subsection inciter_startup_parsing Command line and input file parsing, global-scope data
+@subsection inciter_startup_global Global-scope data
 
 After the main chare constructor has finished, the runtime system initializes
 global scope data and migrates it to all other processing elements (PEs), which
 from that point is considered read-only.
 
-This global-scope data are defined at the beginning of Main/Inciter.C in the
+This global-scope data are defined at the beginning of Main/Inciter.cpp in the
 same order as they appear in the companion Charm++ interface file
 Main/inciter.ci. This is the order in which these data are initialized and
-migrated. Global scope data is limited to such read-only data.  It stores data
-initialized during parsing the command line and the input (control) file. The
-command line is parsed by CmdLineParser's constructor, called during the main
-chare's constructor, while the input file is parsed by InputDeckParser's
-constructor, called during InciterDriver's constructor.
+migrated to all PEs. Global scope data is limited to such read-only data. It
+stores data initialized during parsing the command line and the input (control)
+file. Global_scope data is always prefixed by `g_`.
 
-Global_scope data is always prefixed by `g_`. Inciter's global-scope data
-contains two input decks: the defaults (g_inputdeck_defaults) and g_inputdeck
-which contains all data parsed during command line and input file parsing.
+@note This global-scope data is _assumed_ read-only after migration but the
+compiler has no way of enforcing this, thus modifying it after migration is
+possible but will not generate an error either at compile or runtime. For more
+details on global scope data in Charm++, see Section _Read-only Data_ in the
+Charm++ manual.
 
-@warning Note that this global-scope data is _assumed_ read-only after
-migration but the compiler has no way of enforcing this, thus modifying it
-after migration is possible but will not generate an error either at compile or
-runtime. For more details on global scope data in Charm++, see Section
-_Read-only Data_ in the Charm++ manual.
-
-@subsection inciter_startup_polymorphism Global scope data for runtime polymorphism
-
-Two global scope vectors in inciter are `g_cgpde` and `g_dgpde`.  These two
-vectors hold base classes for partial differential equations (PDE) that can be
-specialized to different types of derived PDEs that use continuous Galerkin
-finite element (FE) discretizations (CGPDE) and discontinuous Galerkin FE
-discretizations (DGPDE). These two vectors are global scope because they hold
-pointers to derived classes that enable runtime polymorphism. Runtime
-polymorphism enables code reuse and helps client code stay uniform and modular.
-Such polymorphic use of pointers (`std::unique_ptr`) are one of the rare uses
-of pointers throughout the code.
-
-@note While Charm++ allows migratable chares holding pointers and even supports
-runtime polymorphism among chare arrays, we strongly discourage the use of
-pointers and reference semantics, because it complicates writing safe code for
-such migratable objects. For more details on reference and value semantics in
-C++, see https://isocpp.org/wiki/faq/value-vs-ref-semantics. For more details
-on runtime polymorphism without client-side inheritance, the style in which the
-"base" classes CGPDE and DGPDE are written, that leads to cleaner and safer
-client code, see Sean Parent's talk on [concept-based
-polymorphism](http://sean-parent.stlab.cc/papers-and-presentations/#value-semantics-and-concept-based-polymorphism).
-For more details on concept-based runtime polymorphism with migratable Charm++
-chare arrays using value semantics, see Inciter/Scheme.h and the talk, titled
-_Concept-based runtime polymorphism with Charm++ chare arrays using value
-semantics_, given at the [16th Annual Workshop on Charm++ and its
-Applications](http://charm.cs.illinois.edu/workshops/oldworkshops/charmWorkshop2018/program.html), titled _Concept-based runtime polymorphism with Charm++ chare arrays using value semantics_.
-
-@subsection inciter_startup_transporter Create inciter's driver, single Charm++ chare Transporter
+@subsection inciter_startup_transporter Create single Charm++ chare Transporter
 
 Up to this point execution is serial, since there is only a single main Charm++
-chare. `InciterDriver`'s constructor then fires up a single Charm++ chare
-instance of `Transporter`, called from Main::execute() after the runtime system
-has finished migrating all global-scope data. Note that InciterDriver is _not_
-a Charm++ chare, only an ordinary C++ class. `Transporter`, defined in
-Inciter/Transporter.C, is the main driver class of Inciter that is a Charm++
-chare from which all execution happens, e.g., via broadcasts, and to which all
-execution ends up in, leading to `Transporter::finish()`, which eventually
-calls back to `Main::finalize()`, calling `CkExit()`, signaling the runtime
-system to exit.
+chare. Main::execute() then fires up a single Charm++ chare instance of
+`Transporter`, after the runtime system has finished migrating all global-scope
+data. `Transporter`, defined in Inciter/Transporter.cpp, is the main driver
+class of Inciter that is a Charm++ chare from which all execution happens,
+e.g., via broadcasts, and to which all execution ends up in, leading to
+`Transporter::finish()`, which eventually calls back to `Main::finalize()`,
+calling `CkExit()`, signaling the runtime system to exit.
 
 @section inciter_classes 2. Important classes
 
@@ -94,16 +61,11 @@ Here are the important classes that interoperate within inciter:
  - `tk::MeshWriter` (chare _group_, mesh writer, performing file output in
    parallel)
  - `Refiner` (chare _array_, mesh refiner)
- - `Sorter` (chare _array_, performs mesh reordering)
+ - `Sorter` (chare _array_, performs distributed mesh-node reordering)
  - `Discretization` (chare _array_, generic PDE solver base class)
-   - `RieCG` (chare _array_, PDE solver child class, specialized to a continuous
-     Galerkin finite element discretization scheme with a lumped-mass left-hand
-     side, approximate Riemann solver along edges with MUSCL reconstruction and
-     limiting combined with Runge-Kutta explicit time stepping scheme that is
-     second order accurate in space and time),
-   - ... (more hydro schemes to be added in the future)
- - `DistFCT` (chare _array_, performs distributed-memory flux-corrected
-   transport, if used by a specific discretization scheme)
+   - `RieCG` (chare _array_, PDE solver child class, specialized to the
+     particular solver 'RieCG'),
+   - ... (more solvers to be added in the future)
 
 _Chare_ above means a single Charm++ chare. There is a single instance of this
 class. By design, `Transporter` is a single chare and is used as a driver that
@@ -146,8 +108,8 @@ member functions compared to groups. In particular, while member functions of
 chare arrays and groups execute exclusively in a single instance, node groups
 allow multiple _non-exclusive_ member functions to execute concurrently in a
 single nodegroup instance. Note that there is no difference between groups and
-nodegroups if Charm++ is built in non-SMP mode, which is currently the default.
-For more details see the Charm++ manual.
+nodegroups if Charm++ is built in non-SMP mode, which is the default. For more
+details see the Charm++ manual.
 
 _Array_ above means a Charm++ chare array, whose elements can migrate (if
 enabled) and thus they actively participate in automatic load balancing. With
@@ -164,15 +126,15 @@ overdecomposition yields larger number of mesh partitions than the available
 PEs. The extreme of `1.0` represents the largest degree of overdecomposition,
 which also results in the smallest work units.
 
-_Bound arrays_: `Discretization` and its specialized children, `RieCG`,
-etc., `Refiner`, and, if used/created, `DistFCT` are _bound_ arrays. This means
-that the runtime system migrates its corresponding array elements together.
-Bound arrays facilitate modularization among workers that migrate. Since array
-elements that are bound always appear together on a given PE, even after
-migration, they can also be thought of as part of the same class, because they
-can access data from each other (but still respecting the C++ rules of
-`public`, `private`, etc). However, dividing functionality into classes, as
-always, helps readibility and makes reasoning about code easier.
+_Bound arrays_: `Discretization` and its specialized children, `RieCG`, etc.,
+`Refiner`, are _bound_ arrays. This means that the runtime system migrates its
+corresponding array elements together.  Bound arrays facilitate modularization
+among workers that migrate. Since array elements that are bound always appear
+together on a given PE, even after migration, they can also be thought of as
+part of the same class, because they can access data from each other (but still
+respecting the C++ rules of `public`, `private`, etc). However, dividing
+functionality into classes, as always, helps readibility and makes reasoning
+about code easier.
 
 @section inciter_setup 3. Setup
 
@@ -186,42 +148,39 @@ constructors are run yet. An example for this is `Sorter`. We do empty array
 creation for two main reasons: (1) we don't yet have all data that is needed to
 create the given class (more preparation is required but we need its proxy
 already), and/or (2) we need to pass specific data to each array (or group)
-element's constructor, which can only be done via dynamic insertion. (Passing
-it via Charm++'s `ckNew()` would pass the same data to all elements to be
-created in a broadcast fashion, and this is not what we want most of the time.)
-For example, `Sorter` needs part of the mesh connectivity, coordinates, etc.,
-for which we need to have the mesh partitioned first. This also allows nicely
-adhering to the
+element's constructor, which can only be done via Charm++'s dynamic insertion
+feature. (Passing it via Charm++'s `ckNew()` would pass the same data to all
+elements to be created in a broadcast fashion, and this is not what we want
+most of the time.) For example, `Sorter` needs part of the mesh connectivity,
+coordinates, etc., for which we need to have the mesh partitioned first. This
+also allows nicely adhering to the
 [RAII](https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization)
-idiom of the object oriented paradigm, which helps writing correct code.
+idiom, which helps writing clean and correct code.
 
-Transporter thus creates tk::MeshWriter, Sorter, Refiner, and Partitioner.
-These classes play an importart role during setup, but some are also (re-)used
+Transporter thus creates MeshWriter, Sorter, Refiner, Partitioner, etc..
+These classes play importart roles during setup, but some are also (re-)used
 during time stepping.
 
 @note The classes that eventually do most of the heavy-lifting of computing
 operators for partial differential equations, are not yet created - not all
 information is available for those yet. However, their Charm++ proxies are
-created and encapsulated within SchemeBase. These _worker proxies_, `RieCG`,
-etc., together with their "base" class, `Discretization`, are bound together so
-that the runtime system migrates them together during load balancing. This is
-because the "child" is designed to be able to directly access data from its
-base, as in usual runtime polymorphism. Such direct access of (large) data
-allows not having to create copies and allows reducing communication costs,
-while still allos modularizing code operating on the same data. For more
-details on Scheme, SchemeBase, Discretization, and its children, see
-Inciter/Scheme.h.
+created. These _worker proxies_, e.g., `RieCG`, `Refiner`, etc., together with
+their "base" class, `Discretization`, are bound together so that the runtime
+system migrates them together during load balancing. This is because the
+"child" is designed to be able to directly access data from its base, via a raw
+pointers. Such direct access of (large) data allows not having to create copies
+and allows reducing communication costs, while still allows modularizing code
+operating on the same data.
 
 In many cases, we pass a number of callbacks to chare arrays and groups when
 their Charm++ proxy is created with `ckNew()`. These callbacks are of type
-`CkCallback`. This is one technique that we use as a kind of type erasure so
-that these classes can interoperate with each other as well as with their host,
-Transporter. This helps resolving cyclic include dependencies. These callbacks
-mostly denote reduction targets to `Transporter`, that are necessary
-synchronization points during setup. A `CkCallback` is similar to std::function
-or a C-style function pointer, but can also store a callback to a Charm++ chare
-object that happens to reside across the network, i.e., an entry method call
-via a proxy.
+`CkCallback`. This is one technique that Charm++ works well with. We use these
+callbacks as a kind of type erasure so that these classes can interoperate with
+each other as well as with their host, Transporter. These callbacks mostly
+denote reduction targets to `Transporter`, that are necessary synchronization
+points during setup. A `CkCallback` is similar to std::function or a C-style
+function pointer, but can also store a callback to a Charm++ chare object that
+happens to reside across the network, i.e., an entry method call via a proxy.
 
 @subsection inciter_partitioner_ctor Partitioner constructor
 
@@ -233,24 +192,25 @@ coordinates for all mesh cells that are in the chunk read. `Partitioner`'s
 constructor also reads/computes the triangle element connectivity associated to
 side sets as well as the node lists associated to side sets. Note that only the
 portion of all this data is read in on a nodegroup that belongs to a given
-chunk of the mesh. At this point this results in a simple partitioning which
-almost certainly _not_ ideal for computing equations later, because of a large
-surface-area-to-volume ratio of these partitions of the computational domain,
-since we cannot assume that the ordering in the mesh file also corresponds to
-close physical-space proximity. `Partitioner`'s constructor finishes with a
-global reduction to `Transporter::load()`, which sums the number of elements
-and the number of nodes (points) in the complete problem (read in in a
-distributed fashion).
+chunk of the mesh. At this point this results in a simple partitioning which is
+suitable for parallel reading from the mesh file, but almost certainly _not_
+ideal for computing equations later, because topology information has not been
+considered yet resulting in a large surface-area-to-volume ratio of these
+partitions of the computational domain, since we cannot assume that the
+ordering in the mesh file also corresponds to close physical-space proximity.
+`Partitioner`'s constructor finishes with a global reduction to
+`Transporter::load()`, which sums the number of elements in the complete
+problem (read in in a distributed fashion).
 
 @subsection inciter_transporter_load Compute total load and overdecomposition
 
 After reading the mesh in a distributed fashion, we now know the total number
-of cells and points and `Transporter::load()` computes the total number of
-worker chares that will be used to partition the problem into. If there is a
-nonzero overdecomposition configured by the command line argument `-u`, the
-number of chares (partitions) may be more than the available PEs. This is
-computed by tk::linearLoadDistributor(). We then start mesh partitioning by
-issuing a broadcast to Partitioner::partition().
+of cells and `Transporter::load()` computes the total number of worker chares
+that will be used to partition the problem into. If there is a nonzero
+overdecomposition configured by the command line argument `-u`, the number of
+chares (partitions) may be more than the available PEs. This is computed by
+tk::linearLoadDistributor(). We then start mesh partitioning by issuing a
+broadcast to Partitioner::partition().
 
 @subsection inciter_partitioner_partition Mesh partitioning
 
@@ -275,26 +235,25 @@ by optional initial mesh refinement.
 
 `Transporter::distributed()` issues a broadcast to `Partitioner::refine()`,
 which uses dynamic array insertion to create all `Refiner` chare array
-elements.  Note that there may be multiple `Refiner` objects created on each
+elements. Note that there may be multiple `Refiner` objects created on each
 `Partitioner` PE (or compute node in SMP mode). Each `Refiner` constructor gets
 a chunk of the mesh (which now are smaller chunks than the chunks that were
 originally read from file), corresponding to the total number of chares. Not
 only the mesh connectivity and node coordinates, but also the boundary face
-connectivity and boundary node lists associated to multiple side sets are also
-passed to Refiner, and only those portions of these data structures that belong
-to the particular `Refiner` chare. (Boundary face connectivity is used for
-cell-based discretization schemes, such as `DG`, while boundary node lists are
-used for nodal discretizations, such as `RieCG` to set boundary conditions.)
+connectivity and boundary node lists associated to multiple side sets (used for
+boundary conditions) are also passed to Refiner, and only those portions of
+these data structures that belong to the particular `Refiner` chare.
 
 @note As usual, dynamic insertion calls are asynchronous, i.e., the calls are
 really only signals to the runtime system that it is time to start calling
 constructors passing their correct data. Array element insertion can be
-controlled by custom array placement. See the Charm++ manual.
+controlled by custom array placement. We so far has used the defaults. See the
+Charm++ manual.
 
 `Refiner`'s constructor evaluates user configuration and decides if initial
-mesh refinement is to be performed or not. If not, execution is simply skipped
-ahead to Refiner::endt0ref(). If initial refinement is configured, we descend
-into Refiner::t0ref().
+(before time stepping starts) mesh refinement is to be performed or not. If
+not, execution is simply skipped ahead to Refiner::endt0ref(). If initial
+refinement is configured, we descend into Refiner::t0ref().
 
 There are two ways Refiner is used:
 
@@ -310,7 +269,7 @@ which allows specifying planes and simple extents in 3 dimensional space and
 allows tagging edges for refinement between two extremes. Additionally the user
 can also tag edges manually, creating a list of pairs of global node ids.
 
-Refiner::eval() evaluates, at the end of each initial refinement step, if a
+Refiner::next() evaluates, at the end of each initial refinement step, if a
 next initial refinement step is to be performed. In the last step, execution
 continues to Refiner::endt0ref(), which creates Sorter.
 
@@ -322,21 +281,20 @@ are also aggregated across the whole problem.
 @subsection inciter_reorder Optional PE-locality mesh node reordering
 
 `Sorter` takes a chunk of the mesh, together with its physical boundary face
-and node data structures, and sets up a symmetric node communication map,
-Sorter::m_msum, which stores the global node IDs of chare boundaries associated
-to chare IDs on each chare. This map is symmetric in a sense that if two chares
-share a node after partitioning, the same node ID will be stored on each chare
-assigned to the other chare ID. This map is used for point-point communication
-during time stepping. This map is used by node-centered (CG) schemes, as well
-as a starting point for setting up face and ghost communication data structures
-for cell-centered DG.
+and node data structures, and sets up a symmetric node communication map, which
+stores the global node IDs of chare boundaries associated to chare IDs on each
+chare. This map is symmetric in a sense that if two chares share a node after
+partitioning, the same node ID will be stored on each chare assigned to the
+other chare ID. This map is used for point-point communication during time
+stepping.
 
 `Sorter` performs optional PE-locality mesh node reordering in parallel. This
 reordering is optional and is off by default. The reordering assigns new global
-mesh node IDs that roughly increase with chare ID.
+mesh node IDs that roughly increase with chare ID. This is useful for schemes
+that need to solve a global linear system. For more details on the global sorting algorithm see @ref papers.
 
 Whether node reordering is to be performed or not is evaluated in
-Sorter::start().  If reordering is done, it starts in Sorter::mask(). If
+Sorter::start(). If reordering is done, it starts in Sorter::mask(). If
 reordering is not done, we skip to Sorter::createDiscWorkers(), which starts
 creating the worker chares, that will eventually perform the heavy lifting
 during time stepping: computing the PDE operators during time integration.
@@ -345,24 +303,18 @@ during time stepping: computing the PDE operators during time integration.
 
 The worker Charm++ chare array elements, that store the mesh and associated
 data structures and compute PDE operators during time stepping, are organized
-into a single-level base-child relationship for code reuse and runtime
-polymorphism. However, both the base-child relationship and runtime
-polymorphism are slightly differently implemented compared to what would be
-familiar with inheritance in standard object-oriented programming (OOP).
+into a single-level base-child relationship for code reuse and organization.
+However, the base-child relationship is slightly differently implemented
+compared to what would be familiar with inheritance in standard object-oriented
+programming.
 
 There is a single base class, `Discretization`, that encapsulates data and
 member functions that are generic to all mesh-based discretization schemes.  It
 stores the mesh, connectivity, node coordinates, etc. As `Discretization` is a
 chare array, its elements are distributed across the whole problem on all
-available compute nodes and PEs, and can also migrate for load balancing. In
-the OOP sense, derived (or child) classes are the classes that implement a
-particular discretization scheme, e.g., RieCG.
-
-@note For more details on runtime polymorphism with migratable Charm++ chare
-arrays using value semantics, see Inciter/Scheme.h and the talk, titled
-_Concept-based runtime polymorphism with Charm++ chare arrays using value
-semantics_, given at the [16th Annual Workshop on Charm++ and its
-Applications](http://charm.cs.illinois.edu/workshops/charmWorkshop2018/program.php).
+available compute nodes and PEs, and can also migrate for load balancing. The
+derived (or child) classes are the classes that implement a particular
+discretization scheme, e.g., RieCG.
 
 Sorter::createDiscWorkers() starts creating the `Discretization` chares. This
 is done via the usual Charm++ dynamic array insertion passing the mesh chunk
@@ -384,27 +336,28 @@ the runtime system for load balancing.
 The various mesh statistics aggregate and arrive independently in reduction
 target member functions of `Transporter`, `minstat()`, `maxstat()`,
 `sumstat()`, and `pdfstat()`. When all of these are complete (see
-src/Inciter/transporter.ci how this condition is told the runtime system using
-a DAG) ,Transporter::stat() is called in which execution continues by creating
-the child (or derived) workers in Sorter::createWorkers(). As usual, the
-children are also created by dynamic array insertion.
+src/Inciter/transporter.ci how structured direct acyclic graphs (DAGs) are used
+to communicate this condition to the runtime system). Eventually,
+Transporter::stat() is called in which execution continues by creating the
+child (or derived) workers in Sorter::createWorkers(). As usual, the children
+are also created by dynamic array insertion. See @ref papers for more
+information on how DAGs are used to implement task-parallelism.
 
-@warning Since the child classes `RieCG`, etc., access (potentially
-large) data from `Discretization` via raw pointers (from Charm++ proxies), base
-and child are always migrated together, using Charm++'s _bound arrays_ feature.
-`Refiner` and `DistFCT` are also bound to `Discretization` and the children.
-See also src/Inciter/SchemeBase.h and the discussion in src/Inciter/Scheme.h.
+@note Since the child classes `RieCG`, etc., access (potentially large) data
+from `Discretization` via raw pointers (from Charm++ proxies), base and child
+are always migrated together, using Charm++'s _bound arrays_ feature.
+`Refiner` is also bound to `Discretization` and children.
 
 After the child constructors have started, one way or another, they are
 expected to call Transporter::comfinal(), which signals the end of setting up
-any (additional) communication maps needed by the specific discretization
-schemes. After this the child classes are called again via their member
-function `setup()`. All specific discretization schemes, "deriving from"
+any (potentially additional) communication maps needed by the specific
+discretization schemes. After this the child classes are called again via their
+member function `setup()`. All specific discretization schemes, "deriving from"
 `Discretization`, are expected to define certain member functions, such as
-`setup()`, which do scheme-specific setup and is eventually expected to call
-`dt()`, which starts time stepping (by computing the size of the next time
-step). `dt()` is also the member function that is called again and again
-starting a new time step during time stepping.
+`setup()`, which do discretization-scheme-specific setup and is eventually
+expected to call `dt()`, which starts time stepping (by computing the size of
+the next time step). `dt()` is also the member function that is called again
+and again starting a new time step during time stepping.
 
 @section inciter_timestepping 4. Time stepping
 
@@ -412,7 +365,7 @@ After all the above, time stepping starts. Time stepping is and may be done
 very differently by the different types of discretizations but they are all
 expected to define a few member functions that are common so they can
 interoperate with their host, `Transporter`. These are Charm++ entry methods
-and must also have the same function signature (as in a derived class in OOP).
+and must also have the same function signature (as in a derived class).
 Since the set of these function may change, the best way to find out what is
 required is to compare the Charm++ interface (`.ci`) files for the specific
 discretization schemes, e.g., RieCG, etc., and look for entry methods that

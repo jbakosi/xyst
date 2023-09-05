@@ -3,7 +3,7 @@
 
 This example uses @ref inciter_riecg in @ref inciter_main to induce parallel
 load imbalance and uses Charm++ to homogenize the computational load speeding
-up the simulation by an order of magnitude.
+up the simulation by an order of magnitude. See also @ref papers.
 
 With respect to solving partial differential equations on meshes, there is no
 magic using Charm++ compared to the message passing interface (MPI): the

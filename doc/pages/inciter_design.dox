@@ -6,8 +6,8 @@ namespace inciter {
 
 This page discusses the high-level software design and some implementation
 aspects of @ref inciter_main. The discussion roughly follows as execution
-happens in time, from program start to finish. It basically covers what happens
-from program start to start of time stepping. On any of the Charm++ concepts
+happens in time, covering what happens
+from program start to the beginning of time stepping. On any of the Charm++ concepts
 below, consult the [Charm++
 manual](http://charm.cs.illinois.edu/manuals/html/charm++/manual.html).
 
@@ -33,7 +33,7 @@ same order as they appear in the companion Charm++ interface file
 Main/inciter.ci. This is the order in which these data are initialized and
 migrated to all PEs. Global scope data is limited to such read-only data. It
 stores data initialized during parsing the command line and the input (control)
-file. Global_scope data is always prefixed by `g_`.
+file.
 
 @note This global-scope data is _assumed_ read-only after migration but the
 compiler has no way of enforcing this, thus modifying it after migration is
@@ -157,7 +157,7 @@ also allows nicely adhering to the
 [RAII](https://en.wikipedia.org/wiki/Resource_acquisition_is_initialization)
 idiom, which helps writing clean and correct code.
 
-Transporter thus creates MeshWriter, Sorter, Refiner, Partitioner, etc..
+Transporter thus creates tk::MeshWriter, Sorter, Refiner, Partitioner, etc.
 These classes play importart roles during setup, but some are also (re-)used
 during time stepping.
 
@@ -247,7 +247,7 @@ these data structures that belong to the particular `Refiner` chare.
 @note As usual, dynamic insertion calls are asynchronous, i.e., the calls are
 really only signals to the runtime system that it is time to start calling
 constructors passing their correct data. Array element insertion can be
-controlled by custom array placement. We so far has used the defaults. See the
+controlled by custom array placement. We so far have used the defaults. See the
 Charm++ manual.
 
 `Refiner`'s constructor evaluates user configuration and decides if initial

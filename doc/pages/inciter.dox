@@ -28,7 +28,7 @@ single-material compressible flow and optional coupled transported passive
 scalars. The numerical method is a continuous Galerkin finite element method
 storing solution values at nodes of the computational mesh. The edge-based
 implementation of the finite element operators help reduce indirect addressing
-and increase performance. On each edge an approximate Riemann solver is invoked
+and increases performance. On each edge an approximate Riemann solver is invoked
 with MUSCL reconstruction and slope limiting. This is combined with Runge-Kutta
 time stepping, see @ref inciter_riecg for a high-level description of the
 numerical method and @ref papers for more details.

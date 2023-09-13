@@ -1,0 +1,121 @@
+/*!
+  \page      riecg_example_diesel RieCG: Diesel engine
+
+This example uses @ref inciter_riecg in @ref inciter_main to compute the
+time-evolution of a flow inside a single cylinder of a Diesel engine.
+
+@section riecg_example_diesel_setup Problem setup
+
+The problem is initialized by prescribing a pressure-difference between the
+inflow and outflow. Symmetry (free-slip) conditions are prescribed on all
+internal walls. Below is a rendering of the mesh used. Inflow is at the bottom,
+outflow is at the top.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/diesel_mesh.png"/>
+@m_enddiv
+
+@note For the mesh, contact us using the link at the bottom of the page.
+
+@section riecg_example_diesel_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [c9706cb](https://codeberg.org/xyst/xyst/commit/c9706cb3d3e7dff542c397561be62293f70488ad) and the control file below.
+
+@section riecg_example_diesel_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Diesel engine cylinder"
+-- mesh: diesel_ssm.exo
+
+-- nstep = 50
+term = 0.005
+cfl = 0.5
+ttyi = 10
+
+part = "rcb"
+
+mat = { spec_heat_ratio = 1.4 }
+
+ic = {
+  density = 1.1996, -- kg/m^3
+  velocity = { 0.0, 0.0, 0.0 },
+  -- ic pressure = (p_in + p_out) / 2, Pa
+  pressure = 93850 -- case A
+  -- pressure = 95200 -- case B
+  -- pressure = 95850 -- case C
+  -- pressure = 96500 -- case D
+}
+
+bc_sym = {
+  sideset = { 3 }
+}
+
+bc_pre = {
+  inlet = {
+    density = 1.996,
+    pressure = 1.005e5,
+    sideset = { 2 }
+  },
+  outlet = {
+    density = 1.1996,
+    pressure = 87200, -- case A
+    -- pressure 89900, -- case B
+    -- pressure 91200, -- case C
+    -- pressure 92500, -- case D
+    sideset = { 1 }
+  }
+}
+
+fieldout = {
+  iter = 100
+}
+
+histout = {
+  -- iter = 1,
+  -- time = 4.0e-3,
+  range = { 15.0, 20.0, 1.0e-5 },
+  points = {
+    { 0.5, 2.001, 0.0 },
+    { 5.5, 2.001, 0.0 }
+  }
+}
+
+diag = {
+  iter = 10,
+  format = "scientific",
+  precision = 6
+}
+
+integout = {
+  iter = 10,
+  -- time = 4.0e-3,
+  -- range ={ 15.0, 20.0, 1.0e-5 },
+  sideset = { 1, 2 },
+  format = scientific
+}
+@endcode
+
+@section riecg_example_diesel_run Run on 32 CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -i diesel_ssm.exo -c diesel.q
+@endcode
+
+@section riecg_example_diesel_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.32.0
+@endcode
+
+The fluid pressure at an instant in time is plotted below.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/diesel.png"/>
+@m_enddiv
+
+*/

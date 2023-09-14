@@ -51,6 +51,8 @@ Config::cmdline( int argc, char** argv )
 //! \param[in] argv Arguments to executable
 // *****************************************************************************
 {
+  if (!argc) return;
+
   // Defaults
   get< tag::output >() = "out";
   get< tag::diag >() = "diag";

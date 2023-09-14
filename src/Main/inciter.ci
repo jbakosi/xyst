@@ -19,6 +19,7 @@ mainmodule inciter {
 
   extern module partitioner;
   extern module riecg;
+  extern module zalcg;
   extern module lbswitch;
 
   readonly CProxy_Main mainProxy;

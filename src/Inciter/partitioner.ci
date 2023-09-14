@@ -37,6 +37,7 @@ module partitioner {
         const tk::CProxy_MeshWriter& meshwriter,
         const CProxy_Discretization& discretization,
         const CProxy_RieCG& riecg,
+        const CProxy_ZalCG& zalcg,
         const std::map< int, std::vector< std::size_t > >& belem,
         const std::map< int, std::vector< std::size_t > >& faces,
         const std::map< int, std::vector< std::size_t > >& bnode );

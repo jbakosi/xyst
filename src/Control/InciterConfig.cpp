@@ -893,6 +893,7 @@ Config::control()
     get< tag::residual >() = real( L, "residual", 0.0, true );
     get< tag::rescomp >() = unsigint( L, "rescomp", 1, true );
     get< tag::part >() = string( L, "part", "rcb", true );
+    get< tag::solver >() = string( L, "solver", "riecg", true );
 
     ic( L, *this );
     bc_dir( L, *this );

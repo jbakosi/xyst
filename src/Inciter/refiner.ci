@@ -28,6 +28,7 @@ module refiner {
                      const tk::CProxy_MeshWriter& meshwriter,
                      const CProxy_Discretization& discretization,
                      const CProxy_RieCG& riecg,
+                     const CProxy_ZalCG& zalcg,
                      const tk::RefinerCallback& cbr,
                      const tk::SorterCallback& cbs,
                      const std::vector< std::size_t >& ginpoel,

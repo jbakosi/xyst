@@ -1,17 +1,17 @@
 // *****************************************************************************
 /*!
-  \file      src/Inciter/RieCG.cpp
+  \file      src/Inciter/ZalCG.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     RieCG: Rusanov, MUSCL, Runge-Kutta, edge-based continuous Galerkin
+  \brief     ZalCG: Taylor-Galerkin, FCT, edge-based continuous Galerkin
 */
 // *****************************************************************************
 
 #include "XystBuildConfig.hpp"
-#include "RieCG.hpp"
+#include "ZalCG.hpp"
 #include "Vector.hpp"
 #include "Reader.hpp"
 #include "ContainerUtil.hpp"
@@ -43,9 +43,9 @@ static const std::array< tk::real, 3 > rkcoef{{ 1.0/3.0, 1.0/2.0, 1.0 }};
 } // inciter::
 
 using inciter::g_cfg;
-using inciter::RieCG;
+using inciter::ZalCG;
 
-RieCG::RieCG( const CProxy_Discretization& disc,
+ZalCG::ZalCG( const CProxy_Discretization& disc,
               const std::map< int, std::vector< std::size_t > >& bface,
               const std::map< int, std::vector< std::size_t > >& bnode,
               const std::vector< std::size_t >& triinpoel ) :
@@ -109,7 +109,7 @@ RieCG::RieCG( const CProxy_Discretization& disc,
 }
 
 void
-RieCG::setupBC()
+ZalCG::setupBC()
 // *****************************************************************************
 // Prepare boundary condition data structures
 // *****************************************************************************
@@ -234,7 +234,7 @@ RieCG::setupBC()
 }
 
 void
-RieCG::feop()
+ZalCG::feop()
 // *****************************************************************************
 // Start (re-)computing finite element domain and boundary operators
 // *****************************************************************************
@@ -268,7 +268,7 @@ RieCG::feop()
 }
 
 void
-RieCG::bndint()
+ZalCG::bndint()
 // *****************************************************************************
 //! Compute local contributions to boundary normals and integrals
 // *****************************************************************************
@@ -346,7 +346,7 @@ RieCG::bndint()
 }
 
 void
-RieCG::domint()
+ZalCG::domint()
 // *****************************************************************************
 //! Compute local contributions to domain edge integrals
 // *****************************************************************************
@@ -394,7 +394,7 @@ RieCG::domint()
 }
 
 void
-RieCG::comnorm( const decltype(m_bnorm)& inbnd )
+ZalCG::comnorm( const decltype(m_bnorm)& inbnd )
 // *****************************************************************************
 // Receive contributions to boundary point normals on chare-boundaries
 //! \param[in] inbnd Incoming partial sums of boundary point normals
@@ -419,7 +419,7 @@ RieCG::comnorm( const decltype(m_bnorm)& inbnd )
 }
 
 void
-RieCG::registerReducers()
+ZalCG::registerReducers()
 // *****************************************************************************
 //  Configure Charm++ reduction types initiated from this chare array
 //! \details Since this is a [initnode] routine, the runtime system executes the
@@ -435,7 +435,7 @@ RieCG::registerReducers()
 
 void
 // cppcheck-suppress unusedFunction
-RieCG::ResumeFromSync()
+ZalCG::ResumeFromSync()
 // *****************************************************************************
 //  Return from migration
 //! \details This is called when load balancing (LB) completes. The presence of
@@ -448,7 +448,7 @@ RieCG::ResumeFromSync()
 }
 
 void
-RieCG::setup()
+ZalCG::setup()
 // *****************************************************************************
 // Start setup for solution
 // *****************************************************************************
@@ -476,7 +476,7 @@ RieCG::setup()
 }
 
 void
-RieCG::box( tk::real v )
+ZalCG::box( tk::real v )
 // *****************************************************************************
 // Receive total box IC volume and set conditions in box
 //! \param[in] v Total volume within user-specified box
@@ -490,7 +490,7 @@ RieCG::box( tk::real v )
 }
 
 void
-RieCG::start()
+ZalCG::start()
 // *****************************************************************************
 // Start time stepping
 // *****************************************************************************
@@ -506,7 +506,7 @@ RieCG::start()
 }
 
 void
-RieCG::bnorm()
+ZalCG::bnorm()
 // *****************************************************************************
 // Combine own and communicated portions of the boundary point normals
 // *****************************************************************************
@@ -550,7 +550,7 @@ RieCG::bnorm()
 }
 
 void
-RieCG::streamable()
+ZalCG::streamable()
 // *****************************************************************************
 // Convert integrals into streamable data structures
 // *****************************************************************************
@@ -656,7 +656,7 @@ RieCG::streamable()
 }
 
 void
-RieCG::bndsuped()
+ZalCG::bndsuped()
 // *****************************************************************************
 // Generate superedge-groups for boundary-edge loops
 //! \see See Lohner, Sec. 15.1.6.2, An Introduction to Applied CFD Techniques,
@@ -741,7 +741,7 @@ RieCG::bndsuped()
 }
 
 void
-RieCG::domsuped()
+ZalCG::domsuped()
 // *****************************************************************************
 // Generate superedge-groups for domain-edge loops
 //! \see See Lohner, Sec. 15.1.6.2, An Introduction to Applied CFD Techniques,
@@ -860,7 +860,7 @@ RieCG::domsuped()
 
 void
 // cppcheck-suppress unusedFunction
-RieCG::merge()
+ZalCG::merge()
 // *****************************************************************************
 // Combine own and communicated portions of the integrals
 // *****************************************************************************
@@ -876,14 +876,14 @@ RieCG::merge()
 
   if (Disc()->Initial()) {
     // Output initial conditions to file
-    writeFields( CkCallback(CkIndex_RieCG::start(), thisProxy[thisIndex]) );
+    writeFields( CkCallback(CkIndex_ZalCG::start(), thisProxy[thisIndex]) );
   } else {
     feop_complete();
   }
 }
 
 void
-RieCG::BC( tk::real t )
+ZalCG::BC( tk::real t )
 // *****************************************************************************
 // Apply boundary conditions
 //! \param[in] t Physical time
@@ -903,7 +903,7 @@ RieCG::BC( tk::real t )
 }
 
 void
-RieCG::next()
+ZalCG::next()
 // *****************************************************************************
 // Continue to next time step
 // *****************************************************************************
@@ -912,7 +912,7 @@ RieCG::next()
 }
 
 void
-RieCG::dt()
+ZalCG::dt()
 // *****************************************************************************
 // Compute time step size
 // *****************************************************************************
@@ -954,11 +954,11 @@ RieCG::dt()
 
   // Contribute to minimum dt across all chares and advance to next step
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
-              CkCallback(CkReductionTarget(RieCG,advance), thisProxy) );
+              CkCallback(CkReductionTarget(ZalCG,advance), thisProxy) );
 }
 
 void
-RieCG::advance( tk::real newdt )
+ZalCG::advance( tk::real newdt )
 // *****************************************************************************
 // Advance equations to next time step
 //! \param[in] newdt The smallest dt across the whole problem
@@ -972,7 +972,7 @@ RieCG::advance( tk::real newdt )
 }
 
 void
-RieCG::grad()
+ZalCG::grad()
 // *****************************************************************************
 // Compute gradients for next time step
 // *****************************************************************************
@@ -998,7 +998,7 @@ RieCG::grad()
 }
 
 void
-RieCG::comgrad(
+ZalCG::comgrad(
   const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
 // *****************************************************************************
 //  Receive contributions to node gradients on chare-boundaries
@@ -1021,7 +1021,7 @@ RieCG::comgrad(
 }
 
 void
-RieCG::rhs()
+ZalCG::rhs()
 // *****************************************************************************
 // Compute right-hand side of transport equations
 // *****************************************************************************
@@ -1071,7 +1071,7 @@ RieCG::rhs()
 }
 
 void
-RieCG::comrhs(
+ZalCG::comrhs(
   const std::unordered_map< std::size_t, std::vector< tk::real > >& inrhs )
 // *****************************************************************************
 //  Receive contributions to right-hand side vector on chare-boundaries
@@ -1096,7 +1096,7 @@ RieCG::comrhs(
 
 void
 // cppcheck-suppress unusedFunction
-RieCG::solve()
+ZalCG::solve()
 // *****************************************************************************
 //  Advance systems of equations
 // *****************************************************************************
@@ -1174,7 +1174,7 @@ RieCG::solve()
 }
 
 void
-RieCG::refine( const std::vector< tk::real >& l2res )
+ZalCG::refine( const std::vector< tk::real >& l2res )
 // *****************************************************************************
 // Optionally refine/derefine mesh
 //! \param[in] l2res L2-norms of the residual for each scalar component
@@ -1225,7 +1225,7 @@ RieCG::refine( const std::vector< tk::real >& l2res )
 }
 
 void
-RieCG::resizePostAMR(
+ZalCG::resizePostAMR(
   const std::vector< std::size_t >& /*ginpoel*/,
   const tk::UnsMesh::Chunk& chunk,
   const tk::UnsMesh::Coords& coord,
@@ -1297,7 +1297,7 @@ RieCG::resizePostAMR(
 }
 
 void
-RieCG::writeFields( CkCallback cb )
+ZalCG::writeFields( CkCallback cb )
 // *****************************************************************************
 // Output mesh-based fields to file
 //! \param[in] cb Function to continue with after the write
@@ -1412,7 +1412,7 @@ RieCG::writeFields( CkCallback cb )
 }
 
 void
-RieCG::out()
+ZalCG::out()
 // *****************************************************************************
 // Output mesh field data
 // *****************************************************************************
@@ -1447,14 +1447,14 @@ RieCG::out()
 
   // Field data
   if (d->fielditer() or d->fieldtime() or d->fieldrange() or m_finished) {
-    writeFields( CkCallback(CkIndex_RieCG::integrals(), thisProxy[thisIndex]) );
+    writeFields( CkCallback(CkIndex_ZalCG::integrals(), thisProxy[thisIndex]) );
   } else {
     integrals();
   }
 }
 
 void
-RieCG::integrals()
+ZalCG::integrals()
 // *****************************************************************************
 // Compute integral quantities for output
 // *****************************************************************************
@@ -1491,7 +1491,7 @@ RieCG::integrals()
 }
 
 void
-RieCG::stage()
+ZalCG::stage()
 // *****************************************************************************
 // Evaluate whether to continue with next time step stage
 // *****************************************************************************
@@ -1505,7 +1505,7 @@ RieCG::stage()
 }
 
 void
-RieCG::evalLB( int nrestart )
+ZalCG::evalLB( int nrestart )
 // *****************************************************************************
 // Evaluate whether to do load balancing
 //! \param[in] nrestart Number of times restarted
@@ -1534,7 +1534,7 @@ RieCG::evalLB( int nrestart )
 }
 
 void
-RieCG::evalRestart()
+ZalCG::evalRestart()
 // *****************************************************************************
 // Evaluate whether to save checkpoint/restart
 // *****************************************************************************
@@ -1558,7 +1558,7 @@ RieCG::evalRestart()
 }
 
 void
-RieCG::step()
+ZalCG::step()
 // *****************************************************************************
 // Evaluate whether to continue with next time step
 // *****************************************************************************
@@ -1583,4 +1583,4 @@ RieCG::step()
   }
 }
 
-#include "NoWarning/riecg.def.h"
+#include "NoWarning/zalcg.def.h"

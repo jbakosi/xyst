@@ -18,6 +18,7 @@ module sorter {
 
   extern module meshwriter;
   extern module riecg;
+  extern module zalcg;
 
   namespace inciter {
 
@@ -28,6 +29,7 @@ module sorter {
                     const tk::SorterCallback& cbs,
                     const CProxy_Discretization& discretization,
                     const CProxy_RieCG& riecg,
+                    const CProxy_ZalCG& zalcg,
                     CkCallback reorderRefiner,
                     const std::vector< std::size_t >& ginpoel,
                     const tk::UnsMesh::CoordMap& coordmap,

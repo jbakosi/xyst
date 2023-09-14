@@ -1218,12 +1218,14 @@ Transporter::resume()
     // increased g_nrestart, but only on PE 0, so broadcast.
 
     if (g_cfg.get< tag::solver >() == "riecg") {
-      for (std::size_t i=0; i<m_nelem.size(); ++i)
-        m_riecg[i].evalLB(g_nrestart);
+      for (std::size_t i=0; i<m_nelem.size(); ++i) {
+        m_riecg[i].evalLB( g_nrestart );
+      }
     }
     else if (g_cfg.get< tag::solver >() == "zalcg") {
-      for (std::size_t i=0; i<m_nelem.size(); ++i)
-        m_zalcg[i].evalLB(g_nrestart);
+      for (std::size_t i=0; i<m_nelem.size(); ++i) {
+        m_zalcg[i].evalLB( g_nrestart );
+      }
     }
     else {
       Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );

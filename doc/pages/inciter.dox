@@ -36,7 +36,7 @@ of the numerical method and @ref papers for more details.
 
 @section inciter_pages Related pages
 - @ref inciter_riecg "RieCG hydrodynamics"
-- @ref riecg_performance "RieCG computational performance"
+- @ref riecg_performance "RieCG performance"
 - @ref examples "Examples"
 - @ref papers "Publications"
 - @ref inciter_design "Software design"

@@ -148,6 +148,7 @@ class Main : public CBase_Main {
     try :
       CBase_Main( msg ), m_timer(1)
     {
+      if (CkMyPe() != 0) return;
       tk::setSignalHandlers();
       using inciter::g_cfg;
       // Parse command line after restart

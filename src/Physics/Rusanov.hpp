@@ -13,7 +13,7 @@
 
 #include "Fields.hpp"
 
-namespace physics {
+namespace rusanov {
 
 //! Compute nodal gradients of primitive variables in all points
 void
@@ -43,14 +43,4 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::vector< tk::real >& tp,
      tk::Fields& R );
 
-//! Compute minimum time step size
-tk::real
-dt( const std::vector< tk::real >& vol, const tk::Fields& U );
-
-//! Compute time step size for each mesh node (for steady time stepping)
-void
-dt( const std::vector< tk::real >& vol,
-    const tk::Fields& U,
-    std::vector< tk::real >& dtp );
-
-} // physics::
+} // rusanov::

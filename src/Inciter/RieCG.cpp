@@ -27,6 +27,7 @@
 #include "Reorder.hpp"
 #include "Around.hpp"
 #include "Rusanov.hpp"
+#include "Dt.hpp"
 #include "Problems.hpp"
 #include "EOS.hpp"
 #include "BC.hpp"
@@ -980,7 +981,7 @@ RieCG::grad()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-  physics::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
+  rusanov::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
                  m_u, m_grad );
 
   // Send gradient contributions to neighbor chares
@@ -1049,7 +1050,7 @@ RieCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
   }
 
-  physics::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
+  rusanov::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
     m_bpoin, m_bpint, m_bpsym, d->Coord(), m_grad, m_u, d->V(), d->T(),
     m_tp, m_rhs );
 

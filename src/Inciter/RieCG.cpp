@@ -319,8 +319,9 @@ RieCG::bndint()
          (y[N[0]] + y[N[1]] + y[N[2]]) / 3.0,
          (z[N[0]] + z[N[1]] + z[N[2]]) / 3.0 };
 
-       for (std::size_t j=0; j<3; ++j) {
-         auto p = N[j];
+       for (const auto& [i,j] : tk::lpoet) {
+         auto p = N[i];
+         auto q = N[j];
          tk::real r = invdistsq( centroid, p );
          auto& v = m_bnorm[setid];      // associate side set id
          auto& bpn = v[gid[p]];         // associate global node id of bnd pnt
@@ -332,7 +333,6 @@ RieCG::bndint()
          b[0] += n[0] * A / 3.0;        // bnd-point integral
          b[1] += n[1] * A / 3.0;
          b[2] += n[2] * A / 3.0;
-         auto q = N[ tk::lpoet[j][1] ]; // the other node of bnd edge
          tk::UnsMesh::Edge ed{ gid[p], gid[q] };
          tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
          if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );

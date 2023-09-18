@@ -247,8 +247,8 @@ advedge( const tk::UnsMesh::Coords& coord,
 //! \param[in,out] L Left physics state variables
 //! \param[in,out] R Rigth physics state variables
 //! \param[in,out] f Flux computed
-//! \param[in] symL Non-zero if left edge end-points is  on a symmetry boundary
-//! \param[in] symR Non-zero if right edge end-points is  on a symmetry boundary
+//! \param[in] symL Non-zero if left edge end-point is on a symmetry boundary
+//! \param[in] symR Non-zero if right edge end-point is on a symmetry boundary
 // *****************************************************************************
 {
   #if defined(__clang__)
@@ -583,7 +583,8 @@ adv( const tk::UnsMesh::Coords& coord,
     primitive( ncomp, N[1], U, u[1] );
     // edge fluxes
     tk::real f[ncomp];
-    advedge( coord, G, dsupint[2].data()+e*3, N[0], N[1], u[0], u[1], f );
+    const auto d = dsupint[2].data();
+    advedge( coord, G, d+e*3, N[0], N[1], u[0], u[1], f );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c,0) -= f[c];
@@ -619,7 +620,6 @@ adv( const tk::UnsMesh::Coords& coord,
   // boundary edge contributions: triangle superedges
   for (std::size_t e=0; e<bsupedge[0].size()/6; ++e) {
     const auto N = bsupedge[0].data() + e*6;
-    // primitive variables
     tk::real u[3][ncomp];
     primitive( ncomp, N[0], U, u[0] );
     primitive( ncomp, N[1], U, u[1] );

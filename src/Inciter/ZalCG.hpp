@@ -94,10 +94,6 @@ class ZalCG : public CBase_ZalCG {
     void comnorm( const std::unordered_map< int,
       std::unordered_map< std::size_t, std::array<tk::real,4> > >& inbnd );
 
-    //! Receive contributions to node gradients on chare-boundaries
-    void comgrad( const std::unordered_map< std::size_t,
-                          std::vector< tk::real > >& ingrad );
-
     //! Receive contributions to right-hand side vector on chare-boundaries
     void comrhs( const std::unordered_map< std::size_t,
                          std::vector< tk::real > >& inrhs );
@@ -132,9 +128,6 @@ class ZalCG : public CBase_ZalCG {
     // Evaluate whether to do load balancing
     void evalLB( int nrestart );
 
-    //! Evaluate whether to continue with next time step stage
-    void stage();
-
     //! Continue to next time step
     void next();
 
@@ -149,7 +142,6 @@ class ZalCG : public CBase_ZalCG {
       p | m_nbpint;
       p | m_nbeint;
       p | m_ndeint;
-      p | m_ngrad;
       p | m_bnode;
       p | m_bface;
       p | m_triinpoel;
@@ -160,10 +152,8 @@ class ZalCG : public CBase_ZalCG {
       if (p.isUnpacking()) {
         m_un.resize( m_u.nunk(), m_u.nprop() );
         m_rhs.resize( m_u.nunk(), m_u.nprop() );
-        m_grad.resize( m_u.nunk(), m_u.nprop()*3 );
       }
       p | m_rhsc;
-      p | m_gradc;
       p | m_diag;
       p | m_bnorm;
       p | m_bnormc;
@@ -187,7 +177,6 @@ class ZalCG : public CBase_ZalCG {
       p | m_farbcnodes;
       p | m_farbcnorms;
       p | m_surfint;
-      p | m_stage;
       p | m_dtp;
       p | m_tp;
       p | m_finished;
@@ -211,8 +200,6 @@ class ZalCG : public CBase_ZalCG {
     std::size_t m_nbeint;
     //! Counter for receiving domain edge integrals
     std::size_t m_ndeint;
-    //! Counter for receiving gradients
-    std::size_t m_ngrad;
     //! Boundary node lists mapped to side set ids used in the input file
     std::map< int, std::vector< std::size_t > > m_bnode;
     //! Boundary face lists mapped to side set ids used in the input file
@@ -270,10 +257,6 @@ class ZalCG : public CBase_ZalCG {
     std::array< std::vector< tk::real >, 3 > m_dsupint;
     //! Streamable boundary point symmetry BC flags
     std::vector< std::uint8_t > m_bpsym;
-    //! Gradients in mesh nodes
-    tk::Fields m_grad;
-    //! Gradients receive buffer
-    std::unordered_map< std::size_t, std::vector< tk::real > > m_gradc;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmasks;
     //! Nodes at pressure BCs
@@ -295,8 +278,6 @@ class ZalCG : public CBase_ZalCG {
     //! Streamable surface integral nodes and normals * dA on surfaces
     std::map< int, std::pair< std::vector< std::size_t >,
                               std::vector< tk::real > > > m_surfint;
-    //! Runge-Kutta stage counter
-    std::size_t m_stage;
     //! Time step size for each mesh node
     std::vector< tk::real > m_dtp;
     //! Physical time for each mesh node
@@ -357,9 +338,6 @@ class ZalCG : public CBase_ZalCG {
 
     //! Apply boundary conditions
     void BC( tk::real t );
-
-    //! Compute gradients for next time step
-    void grad();
 
     //! Apply scalar source to solution
     void src();

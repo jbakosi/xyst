@@ -26,7 +26,7 @@
 #include "Refiner.hpp"
 #include "Reorder.hpp"
 #include "Around.hpp"
-#include "Rusanov.hpp"
+#include "Zalesak.hpp"
 #include "Dt.hpp"
 #include "Problems.hpp"
 #include "EOS.hpp"
@@ -37,9 +37,6 @@ namespace inciter {
 extern ctr::Config g_cfg;
 
 static CkReduction::reducerType IntegralsMerger;
-
-//! Runge-Kutta coefficients
-static const std::array< tk::real, 3 > rkcoef{{ 1.0/3.0, 1.0/2.0, 1.0 }};
 
 } // inciter::
 
@@ -56,15 +53,12 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
   m_nbpint( 0 ),
   m_nbeint( 0 ),
   m_ndeint( 0 ),
-  m_ngrad( 0 ),
   m_bnode( bnode ),
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
-  m_grad( m_u.nunk(), m_u.nprop()*3 ),
-  m_stage( 0 ),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
   m_finished( 0 )
@@ -319,8 +313,9 @@ ZalCG::bndint()
          (y[N[0]] + y[N[1]] + y[N[2]]) / 3.0,
          (z[N[0]] + z[N[1]] + z[N[2]]) / 3.0 };
 
-       for (std::size_t j=0; j<3; ++j) {
-         auto p = N[j];
+       for (const auto& [i,j] : tk::lpoet) {
+         auto p = N[i];
+         auto q = N[j];
          tk::real r = invdistsq( centroid, p );
          auto& v = m_bnorm[setid];      // associate side set id
          auto& bpn = v[gid[p]];         // associate global node id of bnd pnt
@@ -332,9 +327,8 @@ ZalCG::bndint()
          b[0] += n[0] * A / 3.0;        // bnd-point integral
          b[1] += n[1] * A / 3.0;
          b[2] += n[2] * A / 3.0;
-         auto q = N[ tk::lpoet[j][1] ]; // the other node of bnd edge
          tk::UnsMesh::Edge ed{ gid[p], gid[q] };
-         tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
+         tk::real sig = 1.0;//ed[0] < ed[1] ? 1.0 : -1.0;
          if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
          auto& e = m_bndedgeint[ ed ];
          e[0] += sig * n[0] * A / 12.0; // bnd-edge integral
@@ -686,7 +680,7 @@ ZalCG::bndsuped()
       decltype(m_bndedgeint)::const_iterator b[3];
       for (const auto& [p,q] : tk::lpoet) {
         tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-        sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+        sig[f] = 1.0;//ed[0] < ed[1] ? 1.0 : -1.0;
         b[f] = m_bndedgeint.find( ed );
         if (b[f] == end(m_bndedgeint)) break; else ++f;
       }
@@ -949,8 +943,7 @@ ZalCG::dt()
 
   }
 
-  // Actiavate SDAG waits for next time step stage
-  thisProxy[ thisIndex ].wait4grad();
+  // Actiavate SDAG waits for next time step
   thisProxy[ thisIndex ].wait4rhs();
 
   // Contribute to minimum dt across all chares and advance to next step
@@ -966,59 +959,10 @@ ZalCG::advance( tk::real newdt )
 // *****************************************************************************
 {
   // Set new time step size
-  if (m_stage == 0) Disc()->setdt( newdt );
+  Disc()->setdt( newdt );
 
-  // Compute gradients for next time step stage
-  grad();
-}
-
-void
-ZalCG::grad()
-// *****************************************************************************
-// Compute gradients for next time step
-// *****************************************************************************
-{
-  auto d = Disc();
-  const auto& lid = d->Lid();
-
-  rusanov::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
-                 m_u, m_grad );
-
-  // Send gradient contributions to neighbor chares
-  if (d->NodeCommMap().empty()) {
-    comgrad_complete();
-  } else {
-    for (const auto& [c,n] : d->NodeCommMap()) {
-      decltype(m_gradc) exp;
-      for (auto g : n) exp[g] = m_grad[ tk::cref_find(lid,g) ];
-      thisProxy[c].comgrad( exp );
-    }
-  }
-
-  owngrad_complete();
-}
-
-void
-ZalCG::comgrad(
-  const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
-// *****************************************************************************
-//  Receive contributions to node gradients on chare-boundaries
-//! \param[in] ingrad Partial contributions to chare-boundary nodes. Key: 
-//!   global mesh node IDs, value: contributions for all scalar components.
-//! \details This function receives contributions to m_grad, which stores the
-//!   gradients at mesh nodes. While m_grad stores own contributions, m_gradc
-//!   collects the neighbor chare contributions during communication. This way
-//!   work on m_grad and m_gradc is overlapped. The two are combined in rhs().
-// *****************************************************************************
-{
-  using tk::operator+=;
-  for (const auto& [g,r] : ingrad) m_gradc[g] += r;
-
-  // When we have heard from all chares we communicate with, this chare is done
-  if (++m_ngrad == Disc()->NodeCommMap().size()) {
-    m_ngrad = 0;
-    comgrad_complete();
-  }
+  // Compute rhs for next time step
+  rhs();
 }
 
 void
@@ -1030,32 +974,17 @@ ZalCG::rhs()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-  // Combine own and communicated contributions to gradients
-  for (const auto& [g,r] : m_gradc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c,0) += r[c];
-  }
-  tk::destroy(m_gradc);
-
-  // divide weak result in gradients by nodal volume
-  const auto& vol = d->Vol();
-  for (std::size_t p=0; p<m_grad.nunk(); ++p)
-    for (std::size_t c=0; c<m_grad.nprop(); ++c)
-      m_grad(p,c,0) /= vol[p];
-
   // Compute own portion of right-hand side for all equations
-  auto prev_rkcoef = m_stage == 0 ? 0.0 : rkcoef[m_stage-1];
 
   if (g_cfg.get< tag::steady >()) {
-    for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
+    for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += m_dtp[p];
   }
 
-  rusanov::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
-    m_bpoin, m_bpint, m_bpsym, d->Coord(), m_grad, m_u, d->V(), d->T(),
-    m_tp, m_rhs );
+  zalesak::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint, m_bpoin, m_bpint,
+    m_bpsym, d->Coord(), m_u, d->V(), d->T(), d->Dt(), m_tp, m_rhs );
 
   if (g_cfg.get< tag::steady >()) {
-    for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= prev_rkcoef * m_dtp[p];
+    for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];
   }
 
   // Communicate rhs to other chares on chare-boundary
@@ -1119,7 +1048,7 @@ ZalCG::solve()
       m_rhs(p,c,0) /= vol[p];
 
   // Update state at time n
-  if (m_stage == 0) m_un = m_u;
+  m_un = m_u;
 
   // Solve the sytem
   if (g_cfg.get< tag::steady >()) {
@@ -1127,14 +1056,14 @@ ZalCG::solve()
     // Advance solution, converging to stationary state
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
       for (std::size_t c=0; c<m_u.nprop(); ++c) {
-        m_u(i,c,0) = m_un(i,c,0) - rkcoef[m_stage] * m_dtp[i] * m_rhs(i,c,0);
+        m_u(i,c,0) = m_un(i,c,0) - m_dtp[i] * m_rhs(i,c,0);
       }
     }
 
   } else {
 
     // Advance non-stationary solution
-    m_u = m_un - rkcoef[m_stage] * d->Dt() * m_rhs;
+    m_u = m_un - d->Dt() * m_rhs;
 
   }
 
@@ -1143,35 +1072,25 @@ ZalCG::solve()
   if (src) src( d->Coord(), d->T(), m_u );
 
   // Enforce boundary conditions
-  BC( d->T() + rkcoef[m_stage] * d->Dt() );
+  BC( d->T() + d->Dt() );
 
-  // Activate SDAG wait for next time step stage
-  thisProxy[ thisIndex ].wait4grad();
+  // Activate SDAG wait for next time step
   thisProxy[ thisIndex ].wait4rhs();
+  // Activate SDAG waits for finishing a this time step
+  thisProxy[ thisIndex ].wait4step();
 
-  if (m_stage < 2) {
-
-    // start next time step stage
-    stage();
-
-  } else {
-
-    // Activate SDAG waits for finishing a this time step stage
-    thisProxy[ thisIndex ].wait4stage();
-    // Compute diagnostics, e.g., residuals
-    auto diag_computed =
-      m_diag.compute( *d, m_u, m_un, g_cfg.get< tag::diag_iter >() );
-    // Increase number of iterations and physical time
-    d->next();
-    // Advance physical time for local time stepping
-    if (g_cfg.get< tag::steady >()) {
-      using tk::operator+=;
-      m_tp += m_dtp;
-    }
-    // Continue to mesh refinement
-    if (!diag_computed) refine( std::vector< tk::real >( m_u.nprop(), 1.0 ) );
-
+  // Compute diagnostics, e.g., residuals
+  auto diag_computed =
+    m_diag.compute( *d, m_u, m_un, g_cfg.get< tag::diag_iter >() );
+  // Increase number of iterations and physical time
+  d->next();
+  // Advance physical time for local time stepping
+  if (g_cfg.get< tag::steady >()) {
+    using tk::operator+=;
+    m_tp += m_dtp;
   }
+  // Continue to mesh refinement
+  if (!diag_computed) refine( std::vector< tk::real >( m_u.nprop(), 1.0 ) );
 }
 
 void
@@ -1269,14 +1188,12 @@ ZalCG::resizePostAMR(
   m_u.rm( removedNodes );
   m_un.rm( removedNodes );
   m_rhs.rm( removedNodes );
-  m_grad.rm( removedNodes );
 
   // Resize auxiliary solution vectors
   auto npoin = coord[0].size();
   m_u.resize( npoin );
   m_un.resize( npoin );
   m_rhs.resize( npoin );
-  m_grad.resize( npoin );
 
   // Update solution on new mesh
   for (const auto& n : addedNodes)
@@ -1492,20 +1409,6 @@ ZalCG::integrals()
 }
 
 void
-ZalCG::stage()
-// *****************************************************************************
-// Evaluate whether to continue with next time step stage
-// *****************************************************************************
-{
-  // Increment Runge-Kutta stage counter
-  ++m_stage;
-
-  // If not all Runge-Kutta stages complete, continue to next time stage,
-  // otherwise output field data to file(s)
-  if (m_stage < 3) grad(); else out();
-}
-
-void
 ZalCG::evalLB( int nrestart )
 // *****************************************************************************
 // Evaluate whether to do load balancing
@@ -1568,8 +1471,6 @@ ZalCG::step()
 
   // Output one-liner status report to screen
   d->status();
-  // Reset Runge-Kutta stage counter
-  m_stage = 0;
 
   if (not m_finished) {
 

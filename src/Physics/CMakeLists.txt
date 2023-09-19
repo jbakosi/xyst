@@ -5,6 +5,7 @@ add_library(Physics
             Dt.cpp
             Problems.cpp
             Rusanov.cpp
+            Zalesak.cpp
 )
 
 target_include_directories(Physics PUBLIC

@@ -33,15 +33,12 @@ module zalcg {
       entry [reductiontarget] void advance( tk::real newdt );
       entry void comnorm( const std::unordered_map< int,
         std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& inbnd );
-      entry void comgrad( const std::unordered_map< std::size_t,
-                                  std::vector< tk::real > >& ingrad );
       entry void comrhs( const std::unordered_map< std::size_t,
                                  std::vector< tk::real > >& inrhs );
       entry void feop();
       entry void step();
       entry void integrals();
       entry void next();
-      entry void stage();
       entry void evalLB( int nrestart );
 
       // SDAG code follows. See http://charm.cs.illinois.edu/manuals/html/
@@ -50,19 +47,14 @@ module zalcg {
       entry void wait4int() {
         when ownnorm_complete(), comnorm_complete() serial "int" { merge(); } }
 
-      entry void wait4grad() {
-        when owngrad_complete(), comgrad_complete() serial "grad" { rhs(); } }
-
       entry void wait4rhs() {
         when ownrhs_complete(), comrhs_complete() serial "rhs" { solve(); } }
 
-      entry void wait4stage() {
-        when feop_complete(), resize_complete() serial "stage" { stage(); } }
+      entry void wait4step() {
+        when feop_complete(), resize_complete() serial "step" { out(); } }
 
       entry void ownnorm_complete();
       entry void comnorm_complete();
-      entry void owngrad_complete();
-      entry void comgrad_complete();
       entry void ownrhs_complete();
       entry void comrhs_complete();
       entry void feop_complete();

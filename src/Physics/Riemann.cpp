@@ -1,12 +1,12 @@
 // *****************************************************************************
 /*!
-  \file      src/Physics/Rusanov.cpp
+  \file      src/Physics/Riemann.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Rusanov, MUSCL, limiting for edge-based continuous Galerkin
+  \brief     Riemann, MUSCL, limiting for edge-based continuous Galerkin
 */
 // *****************************************************************************
 
@@ -14,7 +14,7 @@
 #include "Around.hpp"
 #include "DerivedData.hpp"
 #include "EOS.hpp"
-#include "Rusanov.hpp"
+#include "Riemann.hpp"
 #include "Problems.hpp"
 #include "InciterConfig.hpp"
 
@@ -24,7 +24,7 @@ extern ctr::Config g_cfg;
 
 } // ::inciter
 
-namespace rusanov {
+namespace riemann {
 
 static const tk::real muscl_eps = 1.0e-9;
 static const tk::real muscl_const = 1.0/3.0;
@@ -741,4 +741,4 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   src( coord, v, t, tp, R );
 }
 
-} // rusanov::
+} // riemann::

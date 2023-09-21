@@ -4,7 +4,7 @@ add_library(Physics
             BC.cpp
             Dt.cpp
             Problems.cpp
-            Rusanov.cpp
+            Riemann.cpp
             Zalesak.cpp
 )
 

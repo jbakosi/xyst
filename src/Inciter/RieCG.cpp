@@ -6,7 +6,7 @@
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     RieCG: Rusanov, MUSCL, Runge-Kutta, edge-based continuous Galerkin
+  \brief     RieCG: Riemann, MUSCL, Runge-Kutta, edge-based continuous Galerkin
 */
 // *****************************************************************************
 
@@ -26,7 +26,7 @@
 #include "Refiner.hpp"
 #include "Reorder.hpp"
 #include "Around.hpp"
-#include "Rusanov.hpp"
+#include "Riemann.hpp"
 #include "Dt.hpp"
 #include "Problems.hpp"
 #include "EOS.hpp"
@@ -981,7 +981,7 @@ RieCG::grad()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-  rusanov::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
+  riemann::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
                  m_u, m_grad );
 
   // Send gradient contributions to neighbor chares
@@ -1050,7 +1050,7 @@ RieCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
   }
 
-  rusanov::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
+  riemann::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
     m_bpoin, m_bpint, m_bpsym, d->Coord(), m_grad, m_u, d->V(), d->T(),
     m_tp, m_rhs );
 

@@ -148,9 +148,10 @@ class ZalCG : public CBase_ZalCG {
       p | m_bpoinid;
       p | m_bpoinin;
       p | m_u;
+      p | m_p;
+      p | m_q;
       // do not pup these, will recompute after migration anyway
       if (p.isUnpacking()) {
-        m_un.resize( m_u.nunk(), m_u.nprop() );
         m_rhs.resize( m_u.nunk(), m_u.nprop() );
       }
       p | m_rhsc;
@@ -212,8 +213,10 @@ class ZalCG : public CBase_ZalCG {
     std::vector< tk::real > m_bpoinin;
     //! Unknown/solution vector at mesh nodes
     tk::Fields m_u;
-    //! Unknown/solution vector at mesh nodes at previous time
-    tk::Fields m_un;
+    //! Max/min antidiffusive edge contributions at mesh nodes
+    tk::Fields m_p;
+    //! Max/min allowed limits at mesh nodes
+    tk::Fields m_q;
     //! Right-hand side vector (for the high order system)
     tk::Fields m_rhs;
     //! Receive buffer for communication of the right hand side
@@ -241,7 +244,7 @@ class ZalCG : public CBase_ZalCG {
     std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
                         tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_bndedgeint;
     //! Domain edge integrals
-    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
+    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 4 >,
       tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_domedgeint;
     //! Streamable boundary point local ids
     std::vector< std::size_t > m_bpoin;
@@ -309,10 +312,10 @@ class ZalCG : public CBase_ZalCG {
     //! Convert integrals into streamable data structures
     void streamable();
 
-    //! Generate superedge-groups for boundary-edge loops
+    //! Generate superedge-groups for boundary-edge integrals
     void bndsuped();
 
-    //! Generate superedge-groups for domain-edge loops
+    //! Generate superedge-groups for domain-edge integral
     void domsuped();
 
     //! Output mesh and particle fields to files

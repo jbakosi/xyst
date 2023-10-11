@@ -388,8 +388,9 @@ RieCG::domint()
       tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
       if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
       auto& n = m_domedgeint[ ed ];
-      for (std::size_t j=0; j<3; ++j)
-        n[j] += J48 * sig * (grad[p][j] - grad[q][j]);
+      n[0] += J48 * sig * (grad[p][0] - grad[q][0]);
+      n[1] += J48 * sig * (grad[p][1] - grad[q][1]);
+      n[2] += J48 * sig * (grad[p][2] - grad[q][2]);
     }
   }
 }

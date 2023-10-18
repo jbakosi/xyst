@@ -32,6 +32,15 @@ pressure( double r, double e ) {
   return r * e * (g-1.0);
 }
 
+//! Compute pressure
+//! \param[in] re Specific internal energy times density
+//! \return Pressure computed from the ideal gas equation of state
+inline double
+pressure( double re ) {
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
+  return re * (g-1.0);
+}
+
 //! Calculate speed of sound from the material density and material pressure
 //! \param[in] rho Material density
 //! \param[in] pr Material pressure

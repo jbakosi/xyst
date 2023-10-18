@@ -27,19 +27,11 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const tk::Fields& U,
      const std::vector< tk::real >& v,
+     const std::vector< tk::real >& vol,
      tk::real t,
      tk::real dt,
      const std::vector< tk::real >& tp,
-     tk::Fields& R );
-
-//! Compute minimum time step size
-tk::real
-dt( const std::vector< tk::real >& vol, const tk::Fields& U );
-
-//! Compute time step size for each mesh node (for steady time stepping)
-void
-dt( const std::vector< tk::real >& vol,
-    const tk::Fields& U,
-    std::vector< tk::real >& dtp );
+     tk::Fields& R,
+     const std::vector< std::size_t >& triinpoel );
 
 } // zalesak::

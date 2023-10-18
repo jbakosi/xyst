@@ -92,11 +92,24 @@ class ZalCG : public CBase_ZalCG {
 
     //! Receive contributions to boundary point normals on chare-boundaries
     void comnorm( const std::unordered_map< int,
-      std::unordered_map< std::size_t, std::array<tk::real,4> > >& inbnd );
+      std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& inbnd );
 
     //! Receive contributions to right-hand side vector on chare-boundaries
     void comrhs( const std::unordered_map< std::size_t,
                          std::vector< tk::real > >& inrhs );
+
+    //! Receive antidiffusive and low-order contributions on chare-boundaries
+    void comaec( const std::unordered_map< std::size_t,
+                         std::array< std::vector< tk::real >, 2 > >& inaec );
+
+
+    //! Receive allowed limits contributions on chare-boundaries
+    void comalw( const std::unordered_map< std::size_t,
+                         std::vector< tk::real > >& inalw );
+
+    //! Receive limited antidiffusive contributions on chare-boundaries
+    void comlim( const std::unordered_map< std::size_t,
+                         std::vector< tk::real > >& inlim );
 
     //! Optionally refine/derefine mesh
     void refine( const std::vector< tk::real >& l2res );
@@ -142,14 +155,22 @@ class ZalCG : public CBase_ZalCG {
       p | m_nbpint;
       p | m_nbeint;
       p | m_ndeint;
+      p | m_naec;
+      p | m_nalw;
+      p | m_nlim;
       p | m_bnode;
       p | m_bface;
       p | m_triinpoel;
       p | m_bpoinid;
       p | m_bpoinin;
       p | m_u;
+      p | m_ul;
       p | m_p;
+      p | m_pc;
       p | m_q;
+      p | m_qc;
+      p | m_a;
+      p | m_ac;
       // do not pup these, will recompute after migration anyway
       if (p.isUnpacking()) {
         m_rhs.resize( m_u.nunk(), m_u.nprop() );
@@ -201,6 +222,12 @@ class ZalCG : public CBase_ZalCG {
     std::size_t m_nbeint;
     //! Counter for receiving domain edge integrals
     std::size_t m_ndeint;
+    //! Counter for receiving antidiffusive contributions
+    std::size_t m_naec;
+    //! Counter for receiving allowed limits
+    std::size_t m_nalw;
+    //! Counter for receiving limited antidiffusive contributions
+    std::size_t m_nlim;
     //! Boundary node lists mapped to side set ids used in the input file
     std::map< int, std::vector< std::size_t > > m_bnode;
     //! Boundary face lists mapped to side set ids used in the input file
@@ -213,10 +240,25 @@ class ZalCG : public CBase_ZalCG {
     std::vector< tk::real > m_bpoinin;
     //! Unknown/solution vector at mesh nodes
     tk::Fields m_u;
+    //! Low-order solution at mesh nodes
+    tk::Fields m_ul;
     //! Max/min antidiffusive edge contributions at mesh nodes
     tk::Fields m_p;
+    //! Receive buffer for max/min antidiffusive edge contributions
+    //! \details Key: global node id, value: max/min antidiff edge contributions
+    //!   in nodes.
+    std::unordered_map< std::size_t, std::array<std::vector<tk::real>,2> > m_pc;
     //! Max/min allowed limits at mesh nodes
     tk::Fields m_q;
+    //! Receive buffer for max/min allowed limits
+    //! \details Key: global node id, value: max/min allowed limits in nodes.
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_qc;
+    //! Limited antidiffusive contributions at mesh nodes
+    tk::Fields m_a;
+    //! Receive buffer for limited antidiffusive contributions
+    //! \details Key: global node id, value: limited antidiffusive contributions
+    //!     in nodes.
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_ac;
     //! Right-hand side vector (for the high order system)
     tk::Fields m_rhs;
     //! Receive buffer for communication of the right hand side
@@ -229,7 +271,7 @@ class ZalCG : public CBase_ZalCG {
     //! \details Outer key: side set id. Inner key: global node id of boundary
     //!   point, value: weighted normals, inverse distance square, nodal area.
     std::unordered_map< int,
-      std::unordered_map< std::size_t, std::array<tk::real,4> > > m_bnorm;
+      std::unordered_map< std::size_t, std::array< tk::real, 4 > > > m_bnorm;
     //! Boundary point normals receive buffer
     //! \details Outer key: side set id. Inner key: global node id of boundary
     //!   point, value: weighted normals and inverse distance square.
@@ -237,7 +279,7 @@ class ZalCG : public CBase_ZalCG {
     //! Boundary point integrals
     //! \details Key: global node id of boundary point, value: boundary point
     //!   integral contributions.
-    std::unordered_map< std::size_t, std::array<tk::real,3> > m_bndpoinint;
+    std::unordered_map< std::size_t, std::array< tk::real, 3 > > m_bndpoinint;
     //! Boundary edge integrals
     //! \details Key: boundary edge-end points with global node ids, value:
     //!   boundary edge integral contributions.
@@ -329,6 +371,15 @@ class ZalCG : public CBase_ZalCG {
 
     //! Compute righ-hand side vector of transport equations
     void rhs();
+
+    //! Compute antidiffusive contributions: P+/-,  low-order solution: ul
+    void aec();
+
+    //! Compute allowed limits, Q+/-
+    void alw();
+
+    //! Compute limit coefficients
+    void lim();
 
     //! Advance systems of equations
     void solve();

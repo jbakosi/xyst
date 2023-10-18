@@ -53,12 +53,17 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
   m_nbpint( 0 ),
   m_nbeint( 0 ),
   m_ndeint( 0 ),
+  m_naec( 0 ),
+  m_nalw( 0 ),
+  m_nlim( 0 ),
   m_bnode( bnode ),
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
+  m_ul( m_u.nunk(), m_u.nprop() ),
   m_p( m_u.nunk(), m_u.nprop()*2 ),
   m_q( m_u.nunk(), m_u.nprop()*2 ),
+  m_a( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
@@ -309,8 +314,6 @@ ZalCG::bndint()
        n[1] /= A;
        n[2] /= A;
        A /= 2.0;
-       auto A6 = A/6.0;
-       auto A24 = A/24.0;
        const tk::real centroid[3] = {
          (x[N[0]] + x[N[1]] + x[N[2]]) / 3.0,
          (y[N[0]] + y[N[1]] + y[N[2]]) / 3.0,
@@ -322,20 +325,22 @@ ZalCG::bndint()
          auto q = N[j];
          tk::real r = invdistsq( centroid, p );
          auto& v = m_bnorm[setid];      // associate side set id
-         auto& bpn = v[gid[p]];         // associate global node id of bnd pnt
-         bpn[0] += r * n[0];            // inv.dist.sq-weighted normal
-         bpn[1] += r * n[1];
-         bpn[2] += r * n[2];
-         bpn[3] += r;                   // inv.dist.sq of node from centroid
+         auto& bn = v[gid[p]];          // associate global node id of bnd pnt
+         bn[0] += r * n[0];             // inv.dist.sq-weighted normal
+         bn[1] += r * n[1];
+         bn[2] += r * n[2];
+         bn[3] += r;                    // inv.dist.sq of node from centroid
          auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
-         b[0] += n[0] * A6;             // bnd-point integral
-         b[1] += n[1] * A6;
-         b[2] += n[2] * A6;
+         b[0] += n[0] * A / 3.0;        // bnd-point integral
+         b[1] += n[1] * A / 3.0;
+         b[2] += n[2] * A / 3.0;
          tk::UnsMesh::Edge ed{ gid[p], gid[q] };
+         tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
+         if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
          auto& e = m_bndedgeint[ ed ];
-         e[0] += n[0] * A24;           // bnd-edge integral
-         e[1] += n[1] * A24;
-         e[2] += n[2] * A24;
+         e[0] += sig * n[0] * A / 12.0; // bnd-edge integral
+         e[1] += sig * n[1] * A / 12.0;
+         e[2] += sig * n[2] * A / 12.0;
        }
 
     }
@@ -373,22 +378,25 @@ ZalCG::domint()
     Assert( J > 0, "Element Jacobian non-positive" );
     // shape function derivatives, nnode*ndim [4][3]
     std::array< std::array< tk::real, 3 >, 4 > grad;
-    grad[1] = tk::crossdiv( ca, da, J );
-    grad[2] = tk::crossdiv( da, ba, J );
-    grad[3] = tk::crossdiv( ba, ca, J );
+    grad[1] = tk::cross( ca, da );
+    grad[2] = tk::cross( da, ba );
+    grad[3] = tk::cross( ba, ca );
     for (std::size_t i=0; i<3; ++i)
       grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
     // contribute all edges of tetrahedron
-    auto J48 = J/48.0;
     auto J120 = J/120.0;
     for (const auto& [p,q] : tk::lpoed) {
       tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-      tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
-      if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
+      tk::real sig = 1.0;
+      if (ed[0] > ed[1]) {
+        std::swap( ed[0], ed[1] );
+        sig = -1.0;
+      }
       auto& n = m_domedgeint[ ed ];
-      n[0] += J48 * sig * (grad[p][0] - grad[q][0]);
-      n[1] += J48 * sig * (grad[p][1] - grad[q][1]);
-      n[2] += J48 * sig * (grad[p][2] - grad[q][2]);
+//if (N[p]==13994 || N[q]==13994) std::cout << "dc: " << e << '\n';
+      n[0] += sig * (grad[p][0] - grad[q][0]) / 24.0;
+      n[1] += sig * (grad[p][1] - grad[q][1]) / 24.0;
+      n[2] += sig * (grad[p][2] - grad[q][2]) / 24.0;
       n[3] += J120;
     }
   }
@@ -562,14 +570,16 @@ ZalCG::streamable()
   m_bpoin.resize( m_bndpoinint.size() );
   m_bpsym.resize( m_bndpoinint.size() );
   m_bpint.resize( m_bndpoinint.size() * 3 );
-  std::size_t i = 0;
+  std::size_t k = 0;
   for (const auto& [g,b] : m_bndpoinint) {
-    m_bpoin[i] = tk::cref_find( lid, g );
-    m_bpsym[i] = static_cast< std::uint8_t >(m_symbcnodeset.count(m_bpoin[i]));
-    m_bpint[i*3+0] = b[0];
-    m_bpint[i*3+1] = b[1];
-    m_bpint[i*3+2] = b[2];
-    ++i;
+    auto i = tk::cref_find( lid, g );
+    m_bpoin[k] = i;
+    m_bpsym[k] = static_cast< std::uint8_t >(m_symbcnodeset.count(i));
+    auto n = m_bpint.data() + k*3;
+    n[0] = b[0];
+    n[1] = b[1];
+    n[2] = b[2];
+    ++k;
   }
 
   // Query surface integral output nodes
@@ -677,35 +687,35 @@ ZalCG::bndsuped()
   tk::destroy( m_bsupint[0] );
   tk::destroy( m_bsupint[1] );
 
-  for (const auto& [setid, tri] : m_bface) {
-    for (auto e : tri) {
-      std::size_t N[3] = { m_triinpoel[e*3+0], m_triinpoel[e*3+1],
-                           m_triinpoel[e*3+2] };
-      int f = 0;
-      tk::real sig[3];
-      decltype(m_bndedgeint)::const_iterator b[3];
-      for (const auto& [p,q] : tk::lpoet) {
-        tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-        sig[f] = 1.0;//ed[0] < ed[1] ? 1.0 : -1.0;
-        b[f] = m_bndedgeint.find( ed );
-        if (b[f] == end(m_bndedgeint)) break; else ++f;
-      }
-      if (f == 3) {
-        m_bsupedge[0].push_back( N[0] );
-        m_bsupedge[0].push_back( N[1] );
-        m_bsupedge[0].push_back( N[2] );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[0]) );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[1]) );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[2]) );
-        for (int ed=0; ed<3; ++ed) {
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[0] );
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[1] );
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[2] );
-          m_bndedgeint.erase( b[ed] );
-        }
-      }
-    }
-  }
+  //for (const auto& [setid, tri] : m_bface) {
+  //  for (auto e : tri) {
+  //    std::size_t N[3] = { m_triinpoel[e*3+0], m_triinpoel[e*3+1],
+  //                         m_triinpoel[e*3+2] };
+  //    int f = 0;
+  //    tk::real sig[3];
+  //    decltype(m_bndedgeint)::const_iterator b[3];
+  //    for (const auto& [p,q] : tk::lpoet) {
+  //      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+  //      sig[f] = 1.0;//ed[0] < ed[1] ? 1.0 : -1.0;
+  //      b[f] = m_bndedgeint.find( ed );
+  //      if (b[f] == end(m_bndedgeint)) break; else ++f;
+  //    }
+  //    if (f == 3) {
+  //      m_bsupedge[0].push_back( N[0] );
+  //      m_bsupedge[0].push_back( N[1] );
+  //      m_bsupedge[0].push_back( N[2] );
+  //      m_bsupedge[0].push_back( m_symbcnodeset.count(N[0]) );
+  //      m_bsupedge[0].push_back( m_symbcnodeset.count(N[1]) );
+  //      m_bsupedge[0].push_back( m_symbcnodeset.count(N[2]) );
+  //      for (int ed=0; ed<3; ++ed) {
+  //        m_bsupint[0].push_back( sig[ed] * b[ed]->second[0] );
+  //        m_bsupint[0].push_back( sig[ed] * b[ed]->second[1] );
+  //        m_bsupint[0].push_back( sig[ed] * b[ed]->second[2] );
+  //        m_bndedgeint.erase( b[ed] );
+  //      }
+  //    }
+  //  }
+  //}
 
   m_bsupedge[1].resize( m_bndedgeint.size()*4 );
   m_bsupint[1].resize( m_bndedgeint.size()*3 );
@@ -751,6 +761,9 @@ ZalCG::domsuped()
 {
   Assert( !m_domedgeint.empty(), "No domain edges to group" );
 
+  auto d = Disc();
+  const auto& vol = d->Vol();
+
   #ifndef NDEBUG
   auto nedge = m_domedgeint.size();
   #endif
@@ -767,65 +780,66 @@ ZalCG::domsuped()
   tk::destroy( m_dsupint[1] );
   tk::destroy( m_dsupint[2] );
 
-  tk::UnsMesh::FaceSet untri;
-  for (std::size_t e=0; e<inpoel.size()/4; e++) {
-    std::size_t N[4] = {
-      inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
-    for (const auto& [a,b,c] : tk::lpofa) untri.insert( { N[a], N[b], N[c] } );
-  }
+  //tk::UnsMesh::FaceSet untri;
+  //for (std::size_t e=0; e<inpoel.size()/4; e++) {
+  //  std::size_t N[4] = {
+  //    inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
+  //  for (const auto& [a,b,c] : tk::lpofa) untri.insert( { N[a], N[b], N[c] } );
+  //}
 
-  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    std::size_t N[4] = {
-      inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
-    int f = 0;
-    tk::real sig[6];
-    decltype(m_domedgeint)::const_iterator d[6];
-    for (const auto& [p,q] : tk::lpoed) {
-      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-      sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
-      d[f] = m_domedgeint.find( ed );
-      if (d[f] == end(m_domedgeint)) break; else ++f;
-    }
-    if (f == 6) {
-      m_dsupedge[0].push_back( N[0] );
-      m_dsupedge[0].push_back( N[1] );
-      m_dsupedge[0].push_back( N[2] );
-      m_dsupedge[0].push_back( N[3] );
-      for (const auto& [a,b,c] : tk::lpofa) untri.erase( { N[a], N[b], N[c] } );
-      for (int ed=0; ed<6; ++ed) {
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[0] );
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[1] );
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[2] );
-        m_dsupint[0].push_back( d[ed]->second[3] );
-        m_domedgeint.erase( d[ed] );
-      }
-    }
-  }
+  //for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+  //  std::size_t N[4] = {
+  //    inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
+  //  int f = 0;
+  //  tk::real sig[6];
+  //  decltype(m_domedgeint)::const_iterator d[6];
+  //  for (const auto& [p,q] : tk::lpoed) {
+  //    tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+  //    sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+  //    d[f] = m_domedgeint.find( ed );
+  //    if (d[f] == end(m_domedgeint)) break; else ++f;
+  //  }
+  //  if (f == 6) {
+  //    m_dsupedge[0].push_back( N[0] );
+  //    m_dsupedge[0].push_back( N[1] );
+  //    m_dsupedge[0].push_back( N[2] );
+  //    m_dsupedge[0].push_back( N[3] );
+  //    for (const auto& [a,b,c] : tk::lpofa) untri.erase( { N[a], N[b], N[c] } );
+  //    for (int ed=0; ed<6; ++ed) {
+  //      m_dsupint[0].push_back( sig[ed] * d[ed]->second[0] );
+  //      m_dsupint[0].push_back( sig[ed] * d[ed]->second[1] );
+  //      m_dsupint[0].push_back( sig[ed] * d[ed]->second[2] );
+  //      m_dsupint[0].push_back( d[ed]->second[3] );
+  //      m_domedgeint.erase( d[ed] );
+  //    }
+  //  }
+  //}
 
-  for (const auto& N : untri) {
-    int f = 0;
-    tk::real sig[3];
-    decltype(m_domedgeint)::const_iterator d[3];
-    for (const auto& [p,q] : tk::lpoet) {
-      tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-      sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
-      d[f] = m_domedgeint.find( ed );
-      if (d[f] == end(m_domedgeint)) break; else ++f;
-    }
-    if (f == 3) {
-      m_dsupedge[1].push_back( N[0] );
-      m_dsupedge[1].push_back( N[1] );
-      m_dsupedge[1].push_back( N[2] );
-      for (int ed=0; ed<3; ++ed) {
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[0] );
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[1] );
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[2] );
-        m_dsupint[1].push_back( d[ed]->second[3] );
-        m_domedgeint.erase( d[ed] );
-      }
-    }
-  }
+  //for (const auto& N : untri) {
+  //  int f = 0;
+  //  tk::real sig[3];
+  //  decltype(m_domedgeint)::const_iterator d[3];
+  //  for (const auto& [p,q] : tk::lpoet) {
+  //    tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+  //    sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+  //    d[f] = m_domedgeint.find( ed );
+  //    if (d[f] == end(m_domedgeint)) break; else ++f;
+  //  }
+  //  if (f == 3) {
+  //    m_dsupedge[1].push_back( N[0] );
+  //    m_dsupedge[1].push_back( N[1] );
+  //    m_dsupedge[1].push_back( N[2] );
+  //    for (int ed=0; ed<3; ++ed) {
+  //      m_dsupint[1].push_back( sig[ed] * d[ed]->second[0] );
+  //      m_dsupint[1].push_back( sig[ed] * d[ed]->second[1] );
+  //      m_dsupint[1].push_back( sig[ed] * d[ed]->second[2] );
+  //      m_dsupint[1].push_back( d[ed]->second[3] );
+  //      m_domedgeint.erase( d[ed] );
+  //    }
+  //  }
+  //}
 
+  
   m_dsupedge[2].resize( m_domedgeint.size()*2 );
   m_dsupint[2].resize( m_domedgeint.size()*4 );
   std::size_t k = 0;
@@ -952,8 +966,19 @@ ZalCG::dt()
 
   }
 
+  auto large = std::numeric_limits< tk::real >::max();
+  for (std::size_t i=0; i<m_q.nunk(); ++i) {
+    for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
+       m_q(i,c*2+0,0) = -large;
+       m_q(i,c*2+1,0) = +large;
+    }
+  }
+
   // Actiavate SDAG waits for next time step
   thisProxy[ thisIndex ].wait4rhs();
+  thisProxy[ thisIndex ].wait4aec();
+  thisProxy[ thisIndex ].wait4alw();
+  thisProxy[ thisIndex ].wait4sol();
 
   // Contribute to minimum dt across all chares and advance to next step
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
@@ -990,7 +1015,90 @@ ZalCG::rhs()
   }
 
   zalesak::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint, m_bpoin, m_bpint,
-    m_bpsym, d->Coord(), m_u, d->V(), d->T(), d->Dt(), m_tp, m_rhs );
+    m_bpsym, d->Coord(), m_u, d->V(), d->Vol(), d->T(), d->Dt(), m_tp, m_rhs, m_triinpoel );
+
+
+
+
+  const auto& inpoel = d->Inpoel();
+  const auto& coord = d->Coord();
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+  const auto dt = d->Dt();
+
+  
+  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+    // access node IDs
+    const std::array< std::size_t, 4 >
+      N{{ inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] }};
+    // compute element Jacobi determinant
+    const std::array< tk::real, 3 >
+      ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
+      ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
+      da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
+    const auto J = tk::triple( ba, ca, da );        // J = 6V
+    Assert( J > 0, "Element Jacobian non-positive" );
+    // shape function derivatives, nnode*ndim [4][3]
+    std::array< std::array< tk::real, 3 >, 4 > grad;
+    grad[1] = tk::crossdiv( ca, da, J );
+    grad[2] = tk::crossdiv( da, ba, J );
+    grad[3] = tk::crossdiv( ba, ca, J );
+    for (std::size_t i=0; i<3; ++i)
+      grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
+
+    tk::real p[4];
+    for (std::size_t n=0; n<4; ++n) {
+      auto  r = m_u(N[n],0,0);
+      auto ru = m_u(N[n],1,0);
+      auto rv = m_u(N[n],2,0);
+      auto rw = m_u(N[n],3,0);
+      p[n] = eos::pressure( m_u(N[n],4,0) - 0.5*(ru*ru + rv*rv + rw*rw)/r );
+    }
+ 
+    tk::real ue[5];
+
+    for (std::size_t c=0; c<5; ++c) {
+      ue[c] = 0.0;
+      for (std::size_t a=0; a<4; ++a) {
+        ue[c] += m_u(N[a],c,0);
+      }
+      ue[c] /= 4.0;
+    }
+
+    for (std::size_t j=0; j<3; ++j) {
+      for (std::size_t a=0; a<4; ++a) {
+        ue[0] -= dt/2.0 * grad[a][j] * m_u(N[a],j+1,0);
+        for (std::size_t i=0; i<3; ++i) {
+          ue[i+1] -= dt/2.0 * grad[a][j] * m_u(N[a],j+1,0) *
+                             m_u(N[a],i+1,0) / m_u(N[a],0,0);
+        }
+        ue[j+1] -= dt/2.0 * grad[a][j] * p[a];
+        ue[4] -= dt/2.0 * grad[a][j] *
+                 (m_u(N[a],4,0) + p[a]) * m_u(N[a],j+1,0) / m_u(N[a],0,0);
+      }
+    }
+
+    auto  r = ue[0];
+    auto ru = ue[1]/r;
+    auto rv = ue[2]/r;
+    auto rw = ue[3]/r;
+    auto pr = eos::pressure( ue[4] - 0.5*(ru*ru + rv*rv + rw*rw)/r );
+ 
+    for (std::size_t j=0; j<3; ++j) {
+      for (std::size_t a=0; a<4; ++a) {
+        m_rhs(N[a],0,0) -= J/6.0 * grad[a][j] * ue[j+1];
+        for (std::size_t i=0; i<3; ++i) {
+          m_rhs(N[a],i+1,0) -= J/6.0 * grad[a][j] * ue[j+1] * ue[i+1]/ue[0];
+        }
+        m_rhs(N[a],j+1,0) -= J/6.0 * grad[a][j] * pr;
+        m_rhs(N[a],4,0) -= J/6.0 * grad[a][j] * (ue[4] + pr) * ue[j+1]/ue[0];
+      }
+    }
+  }
+
+
+
 
   if (g_cfg.get< tag::steady >()) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];
@@ -1020,7 +1128,7 @@ ZalCG::comrhs(
 //!   right hand side vector at mesh nodes. While m_rhs stores own
 //!   contributions, m_rhsc collects the neighbor chare contributions during
 //!   communication. This way work on m_rhs and m_rhsc is overlapped. The two
-//!   are combined in solve().
+//!   are combined in aec().
 // *****************************************************************************
 {
   using tk::operator+=;
@@ -1035,17 +1143,15 @@ ZalCG::comrhs(
 
 void
 // cppcheck-suppress unusedFunction
-ZalCG::solve()
+ZalCG::aec()
 // *****************************************************************************
-//  Advance systems of equations
+// Compute antidiffusive contributions: P+/-,  low-order solution: ul
 // *****************************************************************************
 {
   auto d = Disc();
-  auto dt = d->Dt();
-  auto npoin = m_u.nunk();
-  auto ncomp = m_u.nprop();
+  const auto dt = d->Dt();
+  const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
-  const auto& vol = d->Vol();
 
   // Combine own and communicated contributions to rhs
   for (const auto& [g,r] : m_rhsc) {
@@ -1054,70 +1160,235 @@ ZalCG::solve()
   }
   tk::destroy(m_rhsc);
 
-  #if defined(__clang__)
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wvla"
-    #pragma clang diagnostic ignored "-Wvla-extension"
-  #elif defined(STRICT_GNUC)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wvla"
-  #endif
 
-  using std::max;
-  using std::min;
-  using std::abs;
-  using std::swap;
 
-  // antidiffusive contributions: P+/-,  low-order solution: ul
+//      auto re = m_rhs;
+//      re.fill( 0.0 );
+//    
+//     const auto& inpoel = d->Inpoel();
+//     const auto& coord = d->Coord();
+//     const auto& x = coord[0];
+//     const auto& y = coord[1];
+//     const auto& z = coord[2];
+// 
+//     auto eps = std::numeric_limits< tk::real >::epsilon();
+//   
+//     std::vector< tk::real > ue( inpoel.size()/4*ncomp, 0.0 );
+//   
+//     for (std::size_t e=0; e<inpoel.size()/4; ++e)
+//       for (std::size_t c=0; c<ncomp; ++c)
+//         for (std::size_t a=0; a<4; ++a)
+//           ue[e*ncomp+c] += m_u(inpoel[e*4+a],c,0)/4.0;
+//   
+//     for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+//       // access node IDs
+//       const std::array< std::size_t, 4 >
+//         N{{ inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] }};
+//       // compute element Jacobi determinant
+//       const std::array< tk::real, 3 >
+//         ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
+//         ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
+//         da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
+//       const auto J = tk::triple( ba, ca, da );        // J = 6V
+//       Assert( J > 0, "Element Jacobian non-positive" );
+//       // shape function derivatives, nnode*ndim [4][3]
+//       std::array< std::array< tk::real, 3 >, 4 > grad;
+//       grad[1] = tk::crossdiv( ca, da, J );
+//       grad[2] = tk::crossdiv( da, ba, J );
+//       grad[3] = tk::crossdiv( ba, ca, J );
+//       for (std::size_t i=0; i<3; ++i)
+//         grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
+//   
+//       tk::real u[5], pr[4];
+//       for (std::size_t n=0; n<4; ++n) {
+//         u[0] = m_u(N[n],0,0);
+//         u[1] = m_u(N[n],1,0) / u[0];
+//         u[2] = m_u(N[n],2,0) / u[0];
+//         u[3] = m_u(N[n],3,0) / u[0];
+//         u[4] = m_u(N[n],4,0) / u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]);
+//         pr[n] = eos::pressure( u[0], u[4] );
+//       }
+//   
+//       for (std::size_t j=0; j<3; ++j) {
+//         for (std::size_t a=0; a<4; ++a) {
+//           ue[e*ncomp+0] -= dt/2.0 * grad[a][j] * m_u(N[a],j+1,0);
+//           for (std::size_t i=0; i<3; ++i)
+//             ue[e*ncomp+i+1] -= dt/2.0 * grad[a][j] * m_u(N[a],j+1,0) *
+//                                m_u(N[a],i+1,0) / m_u(N[a],0,0);
+//           ue[e*ncomp+j+1] -= dt/2.0 * grad[a][j] * pr[a];
+//           ue[e*ncomp+4] -= dt/2.0 * grad[a][j] *
+//                    (m_u(N[a],4,0) + pr[a]) * m_u(N[a],j+1,0) / m_u(N[a],0,0);
+//         }
+//       }
+//     }
+//   
+//     for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+//       // access node IDs
+//       const std::array< std::size_t, 4 >
+//         N{{ inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] }};
+//       // compute element Jacobi determinant
+//       const std::array< tk::real, 3 >
+//         ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
+//         ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
+//         da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
+//       const auto J = tk::triple( ba, ca, da );        // J = 6V
+//       Assert( J > 0, "Element Jacobian non-positive" );
+//       // shape function derivatives, nnode*ndim [4][3]
+//       std::array< std::array< tk::real, 3 >, 4 > grad;
+//       grad[1] = tk::cross( ca, da );
+//       grad[2] = tk::cross( da, ba );
+//       grad[3] = tk::cross( ba, ca );
+//       for (std::size_t i=0; i<3; ++i)
+//         grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
+//   
+//       tk::real u[5], pr;
+//       u[0] = ue[e*ncomp+0];
+//       u[1] = ue[e*ncomp+1] / u[0];
+//       u[2] = ue[e*ncomp+2] / u[0];
+//       u[3] = ue[e*ncomp+3] / u[0];
+//       u[4] = ue[e*ncomp+4] / u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]);
+//       pr = eos::pressure( u[0], u[4] );
+//   
+//       for (std::size_t j=0; j<3; ++j) {
+//         for (std::size_t a=0; a<4; ++a) {
+// 
+// //if (N[a]==13994) std::cout << "ec:" << e << ": v: " << re(N[a],0,0) << ", add: " << -1.0/6.0 * grad[a][j] * ue[e*ncomp+j+1] << '\n';
+// 
+//           re(N[a],0,0) -= 1.0/6.0 * grad[a][j] * ue[e*ncomp+j+1];
+// 
+//           for (std::size_t i=0; i<3; ++i)
+//             re(N[a],i+1,0) -= 1.0/6.0 * grad[a][j] * ue[e*ncomp+j+1] *
+//                                 ue[e*ncomp+i+1] / ue[e*ncomp+0];
+//           re(N[a],j+1,0) -= 1.0/6.0 * grad[a][j] * pr;
+//           re(N[a],4,0) -= 1.0/6.0 * grad[a][j] * (ue[e*ncomp+4] + pr) *
+//                                 ue[e*ncomp+j+1] / ue[e*ncomp+0];
+//         }
+//       }
+//     }
+// 
+// //  m_rhs = re;
+// 
+// 
+// 
+// //   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+// //     // access node IDs
+// //     const std::array< std::size_t, 4 >
+// //       N{{ inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] }};
+// //     // compute element Jacobi determinant
+// //     const std::array< tk::real, 3 >
+// //       ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
+// //       ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
+// //       da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
+// //     const auto J = tk::triple( ba, ca, da );        // J = 6V
+// //     Assert( J > 0, "Element Jacobian non-positive" );
+// //     // shape function derivatives, nnode*ndim [4][3]
+// //     std::array< std::array< tk::real, 3 >, 4 > grad;
+// //     grad[1] = tk::crossdiv( ca, da, J );
+// //     grad[2] = tk::crossdiv( da, ba, J );
+// //     grad[3] = tk::crossdiv( ba, ca, J );
+// //     for (std::size_t i=0; i<3; ++i)
+// //       grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
+// // 
+// //     tk::real u[ncomp][4], pr[4];
+// //     for (std::size_t n=0; n<4; ++n) {
+// //       u[0][n] = m_u(N[n],0,0);
+// //       u[1][n] = m_u(N[n],1,0) / u[0][n];
+// //       u[2][n] = m_u(N[n],2,0) / u[0][n];
+// //       u[3][n] = m_u(N[n],3,0) / u[0][n];
+// //       u[4][n] = m_u(N[n],4,0) / u[0][n]
+// //                 - 0.5*(u[1][n]*u[1][n] + u[2][n]*u[2][n] + u[3][n]*u[3][n]);
+// //       for (std::size_t c=5; c<ncomp; ++c) u[c][n] = m_u(N[n],c,0);
+// //       pr[n] = eos::pressure( u[0][n], u[4][n] );      
+// //     }
+// // 
+// //     for (std::size_t j=0; j<3; ++j) {
+// //       for (std::size_t a=0; a<4; ++a) {
+// //         for (std::size_t b=0; b<4; ++b) {
+// //           re(N[a],0,0) += J/24.0 * grad[b][j] * m_u(N[b],j+1,0);
+// //           for (std::size_t i=0; i<3; ++i)
+// //             re(N[a],i+1,0) += J/24.0 * grad[b][j] * m_u(N[b],j+1,0) *
+// //                               m_u(N[b],i+1,0) / m_u(N[b],0,0);
+// //           re(N[a],j+1,0) += J/24.0 * grad[b][j] * pr[b];
+// //           re(N[a],4,0) += J/24.0 * grad[b][j] * 
+// //                           (m_u(N[b],4,0) + pr[b]) * m_u(N[b],j+1,0) / m_u(N[b],0,0);
+// //           for (std::size_t c=5; c<ncomp; ++c)
+// //             re(N[a],c,0) += J/24.0 * grad[b][j] * m_u(N[b],c,0) *
+// //                             m_u(N[b],j+1,0) / m_u(N[b],0,0);
+// // 
+// // //if (N[a]==1) {
+// // //  auto contr = J/24.0 * grad[b][j] * m_u(N[b],j+1,0);
+// // //  if (std::abs(contr)>1.0e-15) std::cout << "elem 1: b" << b << ",j" << j << " + " << contr << ", sum: " << re(N[a],0,0) << '\n';
+// // //}
+// // 
+// //         }
+// //       }
+// //     }
+// //   }
+// 
+//  
+//   for (std::size_t c=0; c<ncomp; ++c) {
+//     for (std::size_t i=0; i<x.size(); ++i) {
+//       if (std::abs(x[i]-0.3) < 2.0e-2 &&
+//           std::abs(y[i]-0.2) < 2.0e-2 &&
+//           std::abs(z[i]-0.2) < 2.0e-2)
+//       //if (std::abs(m_rhs(i,c,0) - re(i,c,0)) > 1.0e-4)
+//         std::cout << "r, c:" << c << ", " << i << ", " << x[i] << ", " << y[i] << ", " << z[i] << ": " << m_rhs(i,c,0) << " - " << re(i,c,0) << " = " << m_rhs(i,c,0) - re(i,c,0) << '\n';
+//     }
+//   }
+
+
+
+  m_rhs *= -dt;
+
+  // Antidiffusive contributions: P+/-,  low-order solution: ul
 
   auto ctau = 1.0;
   m_p.fill( 0.0 );
-  m_rhs *= -dt;
-  auto dul = m_rhs;
+  m_ul.fill( 0.0 );
 
-  // tetrahedron superedges
-  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
-    const auto N = m_dsupedge[0].data() + e*4;
-    const auto D = m_dsupint[0].data();
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoed) {
-      auto dif = D[(e*6+i)*4+3];
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto df = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
-        dul(N[p],c,0) -= df;
-        dul(N[q],c,0) += df;
-        auto f = -df + dif * (m_rhs(N[p],c,0) - m_rhs(N[q],c,0));
-        auto a = c*2;
-        auto b = a+1;
-        if (f > 0.0) swap(a,b);
-        m_p(N[p],a,0) -= f;
-        m_p(N[q],b,0) += f;
-      }
-      ++i;
-    }
-  }
-
-  // triangle superedges
-  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
-    const auto N = m_dsupedge[1].data() + e*3;
-    const auto D = m_dsupint[1].data();
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoet) {
-      auto dif = D[(e*3+i)*4+3];
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto df = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
-        dul(N[p],c,0) -= df;
-        dul(N[q],c,0) += df;
-        auto f = -df + dif * (m_rhs(N[p],c,0) - m_rhs(N[q],c,0));
-        auto a = c*2;
-        auto b = a+1;
-        if (f > 0.0) swap(a,b);
-        m_p(N[p],a,0) -= f;
-        m_p(N[q],b,0) += f;
-      }
-      ++i;
-    }
-  }
+//  // tetrahedron superedges
+//  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
+//    const auto N = m_dsupedge[0].data() + e*4;
+//    const auto D = m_dsupint[0].data();
+//    std::size_t i = 0;
+//    for (const auto& [p,q] : tk::lpoed) {
+//      auto dif = D[(e*6+i)*4+3];
+//      for (std::size_t c=0; c<ncomp; ++c) {
+//        auto df = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+//        m_ul(N[p],c,0) -= df;
+//        m_ul(N[q],c,0) += df;
+//        auto f = -df + dif * (m_rhs(N[p],c,0) - m_rhs(N[q],c,0));
+//        auto a = c*2;
+//        auto b = a+1;
+//        if (f > 0.0) std::swap(a,b);
+//        m_p(N[p],a,0) -= f;
+//        m_p(N[q],b,0) += f;
+//      }
+//      ++i;
+//    }
+//  }
+//
+//  // triangle superedges
+//  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
+//    const auto N = m_dsupedge[1].data() + e*3;
+//    const auto D = m_dsupint[1].data();
+//    std::size_t i = 0;
+//    for (const auto& [p,q] : tk::lpoet) {
+//      auto dif = D[(e*3+i)*4+3];
+//      for (std::size_t c=0; c<ncomp; ++c) {
+//        auto df = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+//        m_ul(N[p],c,0) -= df;
+//        m_ul(N[q],c,0) += df;
+//        auto f = -df + dif * (m_rhs(N[p],c,0) - m_rhs(N[q],c,0));
+//        auto a = c*2;
+//        auto b = a+1;
+//        if (f > 0.0) std::swap(a,b);
+//        m_p(N[p],a,0) -= f;
+//        m_p(N[q],b,0) += f;
+//      }
+//      ++i;
+//    }
+//  }
 
   // edges
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
@@ -1125,8 +1396,8 @@ ZalCG::solve()
     const auto dif = m_dsupint[2][e*4+3];
     for (std::size_t c=0; c<ncomp; ++c) {
       auto df = dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
-      dul(N[0],c,0) -= df;
-      dul(N[1],c,0) += df;
+      m_ul(N[0],c,0) -= df;
+      m_ul(N[1],c,0) += df;
       auto f = -df + dif * (m_rhs(N[0],c,0) - m_rhs(N[1],c,0));
       auto a = c*2;
       auto b = a+1;
@@ -1136,19 +1407,89 @@ ZalCG::solve()
     }
   }
 
-  // divide weak result by nodal volume
-  for (std::size_t i=0; i<npoin; ++i)
-    for (std::size_t c=0; c<ncomp; ++c) {
-      dul(i,c,0) /= vol[i];
-      m_p(i,c*2+0,0) /= vol[i];
-      m_p(i,c*2+1,0) /= vol[i];
+  // Communicate antidiffusive edge and low-order solution contributions
+  if (d->NodeCommMap().empty()) {
+    comaec_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      decltype(m_pc) exp;
+      for (auto g : n) {
+        auto i = tk::cref_find( lid, g );
+        auto& e = exp[g];
+        auto p = m_p[i];
+        auto ul = m_ul[i];
+        e[0].insert( end(e[0]), begin(p), end(p) );
+        e[1].insert( end(e[1]), begin(ul), end(ul) );
+      }
+      thisProxy[c].comaec( exp );
     }
+  }
+  ownaec_complete();
+}
 
-  auto ul = m_u + dul;
+void
+ZalCG::comaec( const std::unordered_map< std::size_t,
+                       std::array< std::vector< tk::real >, 2 > >& inaec )
+// *****************************************************************************
+//  Receive antidiffusive and low-order contributions on chare-boundaries
+//! \param[in] inaec Partial contributions of antidiffusive edge and low-order
+//!   solution contributions on chare-boundary nodes. Key: global mesh node IDs,
+//!   value: 0: antidiffusive contributions, 1: low-order solution.
+// *****************************************************************************
+{
+  using tk::operator+=;
+  for (const auto& [g,a] : inaec) {
+    auto& p = m_pc[g];
+    p[0] += a[0];
+    p[1] += a[1];
+  }
 
-  // comm P+/- here ...
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_naec == Disc()->NodeCommMap().size()) {
+    m_naec = 0;
+    comaec_complete();
+  }
+}
 
-  // allowed diffs: Q+/-, 1st pass: node -> edge
+void
+ZalCG::alw()
+// *****************************************************************************
+// Compute allowed limits, Q+/-
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto npoin = m_u.nunk();
+  const auto ncomp = m_u.nprop();
+  const auto& lid = d->Lid();
+  const auto& vol = d->Vol();
+
+  // Combine own and communicated contributions to antidiffusive contributions
+  // and low-order solution
+  for (const auto& [g,p] : m_pc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<p[0].size(); ++c) m_p(i,c,0) += p[0][c];
+    for (std::size_t c=0; c<p[1].size(); ++c) m_ul(i,c,0) += p[1][c];
+  }
+  tk::destroy(m_pc);
+
+  // Finish computing low-order solution
+  for (std::size_t i=0; i<npoin; ++i) {
+    for (std::size_t c=0; c<ncomp; ++c) {
+      m_ul(i,c,0) = m_u(i,c,0) + (m_rhs(i,c,0) + m_ul(i,c,0)) / vol[i];
+    }
+  }
+
+  // Divide weak result by nodal volume
+  for (std::size_t i=0; i<npoin; ++i) {
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      m_p(i,a,0) /= vol[i];
+      m_p(i,b,0) /= vol[i];
+    }
+  }
+
+  // Allowed limits: Q+/-, 1st pass: node -> edge
 
   auto large = std::numeric_limits< tk::real >::max();
 
@@ -1163,43 +1504,46 @@ ZalCG::solve()
     }
   }
 
-  // tetrahedron superedges
-  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
-    const auto N = m_dsupedge[0].data() + e*4;
-    auto S = alw[0].data() + e*6*ncomp*2;
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoed) {
-      auto s = S + i*ncomp*2;
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto a = c*2;
-        auto b = a+1;
-        s[a] = max( s[a], max( ul(N[p],c,0), m_u(N[p],c,0) ) );
-        s[b] = min( s[b], min( ul(N[p],c,0), m_u(N[p],c,0) ) );
-        s[a] = max( s[a], max( ul(N[q],c,0), m_u(N[q],c,0) ) );
-        s[b] = min( s[b], min( ul(N[q],c,0), m_u(N[q],c,0) ) );
-      }
-      ++i;
-    }
-  }
+  using std::max;
+  using std::min;
 
-  // triangle superedges
-  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
-    const auto N = m_dsupedge[1].data() + e*3;
-    auto S = alw[1].data() + e*3*ncomp*2;
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoet) {
-      auto s = S + i*ncomp*2;
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto a = c*2;
-        auto b = a+1;
-        s[a] = max( s[a], max( ul(N[p],c,0), m_u(N[p],c,0) ) );
-        s[b] = min( s[b], min( ul(N[p],c,0), m_u(N[p],c,0) ) );
-        s[a] = max( s[a], max( ul(N[q],c,0), m_u(N[q],c,0) ) );
-        s[b] = min( s[b], min( ul(N[q],c,0), m_u(N[q],c,0) ) );
-      }
-      ++i;
-    }
-  }
+//  // tetrahedron superedges
+//  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
+//    const auto N = m_dsupedge[0].data() + e*4;
+//    auto S = alw[0].data() + e*6*ncomp*2;
+//    std::size_t i = 0;
+//    for (const auto& [p,q] : tk::lpoed) {
+//      auto s = S + i*ncomp*2;
+//      for (std::size_t c=0; c<ncomp; ++c) {
+//        auto a = c*2;
+//        auto b = a+1;
+//        s[a] = max( s[a], max( m_ul(N[p],c,0), m_u(N[p],c,0) ) );
+//        s[b] = min( s[b], min( m_ul(N[p],c,0), m_u(N[p],c,0) ) );
+//        s[a] = max( s[a], max( m_ul(N[q],c,0), m_u(N[q],c,0) ) );
+//        s[b] = min( s[b], min( m_ul(N[q],c,0), m_u(N[q],c,0) ) );
+//      }
+//      ++i;
+//    }
+//  }
+//
+//  // triangle superedges
+//  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
+//    const auto N = m_dsupedge[1].data() + e*3;
+//    auto S = alw[1].data() + e*3*ncomp*2;
+//    std::size_t i = 0;
+//    for (const auto& [p,q] : tk::lpoet) {
+//      auto s = S + i*ncomp*2;
+//      for (std::size_t c=0; c<ncomp; ++c) {
+//        auto a = c*2;
+//        auto b = a+1;
+//        s[a] = max( s[a], max( m_ul(N[p],c,0), m_u(N[p],c,0) ) );
+//        s[b] = min( s[b], min( m_ul(N[p],c,0), m_u(N[p],c,0) ) );
+//        s[a] = max( s[a], max( m_ul(N[q],c,0), m_u(N[q],c,0) ) );
+//        s[b] = min( s[b], min( m_ul(N[q],c,0), m_u(N[q],c,0) ) );
+//      }
+//      ++i;
+//    }
+//  }
 
   // edges
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
@@ -1208,59 +1552,52 @@ ZalCG::solve()
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
-      s[a] = max( s[a], max( ul(N[0],c,0), m_u(N[0],c,0) ) );
-      s[b] = min( s[b], min( ul(N[0],c,0), m_u(N[0],c,0) ) );
-      s[a] = max( s[a], max( ul(N[1],c,0), m_u(N[1],c,0) ) );
-      s[b] = min( s[b], min( ul(N[1],c,0), m_u(N[1],c,0) ) );
+      s[a] = max( s[a], max( m_ul(N[0],c,0), m_u(N[0],c,0) ) );
+      s[b] = min( s[b], min( m_ul(N[0],c,0), m_u(N[0],c,0) ) );
+      s[a] = max( s[a], max( m_ul(N[1],c,0), m_u(N[1],c,0) ) );
+      s[b] = min( s[b], min( m_ul(N[1],c,0), m_u(N[1],c,0) ) );
     }
   }
 
-  // allowed diffs: Q+/-, 2nd pass: edge -> node
+  // Allowed limits: Q+/-, 2nd pass: edge -> node
 
-  for (std::size_t i=0; i<npoin; ++i) {
-    for (std::size_t c=0; c<ncomp; ++c) {
-       m_q(i,c*2+0,0) = -large;
-       m_q(i,c*2+1,0) = +large;
-    }
-  }
-
-  // tetrahedron superedges
-  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
-    const auto N = m_dsupedge[0].data() + e*4;
-    const auto S = alw[0].data() + e*6*ncomp*2;
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoed) {
-      const auto s = S + i*ncomp*2;
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto a = c*2;
-        auto b = a+1;
-        m_q(N[p],a,0) = max( m_q(N[p],a,0), s[a] );
-        m_q(N[p],b,0) = min( m_q(N[p],b,0), s[b] );
-        m_q(N[q],a,0) = max( m_q(N[q],a,0), s[a] );
-        m_q(N[q],b,0) = min( m_q(N[q],b,0), s[b] );
-      }
-      ++i;
-    }
-  }
-
-  // triangle superedges
-  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
-    const auto N = m_dsupedge[1].data() + e*3;
-    const auto S = alw[1].data() + e*3*ncomp*2;
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoet) {
-      const auto s = S + i*ncomp*2;
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto a = c*2;
-        auto b = a+1;
-        m_q(N[p],a,0) = max( m_q(N[p],a,0), s[a] );
-        m_q(N[p],b,0) = min( m_q(N[p],b,0), s[b] );
-        m_q(N[q],a,0) = max( m_q(N[q],a,0), s[a] );
-        m_q(N[q],b,0) = min( m_q(N[q],b,0), s[b] );
-      }
-      ++i;
-    }
-  }
+//  // tetrahedron superedges
+//  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
+//    const auto N = m_dsupedge[0].data() + e*4;
+//    const auto S = alw[0].data() + e*6*ncomp*2;
+//    std::size_t i = 0;
+//    for (const auto& [p,q] : tk::lpoed) {
+//      const auto s = S + i*ncomp*2;
+//      for (std::size_t c=0; c<ncomp; ++c) {
+//        auto a = c*2;
+//        auto b = a+1;
+//        m_q(N[p],a,0) = max( m_q(N[p],a,0), s[a] );
+//        m_q(N[p],b,0) = min( m_q(N[p],b,0), s[b] );
+//        m_q(N[q],a,0) = max( m_q(N[q],a,0), s[a] );
+//        m_q(N[q],b,0) = min( m_q(N[q],b,0), s[b] );
+//      }
+//      ++i;
+//    }
+//  }
+//
+//  // triangle superedges
+//  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
+//    const auto N = m_dsupedge[1].data() + e*3;
+//    const auto S = alw[1].data() + e*3*ncomp*2;
+//    std::size_t i = 0;
+//    for (const auto& [p,q] : tk::lpoet) {
+//      const auto s = S + i*ncomp*2;
+//      for (std::size_t c=0; c<ncomp; ++c) {
+//        auto a = c*2;
+//        auto b = a+1;
+//        m_q(N[p],a,0) = max( m_q(N[p],a,0), s[a] );
+//        m_q(N[p],b,0) = min( m_q(N[p],b,0), s[b] );
+//        m_q(N[q],a,0) = max( m_q(N[q],a,0), s[a] );
+//        m_q(N[q],b,0) = min( m_q(N[q],b,0), s[b] );
+//      }
+//      ++i;
+//    }
+//  }
 
   // edges
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
@@ -1276,16 +1613,93 @@ ZalCG::solve()
     }
   }
 
-  // comm Q+/- here ...
+  // Communicate allowed limits contributions
+  if (d->NodeCommMap().empty()) {
+    comalw_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      decltype(m_qc) exp;
+      for (auto g : n) exp[g] = m_q[ tk::cref_find(lid,g) ];
+      thisProxy[c].comalw( exp );
+    }
+  }
+  ownalw_complete();
+}
 
-  for (std::size_t i=0; i<npoin; ++i) {
-    for (std::size_t c=0; c<ncomp; ++c) {
-      m_q(i,c*2+0,0) -= ul(i,c,0);
-      m_q(i,c*2+1,0) -= ul(i,c,0);
+void
+ZalCG::comalw( const std::unordered_map< std::size_t,
+                       std::vector< tk::real > >& inalw )
+// *****************************************************************************
+//  Receive allowed limits contributions on chare-boundaries
+//! \param[in] inalw Partial contributions of allowed limits contributions on
+//!   chare-boundary nodes. Key: global mesh node IDs, value: allowed limit
+//!   contributions.
+// *****************************************************************************
+{
+  for (const auto& [g,alw] : inalw) {
+    auto& q = m_qc[g];
+    if (q.empty()) {
+      q.resize( alw.size() );
+      auto large = std::numeric_limits< tk::real >::max();
+      for (std::size_t c=0; c<q.size()/2; ++c) {
+        auto a = c*2;
+        auto b = a+1;
+        q[a] = -large;
+        q[b] = +large;
+      }
+    }
+    for (std::size_t c=0; c<alw.size()/2; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      q[a] = std::max( q[a], alw[a] );
+      q[b] = std::min( q[b], alw[b] );
     }
   }
 
-  // limit coefficients, C
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_nalw == Disc()->NodeCommMap().size()) {
+    m_nalw = 0;
+    comalw_complete();
+  }
+}
+
+void
+ZalCG::lim()
+// *****************************************************************************
+// Compute limit coefficients
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto npoin = m_u.nunk();
+  const auto ncomp = m_u.nprop();
+  const auto& lid = d->Lid();
+
+  using std::max;
+  using std::min;
+
+  // Combine own and communicated contributions to allowed limits
+  for (const auto& [g,alw] : m_qc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<alw.size()/2; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      m_q(i,a,0) = max( m_q(i,a,0), alw[a] );
+      m_q(i,b,0) = min( m_q(i,b,0), alw[b] );
+    }
+  }
+  tk::destroy(m_qc);
+
+  // Finish computing allowed limits
+  for (std::size_t i=0; i<npoin; ++i) {
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      m_q(i,a,0) -= m_ul(i,c,0);
+      m_q(i,b,0) -= m_ul(i,c,0);
+    }
+  }
+
+  // Limit coefficients, C
 
   for (std::size_t i=0; i<npoin; ++i) {
     for (std::size_t c=0; c<ncomp; ++c) {
@@ -1300,56 +1714,57 @@ ZalCG::solve()
     }
   }
 
-  // apply limited antidiffusive contributions
+  // Limited antidiffusive contributions
 
-  auto aec = m_rhs;
-  aec.fill( 0.0 );
+  auto ctau = 1.0;
+  m_a.fill( 0.0 );
 
-  // tetrahedron superedges
-  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
-    const auto N = m_dsupedge[0].data() + e*4;
-    const auto D = m_dsupint[0].data();
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoed) {
-      auto dif = D[(e*6+i)*4+3];
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto ap = m_rhs(N[p],c,0) - ctau * m_u(N[p],c,0);
-        auto aq = m_rhs(N[q],c,0) - ctau * m_u(N[q],c,0);
-        auto f = dif * (ap - aq);
-        auto a = c*2;
-        auto b = a+1;
-        auto l = min( f < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                      f > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
-        f *= l;
-        aec(N[p],c,0) -= f;
-        aec(N[q],c,0) += f;
-      }
-      ++i;
-    }
-  }
+//  // tetrahedron superedges
+//  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
+//    const auto N = m_dsupedge[0].data() + e*4;
+//    const auto D = m_dsupint[0].data();
+//    std::size_t i = 0;
+//    for (const auto& [p,q] : tk::lpoed) {
+//      auto dif = D[(e*6+i)*4+3];
+//      for (std::size_t c=0; c<ncomp; ++c) {
+//        auto ap = m_rhs(N[p],c,0) - ctau * m_u(N[p],c,0);
+//        auto aq = m_rhs(N[q],c,0) - ctau * m_u(N[q],c,0);
+//        auto f = dif * (ap - aq);
+//        auto a = c*2;
+//        auto b = a+1;
+//        auto l = min( f < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
+//                      f > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+//        f *= l;
+//        m_a(N[p],c,0) -= f;
+//        m_a(N[q],c,0) += f;
+//      }
+//      ++i;
+//    }
+//  }
+//
+//  // triangle superedges
+//  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
+//    const auto N = m_dsupedge[1].data() + e*3;
+//    const auto D = m_dsupint[1].data();
+//    std::size_t i = 0;
+//    for (const auto& [p,q] : tk::lpoet) {
+//      auto dif = D[(e*3+i)*4+3];
+//      for (std::size_t c=0; c<ncomp; ++c) {
+//        auto ap = m_rhs(N[p],c,0) - ctau * m_u(N[p],c,0);
+//        auto aq = m_rhs(N[q],c,0) - ctau * m_u(N[q],c,0);
+//        auto f = dif * (ap - aq);
+//        auto a = c*2;
+//        auto b = a+1;
+//        auto l = min( f < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
+//                      f > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+//        f *= l;
+//        m_a(N[p],c,0) -= f;
+//        m_a(N[q],c,0) += f;
+//      }
+//      ++i;
+//    }
+//  }
 
-  // triangle superedges
-  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
-    const auto N = m_dsupedge[1].data() + e*3;
-    const auto D = m_dsupint[1].data();
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoet) {
-      auto dif = D[(e*3+i)*4+3];
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto ap = m_rhs(N[p],c,0) - ctau * m_u(N[p],c,0);
-        auto aq = m_rhs(N[q],c,0) - ctau * m_u(N[q],c,0);
-        auto f = dif * (ap - aq);
-        auto a = c*2;
-        auto b = a+1;
-        auto l = min( f < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                      f > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
-        f *= l;
-        aec(N[p],c,0) -= f;
-        aec(N[q],c,0) += f;
-      }
-      ++i;
-    }
-  }
 
   // edges
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
@@ -1364,33 +1779,73 @@ ZalCG::solve()
       auto l = min( f < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
                     f > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
       f *= l;
-      aec(N[0],c,0) -= f;
-      aec(N[1],c,0) += f;
+      m_a(N[0],c,0) -= f;
+      m_a(N[1],c,0) += f;
     }
   }
+
+  // Communicate limited antidiffusive contributions
+  if (d->NodeCommMap().empty()) {
+    comlim_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      decltype(m_ac) exp;
+      for (auto g : n) exp[g] = m_a[ tk::cref_find(lid,g) ];
+      thisProxy[c].comlim( exp );
+    }
+  }
+  ownlim_complete();
+}
+
+void
+ZalCG::comlim( const std::unordered_map< std::size_t,
+                       std::vector< tk::real > >& inlim )
+// *****************************************************************************
+//  Receive limited antidiffusive contributions on chare-boundaries
+//! \param[in] inlim Partial contributions of limited contributions on
+//!   chare-boundary nodes. Key: global mesh node IDs, value: limited
+//!   contributions.
+// *****************************************************************************
+{
+  using tk::operator+=;
+  for (const auto& [g,a] : inlim) m_ac[g] += a;
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_nlim == Disc()->NodeCommMap().size()) {
+    m_nlim = 0;
+    comlim_complete();
+  }
+}
+
+void
+ZalCG::solve()
+// *****************************************************************************
+// Compute limit coefficients
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto npoin = m_u.nunk();
+  const auto ncomp = m_u.nprop();
+  const auto& lid = d->Lid();
+  const auto& vol = d->Vol();
+
+  // Combine own and communicated contributions to limited antidiffusive
+  // contributions
+  for (const auto& [g,r] : m_ac) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_a(i,c,0) += r[c];
+  }
+  tk::destroy(m_ac);
 
   // divide weak result in rhs by nodal volume
   for (std::size_t i=0; i<npoin; ++i)
     for (std::size_t c=0; c<ncomp; ++c)
-      aec(i,c,0) /= vol[i];
+      m_rhs(i,c,0) /= vol[i];
 
-
+  // Update solution
   auto un = m_u;
-  m_u = ul + aec;
-
-  //m_u = ul;
-
-  //// divide weak result in rhs by nodal volume
-  //for (std::size_t i=0; i<npoin; ++i)
-  //  for (std::size_t c=0; c<ncomp; ++c)
-  //    m_rhs(i,c,0) /= vol[i];
-  //m_u = un + m_rhs;
-
-  #if defined(__clang__)
-    #pragma clang diagnostic pop
-  #elif defined(STRICT_GNUC)
-    #pragma GCC diagnostic pop
-  #endif
+  //m_u = m_ul + m_a;
+  m_u = m_u + m_rhs;
 
   // Configure and apply scalar source to solution (if defined)
   auto src = problems::PHYS_SRC();
@@ -1401,6 +1856,9 @@ ZalCG::solve()
 
   // Activate SDAG wait for next time step
   thisProxy[ thisIndex ].wait4rhs();
+  thisProxy[ thisIndex ].wait4aec();
+  thisProxy[ thisIndex ].wait4alw();
+  thisProxy[ thisIndex ].wait4sol();
   // Activate SDAG waits for finishing a this time step
   thisProxy[ thisIndex ].wait4step();
 
@@ -1415,7 +1873,7 @@ ZalCG::solve()
     m_tp += m_dtp;
   }
   // Continue to mesh refinement
-  if (!diag_computed) refine( std::vector< tk::real >( m_u.nprop(), 1.0 ) );
+  if (!diag_computed) refine( std::vector< tk::real >( ncomp, 1.0 ) );
 }
 
 void
@@ -1497,6 +1955,7 @@ ZalCG::resizePostAMR(
 // *****************************************************************************
 {
   auto d = Disc();
+  auto ncomp = m_u.nprop();
 
   d->Itf() = 0;  // Zero field output iteration count if AMR
   ++d->Itr();    // Increase number of iterations with a change in the mesh
@@ -1520,7 +1979,7 @@ ZalCG::resizePostAMR(
 
   // Update solution on new mesh
   for (const auto& n : addedNodes)
-    for (std::size_t c=0; c<m_u.nprop(); ++c) {
+    for (std::size_t c=0; c<ncomp; ++c) {
       Assert(n.first < m_u.nunk(), "Added node index out of bounds post-AMR");
       Assert(n.second[0] < m_u.nunk() && n.second[1] < m_u.nunk(),
         "Indices of parent-edge nodes out of bounds post-AMR");

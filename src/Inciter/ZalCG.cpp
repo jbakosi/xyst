@@ -1015,90 +1015,7 @@ ZalCG::rhs()
   }
 
   zalesak::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint, m_bpoin, m_bpint,
-    m_bpsym, d->Coord(), m_u, d->V(), d->Vol(), d->T(), d->Dt(), m_tp, m_rhs, m_triinpoel );
-
-
-
-
-  const auto& inpoel = d->Inpoel();
-  const auto& coord = d->Coord();
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-  const auto dt = d->Dt();
-
-  
-  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    // access node IDs
-    const std::array< std::size_t, 4 >
-      N{{ inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] }};
-    // compute element Jacobi determinant
-    const std::array< tk::real, 3 >
-      ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
-      ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
-      da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
-    const auto J = tk::triple( ba, ca, da );        // J = 6V
-    Assert( J > 0, "Element Jacobian non-positive" );
-    // shape function derivatives, nnode*ndim [4][3]
-    std::array< std::array< tk::real, 3 >, 4 > grad;
-    grad[1] = tk::crossdiv( ca, da, J );
-    grad[2] = tk::crossdiv( da, ba, J );
-    grad[3] = tk::crossdiv( ba, ca, J );
-    for (std::size_t i=0; i<3; ++i)
-      grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
-
-    tk::real p[4];
-    for (std::size_t n=0; n<4; ++n) {
-      auto  r = m_u(N[n],0,0);
-      auto ru = m_u(N[n],1,0);
-      auto rv = m_u(N[n],2,0);
-      auto rw = m_u(N[n],3,0);
-      p[n] = eos::pressure( m_u(N[n],4,0) - 0.5*(ru*ru + rv*rv + rw*rw)/r );
-    }
- 
-    tk::real ue[5];
-
-    for (std::size_t c=0; c<5; ++c) {
-      ue[c] = 0.0;
-      for (std::size_t a=0; a<4; ++a) {
-        ue[c] += m_u(N[a],c,0);
-      }
-      ue[c] /= 4.0;
-    }
-
-    for (std::size_t j=0; j<3; ++j) {
-      for (std::size_t a=0; a<4; ++a) {
-        ue[0] -= dt/2.0 * grad[a][j] * m_u(N[a],j+1,0);
-        for (std::size_t i=0; i<3; ++i) {
-          ue[i+1] -= dt/2.0 * grad[a][j] * m_u(N[a],j+1,0) *
-                             m_u(N[a],i+1,0) / m_u(N[a],0,0);
-        }
-        ue[j+1] -= dt/2.0 * grad[a][j] * p[a];
-        ue[4] -= dt/2.0 * grad[a][j] *
-                 (m_u(N[a],4,0) + p[a]) * m_u(N[a],j+1,0) / m_u(N[a],0,0);
-      }
-    }
-
-    auto  r = ue[0];
-    auto ru = ue[1]/r;
-    auto rv = ue[2]/r;
-    auto rw = ue[3]/r;
-    auto pr = eos::pressure( ue[4] - 0.5*(ru*ru + rv*rv + rw*rw)/r );
- 
-    for (std::size_t j=0; j<3; ++j) {
-      for (std::size_t a=0; a<4; ++a) {
-        m_rhs(N[a],0,0) -= J/6.0 * grad[a][j] * ue[j+1];
-        for (std::size_t i=0; i<3; ++i) {
-          m_rhs(N[a],i+1,0) -= J/6.0 * grad[a][j] * ue[j+1] * ue[i+1]/ue[0];
-        }
-        m_rhs(N[a],j+1,0) -= J/6.0 * grad[a][j] * pr;
-        m_rhs(N[a],4,0) -= J/6.0 * grad[a][j] * (ue[4] + pr) * ue[j+1]/ue[0];
-      }
-    }
-  }
-
-
-
+    m_bpsym, d->Coord(), m_u, d->V(), d->T(), d->Dt(), m_tp, m_rhs, m_triinpoel );
 
   if (g_cfg.get< tag::steady >()) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];
@@ -1398,7 +1315,7 @@ ZalCG::aec()
       auto df = dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
       m_ul(N[0],c,0) -= df;
       m_ul(N[1],c,0) += df;
-      auto f = -df + dif * (m_rhs(N[0],c,0) - m_rhs(N[1],c,0));
+      auto f = -df;
       auto a = c*2;
       auto b = a+1;
       if (f > 0.0) std::swap(a,b);
@@ -1771,8 +1688,8 @@ ZalCG::lim()
     const auto N = m_dsupedge[2].data() + e*2;
     const auto dif = m_dsupint[2][e*4+3];
     for (std::size_t c=0; c<ncomp; ++c) {
-      auto ap = m_rhs(N[0],c,0) - ctau * m_u(N[0],c,0);
-      auto aq = m_rhs(N[1],c,0) - ctau * m_u(N[1],c,0);
+      auto ap = -ctau * m_u(N[0],c,0);
+      auto aq = -ctau * m_u(N[1],c,0);
       auto f = dif * (ap - aq);
       auto a = c*2;
       auto b = a+1;
@@ -1840,12 +1757,11 @@ ZalCG::solve()
   // divide weak result in rhs by nodal volume
   for (std::size_t i=0; i<npoin; ++i)
     for (std::size_t c=0; c<ncomp; ++c)
-      m_rhs(i,c,0) /= vol[i];
+      m_a(i,c,0) /= vol[i];
 
   // Update solution
   auto un = m_u;
-  //m_u = m_ul + m_a;
-  m_u = m_u + m_rhs;
+  m_u = m_ul + m_a;
 
   // Configure and apply scalar source to solution (if defined)
   auto src = problems::PHYS_SRC();

@@ -36,8 +36,8 @@ advedge( const tk::real supint[],
          const tk::Fields& U,
          const std::array< std::vector< tk::real >, 3 >& coord,
          tk::real dt,
-         const std::vector< tk::real >& vol,
-         const std::size_t N[],
+         std::size_t p,
+         std::size_t q,
          tk::real f[] )
 // *****************************************************************************
 //! Compute advection fluxes on a single edge
@@ -53,24 +53,19 @@ advedge( const tk::real supint[],
   const auto& y = coord[1];
   const auto& z = coord[2];
 
-  auto p = N[0];
-  auto q = N[1];
-  auto volL = 1.0;//vol[p]/4.0;
-  auto volR = 1.0;//vol[q]/4.0;
-
   // integral coefficient
   auto nx = supint[0];
   auto ny = supint[1];
   auto nz = supint[2];
 
   // edge vector
-  auto dx = supint[3];//x[p] - x[q];
-  auto dy = supint[4];//y[p] - y[q];
-  auto dz = supint[5];//z[p] - z[q];
-  //auto dl = dx*dx + dy*dy + dz*dz;
-  //dx /= supint[3];//dl;
-  //dy /= supint[3];//dl;
-  //dz /= supint[3];//dl;
+  auto dx = x[p] - x[q];
+  auto dy = y[p] - y[q];
+  auto dz = z[p] - z[q];
+  auto dl = dx*dx + dy*dy + dz*dz;
+  dx /= dl;
+  dy /= dl;
+  dz /= dl;
 
   // left state
   auto rL  = U(p,0,0);
@@ -79,7 +74,7 @@ advedge( const tk::real supint[],
   auto rwL = U(p,3,0);
   auto reL = U(p,4,0);
   auto pL = eos::pressure( reL - 0.5*(ruL*ruL + rvL*rvL + rwL*rwL)/rL );
-  auto dnL = (ruL*dx + rvL*dy + rwL*dz)/rL/volL;
+  auto dnL = (ruL*dx + rvL*dy + rwL*dz)/rL;
 
   // right state
   auto rR  = U(q,0,0);
@@ -88,10 +83,10 @@ advedge( const tk::real supint[],
   auto rwR = U(q,3,0);
   auto reR = U(q,4,0);
   auto pR = eos::pressure( reR - 0.5*(ruR*ruR + rvR*rvR + rwR*rwR)/rR );
-  auto dnR = (ruR*dx + rvR*dy + rwR*dz)/rR/volR;
+  auto dnR = (ruR*dx + rvR*dy + rwR*dz)/rR;
 
   // flow fluxes
-  auto dp = pL/volL - pR/volR;
+  auto dp = pL - pR;
   auto rh  = 0.5*(rL + rR - dt*(rL*dnL - rR*dnR));
   auto ruh = 0.5*(ruL + ruR - dt*(ruL*dnL - ruR*dnR + dp*dx));
   auto rvh = 0.5*(rvL + rvR - dt*(rvL*dnL - rvR*dnR + dp*dy));
@@ -123,7 +118,6 @@ adv( const std::vector< std::size_t >& bpoin,
      const std::array< std::vector< std::size_t >, 2 >& bsupedge,
      const std::array< std::vector< tk::real >, 2 >& bsupint,
      const std::array< std::vector< tk::real >, 3 >& coord,
-     const std::vector< tk::real >& vol,
      tk::real dt,
      const tk::Fields& U,
      // cppcheck-suppress constParameter
@@ -200,11 +194,9 @@ adv( const std::vector< std::size_t >& bpoin,
     // edge fluxes
     tk::real f[ncomp];
     const auto d = dsupint[2].data();
-    advedge( d+e*4, U, coord, dt, vol, N, f );
+    advedge( d+e*4, U, coord, dt, N[0], N[1], f );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
-//if (c==0 && N[0]==13994) std::cout << "d: v: " << R(N[0],c,0) << ", -: " << f[c] << '\n';
-//if (c==0 && N[1]==13994) std::cout << "d: v: " << R(N[1],c,0) << ", +: " << f[c] << '\n';
       R(N[0],c,0) -= f[c];
       R(N[1],c,0) += f[c];
     }
@@ -212,93 +204,93 @@ adv( const std::vector< std::size_t >& bpoin,
 
   // boundary integrals
 
-  // boundary point contributions
-  for (std::size_t b=0; b<bpoin.size(); ++b) {
-    auto i = bpoin[b];
-    auto r = U(i,0,0);
-    auto ru = U(i,1,0);
-    auto rv = U(i,2,0);
-    auto rw = U(i,3,0);
-    auto re = U(i,4,0);
-    auto p = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
-    const auto n = bpint.data() + b*3;
-    auto nx = n[0];
-    auto ny = n[1];
-    auto nz = n[2];
-    auto vn = bpsym[b] ? 0.0 : (ru*nx + rv*ny + rw*nz)/r;
-//if (i==13994) std::cout << "p: + " << U(i,0,0)*vn << '\n';
-    R(i,0,0) += r*vn;
-    R(i,1,0) += ru*vn + p*nx;
-    R(i,2,0) += rv*vn + p*ny;
-    R(i,3,0) += rw*vn + p*nz;
-    R(i,4,0) += (re + p)*vn;
-    for (std::size_t c=5; c<ncomp; ++c) {
-      R(i,c,0) += U(i,c,0)*vn;
-    }
-  }
- 
-  //// boundary edge contributions: triangle superedges
-  //for (std::size_t e=0; e<bsupedge[0].size()/6; ++e) {
-  //  const auto N = bsupedge[0].data() + e*6;
-  //  // edge fluxes
-  //  tk::real f[3][ncomp];
-  //  const auto b = bsupint[0].data();
-  //  advedge( b+(e*3+0)*3, U, coord, dt, N[0], N[1], f[0], N[3], N[4] );
-  //  advedge( b+(e*3+1)*3, U, coord, dt, N[1], N[2], f[1], N[4], N[5] );
-  //  advedge( b+(e*3+2)*3, U, coord, dt, N[2], N[0], f[2], N[5], N[3] );
-  //  // edge flux contributions
-  //  for (std::size_t c=0; c<ncomp; ++c) {
-  //    R(N[0],c,0) += f[0][c] + f[2][c];
-  //    R(N[1],c,0) += f[0][c] + f[1][c];
-  //    R(N[2],c,0) += f[1][c] + f[2][c];
-  //  }
-  //}
- 
-  // boundary edge contributions: edges
-  for (std::size_t e=0; e<bsupedge[1].size()/4; ++e) {
-    const auto N = bsupedge[1].data() + e*4;
-    const auto n = bsupint[1].data() + e*3;
-    auto nx = n[0];
-    auto ny = n[1];
-    auto nz = n[2];
- 
-    auto p = N[0];
-    auto rL  = U(p,0,0);
-    auto ruL = U(p,1,0);
-    auto rvL = U(p,2,0);
-    auto rwL = U(p,3,0);
-    auto reL = U(p,4,0);
-    auto pL = eos::pressure( reL - 0.5*(ruL*ruL + rvL*rvL + rwL*rwL)/rL );
-    auto vnL = N[2] ? 0.0 : (nx*ruL + ny*rvL + nz*rwL)/rL;
- 
-    auto q = N[1];
-    auto rR  = U(q,0,0);
-    auto ruR = U(q,1,0);
-    auto rvR = U(q,2,0);
-    auto rwR = U(q,3,0);
-    auto reR = U(q,4,0);
-    auto pR = eos::pressure( reR - 0.5*(ruR*ruR + rvR*rvR + rwR*rwR)/rR );
-    auto vnR = N[3] ? 0.0 : (nx*ruR + ny*rvR + nz*rwR)/rR;
- 
-    tk::real f[ncomp];
-    auto p2 = pL + pR;
-    f[0] = rL*vnL + rR*vnR;
-    f[1] = ruL*vnL + ruR*vnR + p2*nx;
-    f[2] = rvL*vnL + rvR*vnR + p2*ny;
-    f[3] = rwL*vnL + rwR*vnR + p2*nz;
-    f[4] = (reL + pL)*vnL + (reR + pR)*vnR;
- 
-    for (std::size_t c=5; c<ncomp; ++c) {
-      f[c] = U(p,c,0)*vnL + U(q,c,0)*vnR;
-    }
-
-    for (std::size_t c=0; c<ncomp; ++c) {
-//if (c==0 && N[0]==13994) std::cout << "b: - " << f[c] << '\n';
-//if (c==0 && N[1]==13994) std::cout << "b: + " << f[c] << '\n';
-      R(p,c,0) -= f[c];
-      R(q,c,0) += f[c];
-    }
-  }
+//   // boundary point contributions
+//   for (std::size_t b=0; b<bpoin.size(); ++b) {
+//     auto i = bpoin[b];
+//     auto r = U(i,0,0);
+//     auto ru = U(i,1,0);
+//     auto rv = U(i,2,0);
+//     auto rw = U(i,3,0);
+//     auto re = U(i,4,0);
+//     auto p = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
+//     const auto n = bpint.data() + b*3;
+//     auto nx = n[0];
+//     auto ny = n[1];
+//     auto nz = n[2];
+//     auto vn = bpsym[b] ? 0.0 : (ru*nx + rv*ny + rw*nz)/r;
+// //if (i==13994) std::cout << "p: + " << U(i,0,0)*vn << '\n';
+//     R(i,0,0) += r*vn;
+//     R(i,1,0) += ru*vn + p*nx;
+//     R(i,2,0) += rv*vn + p*ny;
+//     R(i,3,0) += rw*vn + p*nz;
+//     R(i,4,0) += (re + p)*vn;
+//     for (std::size_t c=5; c<ncomp; ++c) {
+//       R(i,c,0) += U(i,c,0)*vn;
+//     }
+//   }
+//  
+//   //// boundary edge contributions: triangle superedges
+//   //for (std::size_t e=0; e<bsupedge[0].size()/6; ++e) {
+//   //  const auto N = bsupedge[0].data() + e*6;
+//   //  // edge fluxes
+//   //  tk::real f[3][ncomp];
+//   //  const auto b = bsupint[0].data();
+//   //  advedge( b+(e*3+0)*3, U, coord, dt, N[0], N[1], f[0], N[3], N[4] );
+//   //  advedge( b+(e*3+1)*3, U, coord, dt, N[1], N[2], f[1], N[4], N[5] );
+//   //  advedge( b+(e*3+2)*3, U, coord, dt, N[2], N[0], f[2], N[5], N[3] );
+//   //  // edge flux contributions
+//   //  for (std::size_t c=0; c<ncomp; ++c) {
+//   //    R(N[0],c,0) += f[0][c] + f[2][c];
+//   //    R(N[1],c,0) += f[0][c] + f[1][c];
+//   //    R(N[2],c,0) += f[1][c] + f[2][c];
+//   //  }
+//   //}
+//  
+//   // boundary edge contributions: edges
+//   for (std::size_t e=0; e<bsupedge[1].size()/4; ++e) {
+//     const auto N = bsupedge[1].data() + e*4;
+//     const auto n = bsupint[1].data() + e*3;
+//     auto nx = n[0];
+//     auto ny = n[1];
+//     auto nz = n[2];
+//  
+//     auto p = N[0];
+//     auto rL  = U(p,0,0);
+//     auto ruL = U(p,1,0);
+//     auto rvL = U(p,2,0);
+//     auto rwL = U(p,3,0);
+//     auto reL = U(p,4,0);
+//     auto pL = eos::pressure( reL - 0.5*(ruL*ruL + rvL*rvL + rwL*rwL)/rL );
+//     auto vnL = N[2] ? 0.0 : (nx*ruL + ny*rvL + nz*rwL)/rL;
+//  
+//     auto q = N[1];
+//     auto rR  = U(q,0,0);
+//     auto ruR = U(q,1,0);
+//     auto rvR = U(q,2,0);
+//     auto rwR = U(q,3,0);
+//     auto reR = U(q,4,0);
+//     auto pR = eos::pressure( reR - 0.5*(ruR*ruR + rvR*rvR + rwR*rwR)/rR );
+//     auto vnR = N[3] ? 0.0 : (nx*ruR + ny*rvR + nz*rwR)/rR;
+//  
+//     tk::real f[ncomp];
+//     auto p2 = pL + pR;
+//     f[0] = rL*vnL + rR*vnR;
+//     f[1] = ruL*vnL + ruR*vnR + p2*nx;
+//     f[2] = rvL*vnL + rvR*vnR + p2*ny;
+//     f[3] = rwL*vnL + rwR*vnR + p2*nz;
+//     f[4] = (reL + pL)*vnL + (reR + pR)*vnR;
+//  
+//     for (std::size_t c=5; c<ncomp; ++c) {
+//       f[c] = U(p,c,0)*vnL + U(q,c,0)*vnR;
+//     }
+// 
+//     for (std::size_t c=0; c<ncomp; ++c) {
+// //if (c==0 && N[0]==13994) std::cout << "b: - " << f[c] << '\n';
+// //if (c==0 && N[1]==13994) std::cout << "b: + " << f[c] << '\n';
+//       R(p,c,0) -= f[c];
+//       R(q,c,0) += f[c];
+//     }
+//   }
 
   #if defined(__clang__)
     #pragma clang diagnostic pop
@@ -556,7 +548,6 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const tk::Fields& U,
      const std::vector< tk::real >& v,
-     const std::vector< tk::real >& vol,
      tk::real t,
      tk::real dt,
      const std::vector< tk::real >& tp,
@@ -590,10 +581,10 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   R.fill( 0.0 );
 
   // advection
-  //adv( bpoin, bpint, bpsym, dsupedge, dsupint, bsupedge, bsupint, coord, vol, dt,
-  //     U, R );
+  adv( bpoin, bpint, bpsym, dsupedge, dsupint, bsupedge, bsupint, coord, dt,
+       U, R );
 
-  //advbnd( triinpoel, coord, dt, U, R );
+  advbnd( triinpoel, coord, dt, U, R );
   //advbnd2( triinpoel, coord, dt, U, R );
 
   // source

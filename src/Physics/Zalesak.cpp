@@ -151,42 +151,42 @@ adv( const std::vector< std::size_t >& bpoin,
   // domain integral
 
   // domain edge contributions: tetrahedron superedges
-  //for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
-  //  const auto N = dsupedge[0].data() + e*4;
-  //  // edge fluxes
-  //  tk::real f[6][ncomp];
-  //  const auto d = dsupint[0].data();
-  //  advedge( d+(e*6+0)*4, U, coord, dt, N[0], N[1], f[0] );
-  //  advedge( d+(e*6+1)*4, U, coord, dt, N[1], N[2], f[1] );
-  //  advedge( d+(e*6+2)*4, U, coord, dt, N[2], N[0], f[2] );
-  //  advedge( d+(e*6+3)*4, U, coord, dt, N[0], N[3], f[3] );
-  //  advedge( d+(e*6+4)*4, U, coord, dt, N[1], N[3], f[4] );
-  //  advedge( d+(e*6+5)*4, U, coord, dt, N[2], N[3], f[5] );
-  //  // edge flux contributions
-  //  for (std::size_t c=0; c<ncomp; ++c) {
-  //    R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c] - f[3][c];
-  //    R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c] - f[4][c];
-  //    R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c] - f[5][c];
-  //    R(N[3],c,0) = R(N[3],c,0) + f[3][c] + f[4][c] + f[5][c];
-  //  }
-  //}
+  for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
+    const auto N = dsupedge[0].data() + e*4;
+    // edge fluxes
+    tk::real f[6][ncomp];
+    const auto d = dsupint[0].data();
+    advedge( d+(e*6+0)*4, U, coord, dt, N[0], N[1], f[0] );
+    advedge( d+(e*6+1)*4, U, coord, dt, N[1], N[2], f[1] );
+    advedge( d+(e*6+2)*4, U, coord, dt, N[2], N[0], f[2] );
+    advedge( d+(e*6+3)*4, U, coord, dt, N[0], N[3], f[3] );
+    advedge( d+(e*6+4)*4, U, coord, dt, N[1], N[3], f[4] );
+    advedge( d+(e*6+5)*4, U, coord, dt, N[2], N[3], f[5] );
+    // edge flux contributions
+    for (std::size_t c=0; c<ncomp; ++c) {
+      R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c] - f[3][c];
+      R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c] - f[4][c];
+      R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c] - f[5][c];
+      R(N[3],c,0) = R(N[3],c,0) + f[3][c] + f[4][c] + f[5][c];
+    }
+  }
 
-  //// domain edge contributions: triangle superedges
-  //for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
-  //  const auto N = dsupedge[1].data() + e*3;
-  //  // edge fluxes
-  //  tk::real f[3][ncomp];
-  //  const auto d = dsupint[1].data();
-  //  advedge( d+(e*3+0)*4, U, coord, dt, N[0], N[1], f[0] );
-  //  advedge( d+(e*3+1)*4, U, coord, dt, N[1], N[2], f[1] );
-  //  advedge( d+(e*3+2)*4, U, coord, dt, N[2], N[0], f[2] );
-  //  // edge flux contributions
-  //  for (std::size_t c=0; c<ncomp; ++c) {
-  //    R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c];
-  //    R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c];
-  //    R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c];
-  //  }
-  //}
+  // domain edge contributions: triangle superedges
+  for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
+    const auto N = dsupedge[1].data() + e*3;
+    // edge fluxes
+    tk::real f[3][ncomp];
+    const auto d = dsupint[1].data();
+    advedge( d+(e*3+0)*4, U, coord, dt, N[0], N[1], f[0] );
+    advedge( d+(e*3+1)*4, U, coord, dt, N[1], N[2], f[1] );
+    advedge( d+(e*3+2)*4, U, coord, dt, N[2], N[0], f[2] );
+    // edge flux contributions
+    for (std::size_t c=0; c<ncomp; ++c) {
+      R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c];
+      R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c];
+      R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c];
+    }
+  }
 
   // domain edge contributions: edges
   for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {

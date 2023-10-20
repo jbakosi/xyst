@@ -762,7 +762,6 @@ ZalCG::domsuped()
   Assert( !m_domedgeint.empty(), "No domain edges to group" );
 
   auto d = Disc();
-  const auto& vol = d->Vol();
 
   #ifndef NDEBUG
   auto nedge = m_domedgeint.size();

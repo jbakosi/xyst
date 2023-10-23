@@ -393,7 +393,6 @@ ZalCG::domint()
         sig = -1.0;
       }
       auto& n = m_domedgeint[ ed ];
-//if (N[p]==13994 || N[q]==13994) std::cout << "dc: " << e << '\n';
       n[0] += sig * (grad[p][0] - grad[q][0]) / 24.0;
       n[1] += sig * (grad[p][1] - grad[q][1]) / 24.0;
       n[2] += sig * (grad[p][2] - grad[q][2]) / 24.0;
@@ -1402,20 +1401,7 @@ ZalCG::alw()
     }
   }
 
-  // Allowed limits: Q+/-, 1st pass: node -> edge
-
-  auto large = std::numeric_limits< tk::real >::max();
-
-  std::array< std::vector< tk::real >, 3 > alw;
-  alw[0].resize( m_dsupedge[0].size()/4*6*ncomp*2 );
-  alw[1].resize( m_dsupedge[1].size()*ncomp*2 );
-  alw[2].resize( m_dsupedge[2].size()/2*ncomp*2 );
-  for (auto& a : alw) {
-    for (std::size_t e=0; e<a.size()/2; ++e) {
-      a[e*2+0] = -large;
-      a[e*2+1] = +large;
-    }
-  }
+  // Allowed limits: Q+/-
 
   using std::max;
   using std::min;
@@ -1423,106 +1409,55 @@ ZalCG::alw()
   // tetrahedron superedges
   for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
     const auto N = m_dsupedge[0].data() + e*4;
-    auto S = alw[0].data() + e*6*ncomp*2;
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoed) {
-      auto s = S + i*ncomp*2;
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto a = c*2;
-        auto b = a+1;
-        s[a] = max( s[a], max( m_ul(N[p],c,0), m_u(N[p],c,0) ) );
-        s[b] = min( s[b], min( m_ul(N[p],c,0), m_u(N[p],c,0) ) );
-        s[a] = max( s[a], max( m_ul(N[q],c,0), m_u(N[q],c,0) ) );
-        s[b] = min( s[b], min( m_ul(N[q],c,0), m_u(N[q],c,0) ) );
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      for (const auto& [p,q] : tk::lpoed) {
+        auto alwp = max( max(m_ul(N[p],c,0), m_u(N[p],c,0)),
+                         max(m_ul(N[q],c,0), m_u(N[q],c,0)) );
+        auto alwn = min( min(m_ul(N[p],c,0), m_u(N[p],c,0)),
+                         min(m_ul(N[q],c,0), m_u(N[q],c,0)) );
+        m_q(N[p],a,0) = max(m_q(N[p],a,0), alwp);
+        m_q(N[p],b,0) = min(m_q(N[p],b,0), alwn);
+        m_q(N[q],a,0) = max(m_q(N[q],a,0), alwp);
+        m_q(N[q],b,0) = min(m_q(N[q],b,0), alwn);
       }
-      ++i;
     }
   }
 
   // triangle superedges
   for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
     const auto N = m_dsupedge[1].data() + e*3;
-    auto S = alw[1].data() + e*3*ncomp*2;
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoet) {
-      auto s = S + i*ncomp*2;
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto a = c*2;
-        auto b = a+1;
-        s[a] = max( s[a], max( m_ul(N[p],c,0), m_u(N[p],c,0) ) );
-        s[b] = min( s[b], min( m_ul(N[p],c,0), m_u(N[p],c,0) ) );
-        s[a] = max( s[a], max( m_ul(N[q],c,0), m_u(N[q],c,0) ) );
-        s[b] = min( s[b], min( m_ul(N[q],c,0), m_u(N[q],c,0) ) );
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      for (const auto& [p,q] : tk::lpoet) {
+        auto alwp = max( max(m_ul(N[p],c,0), m_u(N[p],c,0)),
+                         max(m_ul(N[q],c,0), m_u(N[q],c,0)) );
+        auto alwn = min( min(m_ul(N[p],c,0), m_u(N[p],c,0)),
+                         min(m_ul(N[q],c,0), m_u(N[q],c,0)) );
+        m_q(N[p],a,0) = max(m_q(N[p],a,0), alwp);
+        m_q(N[p],b,0) = min(m_q(N[p],b,0), alwn);
+        m_q(N[q],a,0) = max(m_q(N[q],a,0), alwp);
+        m_q(N[q],b,0) = min(m_q(N[q],b,0), alwn);
       }
-      ++i;
     }
   }
 
   // edges
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
     const auto N = m_dsupedge[2].data() + e*2;
-    auto s = alw[2].data() + e*ncomp*2;
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
-      s[a] = max( s[a], max( m_ul(N[0],c,0), m_u(N[0],c,0) ) );
-      s[b] = min( s[b], min( m_ul(N[0],c,0), m_u(N[0],c,0) ) );
-      s[a] = max( s[a], max( m_ul(N[1],c,0), m_u(N[1],c,0) ) );
-      s[b] = min( s[b], min( m_ul(N[1],c,0), m_u(N[1],c,0) ) );
-    }
-  }
-
-  // Allowed limits: Q+/-, 2nd pass: edge -> node
-
-  // tetrahedron superedges
-  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
-    const auto N = m_dsupedge[0].data() + e*4;
-    const auto S = alw[0].data() + e*6*ncomp*2;
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoed) {
-      const auto s = S + i*ncomp*2;
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto a = c*2;
-        auto b = a+1;
-        m_q(N[p],a,0) = max( m_q(N[p],a,0), s[a] );
-        m_q(N[p],b,0) = min( m_q(N[p],b,0), s[b] );
-        m_q(N[q],a,0) = max( m_q(N[q],a,0), s[a] );
-        m_q(N[q],b,0) = min( m_q(N[q],b,0), s[b] );
-      }
-      ++i;
-    }
-  }
-
-  // triangle superedges
-  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
-    const auto N = m_dsupedge[1].data() + e*3;
-    const auto S = alw[1].data() + e*3*ncomp*2;
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoet) {
-      const auto s = S + i*ncomp*2;
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto a = c*2;
-        auto b = a+1;
-        m_q(N[p],a,0) = max( m_q(N[p],a,0), s[a] );
-        m_q(N[p],b,0) = min( m_q(N[p],b,0), s[b] );
-        m_q(N[q],a,0) = max( m_q(N[q],a,0), s[a] );
-        m_q(N[q],b,0) = min( m_q(N[q],b,0), s[b] );
-      }
-      ++i;
-    }
-  }
-
-  // edges
-  for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
-    const auto N = m_dsupedge[2].data() + e*2;
-    const auto s = alw[2].data() + e*ncomp*2;
-    for (std::size_t c=0; c<ncomp; ++c) {
-      auto a = c*2;
-      auto b = a+1;
-      m_q(N[0],a,0) = max( m_q(N[0],a,0), s[a] );
-      m_q(N[0],b,0) = min( m_q(N[0],b,0), s[b] );
-      m_q(N[1],a,0) = max( m_q(N[1],a,0), s[a] );
-      m_q(N[1],b,0) = min( m_q(N[1],b,0), s[b] );
+      auto alwp = max( max(m_ul(N[0],c,0), m_u(N[0],c,0)),
+                       max(m_ul(N[1],c,0), m_u(N[1],c,0)) );
+      auto alwn = min( min(m_ul(N[0],c,0), m_u(N[0],c,0)),
+                       min(m_ul(N[1],c,0), m_u(N[1],c,0)) );
+      m_q(N[0],a,0) = max(m_q(N[0],a,0), alwp);
+      m_q(N[0],b,0) = min(m_q(N[0],b,0), alwn);
+      m_q(N[1],a,0) = max(m_q(N[1],a,0), alwp);
+      m_q(N[1],b,0) = min(m_q(N[1],b,0), alwn);
     }
   }
 

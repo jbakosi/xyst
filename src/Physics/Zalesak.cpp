@@ -100,8 +100,6 @@ advedge( const tk::real supint[],
   f[3] = rwh*vn + ph*nz;
   f[4] = (reh + ph)*vn;
 
-//if (p==13994 || q==13994) std::cout << "ed: " << dx << ", " << dy << ", " << dz << ": " << dnL << ", " << dnR << " > " << f[0] << '\n';
-
   // scalar fluxes
   for (std::size_t c=5; c<ncomp; ++c) {
     auto hc = 0.5*(U(p,c,0) + U(q,c,0) - dt*(U(p,c,0)*dnL - U(q,c,0)*dnR));

@@ -1,18 +1,18 @@
 // *****************************************************************************
 /*!
-  \file      src/Physics/Zalesak.cpp
+  \file      src/Physics/Kozak.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Zalesak, FCT limiting for element-based continuous Galerkin
+  \brief     Kozak, FCT limiting for element-based continuous Galerkin
 */
 // *****************************************************************************
 
 #include "Vector.hpp"
 #include "EOS.hpp"
-#include "Zalesak.hpp"
+#include "Kozak.hpp"
 #include "Problems.hpp"
 #include "InciterConfig.hpp"
 
@@ -22,7 +22,7 @@ extern ctr::Config g_cfg;
 
 } // ::inciter
 
-namespace zalesak {
+namespace kozak {
 
 using inciter::g_cfg;
 
@@ -182,4 +182,4 @@ rhs( const std::vector< std::size_t >& inpoel,
   src( coord, v, dt, t, tp, R );
 }
 
-} // zalesak::
+} // kozak::

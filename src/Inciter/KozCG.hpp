@@ -1,12 +1,12 @@
 // *****************************************************************************
 /*!
-  \file      src/Inciter/ZalCG.hpp
+  \file      src/Inciter/KozCG.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     ZalCG: Taylor-Galerkin, FCT, element-based continuous Galerkin
+  \brief     KozCG: Taylor-Galerkin, FCT, element-based continuous Galerkin
 */
 // *****************************************************************************
 
@@ -21,12 +21,12 @@
 #include "DerivedData.hpp"
 #include "NodeDiagnostics.hpp"
 
-#include "NoWarning/zalcg.decl.h"
+#include "NoWarning/kozcg.decl.h"
 
 namespace inciter {
 
-//! ZalCG Charm++ chare array used to advance PDEs in time with ZalCG+RK
-class ZalCG : public CBase_ZalCG {
+//! KozCG Charm++ chare array used to advance PDEs in time with KozCG+Euler
+class KozCG : public CBase_KozCG {
 
   public:
     #if defined(__clang__)
@@ -43,7 +43,7 @@ class ZalCG : public CBase_ZalCG {
     #endif
     // Include Charm++ SDAG code. See http://charm.cs.illinois.edu/manuals/html/
     // charm++/manual.html, Sec. "Structured Control Flow: Structured Dagger".
-    ZalCG_SDAG_CODE
+    KozCG_SDAG_CODE
     #if defined(__clang__)
       #pragma clang diagnostic pop
     #elif defined(STRICT_GNUC)
@@ -53,7 +53,7 @@ class ZalCG : public CBase_ZalCG {
     #endif
 
     //! Constructor
-    explicit ZalCG( const CProxy_Discretization& disc,
+    explicit KozCG( const CProxy_Discretization& disc,
                     const std::map< int, std::vector< std::size_t > >& bface,
                     const std::map< int, std::vector< std::size_t > >& bnode,
                     const std::vector< std::size_t >& triinpoel );
@@ -64,7 +64,7 @@ class ZalCG : public CBase_ZalCG {
     #endif
     //! Migrate constructor
     // cppcheck-suppress uninitMemberVar
-    explicit ZalCG( CkMigrateMessage* m ) : CBase_ZalCG( m ) {}
+    explicit KozCG( CkMigrateMessage* m ) : CBase_KozCG( m ) {}
     #if defined(__clang__)
       #pragma clang diagnostic pop
     #endif
@@ -190,8 +190,8 @@ class ZalCG : public CBase_ZalCG {
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    //! \param[in,out] i ZalCG object reference
-    friend void operator|( PUP::er& p, ZalCG& i ) { i.pup(p); }
+    //! \param[in,out] i KozCG object reference
+    friend void operator|( PUP::er& p, KozCG& i ) { i.pup(p); }
     //@}
 
   private:

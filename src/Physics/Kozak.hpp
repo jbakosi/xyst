@@ -1,19 +1,19 @@
 // *****************************************************************************
 /*!
-  \file      src/Physics/Zalesak.hpp
+  \file      src/Physics/Kozak.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Zalesak, FCT limiting for edge-based continuous Galerkin
+  \brief     Kozak, FCT limiting for element-based continuous Galerkin
 */
 // *****************************************************************************
 #pragma once
 
 #include "Fields.hpp"
 
-namespace zalesak {
+namespace kozak {
 
 //! Compute right hand side
 void
@@ -26,4 +26,4 @@ rhs( const std::vector< std::size_t >& inpoel,
      const tk::Fields& U,
      tk::Fields& R );
 
-} // zalesak::
+} // kozak::

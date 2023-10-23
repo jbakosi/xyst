@@ -1,17 +1,17 @@
 // *****************************************************************************
 /*!
-  \file      src/Inciter/ZalCG.cpp
+  \file      src/Inciter/KozCG.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     ZalCG: Taylor-Galerkin, FCT, element-based continuous Galerkin
+  \brief     KozCG: Taylor-Galerkin, FCT, element-based continuous Galerkin
 */
 // *****************************************************************************
 
 #include "XystBuildConfig.hpp"
-#include "ZalCG.hpp"
+#include "KozCG.hpp"
 #include "Vector.hpp"
 #include "Reader.hpp"
 #include "ContainerUtil.hpp"
@@ -26,7 +26,7 @@
 #include "Refiner.hpp"
 #include "Reorder.hpp"
 #include "Around.hpp"
-#include "Zalesak.hpp"
+#include "Kozak.hpp"
 #include "Dt.hpp"
 #include "Problems.hpp"
 #include "EOS.hpp"
@@ -41,9 +41,9 @@ static CkReduction::reducerType IntegralsMerger;
 } // inciter::
 
 using inciter::g_cfg;
-using inciter::ZalCG;
+using inciter::KozCG;
 
-ZalCG::ZalCG( const CProxy_Discretization& disc,
+KozCG::KozCG( const CProxy_Discretization& disc,
               const std::map< int, std::vector< std::size_t > >& bface,
               const std::map< int, std::vector< std::size_t > >& bnode,
               const std::vector< std::size_t >& triinpoel ) :
@@ -107,7 +107,7 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
 }
 
 void
-ZalCG::setupBC()
+KozCG::setupBC()
 // *****************************************************************************
 // Prepare boundary condition data structures
 // *****************************************************************************
@@ -232,7 +232,7 @@ ZalCG::setupBC()
 }
 
 void
-ZalCG::feop()
+KozCG::feop()
 // *****************************************************************************
 // Start (re-)computing finite element domain and boundary operators
 // *****************************************************************************
@@ -264,7 +264,7 @@ ZalCG::feop()
 }
 
 void
-ZalCG::bndint()
+KozCG::bndint()
 // *****************************************************************************
 //! Compute local contributions to boundary normals and integrals
 // *****************************************************************************
@@ -321,7 +321,7 @@ ZalCG::bndint()
 }
 
 void
-ZalCG::comnorm( const decltype(m_bnorm)& inbnd )
+KozCG::comnorm( const decltype(m_bnorm)& inbnd )
 // *****************************************************************************
 // Receive contributions to boundary point normals on chare-boundaries
 //! \param[in] inbnd Incoming partial sums of boundary point normals
@@ -346,7 +346,7 @@ ZalCG::comnorm( const decltype(m_bnorm)& inbnd )
 }
 
 void
-ZalCG::registerReducers()
+KozCG::registerReducers()
 // *****************************************************************************
 //  Configure Charm++ reduction types initiated from this chare array
 //! \details Since this is a [initnode] routine, the runtime system executes the
@@ -362,7 +362,7 @@ ZalCG::registerReducers()
 
 void
 // cppcheck-suppress unusedFunction
-ZalCG::ResumeFromSync()
+KozCG::ResumeFromSync()
 // *****************************************************************************
 //  Return from migration
 //! \details This is called when load balancing (LB) completes. The presence of
@@ -375,7 +375,7 @@ ZalCG::ResumeFromSync()
 }
 
 void
-ZalCG::setup()
+KozCG::setup()
 // *****************************************************************************
 // Start setup for solution
 // *****************************************************************************
@@ -403,7 +403,7 @@ ZalCG::setup()
 }
 
 void
-ZalCG::box( tk::real v )
+KozCG::box( tk::real v )
 // *****************************************************************************
 // Receive total box IC volume and set conditions in box
 //! \param[in] v Total volume within user-specified box
@@ -417,7 +417,7 @@ ZalCG::box( tk::real v )
 }
 
 void
-ZalCG::start()
+KozCG::start()
 // *****************************************************************************
 // Start time stepping
 // *****************************************************************************
@@ -433,7 +433,7 @@ ZalCG::start()
 }
 
 void
-ZalCG::bnorm()
+KozCG::bnorm()
 // *****************************************************************************
 // Combine own and communicated portions of the boundary point normals
 // *****************************************************************************
@@ -478,7 +478,7 @@ ZalCG::bnorm()
 
 void
 // cppcheck-suppress unusedFunction
-ZalCG::merge()
+KozCG::merge()
 // *****************************************************************************
 // Combine own and communicated portions of the integrals
 // *****************************************************************************
@@ -491,14 +491,14 @@ ZalCG::merge()
 
   if (Disc()->Initial()) {
     // Output initial conditions to file
-    writeFields( CkCallback(CkIndex_ZalCG::start(), thisProxy[thisIndex]) );
+    writeFields( CkCallback(CkIndex_KozCG::start(), thisProxy[thisIndex]) );
   } else {
     feop_complete();
   }
 }
 
 void
-ZalCG::BC( tk::real t )
+KozCG::BC( tk::real t )
 // *****************************************************************************
 // Apply boundary conditions
 //! \param[in] t Physical time
@@ -518,7 +518,7 @@ ZalCG::BC( tk::real t )
 }
 
 void
-ZalCG::next()
+KozCG::next()
 // *****************************************************************************
 // Continue to next time step
 // *****************************************************************************
@@ -527,7 +527,7 @@ ZalCG::next()
 }
 
 void
-ZalCG::dt()
+KozCG::dt()
 // *****************************************************************************
 // Compute time step size
 // *****************************************************************************
@@ -581,11 +581,11 @@ ZalCG::dt()
 
   // Contribute to minimum dt across all chares and advance to next step
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
-              CkCallback(CkReductionTarget(ZalCG,advance), thisProxy) );
+              CkCallback(CkReductionTarget(KozCG,advance), thisProxy) );
 }
 
 void
-ZalCG::advance( tk::real newdt )
+KozCG::advance( tk::real newdt )
 // *****************************************************************************
 // Advance equations to next time step
 //! \param[in] newdt The smallest dt across the whole problem
@@ -599,7 +599,7 @@ ZalCG::advance( tk::real newdt )
 }
 
 void
-ZalCG::rhs()
+KozCG::rhs()
 // *****************************************************************************
 // Compute right-hand side of transport equations
 // *****************************************************************************
@@ -613,8 +613,8 @@ ZalCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += m_dtp[p];
   }
 
-  zalesak::rhs( d->Inpoel(), d->Coord(), d->V(), d->T(), d->Dt(), m_tp,
-                m_u, m_rhs );
+  kozak::rhs( d->Inpoel(), d->Coord(), d->V(), d->T(), d->Dt(), m_tp,
+              m_u, m_rhs );
 
   if (g_cfg.get< tag::steady >()) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];
@@ -634,7 +634,7 @@ ZalCG::rhs()
 }
 
 void
-ZalCG::comrhs(
+KozCG::comrhs(
   const std::unordered_map< std::size_t, std::vector< tk::real > >& inrhs )
 // *****************************************************************************
 //  Receive contributions to right-hand side vector on chare-boundaries
@@ -659,7 +659,7 @@ ZalCG::comrhs(
 
 void
 // cppcheck-suppress unusedFunction
-ZalCG::aec()
+KozCG::aec()
 // *****************************************************************************
 // Compute antidiffusive contributions: P+/-,  low-order solution: ul
 // *****************************************************************************
@@ -730,7 +730,7 @@ ZalCG::aec()
 }
 
 void
-ZalCG::comaec( const std::unordered_map< std::size_t,
+KozCG::comaec( const std::unordered_map< std::size_t,
                        std::array< std::vector< tk::real >, 2 > >& inaec )
 // *****************************************************************************
 //  Receive antidiffusive and low-order contributions on chare-boundaries
@@ -754,7 +754,7 @@ ZalCG::comaec( const std::unordered_map< std::size_t,
 }
 
 void
-ZalCG::alw()
+KozCG::alw()
 // *****************************************************************************
 // Compute allowed limits, Q+/-
 // *****************************************************************************
@@ -825,7 +825,7 @@ ZalCG::alw()
 }
 
 void
-ZalCG::comalw( const std::unordered_map< std::size_t,
+KozCG::comalw( const std::unordered_map< std::size_t,
                        std::vector< tk::real > >& inalw )
 // *****************************************************************************
 //  Receive allowed limits contributions on chare-boundaries
@@ -862,7 +862,7 @@ ZalCG::comalw( const std::unordered_map< std::size_t,
 }
 
 void
-ZalCG::lim()
+KozCG::lim()
 // *****************************************************************************
 // Compute limit coefficients
 // *****************************************************************************
@@ -960,7 +960,7 @@ ZalCG::lim()
 }
 
 void
-ZalCG::comlim( const std::unordered_map< std::size_t,
+KozCG::comlim( const std::unordered_map< std::size_t,
                        std::vector< tk::real > >& inlim )
 // *****************************************************************************
 //  Receive limited antidiffusive contributions on chare-boundaries
@@ -980,7 +980,7 @@ ZalCG::comlim( const std::unordered_map< std::size_t,
 }
 
 void
-ZalCG::solve()
+KozCG::solve()
 // *****************************************************************************
 // Compute limit coefficients
 // *****************************************************************************
@@ -1040,7 +1040,7 @@ ZalCG::solve()
 }
 
 void
-ZalCG::refine( const std::vector< tk::real >& l2res )
+KozCG::refine( const std::vector< tk::real >& l2res )
 // *****************************************************************************
 // Optionally refine/derefine mesh
 //! \param[in] l2res L2-norms of the residual for each scalar component
@@ -1091,7 +1091,7 @@ ZalCG::refine( const std::vector< tk::real >& l2res )
 }
 
 void
-ZalCG::resizePostAMR(
+KozCG::resizePostAMR(
   const std::vector< std::size_t >& /*ginpoel*/,
   const tk::UnsMesh::Chunk& chunk,
   const tk::UnsMesh::Coords& coord,
@@ -1160,7 +1160,7 @@ ZalCG::resizePostAMR(
 }
 
 void
-ZalCG::writeFields( CkCallback cb )
+KozCG::writeFields( CkCallback cb )
 // *****************************************************************************
 // Output mesh-based fields to file
 //! \param[in] cb Function to continue with after the write
@@ -1281,7 +1281,7 @@ ZalCG::writeFields( CkCallback cb )
 }
 
 void
-ZalCG::out()
+KozCG::out()
 // *****************************************************************************
 // Output mesh field data
 // *****************************************************************************
@@ -1316,14 +1316,14 @@ ZalCG::out()
 
   // Field data
   if (d->fielditer() or d->fieldtime() or d->fieldrange() or m_finished) {
-    writeFields( CkCallback(CkIndex_ZalCG::integrals(), thisProxy[thisIndex]) );
+    writeFields( CkCallback(CkIndex_KozCG::integrals(), thisProxy[thisIndex]) );
   } else {
     integrals();
   }
 }
 
 void
-ZalCG::integrals()
+KozCG::integrals()
 // *****************************************************************************
 // Compute integral quantities for output
 // *****************************************************************************
@@ -1360,7 +1360,7 @@ ZalCG::integrals()
 }
 
 void
-ZalCG::evalLB( int nrestart )
+KozCG::evalLB( int nrestart )
 // *****************************************************************************
 // Evaluate whether to do load balancing
 //! \param[in] nrestart Number of times restarted
@@ -1389,7 +1389,7 @@ ZalCG::evalLB( int nrestart )
 }
 
 void
-ZalCG::evalRestart()
+KozCG::evalRestart()
 // *****************************************************************************
 // Evaluate whether to save checkpoint/restart
 // *****************************************************************************
@@ -1413,7 +1413,7 @@ ZalCG::evalRestart()
 }
 
 void
-ZalCG::step()
+KozCG::step()
 // *****************************************************************************
 // Evaluate whether to continue with next time step
 // *****************************************************************************
@@ -1436,4 +1436,4 @@ ZalCG::step()
   }
 }
 
-#include "NoWarning/zalcg.def.h"
+#include "NoWarning/kozcg.def.h"

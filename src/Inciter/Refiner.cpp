@@ -43,6 +43,7 @@ Refiner::Refiner( std::size_t meshid,
                   const CProxy_Discretization& discretization,
                   const CProxy_RieCG& riecg,
                   const CProxy_ZalCG& zalcg,
+                  const CProxy_KozCG& kozcg,
                   const tk::RefinerCallback& cbr,
                   const tk::SorterCallback& cbs,
                   const std::vector< std::size_t >& ginpoel,
@@ -59,6 +60,7 @@ Refiner::Refiner( std::size_t meshid,
   m_disc( discretization ),
   m_riecg( riecg ),
   m_zalcg( zalcg ),
+  m_kozcg( kozcg ),
   m_cbr( cbr ),
   m_cbs( cbs ),
   m_ginpoel( ginpoel ),
@@ -91,6 +93,7 @@ Refiner::Refiner( std::size_t meshid,
 //! \param[in] discretization Discretization base proxy
 //! \param[in] riecg Discretization scheme proxy
 //! \param[in] zalcg Discretization scheme proxy
+//! \param[in] kozcg Discretization scheme proxy
 //! \param[in] cbr Charm++ callbacks for Refiner
 //! \param[in] cbs Charm++ callbacks for Sorter
 //! \param[in] ginpoel Mesh connectivity (this chare) using global node IDs
@@ -1030,6 +1033,11 @@ Refiner::next()
         m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes,
         m_nodeCommMap, m_bface, m_bnode, m_triinpoel );
     }
+    else if (g_cfg.get< tag::solver >() == "kozcg") {
+      m_kozcg[ thisIndex ].ckLocal()->resizePostAMR( m_ginpoel,
+        m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes,
+        m_nodeCommMap, m_bface, m_bnode, m_triinpoel );
+    }
     else {
       Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
     }
@@ -1049,7 +1057,7 @@ Refiner::endt0ref()
 {
   // create sorter Charm++ chare array elements using dynamic insertion
   m_sorter[ thisIndex ].insert( m_meshid, m_host, m_meshwriter, m_cbs,
-    m_disc, m_riecg, m_zalcg,
+    m_disc, m_riecg, m_zalcg, m_kozcg,
     CkCallback(CkIndex_Refiner::reorder(), thisProxy[thisIndex]), m_ginpoel,
     m_coordmap, m_el, m_bface, m_triinpoel, m_bnode, m_nchare );
 

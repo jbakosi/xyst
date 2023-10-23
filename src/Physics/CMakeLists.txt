@@ -6,6 +6,7 @@ add_library(Physics
             Problems.cpp
             Riemann.cpp
             Zalesak.cpp
+            Kozak.cpp
 )
 
 target_include_directories(Physics PUBLIC

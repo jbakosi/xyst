@@ -29,6 +29,7 @@ module refiner {
                      const CProxy_Discretization& discretization,
                      const CProxy_RieCG& riecg,
                      const CProxy_ZalCG& zalcg,
+                     const CProxy_KozCG& kozcg,
                      const tk::RefinerCallback& cbr,
                      const tk::SorterCallback& cbs,
                      const std::vector< std::size_t >& ginpoel,

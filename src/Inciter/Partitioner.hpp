@@ -62,6 +62,7 @@ class Partitioner : public CBase_Partitioner {
                  const CProxy_Discretization& discretization,
                  const CProxy_RieCG& riecg,
                  const CProxy_ZalCG& zalcg,
+                 const CProxy_KozCG& kozcg,
                  const std::map< int, std::vector< std::size_t > >& bface,
                  const std::map< int, std::vector< std::size_t > >& faces,
                  const std::map< int, std::vector< std::size_t > >& bnode );
@@ -162,6 +163,8 @@ class Partitioner : public CBase_Partitioner {
     CProxy_RieCG m_riecg;
     //! Discretization scheme proxy
     CProxy_ZalCG m_zalcg;
+    //! Discretization scheme proxy
+    CProxy_KozCG m_kozcg;
     //! Element connectivity of this compute node's mesh chunk (global ids)
     std::vector< std::size_t > m_ginpoel;
     //! Coordinates of mesh nodes of this compute node's mesh chunk

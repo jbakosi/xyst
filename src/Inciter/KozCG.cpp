@@ -564,12 +564,10 @@ KozCG::dt()
   }
 
   auto large = std::numeric_limits< tk::real >::max();
-  for (std::size_t p=0; p<m_q.nunk(); ++p) {
+  for (std::size_t i=0; i<m_q.nunk(); ++i) {
     for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
-       auto i = c*2;
-       auto j = i+1;
-       m_q(p,i,0) = -large;
-       m_q(p,j,0) = +large;
+       m_q(i,c*2+0,0) = -large;
+       m_q(i,c*2+1,0) = +large;
     }
   }
 
@@ -906,8 +904,8 @@ KozCG::lim()
     for (std::size_t c=0; c<ncomp; ++c) {
       auto p = c*2;
       auto n = p+1;
-      m_q(i,p,0) = m_p(i,p,0) >  eps ? min(1.0,m_q(i,p,0)/m_p(i,p,0)) : 0.0;
-      m_q(i,n,0) = m_p(i,n,0) < -eps ? min(1.0,m_q(i,n,0)/m_p(i,n,0)) : 0.0;
+      m_q(i,p,0) = m_p(i,p,0) <  eps ? 0.0 : min(1.0,m_q(i,p,0)/m_p(i,p,0));
+      m_q(i,n,0) = m_p(i,n,0) > -eps ? 0.0 : min(1.0,m_q(i,n,0)/m_p(i,n,0));
     }
   }
 
@@ -1229,12 +1227,6 @@ KozCG::writeFields( CkCallback cb )
       nodefields.push_back( an.extract( 5+c, 0 ) );
     }
   }
-
-  // debug FCT
-  nodefieldnames.push_back( "r+" );
-  nodefieldnames.push_back( "r-" );
-  nodefields.push_back( m_q.extract( 10, 0 ) );
-  nodefields.push_back( m_q.extract( 11, 0 ) );
 
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 

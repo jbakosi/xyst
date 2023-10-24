@@ -697,14 +697,15 @@ KozCG::aec()
     for (std::size_t c=0; c<ncomp; ++c) {
       auto p = c*2;
       auto n = p+1;
+      tk::real aec[4] = { 0.0, 0.0, 0.0, 0.0 };
       for (std::size_t a=0; a<4; ++a) {
         for (std::size_t b=0; b<4; ++b) {
           auto m = J/120.0 * ((a == b) ? 3.0 : -1.0);
-          auto aec = m * ctau * m_u(N[b],c,0);
-          m_ul(N[a],c,0) -= aec;
-          m_p(N[a],p,0) += std::max(0.0,aec);
-          m_p(N[a],n,0) += std::min(0.0,aec);
+          aec[a] += m * ctau * m_u(N[b],c,0);
         }
+        m_ul(N[a],c,0) -= aec[a];
+        m_p(N[a],p,0) += std::max(0.0,aec[a]);
+        m_p(N[a],n,0) += std::min(0.0,aec[a]);
       }
     }
   }

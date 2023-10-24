@@ -396,7 +396,7 @@ ZalCG::domint()
       n[0] += sig * (grad[p][0] - grad[q][0]) / 24.0;
       n[1] += sig * (grad[p][1] - grad[q][1]) / 24.0;
       n[2] += sig * (grad[p][2] - grad[q][2]) / 24.0;
-      n[3] += J120;
+      n[3] -= J120;
     }
   }
 }
@@ -1266,15 +1266,14 @@ ZalCG::aec()
     for (const auto& [p,q] : tk::lpoed) {
       auto dif = D[(e*6+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto df = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
-        m_ul(N[p],c,0) -= df;
-        m_ul(N[q],c,0) += df;
-        auto f = -df;
+        auto aec = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        m_ul(N[p],c,0) += aec;
+        m_ul(N[q],c,0) -= aec;
         auto a = c*2;
         auto b = a+1;
-        if (f > 0.0) std::swap(a,b);
-        m_p(N[p],a,0) -= f;
-        m_p(N[q],b,0) += f;
+        if (aec > 0.0) std::swap(a,b);
+        m_p(N[p],a,0) -= aec;
+        m_p(N[q],b,0) += aec;
       }
       ++i;
     }
@@ -1288,15 +1287,14 @@ ZalCG::aec()
     for (const auto& [p,q] : tk::lpoet) {
       auto dif = D[(e*3+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto df = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
-        m_ul(N[p],c,0) -= df;
-        m_ul(N[q],c,0) += df;
-        auto f = -df;
+        auto aec = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        m_ul(N[p],c,0) += aec;
+        m_ul(N[q],c,0) -= aec;
         auto a = c*2;
         auto b = a+1;
-        if (f > 0.0) std::swap(a,b);
-        m_p(N[p],a,0) -= f;
-        m_p(N[q],b,0) += f;
+        if (aec > 0.0) std::swap(a,b);
+        m_p(N[p],a,0) -= aec;
+        m_p(N[q],b,0) += aec;
       }
       ++i;
     }
@@ -1307,15 +1305,14 @@ ZalCG::aec()
     const auto N = m_dsupedge[2].data() + e*2;
     const auto dif = m_dsupint[2][e*4+3];
     for (std::size_t c=0; c<ncomp; ++c) {
-      auto df = dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
-      m_ul(N[0],c,0) -= df;
-      m_ul(N[1],c,0) += df;
-      auto f = -df;
+      auto aec = dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
+      m_ul(N[0],c,0) += aec;
+      m_ul(N[1],c,0) -= aec;
       auto a = c*2;
       auto b = a+1;
-      if (f > 0.0) std::swap(a,b);
-      m_p(N[0],a,0) -= f;
-      m_p(N[1],b,0) += f;
+      if (aec > 0.0) std::swap(a,b);
+      m_p(N[0],a,0) -= aec;
+      m_p(N[1],b,0) += aec;
     }
   }
 
@@ -1575,16 +1572,16 @@ ZalCG::lim()
     for (const auto& [p,q] : tk::lpoed) {
       auto dif = D[(e*6+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto ap = -ctau * m_u(N[p],c,0);
-        auto aq = -ctau * m_u(N[q],c,0);
-        auto f = dif * (ap - aq);
+        auto ap = ctau * m_u(N[p],c,0);
+        auto aq = ctau * m_u(N[q],c,0);
+        auto aec = dif * (ap - aq);
         auto a = c*2;
         auto b = a+1;
-        auto l = min( f < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                      f > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
-        f *= l;
-        m_a(N[p],c,0) -= f;
-        m_a(N[q],c,0) += f;
+        auto coef = min( aec < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
+                         aec > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+        aec *= coef;
+        m_a(N[p],c,0) -= aec;
+        m_a(N[q],c,0) += aec;
       }
       ++i;
     }
@@ -1598,16 +1595,16 @@ ZalCG::lim()
     for (const auto& [p,q] : tk::lpoet) {
       auto dif = D[(e*3+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto ap = -ctau * m_u(N[p],c,0);
-        auto aq = -ctau * m_u(N[q],c,0);
-        auto f = dif * (ap - aq);
+        auto ap = ctau * m_u(N[p],c,0);
+        auto aq = ctau * m_u(N[q],c,0);
+        auto aec = dif * (ap - aq);
         auto a = c*2;
         auto b = a+1;
-        auto l = min( f < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                      f > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
-        f *= l;
-        m_a(N[p],c,0) -= f;
-        m_a(N[q],c,0) += f;
+        auto coef = min( aec < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
+                         aec > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+        aec *= coef;
+        m_a(N[p],c,0) -= aec;
+        m_a(N[q],c,0) += aec;
       }
       ++i;
     }
@@ -1619,16 +1616,16 @@ ZalCG::lim()
     const auto N = m_dsupedge[2].data() + e*2;
     const auto dif = m_dsupint[2][e*4+3];
     for (std::size_t c=0; c<ncomp; ++c) {
-      auto ap = -ctau * m_u(N[0],c,0);
-      auto aq = -ctau * m_u(N[1],c,0);
-      auto f = dif * (ap - aq);
+      auto ap = ctau * m_u(N[0],c,0);
+      auto aq = ctau * m_u(N[1],c,0);
+      auto aec = dif * (ap - aq);
       auto a = c*2;
       auto b = a+1;
-      auto l = min( f < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
-                    f > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
-      f *= l;
-      m_a(N[0],c,0) -= f;
-      m_a(N[1],c,0) += f;
+      auto coef = min( aec < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
+                       aec > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
+      aec *= coef;
+      m_a(N[0],c,0) -= aec;
+      m_a(N[1],c,0) += aec;
     }
   }
 
@@ -1912,12 +1909,6 @@ ZalCG::writeFields( CkCallback cb )
       nodefields.push_back( an.extract( 5+c, 0 ) );
     }
   }
-
-  // debug FCT
-  //nodefieldnames.push_back( "r+" );
-  //nodefieldnames.push_back( "r-" );
-  //nodefields.push_back( m_q.extract( 10, 0 ) );
-  //nodefields.push_back( m_q.extract( 11, 0 ) );
 
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 

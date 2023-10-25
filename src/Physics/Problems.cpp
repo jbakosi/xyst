@@ -773,13 +773,14 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
-  auto largereal = std::numeric_limits< double >::max();
+  auto large = std::numeric_limits< double >::max();
 
   // Set initial conditions dependeing on problem configured
   for (std::size_t i=0; i<x.size(); ++i) {
 
     // Set background ICs
     auto s = ic( x[i], y[i], z[i], t );
+    Assert( s.size() == U.nprop(), "Size mismatch" );
 
     // Initialize user-defined ICs in boxes
     for (std::size_t j=0; j<icbox.size(); ++j) {
@@ -792,28 +793,28 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
         auto boxt = b.get< tag::ic_temperature >();
 
         tk::real r = 0.0, ru = 0.0, rv = 0.0, rw = 0.0, re = 0.0;
-        if (std::abs(boxr - largereal) > 1.0e-12 && boxr > 0.0) {
+        if (std::abs(boxr - large) > 1.0e-12 && boxr > 0.0) {
           r = boxr;
         }
-        if (std::abs(boxv[0] - largereal) > 1.0e-12 &&
-            std::abs(boxv[1] - largereal) > 1.0e-12 &&
-            std::abs(boxv[2] - largereal) > 1.0e-12)
+        if (std::abs(boxv[0] - large) > 1.0e-12 &&
+            std::abs(boxv[1] - large) > 1.0e-12 &&
+            std::abs(boxv[2] - large) > 1.0e-12)
         {
           ru = r * boxv[0];
           rv = r * boxv[1];
           rw = r * boxv[2];
         }
-        if (std::abs(boxp- largereal) > 1.0e-12 && boxp> 0.0) {
+        if (std::abs(boxp- large) > 1.0e-12 && boxp> 0.0) {
           re = eos::totalenergy( r, ru/r, rv/r, rw/r, boxp);
         }
-        if (std::abs(boxe - largereal) > 1.0e-12 && boxe > 0.0) {
+        if (std::abs(boxe - large) > 1.0e-12 && boxe > 0.0) {
           auto ux = ru/r, uy = rv/r, uz = rw/r;
           auto ke = 0.5*(ux*ux + uy*uy + uz*uz);
           re = r * (boxe + ke);
         }
-        if (std::abs(boxt - largereal) > 1.0e-12 && boxt > 0.0) {
+        if (std::abs(boxt - large) > 1.0e-12 && boxt > 0.0) {
           auto cv = g_cfg.get< tag::mat_spec_heat_const_vol >();
-          if (std::abs(cv - largereal) > 1.0e-12 && cv > 0.0) {
+          if (std::abs(cv - large) > 1.0e-12 && cv > 0.0) {
             re = r * boxt * cv;
           }
         }

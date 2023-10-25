@@ -12,7 +12,6 @@
 
 #include "Dt.hpp"
 #include "EOS.hpp"
-#include "Vector.hpp"
 #include "InciterConfig.hpp"
 
 namespace inciter {
@@ -36,15 +35,14 @@ dt( const std::vector< tk::real >& vol, const tk::Fields& U )
 {
   tk::real mindt = std::numeric_limits< tk::real >::max();
   for (std::size_t p=0; p<U.nunk(); ++p) {
-    auto r  = U(p,0,0);
-    auto u  = U(p,1,0) / r;
-    auto v  = U(p,2,0) / r;
-    auto w  = U(p,3,0) / r;
-    auto re = U(p,4,0) / r - 0.5*(u*u + v*v + w*w);
-    auto vel = tk::length( u, v, w );
-    auto pr = eos::pressure( r, re );
+    auto r = U(p,0,0);
+    auto u = U(p,1,0)/r;
+    auto v = U(p,2,0)/r;
+    auto w = U(p,3,0)/r;
+    auto pr = eos::pressure( U(p,4,0) - 0.5*r*(u*u + v*v + w*w) );
     auto c = eos::soundspeed( r, pr );
     auto L = std::cbrt( vol[p] );
+    auto vel = std::sqrt( u*u + v*v + w*w );
     auto euler_dt = L / std::max( vel+c, 1.0e-8 );
     mindt = std::min( mindt, euler_dt );
   }
@@ -69,14 +67,13 @@ dt( const std::vector< tk::real >& vol,
 
   for (std::size_t p=0; p<U.nunk(); ++p) {
     auto r  = U(p,0,0);
-    auto u  = U(p,1,0) / r;
-    auto v  = U(p,2,0) / r;
-    auto w  = U(p,3,0) / r;
-    auto re = U(p,4,0) / r - 0.5*(u*u + v*v + w*w);
-    auto vel = tk::length( u, v, w );
-    auto pr = eos::pressure( r, re );
-    auto c = eos::soundspeed( r, pr < 0 ? 0 : pr );
+    auto u  = U(p,1,0)/r;
+    auto v  = U(p,2,0)/r;
+    auto w  = U(p,3,0)/r;
+    auto pr = eos::pressure( U(p,4,0) - 0.5*r*(u*u + v*v + w*w) );
+    auto c = eos::soundspeed( r, std::max(pr,0.0) );
     auto L = std::cbrt( vol[p] );
+    auto vel = std::sqrt( u*u + v*v + w*w );
     dtp[p] = L / std::max( vel+c, 1.0e-8 ) * cfl;
   }
 }

@@ -136,11 +136,8 @@ class Discretization : public CBase_Discretization {
 
     //! Nodal mesh volume accessors const-ref
     const std::vector< tk::real >& V() const { return m_v; }
-
     //! Nodal mesh volumes at current time step accessors as const-ref
     const std::vector< tk::real >& Vol() const { return m_vol; }
-    //! Element mesh volumes at t=t0 accessors as const-ref
-    const std::vector< tk::real >& Vol0() const { return m_vol0; }
 
     //! Set 'initial' flag
     //! \param[in] i Value to put in 'initial'
@@ -310,7 +307,6 @@ class Discretization : public CBase_Discretization {
       p | m_v;
       p | m_vol;
       p | m_volc;
-      p | m_vol0;
       p | m_boxvol;
       p | m_timer;
       p | m_refined;
@@ -412,8 +408,6 @@ class Discretization : public CBase_Discretization {
     //!   cell volumes / 4) with contributions from other chares on
     //!   chare-boundaries.
     std::unordered_map< std::size_t, tk::real > m_volc;
-    //! Mesh element volumes at t=t0
-    std::vector< tk::real > m_vol0;
     //! Volume of user-defined box IC
     tk::real m_boxvol;
     //! Timer measuring a time step

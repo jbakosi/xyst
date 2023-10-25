@@ -65,7 +65,6 @@ Discretization::Discretization(
   m_meshvol( 0.0 ),
   m_v( m_gid.size(), 0.0 ),
   m_vol( m_gid.size(), 0.0 ),
-  m_vol0( m_inpoel.size()/4, 0.0 ),
   m_refined( 0 ),
   m_prevstatus( std::chrono::high_resolution_clock::now() ),
   m_nrestart( 0 ),
@@ -285,9 +284,7 @@ Discretization::vol()
 
   // Compute nodal volumes on our chunk of the mesh
   for (std::size_t e=0; e<m_inpoel.size()/4; ++e) {
-    const std::array< std::size_t, 4 > N{{ m_inpoel[e*4+0], m_inpoel[e*4+1],
-                                           m_inpoel[e*4+2], m_inpoel[e*4+3] }};
-    // compute element Jacobi determinant * 5/120 = element volume / 4
+    const auto N = m_inpoel.data() + e*4;
     const std::array< tk::real, 3 >
       ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
       ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
@@ -313,9 +310,6 @@ Discretization::vol()
                    std::to_string(z[N[3]]) + ')' );
     // scatter add V/4 to nodes
     for (std::size_t j=0; j<4; ++j) m_vol[N[j]] += J;
-
-    // save element volumes at t=t0
-    if (m_it == 0) m_vol0[e] = J * 4.0;
   }
 
   // Store nodal volumes without contributions from other chares on
@@ -344,10 +338,6 @@ Discretization::comvol( const std::vector< std::size_t >& gid,
 //! \param[in] gid Global mesh node IDs at which we receive volume contributions
 //! \param[in] nodevol Partial sums of nodal volume contributions to
 //!    chare-boundary nodes
-//! \details This function receives contributions to m_vol, which stores the
-//!   nodal volumes. While m_vol stores own contributions, m_volc collects the
-//!   neighbor chare contributions during communication. This way work on m_vol
-//!   and m_volc is overlapped. The contributions are applied in totalvol().
 // *****************************************************************************
 {
   Assert( nodevol.size() == gid.size(), "Size mismatch" );

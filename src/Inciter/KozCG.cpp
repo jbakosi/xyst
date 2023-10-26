@@ -57,7 +57,6 @@ KozCG::KozCG( const CProxy_Discretization& disc,
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
-  m_ul( m_u.nunk(), m_u.nprop() ),
   m_p( m_u.nunk(), m_u.nprop()*2 ),
   m_q( m_u.nunk(), m_u.nprop()*2 ),
   m_a( m_u.nunk(), m_u.nprop() ),
@@ -575,7 +574,7 @@ KozCG::merge()
   streamable();
 
   // Enforce boundary conditions using (re-)computed boundary data
-  BC( Disc()->T() );
+  BC( m_u, Disc()->T() );
 
   if (Disc()->Initial()) {
     // Output initial conditions to file
@@ -586,23 +585,24 @@ KozCG::merge()
 }
 
 void
-KozCG::BC( tk::real t )
+KozCG::BC( tk::Fields& u, tk::real t )
 // *****************************************************************************
 // Apply boundary conditions
+//! \param[in,out] u Solution to apply BCs to
 //! \param[in] t Physical time
 // *****************************************************************************
 {
   // Apply Dirichlet BCs
-  physics::dirbc( m_u, t, Disc()->Coord(), m_dirbcmasks );
+  physics::dirbc( u, t, Disc()->Coord(), m_dirbcmasks );
 
   // Apply symmetry BCs
-  physics::symbc( m_u, m_symbcnodes, m_symbcnorms );
+  physics::symbc( u, m_symbcnodes, m_symbcnorms );
 
   // Apply farfield BCs
-  physics::farbc( m_u, m_farbcnodes, m_farbcnorms );
+  physics::farbc( u, m_farbcnodes, m_farbcnorms );
 
   // Apply pressure BCs
-  physics::prebc( m_u, m_prebcnodes, m_prebcvals );
+  physics::prebc( u, m_prebcnodes, m_prebcvals );
 }
 
 void
@@ -651,17 +651,8 @@ KozCG::dt()
 
   }
 
-  auto large = std::numeric_limits< tk::real >::max();
-  for (std::size_t i=0; i<m_q.nunk(); ++i) {
-    for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
-       m_q(i,c*2+0,0) = -large;
-       m_q(i,c*2+1,0) = +large;
-    }
-  }
-
   // Actiavate SDAG waits for next time step
   thisProxy[ thisIndex ].wait4rhs();
-  thisProxy[ thisIndex ].wait4aec();
   thisProxy[ thisIndex ].wait4alw();
   thisProxy[ thisIndex ].wait4sol();
 
@@ -680,8 +671,10 @@ KozCG::advance( tk::real newdt )
   // Set new time step size
   Disc()->setdt( newdt );
 
-  // Compute rhs for next time step
+  // Compute rhs
   rhs();
+  // Compute aec
+  aec();
 }
 
 void
@@ -691,7 +684,6 @@ KozCG::rhs()
 // *****************************************************************************
 {
   auto d = Disc();
-  const auto& lid = d->Lid();
 
   // Compute own portion of right-hand side for all equations
 
@@ -699,8 +691,8 @@ KozCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += m_dtp[p];
   }
 
-  kozak::rhs( d->Inpoel(), d->Coord(), d->V(), d->T(), d->Dt(), m_tp,
-              m_u, m_rhs );
+  kozak::rhs( d->Inpoel(), d->Coord(), d->V(), d->T(), d->Dt(), m_tp, m_u,
+              m_rhs );
 
   if (g_cfg.get< tag::steady >()) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];
@@ -710,6 +702,7 @@ KozCG::rhs()
   if (d->NodeCommMap().empty()) {
     comrhs_complete();
   } else {
+    const auto& lid = d->Lid();
     for (const auto& [c,n] : d->NodeCommMap()) {
       decltype(m_rhsc) exp;
       for (auto g : n) exp[g] = m_rhs[ tk::cref_find(lid,g) ];
@@ -726,11 +719,6 @@ KozCG::comrhs(
 //  Receive contributions to right-hand side vector on chare-boundaries
 //! \param[in] inrhs Partial contributions of RHS to chare-boundary nodes. Key: 
 //!   global mesh node IDs, value: contributions for all scalar components.
-//! \details This function receives contributions to m_rhs, which stores the
-//!   right hand side vector at mesh nodes. While m_rhs stores own
-//!   contributions, m_rhsc collects the neighbor chare contributions during
-//!   communication. This way work on m_rhs and m_rhsc is overlapped. The two
-//!   are combined in aec().
 // *****************************************************************************
 {
   using tk::operator+=;
@@ -754,17 +742,9 @@ KozCG::aec()
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
 
-  // Combine own and communicated contributions to rhs
-  for (const auto& [g,r] : m_rhsc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
-  }
-  tk::destroy(m_rhsc);
-
   // Antidiffusive contributions: P+/-,  low-order solution: ul
 
   auto ctau = 1.0;
-  m_ul.fill( 0.0 );
   m_p.fill( 0.0 );
 
   const auto& inpoel = d->Inpoel();
@@ -789,7 +769,6 @@ KozCG::aec()
           auto m = J/120.0 * ((a == b) ? 3.0 : -1.0);
           aec[a] += m * ctau * m_u(N[b],c,0);
         }
-        m_ul(N[a],c,0) -= aec[a];
         m_p(N[a],p,0) += std::max(0.0,aec[a]);
         m_p(N[a],n,0) += std::min(0.0,aec[a]);
       }
@@ -802,14 +781,7 @@ KozCG::aec()
   } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
       decltype(m_pc) exp;
-      for (auto g : n) {
-        auto i = tk::cref_find( lid, g );
-        auto& e = exp[g];
-        auto p = m_p[i];
-        auto ul = m_ul[i];
-        e[0].insert( end(e[0]), begin(p), end(p) );
-        e[1].insert( end(e[1]), begin(ul), end(ul) );
-      }
+      for (auto g : n) exp[g] = m_p[ tk::cref_find(lid,g) ];
       thisProxy[c].comaec( exp );
     }
   }
@@ -818,7 +790,7 @@ KozCG::aec()
 
 void
 KozCG::comaec( const std::unordered_map< std::size_t,
-                       std::array< std::vector< tk::real >, 2 > >& inaec )
+                       std::vector< tk::real > >& inaec )
 // *****************************************************************************
 //  Receive antidiffusive and low-order contributions on chare-boundaries
 //! \param[in] inaec Partial contributions of antidiffusive edge and low-order
@@ -827,11 +799,7 @@ KozCG::comaec( const std::unordered_map< std::size_t,
 // *****************************************************************************
 {
   using tk::operator+=;
-  for (const auto& [g,a] : inaec) {
-    auto& p = m_pc[g];
-    p[0] += a[0];
-    p[1] += a[1];
-  }
+  for (const auto& [g,a] : inaec) m_pc[g] += a;
 
   // When we have heard from all chares we communicate with, this chare is done
   if (++m_naec == Disc()->NodeCommMap().size()) {
@@ -853,12 +821,18 @@ KozCG::alw()
   const auto& vol = d->Vol();
   const auto& inpoel = d->Inpoel();
 
+  // Combine own and communicated contributions to rhs
+  for (const auto& [g,r] : m_rhsc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
+  }
+  tk::destroy(m_rhsc);
+
   // Combine own and communicated contributions to antidiffusive contributions
   // and low-order solution
   for (const auto& [g,p] : m_pc) {
     auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<p[0].size(); ++c) m_p(i,c,0) += p[0][c];
-    for (std::size_t c=0; c<p[1].size(); ++c) m_ul(i,c,0) += p[1][c];
+    for (std::size_t c=0; c<p.size(); ++c) m_p(i,c,0) += p[c];
   }
   tk::destroy(m_pc);
 
@@ -869,7 +843,8 @@ KozCG::alw()
       auto n = p+1;
       m_p(i,p,0) /= vol[i];
       m_p(i,n,0) /= vol[i];
-      m_ul(i,c,0) = m_u(i,c,0) + (m_rhs(i,c,0) + m_ul(i,c,0)) / vol[i];
+      // low-order solution
+      m_rhs(i,c,0) = m_u(i,c,0) + m_rhs(i,c,0)/vol[i] - m_p(i,p,0) - m_p(i,n,0);
     }
   }
 
@@ -879,6 +854,12 @@ KozCG::alw()
   using std::min;
 
   tk::real large = std::numeric_limits< tk::real >::max();
+  for (std::size_t i=0; i<m_q.nunk(); ++i) {
+    for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
+      m_q(i,c*2+0,0) = -large;
+      m_q(i,c*2+1,0) = +large;
+    }
+  }
 
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
     const auto N = inpoel.data() + e*4;
@@ -886,8 +867,8 @@ KozCG::alw()
       tk::real alwp = -large;
       tk::real alwn = +large;
       for (std::size_t a=0; a<4; ++a) {
-        alwp = max( alwp, max(m_ul(N[a],c,0), m_u(N[a],c,0)) );
-        alwn = min( alwn, min(m_ul(N[a],c,0), m_u(N[a],c,0)) );
+        alwp = max( alwp, max(m_rhs(N[a],c,0), m_u(N[a],c,0)) );
+        alwn = min( alwn, min(m_rhs(N[a],c,0), m_u(N[a],c,0)) );
       }
       auto p = c*2;
       auto n = p+1;
@@ -921,23 +902,14 @@ KozCG::comalw( const std::unordered_map< std::size_t,
 //!   contributions.
 // *****************************************************************************
 {
-  for (const auto& [g,a] : inalw) {
+  for (const auto& [g,alw] : inalw) {
     auto& q = m_qc[g];
-    if (q.empty()) {
-      q.resize( a.size() );
-      auto large = std::numeric_limits< tk::real >::max();
-      for (std::size_t c=0; c<q.size()/2; ++c) {
-        auto p = c*2;
-        auto n = p+1;
-        q[p] = -large;
-        q[n] = +large;
-      }
-    }
-    for (std::size_t c=0; c<a.size()/2; ++c) {
+    q.resize( alw.size() );
+    for (std::size_t c=0; c<alw.size()/2; ++c) {
       auto p = c*2;
       auto n = p+1;
-      q[p] = std::max( q[p], a[p] );
-      q[n] = std::min( q[n], a[n] );
+      q[p] = std::max( q[p], alw[p] );
+      q[n] = std::min( q[n], alw[n] );
     }
   }
 
@@ -961,16 +933,15 @@ KozCG::lim()
 
   using std::max;
   using std::min;
-  using std::abs;
 
   // Combine own and communicated contributions to allowed limits
-  for (const auto& [g,a] : m_qc) {
+  for (const auto& [g,alw] : m_qc) {
     auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<a.size()/2; ++c) {
+    for (std::size_t c=0; c<alw.size()/2; ++c) {
       auto p = c*2;
       auto n = p+1;
-      m_q(i,p,0) = max( m_q(i,p,0), a[p] );
-      m_q(i,n,0) = min( m_q(i,n,0), a[n] );
+      m_q(i,p,0) = max( m_q(i,p,0), alw[p] );
+      m_q(i,n,0) = min( m_q(i,n,0), alw[n] );
     }
   }
   tk::destroy(m_qc);
@@ -980,20 +951,20 @@ KozCG::lim()
     for (std::size_t c=0; c<ncomp; ++c) {
       auto p = c*2;
       auto n = p+1;
-      m_q(i,p,0) -= m_ul(i,c,0);
-      m_q(i,n,0) -= m_ul(i,c,0);
+      m_q(i,p,0) -= m_rhs(i,c,0);
+      m_q(i,n,0) -= m_rhs(i,c,0);
     }
   }
 
   // Limit coefficients, C
 
-  auto eps = std::numeric_limits< tk::real >::epsilon();
   for (std::size_t i=0; i<npoin; ++i) {
     for (std::size_t c=0; c<ncomp; ++c) {
       auto p = c*2;
       auto n = p+1;
-      m_q(i,p,0) = m_p(i,p,0) <  eps ? 0.0 : min(1.0,m_q(i,p,0)/m_p(i,p,0));
-      m_q(i,n,0) = m_p(i,n,0) > -eps ? 0.0 : min(1.0,m_q(i,n,0)/m_p(i,n,0));
+      auto eps = std::numeric_limits< tk::real >::epsilon();
+      m_q(i,p,0) = m_p(i,p,0) <  eps ? 0.0 : min(1.0, m_q(i,p,0)/m_p(i,p,0));
+      m_q(i,n,0) = m_p(i,n,0) > -eps ? 0.0 : min(1.0, m_q(i,n,0)/m_p(i,n,0));
     }
   }
 
@@ -1086,35 +1057,37 @@ KozCG::solve()
   }
   tk::destroy(m_ac);
 
-  // Finish computing limited antidiffusive contributions
+  // Apply limited antidiffusive contributions to low-order solution
   for (std::size_t i=0; i<npoin; ++i) {
     for (std::size_t c=0; c<ncomp; ++c) {
-      m_a(i,c,0) /= vol[i];
+      m_a(i,c,0) = m_rhs(i,c,0) + m_a(i,c,0)/vol[i];
     }
   }
 
-  // Update solution
-  auto un = m_u;
-  m_u = m_ul + m_a;
-
-  // Configure and apply scalar source to solution (if defined)
+  // Apply scalar source to solution (if defined)
   auto src = problems::PHYS_SRC();
-  if (src) src( d->Coord(), d->T(), m_u );
+  if (src) src( d->Coord(), d->T(), m_a );
 
   // Enforce boundary conditions
-  BC( d->T() + d->Dt() );
+  BC( m_a, d->T() + d->Dt() );
 
   // Activate SDAG wait for next time step
   thisProxy[ thisIndex ].wait4rhs();
-  thisProxy[ thisIndex ].wait4aec();
   thisProxy[ thisIndex ].wait4alw();
   thisProxy[ thisIndex ].wait4sol();
-  // Activate SDAG waits for finishing a this time step
+  // Activate SDAG waits for finishing this time step
   thisProxy[ thisIndex ].wait4step();
 
   // Compute diagnostics, e.g., residuals
-  auto diag_computed =
-    m_diag.compute( *d, m_u, un, g_cfg.get< tag::diag_iter >() );
+  auto diag = m_diag.compute( *d, m_a, m_u, g_cfg.get< tag::diag_iter >() );
+
+  // Update solution
+  for (std::size_t i=0; i<npoin; ++i) {
+    for (std::size_t c=0; c<ncomp; ++c) {
+      m_u(i,c,0) = m_a(i,c,0);
+    }
+  }
+
   // Increase number of iterations and physical time
   d->next();
   // Advance physical time for local time stepping
@@ -1123,7 +1096,7 @@ KozCG::solve()
     m_tp += m_dtp;
   }
   // Continue to mesh refinement
-  if (!diag_computed) refine( std::vector< tk::real >( ncomp, 1.0 ) );
+  if (!diag) refine( std::vector< tk::real >( ncomp, 1.0 ) );
 }
 
 void

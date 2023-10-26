@@ -100,7 +100,7 @@ class KozCG : public CBase_KozCG {
 
     //! Receive antidiffusive and low-order contributions on chare-boundaries
     void comaec( const std::unordered_map< std::size_t,
-                         std::array< std::vector< tk::real >, 2 > >& inaec );
+                         std::vector< tk::real > >& inaec );
 
 
     //! Receive allowed limits contributions on chare-boundaries
@@ -159,7 +159,6 @@ class KozCG : public CBase_KozCG {
       p | m_bface;
       p | m_triinpoel;
       p | m_u;
-      p | m_ul;
       p | m_p;
       p | m_pc;
       p | m_q;
@@ -215,14 +214,12 @@ class KozCG : public CBase_KozCG {
     std::vector< std::size_t > m_triinpoel;
     //! Unknown/solution vector at mesh nodes
     tk::Fields m_u;
-    //! Low-order solution at mesh nodes
-    tk::Fields m_ul;
     //! Max/min antidiffusive edge contributions at mesh nodes
     tk::Fields m_p;
     //! Receive buffer for max/min antidiffusive edge contributions
     //! \details Key: global node id, value: max/min antidiff edge contributions
     //!   in nodes.
-    std::unordered_map< std::size_t, std::array<std::vector<tk::real>,2> > m_pc;
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_pc;
     //! Max/min allowed limits at mesh nodes
     tk::Fields m_q;
     //! Receive buffer for max/min allowed limits
@@ -251,6 +248,10 @@ class KozCG : public CBase_KozCG {
     //! \details Outer key: side set id. Inner key: global node id of boundary
     //!   point, value: weighted normals and inverse distance square.
     decltype(m_bnorm) m_bnormc;
+    //! Boundary point integrals
+    //! \details Key: global node id of boundary point, value: boundary point
+    //!   integral contributions.
+    std::unordered_map< std::size_t, std::array< tk::real, 3 > > m_bndpoinint;
     //! Streamable boundary point symmetry BC flags
     std::vector< std::uint8_t > m_bpsym;
     //! Nodes and their Dirichlet BC masks
@@ -299,6 +300,9 @@ class KozCG : public CBase_KozCG {
     //! Combine own and communicated portions of the boundary point normals
     void bnorm();
 
+    //! Convert integrals into streamable data structures
+    void streamable();
+
     //! Output mesh and particle fields to files
     void out();
 
@@ -330,7 +334,7 @@ class KozCG : public CBase_KozCG {
     void evalRestart();
 
     //! Apply boundary conditions
-    void BC( tk::real t );
+    void BC( tk::Fields& u, tk::real t );
 
     //! Apply scalar source to solution
     void src();

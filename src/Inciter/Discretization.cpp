@@ -289,7 +289,7 @@ Discretization::vol()
       ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
       ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
       da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
-    const auto J = tk::triple( ba, ca, da ) * 5.0 / 120.0;
+    const auto J = tk::triple( ba, ca, da ) / 24.0;
     ErrChk( J > 0, "Element Jacobian non-positive: PE:" +
                    std::to_string(CkMyPe()) + ", node IDs: " +
                    std::to_string(m_gid[N[0]]) + ',' +
@@ -317,15 +317,16 @@ Discretization::vol()
   m_v = m_vol;
 
   // Send our nodal volume contributions to neighbor chares
-  if (m_nodeCommMap.empty())
-   totalvol();
-  else
+  if (m_nodeCommMap.empty()) {
+    comvol_complete();
+  } else {
     for (const auto& [c,n] : m_nodeCommMap) {
       std::vector< tk::real > v( n.size() );
       std::size_t j = 0;
       for (auto i : n) v[ j++ ] = m_vol[ tk::cref_find(m_lid,i) ];
       thisProxy[c].comvol( std::vector<std::size_t>(begin(n), end(n)), v );
     }
+  }
 
   ownvol_complete();
 }

@@ -99,9 +99,22 @@ KozCG::setupBC()
     if (k != end(m_bface)) {
       auto& n = dir[ k->first ];
       for (auto f : k->second) {
-        n.insert( m_triinpoel[f*3+0] );
-        n.insert( m_triinpoel[f*3+1] );
-        n.insert( m_triinpoel[f*3+2] );
+        const auto t = m_triinpoel.data() + f*3;
+        n.insert( t[0] );
+        n.insert( t[1] );
+        n.insert( t[2] );
+      }
+    }
+  }
+
+  // Augment Dirichlet BC nodes with nodes not necessarily part of faces
+  const auto& lid = Disc()->Lid();
+  for (const auto& s : g_cfg.get< tag::bc_dir >()) {
+    auto k = m_bnode.find(s[0]);
+    if (k != end(m_bnode)) {
+      auto& n = dir[ k->first ];
+      for (auto g : k->second) {
+        n.insert( tk::cref_find(lid,g) );
       }
     }
   }

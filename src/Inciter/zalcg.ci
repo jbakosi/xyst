@@ -36,7 +36,7 @@ module zalcg {
       entry void comrhs( const std::unordered_map< std::size_t,
                            std::vector< tk::real > >& inrhs );
       entry void comaec( const std::unordered_map< std::size_t,
-                           std::array< std::vector< tk::real >, 2 > >& inaec );
+                           std::vector< tk::real > >& inaec );
       entry void comalw( const std::unordered_map< std::size_t,
                            std::vector< tk::real > >& inalw );
       entry void comlim( const std::unordered_map< std::size_t,
@@ -51,22 +51,20 @@ module zalcg {
       // charm++/manual.html, Sec. "Structured Control Flow: Structured Dagger".
 
       entry void wait4int() {
-        when ownnorm_complete(), comnorm_complete() serial "int" { merge(); } }
+        when ownnorm_complete(), comnorm_complete() serial { merge(); } }
 
       entry void wait4rhs() {
-        when ownrhs_complete(), comrhs_complete() serial "rhs" { aec(); } }
-
-      entry void wait4aec() {
-        when ownaec_complete(), comaec_complete() serial "aec" { alw(); } }
+        when ownrhs_complete(), comrhs_complete(),
+             ownaec_complete(), comaec_complete() serial { alw(); } }
 
       entry void wait4alw() {
-        when ownalw_complete(), comalw_complete() serial "alw" { lim(); } }
+        when ownalw_complete(), comalw_complete() serial { lim(); } }
 
       entry void wait4sol() {
-        when ownlim_complete(), comlim_complete() serial "sol" { solve(); } }
+        when ownlim_complete(), comlim_complete() serial { solve(); } }
 
       entry void wait4step() {
-        when feop_complete(), resize_complete() serial "step" { out(); } }
+        when feop_complete(), resize_complete() serial { out(); } }
 
       entry void ownnorm_complete();
       entry void comnorm_complete();

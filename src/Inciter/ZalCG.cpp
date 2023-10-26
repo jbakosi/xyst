@@ -60,7 +60,6 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
-  m_ul( m_u.nunk(), m_u.nprop() ),
   m_p( m_u.nunk(), m_u.nprop()*2 ),
   m_q( m_u.nunk(), m_u.nprop()*2 ),
   m_a( m_u.nunk(), m_u.nprop() ),
@@ -102,9 +101,22 @@ ZalCG::setupBC()
     if (k != end(m_bface)) {
       auto& n = dir[ k->first ];
       for (auto f : k->second) {
-        n.insert( m_triinpoel[f*3+0] );
-        n.insert( m_triinpoel[f*3+1] );
-        n.insert( m_triinpoel[f*3+2] );
+        const auto t = m_triinpoel.data() + f*3;
+        n.insert( t[0] );
+        n.insert( t[1] );
+        n.insert( t[2] );
+      }
+    }
+  }
+
+  // Augment Dirichlet BC nodes with nodes not necessarily part of faces
+  const auto& lid = Disc()->Lid();
+  for (const auto& s : g_cfg.get< tag::bc_dir >()) {
+    auto k = m_bnode.find(s[0]);
+    if (k != end(m_bnode)) {
+      auto& n = dir[ k->first ];
+      for (auto g : k->second) {
+        n.insert( tk::cref_find(lid,g) );
       }
     }
   }
@@ -141,9 +153,10 @@ ZalCG::setupBC()
       if (k != end(m_bface)) {
         auto& n = pre[ k->first ];
         for (auto f : k->second) {
-          n.insert( m_triinpoel[f*3+0] );
-          n.insert( m_triinpoel[f*3+1] );
-          n.insert( m_triinpoel[f*3+2] );
+          const auto t = m_triinpoel.data() + f*3;
+          n.insert( t[0] );
+          n.insert( t[1] );
+          n.insert( t[2] );
         }
       }
     }
@@ -182,9 +195,10 @@ ZalCG::setupBC()
     if (k != end(m_bface)) {
       auto& n = sym[ k->first ];
       for (auto f : k->second) {
-        n.insert( m_triinpoel[f*3+0] );
-        n.insert( m_triinpoel[f*3+1] );
-        n.insert( m_triinpoel[f*3+2] );
+        const auto t = m_triinpoel.data() + f*3;
+        n.insert( t[0] );
+        n.insert( t[1] );
+        n.insert( t[2] );
       }
     }
   }
@@ -196,9 +210,10 @@ ZalCG::setupBC()
     if (k != end(m_bface)) {
       auto& n = far[ k->first ];
       for (auto f : k->second) {
-        n.insert( m_triinpoel[f*3+0] );
-        n.insert( m_triinpoel[f*3+1] );
-        n.insert( m_triinpoel[f*3+2] );
+        const auto t = m_triinpoel.data() + f*3;
+        n.insert( t[0] );
+        n.insert( t[1] );
+        n.insert( t[2] );
       }
     }
   }
@@ -315,8 +330,11 @@ ZalCG::bndint()
          b[1] += n[1] * A / 3.0;
          b[2] += n[2] * A / 3.0;
          tk::UnsMesh::Edge ed{ gid[p], gid[q] };
-         tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
-         if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
+         tk::real sig = 1.0;
+         if (ed[0] > ed[1]) {
+           std::swap( ed[0], ed[1] );
+           sig = -1.0;
+         }
          auto& e = m_bndedgeint[ ed ];
          e[0] += sig * n[0] * A / 12.0; // bnd-edge integral
          e[1] += sig * n[1] * A / 12.0;
@@ -666,35 +684,35 @@ ZalCG::bndsuped()
   tk::destroy( m_bsupint[0] );
   tk::destroy( m_bsupint[1] );
 
-  for (const auto& [setid, tri] : m_bface) {
-    for (auto e : tri) {
-      std::size_t N[3] = { m_triinpoel[e*3+0], m_triinpoel[e*3+1],
-                           m_triinpoel[e*3+2] };
-      int f = 0;
-      tk::real sig[3];
-      decltype(m_bndedgeint)::const_iterator b[3];
-      for (const auto& [p,q] : tk::lpoet) {
-        tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-        sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
-        b[f] = m_bndedgeint.find( ed );
-        if (b[f] == end(m_bndedgeint)) break; else ++f;
-      }
-      if (f == 3) {
-        m_bsupedge[0].push_back( N[0] );
-        m_bsupedge[0].push_back( N[1] );
-        m_bsupedge[0].push_back( N[2] );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[0]) );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[1]) );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[2]) );
-        for (int ed=0; ed<3; ++ed) {
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[0] );
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[1] );
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[2] );
-          m_bndedgeint.erase( b[ed] );
-        }
-      }
-    }
-  }
+//   for (const auto& [setid, tri] : m_bface) {
+//     for (auto e : tri) {
+//       std::size_t N[3] = { m_triinpoel[e*3+0], m_triinpoel[e*3+1],
+//                            m_triinpoel[e*3+2] };
+//       int f = 0;
+//       tk::real sig[3];
+//       decltype(m_bndedgeint)::const_iterator b[3];
+//       for (const auto& [p,q] : tk::lpoet) {
+//         tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+//         sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+//         b[f] = m_bndedgeint.find( ed );
+//         if (b[f] == end(m_bndedgeint)) break; else ++f;
+//       }
+//       if (f == 3) {
+//         m_bsupedge[0].push_back( N[0] );
+//         m_bsupedge[0].push_back( N[1] );
+//         m_bsupedge[0].push_back( N[2] );
+//         m_bsupedge[0].push_back( m_symbcnodeset.count(N[0]) );
+//         m_bsupedge[0].push_back( m_symbcnodeset.count(N[1]) );
+//         m_bsupedge[0].push_back( m_symbcnodeset.count(N[2]) );
+//         for (int ed=0; ed<3; ++ed) {
+//           m_bsupint[0].push_back( sig[ed] * b[ed]->second[0] );
+//           m_bsupint[0].push_back( sig[ed] * b[ed]->second[1] );
+//           m_bsupint[0].push_back( sig[ed] * b[ed]->second[2] );
+//           m_bndedgeint.erase( b[ed] );
+//         }
+//       }
+//     }
+//   }
 
   m_bsupedge[1].resize( m_bndedgeint.size()*4 );
   m_bsupint[1].resize( m_bndedgeint.size()*3 );
@@ -865,7 +883,7 @@ ZalCG::merge()
   streamable();
 
   // Enforce boundary conditions using (re-)computed boundary data
-  BC( Disc()->T() );
+  BC( m_u, Disc()->T() );
 
   if (Disc()->Initial()) {
     // Output initial conditions to file
@@ -876,23 +894,24 @@ ZalCG::merge()
 }
 
 void
-ZalCG::BC( tk::real t )
+ZalCG::BC( tk::Fields& u, tk::real t )
 // *****************************************************************************
 // Apply boundary conditions
+//! \param[in,out] u Solution to apply BCs to
 //! \param[in] t Physical time
 // *****************************************************************************
 {
   // Apply Dirichlet BCs
-  physics::dirbc( m_u, t, Disc()->Coord(), m_dirbcmasks );
+  physics::dirbc( u, t, Disc()->Coord(), m_dirbcmasks );
 
   // Apply symmetry BCs
-  physics::symbc( m_u, m_symbcnodes, m_symbcnorms );
+  physics::symbc( u, m_symbcnodes, m_symbcnorms );
 
   // Apply farfield BCs
-  physics::farbc( m_u, m_farbcnodes, m_farbcnorms );
+  physics::farbc( u, m_farbcnodes, m_farbcnorms );
 
   // Apply pressure BCs
-  physics::prebc( m_u, m_prebcnodes, m_prebcvals );
+  physics::prebc( u, m_prebcnodes, m_prebcvals );
 }
 
 void
@@ -941,17 +960,8 @@ ZalCG::dt()
 
   }
 
-  auto large = std::numeric_limits< tk::real >::max();
-  for (std::size_t i=0; i<m_q.nunk(); ++i) {
-    for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
-       m_q(i,c*2+0,0) = -large;
-       m_q(i,c*2+1,0) = +large;
-    }
-  }
-
   // Actiavate SDAG waits for next time step
   thisProxy[ thisIndex ].wait4rhs();
-  thisProxy[ thisIndex ].wait4aec();
   thisProxy[ thisIndex ].wait4alw();
   thisProxy[ thisIndex ].wait4sol();
 
@@ -970,8 +980,10 @@ ZalCG::advance( tk::real newdt )
   // Set new time step size
   Disc()->setdt( newdt );
 
-  // Compute rhs for next time step
+  // Compute rhs
   rhs();
+  // Compute aec
+  aec();
 }
 
 void
@@ -981,7 +993,6 @@ ZalCG::rhs()
 // *****************************************************************************
 {
   auto d = Disc();
-  const auto& lid = d->Lid();
 
   // Compute own portion of right-hand side for all equations
 
@@ -1000,6 +1011,7 @@ ZalCG::rhs()
   if (d->NodeCommMap().empty()) {
     comrhs_complete();
   } else {
+    const auto& lid = d->Lid();
     for (const auto& [c,n] : d->NodeCommMap()) {
       decltype(m_rhsc) exp;
       for (auto g : n) exp[g] = m_rhs[ tk::cref_find(lid,g) ];
@@ -1041,16 +1053,8 @@ ZalCG::aec()
 // *****************************************************************************
 {
   auto d = Disc();
-  const auto dt = d->Dt();
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
-
-  // Combine own and communicated contributions to rhs
-  for (const auto& [g,r] : m_rhsc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
-  }
-  tk::destroy(m_rhsc);
 
 
 
@@ -1062,6 +1066,7 @@ ZalCG::aec()
 //     const auto& x = coord[0];
 //     const auto& y = coord[1];
 //     const auto& z = coord[2];
+//     const auto dt = d->Dt();
 // 
 //     auto eps = std::numeric_limits< tk::real >::epsilon();
 //   
@@ -1230,13 +1235,10 @@ ZalCG::aec()
 
 
 
-  m_rhs *= -dt;
-
   // Antidiffusive contributions: P+/-,  low-order solution: ul
 
   auto ctau = 1.0;
   m_p.fill( 0.0 );
-  m_ul.fill( 0.0 );
 
   // tetrahedron superedges
   for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
@@ -1247,8 +1249,6 @@ ZalCG::aec()
       auto dif = D[(e*6+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
         auto aec = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
-        m_ul(N[p],c,0) += aec;
-        m_ul(N[q],c,0) -= aec;
         auto a = c*2;
         auto b = a+1;
         if (aec > 0.0) std::swap(a,b);
@@ -1268,8 +1268,6 @@ ZalCG::aec()
       auto dif = D[(e*3+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
         auto aec = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
-        m_ul(N[p],c,0) += aec;
-        m_ul(N[q],c,0) -= aec;
         auto a = c*2;
         auto b = a+1;
         if (aec > 0.0) std::swap(a,b);
@@ -1286,8 +1284,6 @@ ZalCG::aec()
     const auto dif = m_dsupint[2][e*4+3];
     for (std::size_t c=0; c<ncomp; ++c) {
       auto aec = dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
-      m_ul(N[0],c,0) += aec;
-      m_ul(N[1],c,0) -= aec;
       auto a = c*2;
       auto b = a+1;
       if (aec > 0.0) std::swap(a,b);
@@ -1302,14 +1298,7 @@ ZalCG::aec()
   } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
       decltype(m_pc) exp;
-      for (auto g : n) {
-        auto i = tk::cref_find( lid, g );
-        auto& e = exp[g];
-        auto p = m_p[i];
-        auto ul = m_ul[i];
-        e[0].insert( end(e[0]), begin(p), end(p) );
-        e[1].insert( end(e[1]), begin(ul), end(ul) );
-      }
+      for (auto g : n) exp[g] = m_p[ tk::cref_find(lid,g) ];
       thisProxy[c].comaec( exp );
     }
   }
@@ -1318,7 +1307,7 @@ ZalCG::aec()
 
 void
 ZalCG::comaec( const std::unordered_map< std::size_t,
-                       std::array< std::vector< tk::real >, 2 > >& inaec )
+                       std::vector< tk::real > >& inaec )
 // *****************************************************************************
 //  Receive antidiffusive and low-order contributions on chare-boundaries
 //! \param[in] inaec Partial contributions of antidiffusive edge and low-order
@@ -1327,11 +1316,7 @@ ZalCG::comaec( const std::unordered_map< std::size_t,
 // *****************************************************************************
 {
   using tk::operator+=;
-  for (const auto& [g,a] : inaec) {
-    auto& p = m_pc[g];
-    p[0] += a[0];
-    p[1] += a[1];
-  }
+  for (const auto& [g,a] : inaec) m_pc[g] += a;
 
   // When we have heard from all chares we communicate with, this chare is done
   if (++m_naec == Disc()->NodeCommMap().size()) {
@@ -1352,29 +1337,30 @@ ZalCG::alw()
   const auto& lid = d->Lid();
   const auto& vol = d->Vol();
 
+  // Combine own and communicated contributions to rhs
+  for (const auto& [g,r] : m_rhsc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
+  }
+  tk::destroy(m_rhsc);
+
   // Combine own and communicated contributions to antidiffusive contributions
   // and low-order solution
   for (const auto& [g,p] : m_pc) {
     auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<p[0].size(); ++c) m_p(i,c,0) += p[0][c];
-    for (std::size_t c=0; c<p[1].size(); ++c) m_ul(i,c,0) += p[1][c];
+    for (std::size_t c=0; c<p.size(); ++c) m_p(i,c,0) += p[c];
   }
   tk::destroy(m_pc);
 
-  // Finish computing low-order solution
-  for (std::size_t i=0; i<npoin; ++i) {
-    for (std::size_t c=0; c<ncomp; ++c) {
-      m_ul(i,c,0) = m_u(i,c,0) + (m_rhs(i,c,0) + m_ul(i,c,0)) / vol[i];
-    }
-  }
-
-  // Divide weak result by nodal volume
+  // Finish computing antidiffusive contributions and low-order solution
   for (std::size_t i=0; i<npoin; ++i) {
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
       m_p(i,a,0) /= vol[i];
       m_p(i,b,0) /= vol[i];
+      // low-order solution
+      m_rhs(i,c,0) = m_u(i,c,0) + m_rhs(i,c,0)/vol[i] - m_p(i,a,0) - m_p(i,b,0);
     }
   }
 
@@ -1383,6 +1369,14 @@ ZalCG::alw()
   using std::max;
   using std::min;
 
+  auto large = std::numeric_limits< tk::real >::max();
+  for (std::size_t i=0; i<m_q.nunk(); ++i) {
+    for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
+       m_q(i,c*2+0,0) = -large;
+       m_q(i,c*2+1,0) = +large;
+    }
+  }
+
   // tetrahedron superedges
   for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
     const auto N = m_dsupedge[0].data() + e*4;
@@ -1390,10 +1384,10 @@ ZalCG::alw()
       auto a = c*2;
       auto b = a+1;
       for (const auto& [p,q] : tk::lpoed) {
-        auto alwp = max( max(m_ul(N[p],c,0), m_u(N[p],c,0)),
-                         max(m_ul(N[q],c,0), m_u(N[q],c,0)) );
-        auto alwn = min( min(m_ul(N[p],c,0), m_u(N[p],c,0)),
-                         min(m_ul(N[q],c,0), m_u(N[q],c,0)) );
+        auto alwp = max( max(m_rhs(N[p],c,0), m_u(N[p],c,0)),
+                         max(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
+        auto alwn = min( min(m_rhs(N[p],c,0), m_u(N[p],c,0)),
+                         min(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
         m_q(N[p],a,0) = max(m_q(N[p],a,0), alwp);
         m_q(N[p],b,0) = min(m_q(N[p],b,0), alwn);
         m_q(N[q],a,0) = max(m_q(N[q],a,0), alwp);
@@ -1409,10 +1403,10 @@ ZalCG::alw()
       auto a = c*2;
       auto b = a+1;
       for (const auto& [p,q] : tk::lpoet) {
-        auto alwp = max( max(m_ul(N[p],c,0), m_u(N[p],c,0)),
-                         max(m_ul(N[q],c,0), m_u(N[q],c,0)) );
-        auto alwn = min( min(m_ul(N[p],c,0), m_u(N[p],c,0)),
-                         min(m_ul(N[q],c,0), m_u(N[q],c,0)) );
+        auto alwp = max( max(m_rhs(N[p],c,0), m_u(N[p],c,0)),
+                         max(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
+        auto alwn = min( min(m_rhs(N[p],c,0), m_u(N[p],c,0)),
+                         min(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
         m_q(N[p],a,0) = max(m_q(N[p],a,0), alwp);
         m_q(N[p],b,0) = min(m_q(N[p],b,0), alwn);
         m_q(N[q],a,0) = max(m_q(N[q],a,0), alwp);
@@ -1427,10 +1421,10 @@ ZalCG::alw()
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
-      auto alwp = max( max(m_ul(N[0],c,0), m_u(N[0],c,0)),
-                       max(m_ul(N[1],c,0), m_u(N[1],c,0)) );
-      auto alwn = min( min(m_ul(N[0],c,0), m_u(N[0],c,0)),
-                       min(m_ul(N[1],c,0), m_u(N[1],c,0)) );
+      auto alwp = max( max(m_rhs(N[0],c,0), m_u(N[0],c,0)),
+                       max(m_rhs(N[1],c,0), m_u(N[1],c,0)) );
+      auto alwn = min( min(m_rhs(N[0],c,0), m_u(N[0],c,0)),
+                       min(m_rhs(N[1],c,0), m_u(N[1],c,0)) );
       m_q(N[0],a,0) = max(m_q(N[0],a,0), alwp);
       m_q(N[0],b,0) = min(m_q(N[0],b,0), alwn);
       m_q(N[1],a,0) = max(m_q(N[1],a,0), alwp);
@@ -1463,16 +1457,7 @@ ZalCG::comalw( const std::unordered_map< std::size_t,
 {
   for (const auto& [g,alw] : inalw) {
     auto& q = m_qc[g];
-    if (q.empty()) {
-      q.resize( alw.size() );
-      auto large = std::numeric_limits< tk::real >::max();
-      for (std::size_t c=0; c<q.size()/2; ++c) {
-        auto a = c*2;
-        auto b = a+1;
-        q[a] = -large;
-        q[b] = +large;
-      }
-    }
+    q.resize( alw.size() );
     for (std::size_t c=0; c<alw.size()/2; ++c) {
       auto a = c*2;
       auto b = a+1;
@@ -1519,8 +1504,8 @@ ZalCG::lim()
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
-      m_q(i,a,0) -= m_ul(i,c,0);
-      m_q(i,b,0) -= m_ul(i,c,0);
+      m_q(i,a,0) -= m_rhs(i,c,0);
+      m_q(i,b,0) -= m_rhs(i,c,0);
     }
   }
 
@@ -1533,9 +1518,6 @@ ZalCG::lim()
       auto eps = std::numeric_limits< tk::real >::epsilon();
       m_q(i,a,0) = m_p(i,a,0) <  eps ? 0.0 : min(1.0, m_q(i,a,0)/m_p(i,a,0));
       m_q(i,b,0) = m_p(i,b,0) > -eps ? 0.0 : min(1.0, m_q(i,b,0)/m_p(i,b,0));
-      Assert( m_q(i,a,0) > -eps && m_q(i,a,0) < 1.0+eps &&
-              m_q(i,b,0) > -eps && m_q(i,b,0) < 1.0+eps,
-              "FCT limit coeff out of bounds" );
     }
   }
 
@@ -1589,7 +1571,6 @@ ZalCG::lim()
       ++i;
     }
   }
-
 
   // edges
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
@@ -1656,39 +1637,43 @@ ZalCG::solve()
 
   // Combine own and communicated contributions to limited antidiffusive
   // contributions
-  for (const auto& [g,r] : m_ac) {
+  for (const auto& [g,a] : m_ac) {
     auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_a(i,c,0) += r[c];
+    for (std::size_t c=0; c<a.size(); ++c) m_a(i,c,0) += a[c];
   }
   tk::destroy(m_ac);
 
-  // divide weak result in rhs by nodal volume
-  for (std::size_t i=0; i<npoin; ++i)
-    for (std::size_t c=0; c<ncomp; ++c)
-      m_a(i,c,0) /= vol[i];
-
-  // Update solution
-  auto un = m_u;
-  m_u = m_ul + m_a;
+  // Apply limited antidiffusive contributions to low-order solution
+  for (std::size_t i=0; i<npoin; ++i) {
+    for (std::size_t c=0; c<ncomp; ++c) {
+      m_a(i,c,0) = m_rhs(i,c,0) + m_a(i,c,0)/vol[i];
+    }
+  }
 
   // Configure and apply scalar source to solution (if defined)
   auto src = problems::PHYS_SRC();
-  if (src) src( d->Coord(), d->T(), m_u );
+  if (src) src( d->Coord(), d->T(), m_a );
 
   // Enforce boundary conditions
-  BC( d->T() + d->Dt() );
+  BC( m_a, d->T() + d->Dt() );
 
   // Activate SDAG wait for next time step
   thisProxy[ thisIndex ].wait4rhs();
-  thisProxy[ thisIndex ].wait4aec();
   thisProxy[ thisIndex ].wait4alw();
   thisProxy[ thisIndex ].wait4sol();
   // Activate SDAG waits for finishing a this time step
   thisProxy[ thisIndex ].wait4step();
 
   // Compute diagnostics, e.g., residuals
-  auto diag_computed =
-    m_diag.compute( *d, m_u, un, g_cfg.get< tag::diag_iter >() );
+  auto diag = m_diag.compute( *d, m_a, m_u, g_cfg.get< tag::diag_iter >() );
+
+  // Update solution
+  for (std::size_t i=0; i<npoin; ++i) {
+    for (std::size_t c=0; c<ncomp; ++c) {
+      m_u(i,c,0) = m_a(i,c,0);
+    }
+  }
+
   // Increase number of iterations and physical time
   d->next();
   // Advance physical time for local time stepping
@@ -1697,7 +1682,7 @@ ZalCG::solve()
     m_tp += m_dtp;
   }
   // Continue to mesh refinement
-  if (!diag_computed) refine( std::vector< tk::real >( ncomp, 1.0 ) );
+  if (!diag) refine( std::vector< tk::real >( ncomp, 1.0 ) );
 }
 
 void

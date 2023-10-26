@@ -94,16 +94,16 @@ advedge( const tk::real supint[],
   auto reh = 0.5*(reL + reR - dt*((reL+pL)*dnL - (reR+pR)*dnR));
   auto ph = eos::pressure( reh - 0.5*(ruh*ruh + rvh*rvh + rwh*rwh)/rh );
   auto vn = (ruh*nx + rvh*ny + rwh*nz)/rh;
-  f[0] = rh*vn;
-  f[1] = ruh*vn + ph*nx;
-  f[2] = rvh*vn + ph*ny;
-  f[3] = rwh*vn + ph*nz;
-  f[4] = (reh + ph)*vn;
+  f[0] = -dt*rh*vn;
+  f[1] = -dt*(ruh*vn + ph*nx);
+  f[2] = -dt*(rvh*vn + ph*ny);
+  f[3] = -dt*(rwh*vn + ph*nz);
+  f[4] = -dt*(reh + ph)*vn;
 
   // scalar fluxes
   for (std::size_t c=5; c<ncomp; ++c) {
     auto hc = 0.5*(U(p,c,0) + U(q,c,0) - dt*(U(p,c,0)*dnL - U(q,c,0)*dnR));
-    f[c] = hc*vn;
+    f[c] = -dt*hc*vn;
   }
 }
 
@@ -216,14 +216,13 @@ adv( const std::vector< std::size_t >& bpoin,
 //     auto ny = n[1];
 //     auto nz = n[2];
 //     auto vn = bpsym[b] ? 0.0 : (ru*nx + rv*ny + rw*nz)/r;
-// //if (i==13994) std::cout << "p: + " << U(i,0,0)*vn << '\n';
-//     R(i,0,0) += r*vn;
-//     R(i,1,0) += ru*vn + p*nx;
-//     R(i,2,0) += rv*vn + p*ny;
-//     R(i,3,0) += rw*vn + p*nz;
-//     R(i,4,0) += (re + p)*vn;
+//     R(i,0,0) -= r*vn;
+//     R(i,1,0) -= ru*vn + p*nx;
+//     R(i,2,0) -= rv*vn + p*ny;
+//     R(i,3,0) -= rw*vn + p*nz;
+//     R(i,4,0) -= (re + p)*vn;
 //     for (std::size_t c=5; c<ncomp; ++c) {
-//       R(i,c,0) += U(i,c,0)*vn;
+//       R(i,c,0) -= U(i,c,0)*vn;
 //     }
 //   }
 //  
@@ -283,10 +282,8 @@ adv( const std::vector< std::size_t >& bpoin,
 //     }
 // 
 //     for (std::size_t c=0; c<ncomp; ++c) {
-// //if (c==0 && N[0]==13994) std::cout << "b: - " << f[c] << '\n';
-// //if (c==0 && N[1]==13994) std::cout << "b: + " << f[c] << '\n';
-//       R(p,c,0) -= f[c];
-//       R(q,c,0) += f[c];
+//       R(p,c,0) += f[c];
+//       R(q,c,0) -= f[c];
 //     }
 //   }
 
@@ -380,23 +377,23 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     auto flua4 = flu41 + flu42 + flu43;
     auto flua5 = flu51 + flu52 + flu53;
 
-    R(N[0],0,0) += (5.0*flu11 + flua1)/8.0;
-    R(N[0],1,0) += (5.0*flu21 + flua2)/8.0;
-    R(N[0],2,0) += (5.0*flu31 + flua3)/8.0;
-    R(N[0],3,0) += (5.0*flu41 + flua4)/8.0;
-    R(N[0],4,0) += (5.0*flu51 + flua5)/8.0;
+    R(N[0],0,0) -= dt*(5.0*flu11 + flua1)/8.0;
+    R(N[0],1,0) -= dt*(5.0*flu21 + flua2)/8.0;
+    R(N[0],2,0) -= dt*(5.0*flu31 + flua3)/8.0;
+    R(N[0],3,0) -= dt*(5.0*flu41 + flua4)/8.0;
+    R(N[0],4,0) -= dt*(5.0*flu51 + flua5)/8.0;
 
-    R(N[1],0,0) += (5.0*flu12 + flua1)/8.0;
-    R(N[1],1,0) += (5.0*flu22 + flua2)/8.0;
-    R(N[1],2,0) += (5.0*flu32 + flua3)/8.0;
-    R(N[1],3,0) += (5.0*flu42 + flua4)/8.0;
-    R(N[1],4,0) += (5.0*flu52 + flua5)/8.0;
+    R(N[1],0,0) -= dt*(5.0*flu12 + flua1)/8.0;
+    R(N[1],1,0) -= dt*(5.0*flu22 + flua2)/8.0;
+    R(N[1],2,0) -= dt*(5.0*flu32 + flua3)/8.0;
+    R(N[1],3,0) -= dt*(5.0*flu42 + flua4)/8.0;
+    R(N[1],4,0) -= dt*(5.0*flu52 + flua5)/8.0;
 
-    R(N[2],0,0) += (5.0*flu13 + flua1)/8.0;
-    R(N[2],1,0) += (5.0*flu23 + flua2)/8.0;
-    R(N[2],2,0) += (5.0*flu33 + flua3)/8.0;
-    R(N[2],3,0) += (5.0*flu43 + flua4)/8.0;
-    R(N[2],4,0) += (5.0*flu53 + flua5)/8.0;
+    R(N[2],0,0) -= dt*(5.0*flu13 + flua1)/8.0;
+    R(N[2],1,0) -= dt*(5.0*flu23 + flua2)/8.0;
+    R(N[2],2,0) -= dt*(5.0*flu33 + flua3)/8.0;
+    R(N[2],3,0) -= dt*(5.0*flu43 + flua4)/8.0;
+    R(N[2],4,0) -= dt*(5.0*flu53 + flua5)/8.0;
   }
 }
 
@@ -500,15 +497,16 @@ advbnd2( const std::vector< std::size_t >& triinpoel,
   for (std::size_t e=0; e<triinpoel.size()/3; ++e)
     for (std::size_t c=0; c<5; ++c) {
       auto eb = (e*5+c)*6;
-      R(triinpoel[e*3+0],c,0) += bflux[eb+0] + bflux[eb+5];
-      R(triinpoel[e*3+1],c,0) += bflux[eb+1] + bflux[eb+2];
-      R(triinpoel[e*3+2],c,0) += bflux[eb+3] + bflux[eb+4];
+      R(triinpoel[e*3+0],c,0) -= dt*(bflux[eb+0] + bflux[eb+5]);
+      R(triinpoel[e*3+1],c,0) -= dt*(bflux[eb+1] + bflux[eb+2]);
+      R(triinpoel[e*3+2],c,0) -= dt*(bflux[eb+3] + bflux[eb+4]);
     }
 }
 
 static void
 src( const std::array< std::vector< tk::real >, 3 >& coord,
      const std::vector< tk::real >& v,
+     tk::real dt,
      tk::real t,
      const std::vector< tk::real >& tp,
      tk::Fields& R )
@@ -531,7 +529,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
   for (std::size_t p=0; p<R.nunk(); ++p) {
     if (g_cfg.get< tag::steady >()) t = tp[p];
     auto s = src( x[p], y[p], z[p], t );
-    for (std::size_t c=0; c<s.size(); ++c) R(p,c,0) -= s[c] * v[p];
+    for (std::size_t c=0; c<s.size(); ++c) R(p,c,0) += dt * s[c] * v[p];
   }
 }
 
@@ -586,7 +584,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   //advbnd2( triinpoel, coord, dt, U, R );
 
   // source
-  src( coord, v, t, tp, R );
+  src( coord, v, dt, t, tp, R );
 }
 
 } // zalesak::

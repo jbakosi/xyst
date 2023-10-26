@@ -6,7 +6,7 @@
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Kozak, FCT limiting for element-based continuous Galerkin
+  \brief     KozCG: Taylor-Galerkin, FCT, element-based continuous Galerkin
 */
 // *****************************************************************************
 

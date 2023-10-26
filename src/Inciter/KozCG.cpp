@@ -151,9 +151,10 @@ KozCG::setupBC()
       if (k != end(m_bface)) {
         auto& n = pre[ k->first ];
         for (auto f : k->second) {
-          n.insert( m_triinpoel[f*3+0] );
-          n.insert( m_triinpoel[f*3+1] );
-          n.insert( m_triinpoel[f*3+2] );
+          const auto t = m_triinpoel.data() + f*3;
+          n.insert( t[0] );
+          n.insert( t[1] );
+          n.insert( t[2] );
         }
       }
     }
@@ -192,9 +193,10 @@ KozCG::setupBC()
     if (k != end(m_bface)) {
       auto& n = sym[ k->first ];
       for (auto f : k->second) {
-        n.insert( m_triinpoel[f*3+0] );
-        n.insert( m_triinpoel[f*3+1] );
-        n.insert( m_triinpoel[f*3+2] );
+        const auto t = m_triinpoel.data() + f*3;
+        n.insert( t[0] );
+        n.insert( t[1] );
+        n.insert( t[2] );
       }
     }
   }
@@ -206,9 +208,10 @@ KozCG::setupBC()
     if (k != end(m_bface)) {
       auto& n = far[ k->first ];
       for (auto f : k->second) {
-        n.insert( m_triinpoel[f*3+0] );
-        n.insert( m_triinpoel[f*3+1] );
-        n.insert( m_triinpoel[f*3+2] );
+        const auto t = m_triinpoel.data() + f*3;
+        n.insert( t[0] );
+        n.insert( t[1] );
+        n.insert( t[2] );
       }
     }
   }

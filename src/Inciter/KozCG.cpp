@@ -282,6 +282,7 @@ KozCG::bndint()
   };
 
   tk::destroy( m_bnorm );
+  tk::destroy( m_bndpoinint );
 
    for (const auto& [ setid, faceids ] : m_bface) { // for all side sets
      for (auto f : faceids) { // for all side set triangles
@@ -311,6 +312,10 @@ KozCG::bndint()
          bn[1] += r * n[1];
          bn[2] += r * n[2];
          bn[3] += r;                    // inv.dist.sq of node from centroid
+         auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
+         b[0] += n[0] * A / 3.0;        // bnd-point integral
+         b[1] += n[1] * A / 3.0;
+         b[2] += n[2] * A / 3.0;
        }
     }
   }
@@ -473,6 +478,90 @@ KozCG::bnorm()
 }
 
 void
+KozCG::streamable()
+// *****************************************************************************
+// Convert integrals into streamable data structures
+// *****************************************************************************
+{
+  const auto& lid = Disc()->Lid();
+
+  // Query surface integral output nodes
+  std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
+  const auto& is = g_cfg.get< tag::integout >();
+  std::set< int > outsets( begin(is), end(is) );
+  for (auto s : outsets) {
+    auto m = m_bface.find(s);
+    if (m != end(m_bface)) {
+      auto& n = surfintnodes[ m->first ];       // associate set id
+      for (auto f : m->second) {                // face ids on side set
+        n.push_back( m_triinpoel[f*3+0] );      // nodes on side set
+        n.push_back( m_triinpoel[f*3+1] );
+        n.push_back( m_triinpoel[f*3+2] );
+      }
+    }
+  }
+  for (auto& [s,n] : surfintnodes) tk::unique( n );
+  // Prepare surface integral data
+  tk::destroy( m_surfint );
+  const auto& gid = Disc()->Gid();
+  for (auto&& [s,n] : surfintnodes) {
+    auto& sint = m_surfint[s];  // associate set id
+    auto& nodes = sint.first;
+    auto& ndA = sint.second;
+    nodes = std::move(n);
+    ndA.resize( nodes.size()*3 );
+    std::size_t a = 0;
+    for (auto p : nodes) {
+      const auto& b = tk::cref_find( m_bndpoinint, gid[p] );
+      ndA[a*3+0] = b[0];        // store ni * dA
+      ndA[a*3+1] = b[1];
+      ndA[a*3+2] = b[2];
+      ++a;
+    }
+  }
+
+  // Convert symmetry BC data to streamable data structures
+  tk::destroy( m_symbcnodes );
+  tk::destroy( m_symbcnorms );
+  for (auto p : m_symbcnodeset) {
+    for (const auto& s : g_cfg.get< tag::bc_sym >()) {
+      auto m = m_bnorm.find(s);
+      if (m != end(m_bnorm)) {
+        auto r = m->second.find(p);
+        if (r != end(m->second)) {
+          m_symbcnodes.push_back( p );
+          m_symbcnorms.push_back( r->second[0] );
+          m_symbcnorms.push_back( r->second[1] );
+          m_symbcnorms.push_back( r->second[2] );
+        }
+      }
+    }
+  }
+  tk::destroy( m_symbcnodeset );
+
+  // Convert farfield BC data to streamable data structures
+  tk::destroy( m_farbcnodes );
+  tk::destroy( m_farbcnorms );
+  for (auto p : m_farbcnodeset) {
+    for (const auto& s : g_cfg.get< tag::bc_far >()) {
+      auto n = m_bnorm.find(s);
+      if (n != end(m_bnorm)) {
+        auto a = n->second.find(p);
+        if (a != end(n->second)) {
+          m_farbcnodes.push_back( p );
+          m_farbcnorms.push_back( a->second[0] );
+          m_farbcnorms.push_back( a->second[1] );
+          m_farbcnorms.push_back( a->second[2] );
+        }
+      }
+    }
+  }
+  tk::destroy( m_farbcnodeset );
+  tk::destroy( m_bnorm );
+}
+
+
+void
 // cppcheck-suppress unusedFunction
 KozCG::merge()
 // *****************************************************************************
@@ -481,6 +570,9 @@ KozCG::merge()
 {
   // Combine own and communicated contributions to boundary point normals
   bnorm();
+
+  // Convert integrals into streamable data structures
+  streamable();
 
   // Enforce boundary conditions using (re-)computed boundary data
   BC( Disc()->T() );

@@ -101,9 +101,9 @@ adv( const std::vector< std::size_t >& inpoel,
     }
 
     auto  r = ue[0];
-    auto ru = ue[1]/r;
-    auto rv = ue[2]/r;
-    auto rw = ue[3]/r;
+    auto ru = ue[1];
+    auto rv = ue[2];
+    auto rw = ue[3];
     auto pr = eos::pressure( ue[4] - 0.5*(ru*ru + rv*rv + rw*rw)/r );
 
     coef = dt/6.0;

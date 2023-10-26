@@ -77,26 +77,6 @@ KozCG::KozCG( const CProxy_Discretization& disc,
 
   auto d = Disc();
 
-  // Create new local ids based on mesh locality
-  std::unordered_map< std::size_t, std::size_t > map;
-  std::size_t n = 0;
-
-  auto psup = tk::genPsup( d->Inpoel(), 4, tk::genEsup( d->Inpoel(), 4 ) );
-  for (std::size_t p=0; p<m_u.nunk(); ++p) {  // for each point p
-    if (!map.count(p)) map[p] = n++;
-    for (auto q : tk::Around(psup,p)) {       // for each edge p-q
-      if (!map.count(q)) map[q] = n++;
-    }
-  }
-
-  Assert( map.size() == d->Gid().size(),
-          "Mesh-locality reorder map size mismatch" );
-
-  // Remap data in bound Discretization object
-  d->remap( map );
-  // Remap boundary triangle face connectivity
-  tk::remap( m_triinpoel, map );
-
   // Activate SDAG wait for initially computing integrals
   thisProxy[ thisIndex ].wait4int();
 

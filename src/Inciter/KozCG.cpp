@@ -1252,9 +1252,9 @@ KozCG::writeFields( CkCallback cb )
     std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
     std::move(p) };
 
-  for (std::size_t c=0; c<ncomp-5; ++c) {
-    nodefieldnames.push_back( "c" + std::to_string(c) );
-    nodefields.push_back( m_u.extract( 5+c, 0 ) );
+  for (std::size_t c=5; c<ncomp; ++c) {
+    nodefieldnames.push_back( "c" + std::to_string(c-5) );
+    nodefields.push_back( m_u.extract( c, 0 ) );
   }
 
   // query function to evaluate analytic solution (if defined)

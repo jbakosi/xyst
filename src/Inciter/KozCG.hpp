@@ -173,6 +173,7 @@ class KozCG : public CBase_KozCG {
       p | m_diag;
       p | m_bnorm;
       p | m_bnormc;
+      p | m_bndpoinint;
       p | m_dirbcmasks;
       p | m_prebcnodes;
       p | m_prebcvals;

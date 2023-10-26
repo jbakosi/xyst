@@ -87,15 +87,16 @@ adv( const std::vector< std::size_t >& inpoel,
     auto coef = dt/J/2.0;
     for (std::size_t j=0; j<3; ++j) {
       for (std::size_t a=0; a<4; ++a) {
-        ue[0] -= coef * grad[a][j] * U(N[a],j+1,0);
+        auto cg = coef * grad[a][j];
         auto uj = U(N[a],j+1,0) / U(N[a],0,0);
-        for (std::size_t i=0; i<3; ++i) {
-          ue[i+1] -= coef * grad[a][j] * U(N[a],i+1,0) * uj;
-        }
-        ue[j+1] -= coef * grad[a][j] * p[a];
-        ue[4] -= coef * grad[a][j] * (U(N[a],4,0) + p[a]) * uj;
+        ue[0] -= cg * U(N[a],j+1,0);
+        ue[1] -= cg * U(N[a],1,0) * uj;
+        ue[2] -= cg * U(N[a],2,0) * uj;
+        ue[3] -= cg * U(N[a],3,0) * uj;
+        ue[j+1] -= cg * p[a];
+        ue[4] -= cg * (U(N[a],4,0) + p[a]) * uj;
         for (std::size_t c=5; c<ncomp; ++c) {
-          ue[c] -= coef * grad[a][j] * U(N[a],c,0) * uj;
+          ue[c] -= cg * U(N[a],c,0) * uj;
         }
       }
     }
@@ -110,14 +111,15 @@ adv( const std::vector< std::size_t >& inpoel,
     for (std::size_t j=0; j<3; ++j) {
       auto uj = ue[j+1] / ue[0];
       for (std::size_t a=0; a<4; ++a) {
-        R(N[a],0,0) += coef * grad[a][j] * ue[j+1];
-        for (std::size_t i=0; i<3; ++i) {
-          R(N[a],i+1,0) += coef * grad[a][j] * ue[i+1] * uj;
-        }
-        R(N[a],j+1,0) += coef * grad[a][j] * pr;
-        R(N[a],4,0) += coef * grad[a][j] * (ue[4] + pr) * uj;
+        auto cg = coef * grad[a][j];
+        R(N[a],0,0) += cg * ue[j+1];
+        R(N[a],1,0) += cg * ue[1] * uj;
+        R(N[a],2,0) += cg * ue[2] * uj;
+        R(N[a],3,0) += cg * ue[3] * uj;
+        R(N[a],j+1,0) += cg * pr;
+        R(N[a],4,0) += cg * (ue[4] + pr) * uj;
         for (std::size_t c=5; c<ncomp; ++c) {
-          R(N[a],c,0) += coef * grad[a][j] * ue[c] * uj;
+          R(N[a],c,0) += cg * ue[c] * uj;
         }
       }
     }

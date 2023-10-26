@@ -96,13 +96,6 @@ void echoBuildEnv( const std::string& executable )
   print.item( "Executable", executable );
   if (!git_commit().empty()) print.item( "Git sha1", git_commit() );
   print.item( "Build type", build_type() );
-
-#ifdef NDEBUG
-  print.item( "Asserts", "off (turn on: CMAKE_BUILD_TYPE=DEBUG)" );
-#else
-  print.item( "Asserts", "on (turn off: CMAKE_BUILD_TYPE=RELEASE)" );
-#endif
-
   print.item( "C++ compiler", compiler() );
   print.item( "Build date", build_date() );
 }

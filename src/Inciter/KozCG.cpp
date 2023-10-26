@@ -482,8 +482,6 @@ KozCG::streamable()
 // Convert integrals into streamable data structures
 // *****************************************************************************
 {
-  const auto& lid = Disc()->Lid();
-
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
   const auto& is = g_cfg.get< tag::integout >();

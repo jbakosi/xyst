@@ -689,8 +689,7 @@ KozCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += m_dtp[p];
   }
 
-  kozak::rhs( d->Inpoel(), d->Coord(), d->V(), d->T(), d->Dt(), m_tp, m_u,
-              m_rhs );
+  kozak::rhs( d->Inpoel(), d->Coord(), d->Dt(), d->T(), m_tp, m_u, m_rhs );
 
   if (g_cfg.get< tag::steady >()) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];

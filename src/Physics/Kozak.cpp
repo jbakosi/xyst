@@ -30,6 +30,8 @@ static void
 adv( const std::vector< std::size_t >& inpoel,
      const std::array< std::vector< tk::real >, 3 >& coord,
      tk::real dt,
+     tk::real t,
+     const std::vector< tk::real >& tp,
      const tk::Fields& U,
      // cppcheck-suppress constParameter
      tk::Fields& R )
@@ -37,6 +39,8 @@ adv( const std::vector< std::size_t >& inpoel,
 //! Compute integrals for advection
 //! \param[in] coord Mesh node coordinates
 //! \param[in] dt Physical time size
+//! \param[in] t Physical time
+//! \param[in] tp Physical time for each mesh node
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
@@ -45,6 +49,8 @@ adv( const std::vector< std::size_t >& inpoel,
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
+
+  auto src = problems::SRC();
 
   #if defined(__clang__)
     #pragma clang diagnostic push
@@ -57,7 +63,6 @@ adv( const std::vector< std::size_t >& inpoel,
 
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
     const auto N = inpoel.data() + e*4;
-
     const std::array< tk::real, 3 >
       ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
       ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
@@ -67,8 +72,9 @@ adv( const std::vector< std::size_t >& inpoel,
     grad[1] = tk::cross( ca, da );
     grad[2] = tk::cross( da, ba );
     grad[3] = tk::cross( ba, ca );
-    for (std::size_t i=0; i<3; ++i)
+    for (std::size_t i=0; i<3; ++i) {
       grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
+    }
 
     tk::real p[4];
     for (std::size_t a=0; a<4; ++a) {
@@ -101,6 +107,17 @@ adv( const std::vector< std::size_t >& inpoel,
       }
     }
 
+    if (src) {
+      coef = dt/8.0;
+      for (std::size_t a=0; a<4; ++a) {
+        if (g_cfg.get< tag::steady >()) t = tp[N[a]];
+        auto s = src( x[N[a]], y[N[a]], z[N[a]], t );
+        for (std::size_t c=0; c<ncomp; ++c) {
+          ue[c] += coef * s[c];
+        }
+      }
+    }
+
     auto  r = ue[0];
     auto ru = ue[1];
     auto rv = ue[2];
@@ -123,6 +140,22 @@ adv( const std::vector< std::size_t >& inpoel,
         }
       }
     }
+
+    if (src) {
+      auto xc = (x[N[0]] + x[N[1]] + x[N[2]] + x[N[3]])/4.0;
+      auto yc = (y[N[0]] + y[N[1]] + y[N[2]] + y[N[3]])/4.0;
+      auto zc = (z[N[0]] + z[N[1]] + z[N[2]] + z[N[3]])/4.0;
+      if (g_cfg.get< tag::steady >()) {
+        t = (tp[N[0]] + tp[N[1]] + tp[N[2]] + tp[N[3]])/4.0;
+      }
+      auto s = src( xc, yc, zc, t+dt/2.0 );
+      coef = dt*J/24.0;
+      for (std::size_t a=0; a<4; ++a) {
+        for (std::size_t c=0; c<ncomp; ++c) {
+          R(N[a],c,0) += coef * s[c];
+        }
+      }
+    }
   }
 
   #if defined(__clang__)
@@ -132,43 +165,11 @@ adv( const std::vector< std::size_t >& inpoel,
   #endif
 }
 
-static void
-src( const std::array< std::vector< tk::real >, 3 >& coord,
-     const std::vector< tk::real >& v,
-     tk::real dt,
-     tk::real t,
-     const std::vector< tk::real >& tp,
-     tk::Fields& R )
-// *****************************************************************************
-//  Compute source integral
-//! \param[in] coord Mesh node coordinates
-//! \param[in] v Nodal mesh volumes without contributions from other chares
-//! \param[in] dt Physical time size
-//! \param[in] t Physical time
-//! \param[in] tp Physical time for each mesh node
-//! \param[in,out] R Right-hand side vector computed
-// *****************************************************************************
-{
-  auto src = problems::SRC();
-  if (!src) return;
-
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  for (std::size_t p=0; p<R.nunk(); ++p) {
-    if (g_cfg.get< tag::steady >()) t = tp[p];
-    auto s = src( x[p], y[p], z[p], t );
-    for (std::size_t c=0; c<s.size(); ++c) R(p,c,0) += dt * s[c] * v[p];
-  }
-}
-
 void
 rhs( const std::vector< std::size_t >& inpoel,
      const std::array< std::vector< tk::real >, 3 >& coord,
-     const std::vector< tk::real >& v,
-     tk::real t,
      tk::real dt,
+     tk::real t,
      const std::vector< tk::real >& tp,
      const tk::Fields& U,
      tk::Fields& R )
@@ -176,7 +177,6 @@ rhs( const std::vector< std::size_t >& inpoel,
 //  Compute right hand side
 //! \param[in] coord Mesh node coordinates
 //! \param[in] U Unknowns/solution vector in mesh nodes
-//! \param[in] v Nodal mesh volumes without contributions from other chares
 //! \param[in] t Physical time
 //! \param[in] dt Physical time size
 //! \param[in] tp Physical time for each mesh node
@@ -193,10 +193,7 @@ rhs( const std::vector< std::size_t >& inpoel,
   R.fill( 0.0 );
 
   // advection
-  adv( inpoel, coord, dt, U, R );
-
-  // source
-  src( coord, v, dt, t, tp, R );
+  adv( inpoel, coord, dt, t, tp, U, R );
 }
 
 } // kozak::

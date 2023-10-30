@@ -26,25 +26,30 @@ namespace kozak {
 
 using inciter::g_cfg;
 
-static void
-adv( const std::vector< std::size_t >& inpoel,
+void
+rhs( const std::vector< std::size_t >& inpoel,
      const std::array< std::vector< tk::real >, 3 >& coord,
      tk::real dt,
      tk::real t,
      const std::vector< tk::real >& tp,
      const tk::Fields& U,
-     // cppcheck-suppress constParameter
      tk::Fields& R )
 // *****************************************************************************
-//! Compute integrals for advection
+//  Compute right hand side
 //! \param[in] coord Mesh node coordinates
-//! \param[in] dt Physical time size
+//! \param[in] U Unknowns/solution vector in mesh nodes
 //! \param[in] t Physical time
+//! \param[in] dt Physical time size
 //! \param[in] tp Physical time for each mesh node
-//! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
 {
+  Assert( U.nunk() == coord[0].size(), "Size mismatch" );
+  Assert( R.nunk() == coord[0].size(), "Size mismatch" );
+
+  // zero right hand side for all components
+  R.fill( 0.0 );
+
   const auto ncomp = U.nprop();
   const auto& x = coord[0];
   const auto& y = coord[1];
@@ -62,6 +67,8 @@ adv( const std::vector< std::size_t >& inpoel,
   #endif
 
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+
+    // Element gradients and Jacobian
     const auto N = inpoel.data() + e*4;
     const std::array< tk::real, 3 >
       ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
@@ -75,6 +82,8 @@ adv( const std::vector< std::size_t >& inpoel,
     for (std::size_t i=0; i<3; ++i) {
       grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
     }
+
+    // Taylor-Galerkin first half step
 
     tk::real p[4];
     for (std::size_t a=0; a<4; ++a) {
@@ -117,6 +126,8 @@ adv( const std::vector< std::size_t >& inpoel,
         }
       }
     }
+
+    // Taylor-Galerkin: second half step
 
     auto  r = ue[0];
     auto ru = ue[1];
@@ -163,37 +174,6 @@ adv( const std::vector< std::size_t >& inpoel,
   #elif defined(STRICT_GNUC)
     #pragma GCC diagnostic pop
   #endif
-}
-
-void
-rhs( const std::vector< std::size_t >& inpoel,
-     const std::array< std::vector< tk::real >, 3 >& coord,
-     tk::real dt,
-     tk::real t,
-     const std::vector< tk::real >& tp,
-     const tk::Fields& U,
-     tk::Fields& R )
-// *****************************************************************************
-//  Compute right hand side
-//! \param[in] coord Mesh node coordinates
-//! \param[in] U Unknowns/solution vector in mesh nodes
-//! \param[in] t Physical time
-//! \param[in] dt Physical time size
-//! \param[in] tp Physical time for each mesh node
-//! \param[in,out] R Right-hand side vector computed
-// *****************************************************************************
-{
-  Assert( U.nunk() == coord[0].size(), "Number of unknowns in solution "
-          "vector at recent time step incorrect" );
-  Assert( R.nunk() == coord[0].size(),
-          "Number of unknowns and/or number of components in right-hand "
-          "side vector incorrect" );
-
-  // zero right hand side for all components
-  R.fill( 0.0 );
-
-  // advection
-  adv( inpoel, coord, dt, t, tp, U, R );
 }
 
 } // kozak::

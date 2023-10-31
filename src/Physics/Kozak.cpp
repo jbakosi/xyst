@@ -153,17 +153,17 @@ rhs( const std::vector< std::size_t >& inpoel,
     }
 
     if (src) {
-      auto xc = (x[N[0]] + x[N[1]] + x[N[2]] + x[N[3]])/4.0;
-      auto yc = (y[N[0]] + y[N[1]] + y[N[2]] + y[N[3]])/4.0;
-      auto zc = (z[N[0]] + z[N[1]] + z[N[2]] + z[N[3]])/4.0;
+      auto xe = (x[N[0]] + x[N[1]] + x[N[2]] + x[N[3]])/4.0;
+      auto ye = (y[N[0]] + y[N[1]] + y[N[2]] + y[N[3]])/4.0;
+      auto ze = (z[N[0]] + z[N[1]] + z[N[2]] + z[N[3]])/4.0;
       if (g_cfg.get< tag::steady >()) {
         t = (tp[N[0]] + tp[N[1]] + tp[N[2]] + tp[N[3]])/4.0;
       }
-      auto s = src( xc, yc, zc, t+dt/2.0 );
+      auto se = src( xe, ye, ze, t+dt/2.0 );
       coef = dt*J/24.0;
       for (std::size_t a=0; a<4; ++a) {
         for (std::size_t c=0; c<ncomp; ++c) {
-          R(N[a],c,0) += coef * s[c];
+          R(N[a],c,0) += coef * se[c];
         }
       }
     }

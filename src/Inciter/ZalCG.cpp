@@ -339,24 +339,19 @@ ZalCG::domint()
   tk::destroy( m_domedgeint );
 
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    // access node IDs
-    const std::array< std::size_t, 4 >
-      N{ inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
-    // compute element Jacobi determinant
+    const auto N = inpoel.data() + e*4;
     const std::array< tk::real, 3 >
       ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
       ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
       da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
     const auto J = tk::triple( ba, ca, da );        // J = 6V
     Assert( J > 0, "Element Jacobian non-positive" );
-    // shape function derivatives, nnode*ndim [4][3]
     std::array< std::array< tk::real, 3 >, 4 > grad;
     grad[1] = tk::cross( ca, da );
     grad[2] = tk::cross( da, ba );
     grad[3] = tk::cross( ba, ca );
     for (std::size_t i=0; i<3; ++i)
       grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
-    // contribute all edges of tetrahedron
     auto J120 = J/120.0;
     for (const auto& [p,q] : tk::lpoed) {
       tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };

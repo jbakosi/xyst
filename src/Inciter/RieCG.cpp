@@ -129,6 +129,18 @@ RieCG::setupBC()
     }
   }
 
+  // Augment Dirichlet BC nodes with nodes not necessarily part of faces
+  const auto& lid = Disc()->Lid();
+  for (const auto& s : g_cfg.get< tag::bc_dir >()) {
+    auto k = m_bnode.find(s[0]);
+    if (k != end(m_bnode)) {
+      auto& n = dir[ k->first ];
+      for (auto g : k->second) {
+        n.insert( tk::cref_find(lid,g) );
+      }
+    }
+  }
+
   // Collect unique set of nodes + Dirichlet BC components mask
   auto ncomp = m_u.nprop();
   auto nmask = ncomp + 1;

@@ -1228,8 +1228,11 @@ ZalCG::lim()
         auto aec = dif * (ap - aq);
         auto a = c*2;
         auto b = a+1;
-        auto coef = min( aec < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                         aec > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+        tk::real coef = 1.0;
+        if (g_cfg.get< tag::fct >()) {
+          coef = min( aec < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
+                      aec > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+        }
         aec *= coef;
         m_a(N[p],c,0) -= aec;
         m_a(N[q],c,0) += aec;
@@ -1251,8 +1254,11 @@ ZalCG::lim()
         auto aec = dif * (ap - aq);
         auto a = c*2;
         auto b = a+1;
-        auto coef = min( aec < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                         aec > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+        tk::real coef = 1.0;
+        if (g_cfg.get< tag::fct >()) {
+          coef = min( aec < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
+                      aec > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+        }
         aec *= coef;
         m_a(N[p],c,0) -= aec;
         m_a(N[q],c,0) += aec;
@@ -1271,8 +1277,11 @@ ZalCG::lim()
       auto aec = dif * (ap - aq);
       auto a = c*2;
       auto b = a+1;
-      auto coef = min( aec < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
-                       aec > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
+      tk::real coef = 1.0;
+      if (g_cfg.get< tag::fct >()) {
+        coef = min( aec < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
+                    aec > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
+      }
       aec *= coef;
       m_a(N[0],c,0) -= aec;
       m_a(N[1],c,0) += aec;

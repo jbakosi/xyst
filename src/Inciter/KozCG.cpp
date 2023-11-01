@@ -993,7 +993,9 @@ KozCG::lim()
           auto m = J/120.0 * ((a == b) ? 3.0 : -1.0);
           aec[a] += m * ctau * m_u(N[b],c,0);
         }
-        coef = min( coef, aec[a] > 0.0 ? m_q(N[a],p,0) : m_q(N[a],n,0) );
+        if (g_cfg.get< tag::fct >()) {
+          coef = min( coef, aec[a] > 0.0 ? m_q(N[a],p,0) : m_q(N[a],n,0) );
+        }
       }
       for (std::size_t a=0; a<4; ++a) {
         m_a(N[a],c,0) += coef * aec[a];

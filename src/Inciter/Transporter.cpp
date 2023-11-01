@@ -52,7 +52,6 @@ using inciter::Transporter;
 Transporter::Transporter() :
   m_input{ g_cfg.get< tag::input >() },
   m_nchare( m_input.size() ),
-  m_meshid(),
   m_ncit( m_nchare.size(), 0 ),
   m_nload( 0 ),
   m_npart( 0 ),
@@ -64,20 +63,12 @@ Transporter::Transporter() :
   m_ndtrefit( m_nchare.size(), 0 ),
   m_noutrefit( m_nchare.size(), 0 ),
   m_noutderefit( m_nchare.size(), 0 ),
-  m_discretization(),
-  m_riecg(),
-  m_partitioner(),
-  m_refiner(),
-  m_meshwriter(),
-  m_sorter(),
   m_nelem( m_nchare.size() ),
-  m_npoin(),
   m_finished( m_nchare.size(), 0 ),
   m_meshvol( m_nchare.size() ),
   m_minstat( m_nchare.size() ),
   m_maxstat( m_nchare.size() ),
   m_avgstat( m_nchare.size() ),
-  m_timer(),
   m_progMesh( g_cfg.get< tag::feedback >(), ProgMeshPrefix, ProgMeshLegend ),
   m_progWork( g_cfg.get< tag::feedback >(), ProgWorkPrefix, ProgWorkLegend )
 // *****************************************************************************
@@ -262,7 +253,25 @@ Transporter::createPartitioner()
     opt.bindTo( m_discretization.back() );
 
     // Create empty discretization scheme chare array (bound to discretization)
-    m_riecg.push_back( CProxy_Refiner::ckNew(opt) );
+    CProxy_RieCG riecg;
+    CProxy_ZalCG zalcg;
+    CProxy_KozCG kozcg;
+    if (g_cfg.get< tag::solver >() == "riecg") {
+      m_riecg.push_back( CProxy_Refiner::ckNew(opt) );
+      riecg = m_riecg.back();
+    }
+    else if (g_cfg.get< tag::solver >() == "zalcg") {
+      m_zalcg.push_back( CProxy_Refiner::ckNew(opt) );
+      zalcg = m_zalcg.back();
+    }
+    else if (g_cfg.get< tag::solver >() == "kozcg") {
+      m_kozcg.push_back( CProxy_Refiner::ckNew(opt) );
+      kozcg = m_kozcg.back();
+    }
+    else {
+      Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+    }
+
     // Create empty mesh refiner chare array (bound to discretization)
     m_refiner.push_back( CProxy_Refiner::ckNew(opt) );
     // Create empty mesh sorter Charm++ chare array (bound to discretization)
@@ -277,7 +286,7 @@ Transporter::createPartitioner()
     m_partitioner.push_back(
       CProxy_Partitioner::ckNew( meshid, filename, cbp, cbr, cbs,
         thisProxy, m_refiner.back(), m_sorter.back(), m_meshwriter.back(),
-        m_discretization.back(), m_riecg.back(), bface, faces, bnode ) );
+        m_discretization.back(), riecg, zalcg, kozcg, bface, faces, bnode ) );
 
     ++meshid;
   }
@@ -603,7 +612,19 @@ Transporter::resized( std::size_t meshid )
 // *****************************************************************************
 {
   m_discretization[ meshid ].vol();
-  m_riecg[ meshid ].feop();
+
+  if (g_cfg.get< tag::solver >() == "riecg") {
+    m_riecg[ meshid ].feop();
+  }
+  else if (g_cfg.get< tag::solver >() == "zalcg") {
+    m_zalcg[ meshid ].feop();
+  }
+  else if (g_cfg.get< tag::solver >() == "kozcg") {
+    m_kozcg[ meshid ].feop();
+  }
+  else {
+    Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+  }
 }
 
 void
@@ -677,7 +698,18 @@ Transporter::workinserted( std::size_t meshid )
 //! \param[in] meshid Mesh id
 // *****************************************************************************
 {
-  m_riecg[ meshid ].doneInserting();
+  if (g_cfg.get< tag::solver >() == "riecg") {
+    m_riecg[ meshid ].doneInserting();
+  }
+  else if (g_cfg.get< tag::solver >() == "zalcg") {
+    m_zalcg[ meshid ].doneInserting();
+  }
+  else if (g_cfg.get< tag::solver >() == "kozcg") {
+    m_kozcg[ meshid ].doneInserting();
+  }
+  else {
+    Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+  }
 }
 
 void
@@ -762,7 +794,18 @@ Transporter::comfinal( std::size_t summeshid )
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
 
-  m_riecg[ meshid ].setup();
+  if (g_cfg.get< tag::solver >() == "riecg") {
+    m_riecg[ meshid ].setup();
+  }
+  else if (g_cfg.get< tag::solver >() == "zalcg") {
+    m_zalcg[ meshid ].setup();
+  }
+  else if (g_cfg.get< tag::solver >() == "kozcg") {
+    m_kozcg[ meshid ].setup();
+  }
+  else {
+    Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+  }
 
   // Turn on automatic load balancing
   if (++m_ncom == m_nelem.size()) { // all worker arrays have finished
@@ -788,10 +831,26 @@ Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
 
   m_meshvol[meshid] = v;
 
-  if (initial > 0.0)   // during initialization
+  if (initial > 0.0) {   // during initialization
+
     m_discretization[ meshid ].stat( v );
-  else                  // during AMR
-    m_riecg[ meshid ].resize_complete();
+
+  } else {               // during AMR
+
+    if (g_cfg.get< tag::solver >() == "riecg") {
+      m_riecg[ meshid ].resize_complete();
+    }
+    else if (g_cfg.get< tag::solver >() == "zalcg") {
+      m_zalcg[ meshid ].resize_complete();
+    }
+    else if (g_cfg.get< tag::solver >() == "kozcg") {
+      m_kozcg[ meshid ].resize_complete();
+    }
+    else {
+      Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+    }
+
+  }
 }
 
 void
@@ -973,7 +1032,19 @@ Transporter::boxvol( tk::real v, tk::real summeshid )
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
   if (v > 0.0) tk::Print() << "IC-box-volume sum: " + std::to_string(v) << '\n';
-  m_riecg[ meshid ].box( v );
+
+  if (g_cfg.get< tag::solver >() == "riecg") {
+    m_riecg[ meshid ].box( v );
+  }
+  else if (g_cfg.get< tag::solver >() == "zalcg") {
+    m_zalcg[ meshid ].box( v );
+  }
+  else if (g_cfg.get< tag::solver >() == "kozcg") {
+    m_kozcg[ meshid ].box( v );
+  }
+  else {
+    Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+  }
 }
 
 void
@@ -1078,8 +1149,21 @@ Transporter::diagnostics( CkReductionMsg* msg )
   dw.write( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
 
   // Continue time step
-  // cppcheck-suppress uninitvar
-  m_riecg[ meshid ].refine( l2res );
+  if (g_cfg.get< tag::solver >() == "riecg") {
+    // cppcheck-suppress uninitvar
+    m_riecg[ meshid ].refine( l2res );
+  }
+  else if (g_cfg.get< tag::solver >() == "zalcg") {
+    // cppcheck-suppress uninitvar
+    m_zalcg[ meshid ].refine( l2res );
+  }
+  else if (g_cfg.get< tag::solver >() == "kozcg") {
+    // cppcheck-suppress uninitvar
+    m_kozcg[ meshid ].refine( l2res );
+  }
+  else {
+    Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+  }
 }
 
 void
@@ -1131,8 +1215,21 @@ Transporter::integrals( CkReductionMsg* msg )
   }
 
   // Continue time step
-  // cppcheck-suppress uninitvar
-  m_riecg[ meshid ].step();
+  if (g_cfg.get< tag::solver >() == "riecg") {
+    // cppcheck-suppress uninitvar
+    m_riecg[ meshid ].step();
+  }
+  else if (g_cfg.get< tag::solver >() == "zalcg") {
+    // cppcheck-suppress uninitvar
+    m_zalcg[ meshid ].step();
+  }
+  else if (g_cfg.get< tag::solver >() == "kozcg") {
+    // cppcheck-suppress uninitvar
+    m_kozcg[ meshid ].step();
+  }
+  else {
+    Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+  }
 }
 
 void
@@ -1144,12 +1241,34 @@ Transporter::resume()
 // *****************************************************************************
 {
   if (std::any_of(begin(m_finished), end(m_finished), [](auto f){return !f;})) {
+
     // If just restarted from a checkpoint, Main( CkMigrateMessage* msg ) has
     // increased g_nrestart, but only on PE 0, so broadcast.
-    for (std::size_t i=0; i<m_nelem.size(); ++i)
-      m_riecg[i].evalLB( g_nrestart );
+
+    if (g_cfg.get< tag::solver >() == "riecg") {
+      for (std::size_t i=0; i<m_nelem.size(); ++i) {
+        m_riecg[i].evalLB( g_nrestart );
+      }
+    }
+    else if (g_cfg.get< tag::solver >() == "zalcg") {
+      for (std::size_t i=0; i<m_nelem.size(); ++i) {
+        m_zalcg[i].evalLB( g_nrestart );
+      }
+    }
+    else if (g_cfg.get< tag::solver >() == "kozcg") {
+      for (std::size_t i=0; i<m_nelem.size(); ++i) {
+        m_kozcg[i].evalLB( g_nrestart );
+      }
+    }
+    else {
+      Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+    }
+
+
   } else {
+
     mainProxy.finalize();
+
   }
 }
 

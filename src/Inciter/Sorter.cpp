@@ -33,6 +33,8 @@ Sorter::Sorter( std::size_t meshid,
                 const tk::SorterCallback& cbs,
                 const CProxy_Discretization& discretization,
                 const CProxy_RieCG& riecg,
+                const CProxy_ZalCG& zalcg,
+                const CProxy_KozCG& kozcg,
                 CkCallback reorderRefiner,
                 const std::vector< std::size_t >& ginpoel,
                 const tk::UnsMesh::CoordMap& coordmap,
@@ -47,6 +49,8 @@ Sorter::Sorter( std::size_t meshid,
   m_cbs( cbs ),
   m_discretization( discretization ),
   m_riecg( riecg ),
+  m_zalcg( zalcg ),
+  m_kozcg( kozcg ),
   m_reorderRefiner( reorderRefiner ),
   m_ginpoel( ginpoel ),
   m_coordmap( coordmap ),
@@ -76,6 +80,8 @@ Sorter::Sorter( std::size_t meshid,
 //! \param[in] cbs Charm++ callbacks for Sorter
 //! \param[in] discretization Discretization Charm++ proxy
 //! \param[in] riecg RieCG Charm++ proxy
+//! \param[in] zalcg ZalCG Charm++ proxy
+//! \param[in] kozcg KozCG Charm++ proxy
 //! \param[in] reorderRefiner Callback to use to send reordered mesh to Refiner
 //! \param[in] ginpoel Mesh connectivity (this chare) using global node IDs
 //! \param[in] coordmap Mesh node coordinates (this chare) for global node IDs
@@ -546,7 +552,21 @@ Sorter::createWorkers()
   // Create worker array element using Charm++ dynamic chare array element
   // insertion.
 
-  m_riecg[ thisIndex ].insert( m_discretization, m_bface, m_bnode, m_triinpoel );
+  if (g_cfg.get< tag::solver >() == "riecg") {
+    m_riecg[ thisIndex ].insert( m_discretization, m_bface, m_bnode,
+                                 m_triinpoel );
+  }
+  else if (g_cfg.get< tag::solver >() == "zalcg") {
+    m_zalcg[ thisIndex ].insert( m_discretization, m_bface, m_bnode,
+                                 m_triinpoel );
+  }
+  else if (g_cfg.get< tag::solver >() == "kozcg") {
+    m_kozcg[ thisIndex ].insert( m_discretization, m_bface, m_bnode,
+                                 m_triinpoel );
+  }
+  else {
+    Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+  }
 
   if ( g_cfg.get< tag::feedback >() ) m_host.chcreated();
 

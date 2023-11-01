@@ -2,8 +2,11 @@ project(Physics CXX)
 
 add_library(Physics
             BC.cpp
+            Dt.cpp
             Problems.cpp
-            Rusanov.cpp
+            Riemann.cpp
+            Zalesak.cpp
+            Kozak.cpp
 )
 
 target_include_directories(Physics PUBLIC

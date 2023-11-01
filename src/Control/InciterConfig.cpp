@@ -51,6 +51,8 @@ Config::cmdline( int argc, char** argv )
 //! \param[in] argv Arguments to executable
 // *****************************************************************************
 {
+  if (!argc) return;
+
   // Defaults
   get< tag::output >() = "out";
   get< tag::diag >() = "diag";
@@ -893,6 +895,8 @@ Config::control()
     get< tag::residual >() = real( L, "residual", 0.0, true );
     get< tag::rescomp >() = unsigint( L, "rescomp", 1, true );
     get< tag::part >() = string( L, "part", "rcb", true );
+    get< tag::solver >() = string( L, "solver", "riecg", true );
+    get< tag::fct >() = boolean( L, "fct", true, true );
 
     ic( L, *this );
     bc_dir( L, *this );

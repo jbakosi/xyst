@@ -1,19 +1,19 @@
 // *****************************************************************************
 /*!
-  \file      src/Physics/Rusanov.hpp
+  \file      src/Physics/Riemann.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Rusanov, MUSCL, limiting for edge-based continuous Galerkin
+  \brief     Riemann, MUSCL, limiting for edge-based continuous Galerkin
 */
 // *****************************************************************************
 #pragma once
 
 #include "Fields.hpp"
 
-namespace physics {
+namespace riemann {
 
 //! Compute nodal gradients of primitive variables in all points
 void
@@ -43,14 +43,4 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::vector< tk::real >& tp,
      tk::Fields& R );
 
-//! Compute minimum time step size
-tk::real
-dt( const std::vector< tk::real >& vol, const tk::Fields& U );
-
-//! Compute time step size for each mesh node (for steady time stepping)
-void
-dt( const std::vector< tk::real >& vol,
-    const tk::Fields& U,
-    std::vector< tk::real >& dtp );
-
-} // physics::
+} // riemann::

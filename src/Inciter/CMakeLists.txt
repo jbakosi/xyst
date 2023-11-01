@@ -10,6 +10,8 @@ add_library(Inciter
             Refiner.cpp
             Sorter.cpp
             RieCG.cpp
+            ZalCG.cpp
+            KozCG.cpp
             DiagReducer.cpp
             NodeDiagnostics.cpp
             IntegralReducer.cpp)
@@ -58,6 +60,8 @@ addCharmModule( "discretization" "Inciter" )
 addCharmModule( "refiner" "Inciter" )
 addCharmModule( "sorter" "Inciter" )
 addCharmModule( "riecg" "Inciter" )
+addCharmModule( "zalcg" "Inciter" )
+addCharmModule( "kozcg" "Inciter" )
 
 # Add extra dependency of Inciter on inciterCharmModule. This is required as
 # Inciter refers to the main Charm++ proxy defined in the Charm++ module

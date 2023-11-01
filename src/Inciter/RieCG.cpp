@@ -6,7 +6,7 @@
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     RieCG: Rusanov, MUSCL, Runge-Kutta, edge-based continuous Galerkin
+  \brief     RieCG: Riemann, MUSCL, Runge-Kutta, edge-based continuous Galerkin
 */
 // *****************************************************************************
 
@@ -26,7 +26,8 @@
 #include "Refiner.hpp"
 #include "Reorder.hpp"
 #include "Around.hpp"
-#include "Rusanov.hpp"
+#include "Riemann.hpp"
+#include "Dt.hpp"
 #include "Problems.hpp"
 #include "EOS.hpp"
 #include "BC.hpp"
@@ -124,6 +125,18 @@ RieCG::setupBC()
         n.insert( m_triinpoel[f*3+0] );
         n.insert( m_triinpoel[f*3+1] );
         n.insert( m_triinpoel[f*3+2] );
+      }
+    }
+  }
+
+  // Augment Dirichlet BC nodes with nodes not necessarily part of faces
+  const auto& lid = Disc()->Lid();
+  for (const auto& s : g_cfg.get< tag::bc_dir >()) {
+    auto k = m_bnode.find(s[0]);
+    if (k != end(m_bnode)) {
+      auto& n = dir[ k->first ];
+      for (auto g : k->second) {
+        n.insert( tk::cref_find(lid,g) );
       }
     }
   }
@@ -283,7 +296,7 @@ RieCG::bndint()
   // Lambda to compute the inverse distance squared between boundary face
   // centroid and boundary point. Here p is the global node id and c is the
   // the boundary face centroid.
-  auto invdistsq = [&]( const std::array< tk::real, 3 >& c, std::size_t p ){
+  auto invdistsq = [&]( const tk::real c[], std::size_t p ){
     return 1.0 / ( (c[0] - x[p]) * (c[0] - x[p]) +
                    (c[1] - y[p]) * (c[1] - y[p]) +
                    (c[2] - z[p]) * (c[2] - z[p]) );
@@ -293,33 +306,25 @@ RieCG::bndint()
   tk::destroy( m_bndpoinint );
   tk::destroy( m_bndedgeint );
 
-  // Compute boundary point normals and boundary point-, and edge-integrals.
-  // The boundary point normals are computed by summing
-  // inverse-distance-weighted boundary face normals to boundary points. Note
-  // that these are only partial sums at shared boundary points and edges in
-  // parallel.
-
    for (const auto& [ setid, faceids ] : m_bface) { // for all side sets
      for (auto f : faceids) { // for all side set triangles
- 
-       const std::array< std::size_t, 3 >
-         N{ m_triinpoel[f*3+0], m_triinpoel[f*3+1], m_triinpoel[f*3+2] };
+       const auto N = m_triinpoel.data() + f*3;
        const std::array< tk::real, 3 >
          ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
          ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
        auto n = tk::cross( ba, ca );
-       auto A = tk::length( n );
-       n[0] /= A;
-       n[1] /= A;
-       n[2] /= A;
-       A /= 2.0;
-       const std::array< tk::real, 3 > centroid{
+       auto A2 = tk::length( n );
+       n[0] /= A2;
+       n[1] /= A2;
+       n[2] /= A2;
+       const tk::real centroid[3] = {
          (x[N[0]] + x[N[1]] + x[N[2]]) / 3.0,
          (y[N[0]] + y[N[1]] + y[N[2]]) / 3.0,
          (z[N[0]] + z[N[1]] + z[N[2]]) / 3.0 };
 
-       for (std::size_t j=0; j<3; ++j) {
-         auto p = N[j];
+       for (const auto& [i,j] : tk::lpoet) {
+         auto p = N[i];
+         auto q = N[j];
          tk::real r = invdistsq( centroid, p );
          auto& v = m_bnorm[setid];      // associate side set id
          auto& bpn = v[gid[p]];         // associate global node id of bnd pnt
@@ -328,19 +333,20 @@ RieCG::bndint()
          bpn[2] += r * n[2];
          bpn[3] += r;                   // inv.dist.sq of node from centroid
          auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
-         b[0] += n[0] * A / 3.0;        // bnd-point integral
-         b[1] += n[1] * A / 3.0;
-         b[2] += n[2] * A / 3.0;
-         auto q = N[ tk::lpoet[j][1] ]; // the other node of bnd edge
+         b[0] += n[0] * A2 / 6.0;        // bnd-point integral
+         b[1] += n[1] * A2 / 6.0;
+         b[2] += n[2] * A2 / 6.0;
          tk::UnsMesh::Edge ed{ gid[p], gid[q] };
-         tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
-         if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
+         tk::real sig = 1.0;
+         if (ed[0] > ed[1]) {
+           std::swap( ed[0], ed[1] );
+           sig = -1.0;
+         }
          auto& e = m_bndedgeint[ ed ];
-         e[0] += sig * n[0] * A / 12.0; // bnd-edge integral
-         e[1] += sig * n[1] * A / 12.0;
-         e[2] += sig * n[2] * A / 12.0;
+         e[0] += sig * n[0] * A2 / 24.0; // bnd-edge integral
+         e[1] += sig * n[1] * A2 / 24.0;
+         e[2] += sig * n[2] * A2 / 24.0;
        }
-
     }
   }
 }
@@ -364,31 +370,28 @@ RieCG::domint()
   tk::destroy( m_domedgeint );
 
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    // access node IDs
-    const std::array< std::size_t, 4 >
-      N{ inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
-    // compute element Jacobi determinant
+    const auto N = inpoel.data() + e*4;
     const std::array< tk::real, 3 >
       ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
       ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
       da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
-    const auto J = tk::triple( ba, ca, da );        // J = 6V
-    Assert( J > 0, "Element Jacobian non-positive" );
-    // shape function derivatives, nnode*ndim [4][3]
     std::array< std::array< tk::real, 3 >, 4 > grad;
-    grad[1] = tk::crossdiv( ca, da, J );
-    grad[2] = tk::crossdiv( da, ba, J );
-    grad[3] = tk::crossdiv( ba, ca, J );
+    grad[1] = tk::cross( ca, da );
+    grad[2] = tk::cross( da, ba );
+    grad[3] = tk::cross( ba, ca );
     for (std::size_t i=0; i<3; ++i)
       grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
-    auto J48 = J/48.0;
     for (const auto& [p,q] : tk::lpoed) {
       tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-      tk::real sig = ed[0] < ed[1] ? 1.0 : -1.0;
-      if (ed[0] > ed[1]) std::swap( ed[0], ed[1] );
+      tk::real sig = 1.0;
+      if (ed[0] > ed[1]) {
+        std::swap( ed[0], ed[1] );
+        sig = -1.0;
+      }
       auto& n = m_domedgeint[ ed ];
-      for (std::size_t j=0; j<3; ++j)
-        n[j] += J48 * sig * (grad[p][j] - grad[q][j]);
+      n[0] += sig * (grad[p][0] - grad[q][0]) / 48.0;
+      n[1] += sig * (grad[p][1] - grad[q][1]) / 48.0;
+      n[2] += sig * (grad[p][2] - grad[q][2]) / 48.0;
     }
   }
 }
@@ -887,13 +890,6 @@ RieCG::BC( tk::real t )
 // *****************************************************************************
 // Apply boundary conditions
 //! \param[in] t Physical time
-//! \details The following BC enforcement changes the initial condition or
-//!   updated solution (dependending on when it is called) to ensure strong
-//!   imposition of the BCs. This is a matter of choice. Another alternative is
-//!   to only apply BCs when computing fluxes at boundary faces, thereby only
-//!   weakly enforcing the BCs. The former is conventionally used in continunous
-//!   Galerkin finite element methods (such as RieCG implements), whereas the
-//!   latter, in finite volume methods.
 // *****************************************************************************
 {
   // Apply Dirichlet BCs
@@ -987,7 +983,7 @@ RieCG::grad()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-  physics::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
+  riemann::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
                  m_u, m_grad );
 
   // Send gradient contributions to neighbor chares
@@ -1056,7 +1052,7 @@ RieCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
   }
 
-  physics::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
+  riemann::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
     m_bpoin, m_bpint, m_bpsym, d->Coord(), m_grad, m_u, d->V(), d->T(),
     m_tp, m_rhs );
 

@@ -6,7 +6,7 @@
              2019-2021 Triad National Security, LLC.
              2022-2023 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     RieCG: Rusanov, MUSCL, Runge-Kutta, edge-based continuous Galerkin
+  \brief     RieCG: Riemann, MUSCL, Runge-Kutta, edge-based continuous Galerkin
 */
 // *****************************************************************************
 

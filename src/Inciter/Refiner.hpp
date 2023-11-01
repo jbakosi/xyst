@@ -28,6 +28,8 @@
 #include "UnsMesh.hpp"
 #include "Base/Fields.hpp"
 #include "RieCG.hpp"
+#include "ZalCG.hpp"
+#include "KozCG.hpp"
 
 #include "NoWarning/transporter.decl.h"
 #include "NoWarning/refiner.decl.h"
@@ -67,6 +69,8 @@ class Refiner : public CBase_Refiner {
                       const tk::CProxy_MeshWriter& meshwriter,
                       const CProxy_Discretization& discretization,
                       const CProxy_RieCG& riecg,
+                      const CProxy_ZalCG& zalcg,
+                      const CProxy_KozCG& kozcg,
                       const tk::RefinerCallback& cbr,
                       const tk::SorterCallback& cbs,
                       const std::vector< std::size_t >& ginpoel,
@@ -152,6 +156,8 @@ class Refiner : public CBase_Refiner {
       p | m_meshwriter;
       p | m_disc;
       p | m_riecg;
+      p | m_zalcg;
+      p | m_kozcg;
       p | m_cbr;
       p | m_cbs;
       p | m_ginpoel;
@@ -217,6 +223,10 @@ class Refiner : public CBase_Refiner {
     CProxy_Discretization m_disc;
     //! Discretization scheme proxy
     CProxy_RieCG m_riecg;
+    //! Discretization scheme proxy
+    CProxy_ZalCG m_zalcg;
+    //! Discretization scheme proxy
+    CProxy_KozCG m_kozcg;
     //! Charm++ callbacks associated to compile-time tags for refiner
     tk::RefinerCallback m_cbr;
     //! Charm++ callbacks associated to compile-time tags for sorter

@@ -108,31 +108,21 @@ advedge( const tk::real supint[],
 }
 
 static void
-adv( const std::vector< std::size_t >& bpoin,
-     const std::vector< tk::real >& bpint,
-     const std::vector< std::uint8_t >& bpsym,
-     const std::array< std::vector< std::size_t >, 3 >& dsupedge,
-     const std::array< std::vector< tk::real >, 3 >& dsupint,
-     const std::array< std::vector< std::size_t >, 2 >& bsupedge,
-     const std::array< std::vector< tk::real >, 2 >& bsupint,
-     const std::array< std::vector< tk::real >, 3 >& coord,
-     tk::real dt,
-     const tk::Fields& U,
-     // cppcheck-suppress constParameter
-     tk::Fields& R )
+advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+        const std::array< std::vector< tk::real >, 3 >& dsupint,
+        const std::array< std::vector< tk::real >, 3 >& coord,
+        tk::real dt,
+        const tk::Fields& U,
+        // cppcheck-suppress constParameter
+        tk::Fields& R )
 // *****************************************************************************
-//! Compute integrals for advection
-//! \param[in] bpoin Boundary point local ids
-//! \param[in] bpint Boundary point integrals
-//! \param[in] bpsym Boundary point symmetry BC flags
+//! Compute domain-edge integrals for advection
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
-//! \param[in] bsupedge Boundary superedges
-//! \param[in] bsupint Boundary superedge integrals
 //! \param[in] coord Mesh node coordinates
 //! \param[in] dt Physical time size
 //! \param[in] U Solution vector at recent time step
-//! \param[in,out] R Right-hand side vector computed
+//! \param[in,out] R Right-hand side vector
 // *****************************************************************************
 {
   auto ncomp = U.nprop();
@@ -145,8 +135,6 @@ adv( const std::vector< std::size_t >& bpoin,
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wvla"
   #endif
-
-  // domain integral
 
   // domain edge contributions: tetrahedron superedges
   for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
@@ -200,93 +188,6 @@ adv( const std::vector< std::size_t >& bpoin,
     }
   }
 
-  // boundary integrals
-
-//   // boundary point contributions
-//   for (std::size_t b=0; b<bpoin.size(); ++b) {
-//     auto i = bpoin[b];
-//     auto r = U(i,0,0);
-//     auto ru = U(i,1,0);
-//     auto rv = U(i,2,0);
-//     auto rw = U(i,3,0);
-//     auto re = U(i,4,0);
-//     auto p = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
-//     const auto n = bpint.data() + b*3;
-//     auto nx = n[0];
-//     auto ny = n[1];
-//     auto nz = n[2];
-//     auto vn = bpsym[b] ? 0.0 : (ru*nx + rv*ny + rw*nz)/r;
-//     R(i,0,0) -= r*vn;
-//     R(i,1,0) -= ru*vn + p*nx;
-//     R(i,2,0) -= rv*vn + p*ny;
-//     R(i,3,0) -= rw*vn + p*nz;
-//     R(i,4,0) -= (re + p)*vn;
-//     for (std::size_t c=5; c<ncomp; ++c) {
-//       R(i,c,0) -= U(i,c,0)*vn;
-//     }
-//   }
-//  
-//   //// boundary edge contributions: triangle superedges
-//   //for (std::size_t e=0; e<bsupedge[0].size()/6; ++e) {
-//   //  const auto N = bsupedge[0].data() + e*6;
-//   //  // edge fluxes
-//   //  tk::real f[3][ncomp];
-//   //  const auto b = bsupint[0].data();
-//   //  advedge( b+(e*3+0)*3, U, coord, dt, N[0], N[1], f[0], N[3], N[4] );
-//   //  advedge( b+(e*3+1)*3, U, coord, dt, N[1], N[2], f[1], N[4], N[5] );
-//   //  advedge( b+(e*3+2)*3, U, coord, dt, N[2], N[0], f[2], N[5], N[3] );
-//   //  // edge flux contributions
-//   //  for (std::size_t c=0; c<ncomp; ++c) {
-//   //    R(N[0],c,0) += f[0][c] + f[2][c];
-//   //    R(N[1],c,0) += f[0][c] + f[1][c];
-//   //    R(N[2],c,0) += f[1][c] + f[2][c];
-//   //  }
-//   //}
-//  
-//   // boundary edge contributions: edges
-//   for (std::size_t e=0; e<bsupedge[1].size()/4; ++e) {
-//     const auto N = bsupedge[1].data() + e*4;
-//     const auto n = bsupint[1].data() + e*3;
-//     auto nx = n[0];
-//     auto ny = n[1];
-//     auto nz = n[2];
-//  
-//     auto p = N[0];
-//     auto rL  = U(p,0,0);
-//     auto ruL = U(p,1,0);
-//     auto rvL = U(p,2,0);
-//     auto rwL = U(p,3,0);
-//     auto reL = U(p,4,0);
-//     auto pL = eos::pressure( reL - 0.5*(ruL*ruL + rvL*rvL + rwL*rwL)/rL );
-//     auto vnL = N[2] ? 0.0 : (nx*ruL + ny*rvL + nz*rwL)/rL;
-//  
-//     auto q = N[1];
-//     auto rR  = U(q,0,0);
-//     auto ruR = U(q,1,0);
-//     auto rvR = U(q,2,0);
-//     auto rwR = U(q,3,0);
-//     auto reR = U(q,4,0);
-//     auto pR = eos::pressure( reR - 0.5*(ruR*ruR + rvR*rvR + rwR*rwR)/rR );
-//     auto vnR = N[3] ? 0.0 : (nx*ruR + ny*rvR + nz*rwR)/rR;
-//  
-//     tk::real f[ncomp];
-//     auto p2 = pL + pR;
-//     f[0] = rL*vnL + rR*vnR;
-//     f[1] = ruL*vnL + ruR*vnR + p2*nx;
-//     f[2] = rvL*vnL + rvR*vnR + p2*ny;
-//     f[3] = rwL*vnL + rwR*vnR + p2*nz;
-//     f[4] = (reL + pL)*vnL + (reR + pR)*vnR;
-//  
-//     for (std::size_t c=5; c<ncomp; ++c) {
-//       f[c] = U(p,c,0)*vnL + U(q,c,0)*vnR;
-//     }
-// 
-//     for (std::size_t c=0; c<ncomp; ++c) {
-//       R(p,c,0) += f[c];
-//       R(q,c,0) -= f[c];
-//     }
-//   }
-
   #if defined(__clang__)
     #pragma clang diagnostic pop
   #elif defined(STRICT_GNUC)
@@ -301,6 +202,12 @@ advbnd( const std::vector< std::size_t >& triinpoel,
         const tk::Fields& U,
         tk::Fields& R )
 // *****************************************************************************
+//! Compute boundary integrals for advection
+//! \param[in] triinpoel Boundary face connectivity
+//! \param[in] coord Mesh node coordinates
+//! \param[in] dt Physical time size
+//! \param[in] U Solution vector at recent time step
+//! \param[in,out] R Right-hand side vector
 // *****************************************************************************
 {
   // access node coordinates
@@ -308,9 +215,11 @@ advbnd( const std::vector< std::size_t >& triinpoel,
   const auto& y = coord[1];
   const auto& z = coord[2];
 
-  for (std::size_t t=0; t<triinpoel.size()/3; ++t) {
-    std::size_t N[3] =
-      { triinpoel[t*3+0], triinpoel[t*3+1], triinpoel[t*3+2] };
+  // boundary integrals: compute fluxes in edges
+  std::vector< tk::real > bflux( triinpoel.size() * 5 * 2 );
+
+  for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
+    const auto N = triinpoel.data() + e*3;
 
     auto rA  = U(N[0],0,0);
     auto ruA = U(N[0],1,0);
@@ -334,105 +243,9 @@ advbnd( const std::vector< std::size_t >& triinpoel,
       ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
       ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
     auto [nx,ny,nz] = tk::cross( ba, ca );
-    nx /= 6.0;
-    ny /= 6.0;
-    nz /= 6.0;
-
-    // boundary flux
-    tk::real p, vn;
-    p = eos::pressure( reA - 0.5*(ruA*ruA + rvA*rvA + rwA*rwA)/rA );
-    vn = (nx*ruA + ny*rvA + nz*rwA)/rA;
-    auto flu11 = rA*vn;
-    auto flu21 = ruA*vn + p*nx;
-    auto flu31 = rvA*vn + p*ny;
-    auto flu41 = rwA*vn + p*nz;
-    auto flu51 = (reA + p)*vn;
-    p = eos::pressure( reB - 0.5*(ruB*ruB + rvB*rvB + rwB*rwB)/rB );
-    vn = (nx*ruB + ny*rvB + nz*rwB)/rB;
-    auto flu12 = rB*vn;
-    auto flu22 = ruB*vn + p*nx;
-    auto flu32 = rvB*vn + p*ny;
-    auto flu42 = rwB*vn + p*nz;
-    auto flu52 = (reB + p)*vn;
-    p = eos::pressure( reC - 0.5*(ruC*ruC + rvC*rvC + rwC*rwC)/rC );
-    vn = (nx*ruC + ny*rvC + nz*rwC)/rC;
-    auto flu13 = rC*vn;
-    auto flu23 = ruC*vn + p*nx;
-    auto flu33 = rvC*vn + p*ny;
-    auto flu43 = rwC*vn + p*nz;
-    auto flu53 = (reC + p)*vn;
-
-    auto flua1 = flu11 + flu12 + flu13;
-    auto flua2 = flu21 + flu22 + flu23;
-    auto flua3 = flu31 + flu32 + flu33;
-    auto flua4 = flu41 + flu42 + flu43;
-    auto flua5 = flu51 + flu52 + flu53;
-
-    R(N[0],0,0) -= dt*(5.0*flu11 + flua1)/8.0;
-    R(N[0],1,0) -= dt*(5.0*flu21 + flua2)/8.0;
-    R(N[0],2,0) -= dt*(5.0*flu31 + flua3)/8.0;
-    R(N[0],3,0) -= dt*(5.0*flu41 + flua4)/8.0;
-    R(N[0],4,0) -= dt*(5.0*flu51 + flua5)/8.0;
-
-    R(N[1],0,0) -= dt*(5.0*flu12 + flua1)/8.0;
-    R(N[1],1,0) -= dt*(5.0*flu22 + flua2)/8.0;
-    R(N[1],2,0) -= dt*(5.0*flu32 + flua3)/8.0;
-    R(N[1],3,0) -= dt*(5.0*flu42 + flua4)/8.0;
-    R(N[1],4,0) -= dt*(5.0*flu52 + flua5)/8.0;
-
-    R(N[2],0,0) -= dt*(5.0*flu13 + flua1)/8.0;
-    R(N[2],1,0) -= dt*(5.0*flu23 + flua2)/8.0;
-    R(N[2],2,0) -= dt*(5.0*flu33 + flua3)/8.0;
-    R(N[2],3,0) -= dt*(5.0*flu43 + flua4)/8.0;
-    R(N[2],4,0) -= dt*(5.0*flu53 + flua5)/8.0;
-  }
-}
-
-static void
-advbnd2( const std::vector< std::size_t >& triinpoel,
-         const std::array< std::vector< tk::real >, 3 >& coord,
-         tk::real dt,
-         const tk::Fields& U,
-         tk::Fields& R )
-// *****************************************************************************
-// *****************************************************************************
-{
-  // access node coordinates
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  // boundary integrals: compute fluxes in edges
-  std::vector< tk::real > bflux( triinpoel.size() * 5 * 2 );
-
-  for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
-    std::size_t N[3] = { triinpoel[e*3+0], triinpoel[e*3+1], triinpoel[e*3+2] };
-    // access solution at element nodes
-    tk::real rA  = U(N[0],0,0);
-    tk::real rB  = U(N[1],0,0);
-    tk::real rC  = U(N[2],0,0);
-    tk::real ruA = U(N[0],1,0);
-    tk::real ruB = U(N[1],1,0);
-    tk::real ruC = U(N[2],1,0);
-    tk::real rvA = U(N[0],2,0);
-    tk::real rvB = U(N[1],2,0);
-    tk::real rvC = U(N[2],2,0);
-    tk::real rwA = U(N[0],3,0);
-    tk::real rwB = U(N[1],3,0);
-    tk::real rwC = U(N[2],3,0);
-    tk::real reA = U(N[0],4,0);
-    tk::real reB = U(N[1],4,0);
-    tk::real reC = U(N[2],4,0);
-
-    const std::array< tk::real, 3 >
-      ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
-      ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
-    auto [nx,ny,nz] = tk::cross( ba, ca );
-    auto A = sqrt( nx*nx + ny*ny + nz*nz );
-    nx /= A;
-    ny /= A;
-    nz /= A;
-    A /= 2.0;
+    nx /= 12.0;
+    ny /= 12.0;
+    nz /= 12.0;
 
     tk::real p, vn, f[5][3];
 
@@ -463,26 +276,27 @@ advbnd2( const std::vector< std::size_t >& triinpoel,
     // store flux in boundary elements
     for (std::size_t c=0; c<5; ++c) {
       auto eb = (e*5+c)*6;
-      auto Bab = A/24 * (f[c][0] + f[c][1]);
-      bflux[eb+0] = Bab + A/6 * f[c][0];
+      auto Bab = (f[c][0] + f[c][1])/4.0;
+      bflux[eb+0] = Bab + f[c][0];
       bflux[eb+1] = Bab;
-      Bab = A/24 * (f[c][1] + f[c][2]);
-      bflux[eb+2] = Bab + A/6 * f[c][1];
+      Bab = (f[c][1] + f[c][2])/4.0;
+      bflux[eb+2] = Bab + f[c][1];
       bflux[eb+3] = Bab;
-      Bab = A/24 * (f[c][2] + f[c][0]);
-      bflux[eb+4] = Bab + A/6 * f[c][2];
+      Bab = (f[c][2] + f[c][0])/4.0;
+      bflux[eb+4] = Bab + f[c][2];
       bflux[eb+5] = Bab;
     }
   }
 
   // boundary integrals: sum flux contributions to points
-  for (std::size_t e=0; e<triinpoel.size()/3; ++e)
+  for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
     for (std::size_t c=0; c<5; ++c) {
       auto eb = (e*5+c)*6;
       R(triinpoel[e*3+0],c,0) -= dt*(bflux[eb+0] + bflux[eb+5]);
       R(triinpoel[e*3+1],c,0) -= dt*(bflux[eb+1] + bflux[eb+2]);
       R(triinpoel[e*3+2],c,0) -= dt*(bflux[eb+3] + bflux[eb+4]);
     }
+  }
 }
 
 static void
@@ -518,11 +332,6 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
-     const std::array< std::vector< std::size_t >, 2 >& bsupedge,
-     const std::array< std::vector< tk::real >, 2 >& bsupint,
-     const std::vector< std::size_t >& bpoin,
-     const std::vector< tk::real >& bpint,
-     const std::vector< std::uint8_t >& bpsym,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const tk::Fields& U,
      const std::vector< tk::real >& v,
@@ -535,10 +344,6 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //  Compute right hand side
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
-//! \param[in] bsupedge Boundary superedges
-//! \param[in] bsupint Boundary superedge integrals
-//! \param[in] bpoin Boundary point local ids
-//! \param[in] bpint Boundary point integrals
 //! \param[in] bpsym Boundary point symmetry BC flags
 //! \param[in] coord Mesh node coordinates
 //! \param[in] U Unknowns/solution vector in mesh nodes
@@ -559,11 +364,8 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   R.fill( 0.0 );
 
   // advection
-  adv( bpoin, bpint, bpsym, dsupedge, dsupint, bsupedge, bsupint, coord, dt,
-       U, R );
-
+  advdom( dsupedge, dsupint, coord, dt, U, R );
   advbnd( triinpoel, coord, dt, U, R );
-  //advbnd2( triinpoel, coord, dt, U, R );
 
   // source
   src( coord, v, dt, t, tp, R );

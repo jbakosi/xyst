@@ -19,11 +19,6 @@ namespace zalesak {
 void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
-     const std::array< std::vector< std::size_t >, 2 >& bsupedge,
-     const std::array< std::vector< tk::real >, 2 >& bsupint,
-     const std::vector< std::size_t >& bpoin,
-     const std::vector< tk::real >& bpint,
-     const std::vector< std::uint8_t >& bpsym,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const tk::Fields& U,
      const std::vector< tk::real >& v,

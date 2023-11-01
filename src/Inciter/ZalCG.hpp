@@ -152,17 +152,12 @@ class ZalCG : public CBase_ZalCG {
       p | m_disc;
       p | m_nrhs;
       p | m_nnorm;
-      p | m_nbpint;
-      p | m_nbeint;
-      p | m_ndeint;
       p | m_naec;
       p | m_nalw;
       p | m_nlim;
       p | m_bnode;
       p | m_bface;
       p | m_triinpoel;
-      p | m_bpoinid;
-      p | m_bpoinin;
       p | m_u;
       p | m_p;
       p | m_pc;
@@ -181,13 +176,8 @@ class ZalCG : public CBase_ZalCG {
       p | m_bndpoinint;
       p | m_bndedgeint;
       p | m_domedgeint;
-      p | m_bpoin;
-      p | m_bpint;
-      p | m_bsupedge;
-      p | m_bsupint;
       p | m_dsupedge;
       p | m_dsupint;
-      p | m_bpsym;
       p | m_dirbcmasks;
       p | m_prebcnodes;
       p | m_prebcvals;
@@ -215,12 +205,6 @@ class ZalCG : public CBase_ZalCG {
     std::size_t m_nrhs;
     //! Counter for receiving boundary point normals
     std::size_t m_nnorm;
-    //! Counter for receiving boundary point integrals
-    std::size_t m_nbpint;
-    //! Counter for receiving boundary edge integrals
-    std::size_t m_nbeint;
-    //! Counter for receiving domain edge integrals
-    std::size_t m_ndeint;
     //! Counter for receiving antidiffusive contributions
     std::size_t m_naec;
     //! Counter for receiving allowed limits
@@ -233,10 +217,6 @@ class ZalCG : public CBase_ZalCG {
     std::map< int, std::vector< std::size_t > > m_bface;
     //! Boundary triangle face connecitivity where BCs are set by user
     std::vector< std::size_t > m_triinpoel;
-    //! Streamable boundary point local ids
-    std::vector< std::size_t > m_bpoinid;
-    //! Streamable boundary point integrals
-    std::vector< tk::real > m_bpoinin;
     //! Unknown/solution vector at mesh nodes
     tk::Fields m_u;
     //! Max/min antidiffusive edge contributions at mesh nodes
@@ -284,20 +264,10 @@ class ZalCG : public CBase_ZalCG {
     //! Domain edge integrals
     std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 4 >,
       tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_domedgeint;
-    //! Streamable boundary point local ids
-    std::vector< std::size_t > m_bpoin;
-    //! Streamable boundary point integrals
-    std::vector< tk::real > m_bpint;
-    //! Superedge (face, edge) end points with local ids for boundary edges
-    std::array< std::vector< std::size_t >, 2 > m_bsupedge;
-    //! Superedge (tet, face, edge) boundary edge integrals
-    std::array< std::vector< tk::real >, 2 > m_bsupint;
     //! Superedge (tet, face, edge) end points with local ids for domain edges
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals
     std::array< std::vector< tk::real >, 3 > m_dsupint;
-    //! Streamable boundary point symmetry BC flags
-    std::vector< std::uint8_t > m_bpsym;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmasks;
     //! Nodes at pressure BCs
@@ -368,7 +338,7 @@ class ZalCG : public CBase_ZalCG {
     //! Compute righ-hand side vector of transport equations
     void rhs();
 
-    //! Compute antidiffusive contributions: P+/-,  low-order solution: ul
+    //! Compute antidiffusive contributions: P+/-
     void aec();
 
     //! Compute allowed limits, Q+/-

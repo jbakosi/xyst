@@ -215,9 +215,6 @@ advbnd( const std::vector< std::size_t >& triinpoel,
   const auto& y = coord[1];
   const auto& z = coord[2];
 
-  // boundary integrals: compute fluxes in edges
-  std::vector< tk::real > bflux( triinpoel.size() * 5 * 2 );
-
   for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
     const auto N = triinpoel.data() + e*3;
 
@@ -273,28 +270,13 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[3][2] = rwC*vn + p*nz;
     f[4][2] = (reC + p)*vn;
 
-    // store flux in boundary elements
     for (std::size_t c=0; c<5; ++c) {
-      auto eb = (e*5+c)*6;
-      auto Bab = (f[c][0] + f[c][1])/4.0;
-      bflux[eb+0] = Bab + f[c][0];
-      bflux[eb+1] = Bab;
-      Bab = (f[c][1] + f[c][2])/4.0;
-      bflux[eb+2] = Bab + f[c][1];
-      bflux[eb+3] = Bab;
-      Bab = (f[c][2] + f[c][0])/4.0;
-      bflux[eb+4] = Bab + f[c][2];
-      bflux[eb+5] = Bab;
-    }
-  }
-
-  // boundary integrals: sum flux contributions to points
-  for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
-    for (std::size_t c=0; c<5; ++c) {
-      auto eb = (e*5+c)*6;
-      R(triinpoel[e*3+0],c,0) -= dt*(bflux[eb+0] + bflux[eb+5]);
-      R(triinpoel[e*3+1],c,0) -= dt*(bflux[eb+1] + bflux[eb+2]);
-      R(triinpoel[e*3+2],c,0) -= dt*(bflux[eb+3] + bflux[eb+4]);
+      auto fab = (f[c][0] + f[c][1])/4.0;
+      auto fbc = (f[c][1] + f[c][2])/4.0;
+      auto fca = (f[c][2] + f[c][0])/4.0;
+      R(N[0],c,0) -= dt*(fab + fca + f[c][0]);
+      R(N[1],c,0) -= dt*(fab + fbc + f[c][1]);
+      R(N[2],c,0) -= dt*(fbc + fca + f[c][2]);
     }
   }
 }

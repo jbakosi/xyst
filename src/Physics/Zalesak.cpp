@@ -339,32 +339,23 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     nz /= 6.0;
 
     // boundary flux
-    tk::real u, v, w, p, vn;
-    u = ruA / rA;
-    v = rvA / rA;
-    w = rwA / rA;
-    p = eos::pressure( rA, reA / rA - 0.5*(u*u + v*v + w*w) );
-    vn = nx*u + ny*v + nz*w;
+    tk::real p, vn;
+    p = eos::pressure( reA - 0.5*(ruA*ruA + rvA*rvA + rwA*rwA)/rA );
+    vn = (nx*ruA + ny*rvA + nz*rwA)/rA;
     auto flu11 = rA*vn;
     auto flu21 = ruA*vn + p*nx;
     auto flu31 = rvA*vn + p*ny;
     auto flu41 = rwA*vn + p*nz;
     auto flu51 = (reA + p)*vn;
-    u = ruB / rB;
-    v = rvB / rB;
-    w = rwB / rB;
-    p = eos::pressure( rB, reB / rB - 0.5*(u*u + v*v + w*w) );
-    vn = nx*u + ny*v + nz*w;
+    p = eos::pressure( reB - 0.5*(ruB*ruB + rvB*rvB + rwB*rwB)/rB );
+    vn = (nx*ruB + ny*rvB + nz*rwB)/rB;
     auto flu12 = rB*vn;
     auto flu22 = ruB*vn + p*nx;
     auto flu32 = rvB*vn + p*ny;
     auto flu42 = rwB*vn + p*nz;
     auto flu52 = (reB + p)*vn;
-    u = ruC / rC;
-    v = rvC / rC;
-    w = rwC / rC;
-    p = eos::pressure( rC, reC / rC - 0.5*(u*u + v*v + w*w) );
-    vn = nx*u + ny*v + nz*w;
+    p = eos::pressure( reC - 0.5*(ruC*ruC + rvC*rvC + rwC*rwC)/rC );
+    vn = (nx*ruC + ny*rvC + nz*rwC)/rC;
     auto flu13 = rC*vn;
     auto flu23 = ruC*vn + p*nx;
     auto flu33 = rvC*vn + p*ny;
@@ -443,35 +434,26 @@ advbnd2( const std::vector< std::size_t >& triinpoel,
     nz /= A;
     A /= 2.0;
 
-    tk::real u, v, w, p, vn, f[5][3];
+    tk::real p, vn, f[5][3];
 
-    u = ruA / rA;
-    v = rvA / rA;
-    w = rwA / rA;
-    p = eos::pressure( rA, reA / rA - 0.5*(u*u + v*v + w*w) );
-    vn = nx*u + ny*v + nz*w;
+    p = eos::pressure( reA - 0.5*(ruA*ruA + rvA*rvA + rwA*rwA)/rA );
+    vn = (nx*ruA + ny*rvA + nz*rwA)/rA;
     f[0][0] = rA*vn;
     f[1][0] = ruA*vn + p*nx;
     f[2][0] = rvA*vn + p*ny;
     f[3][0] = rwA*vn + p*nz;
     f[4][0] = (reA + p)*vn;
 
-    u = ruB / rB;
-    v = rvB / rB;
-    w = rwB / rB;
-    p = eos::pressure( rB, reB / rB - 0.5*(u*u + v*v + w*w) );
-    vn = nx*u + ny*v + nz*w;
+    p = eos::pressure( reB - 0.5*(ruB*ruB + rvB*rvB + rwB*rwB)/rB );
+    vn = (nx*ruB + ny*rvB + nz*rwB)/rB;
     f[0][1] = rB*vn;
     f[1][1] = ruB*vn + p*nx;
     f[2][1] = rvB*vn + p*ny;
     f[3][1] = rwB*vn + p*nz;
     f[4][1] = (reB + p)*vn;
 
-    u = ruC / rC;
-    v = rvC / rC;
-    w = rwC / rC;
-    p = eos::pressure( rC, reC / rC - 0.5*(u*u + v*v + w*w) );
-    vn = nx*u + ny*v + nz*w;
+    p = eos::pressure( reC - 0.5*(ruC*ruC + rvC*rvC + rwC*rwC)/rC );
+    vn = (nx*ruC + ny*rvC + nz*rwC)/rC;
     f[0][2] = rC*vn;
     f[1][2] = ruC*vn + p*nx;
     f[2][2] = rvC*vn + p*ny;

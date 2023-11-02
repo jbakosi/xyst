@@ -896,6 +896,7 @@ Config::control()
     get< tag::rescomp >() = unsigint( L, "rescomp", 1, true );
     get< tag::part >() = string( L, "part", "rcb", true );
     get< tag::solver >() = string( L, "solver", "riecg", true );
+    print << "Solver: " << get< tag::solver >() << '\n';
     get< tag::fct >() = boolean( L, "fct", true, true );
 
     ic( L, *this );

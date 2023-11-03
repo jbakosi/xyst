@@ -36,6 +36,7 @@ rhs( const std::vector< std::size_t >& inpoel,
      tk::Fields& R )
 // *****************************************************************************
 //  Compute right hand side
+//! \param[in] inpoel Tetrahedron connectivity
 //! \param[in] coord Mesh node coordinates
 //! \param[in] U Unknowns/solution vector in mesh nodes
 //! \param[in] t Physical time

@@ -85,6 +85,15 @@ advedge( const tk::real supint[],
   auto pR = eos::pressure( reR - 0.5*(ruR*ruR + rvR*rvR + rwR*rwR)/rR );
   auto dnR = (ruR*dx + rvR*dy + rwR*dz)/rR;
 
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
   // Taylor-Galerkin first half step
 
   tk::real ue[ncomp];
@@ -141,6 +150,12 @@ advedge( const tk::real supint[],
       f[ncomp+c] = coef*se[c];
     }
   }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
 }
 
 static void

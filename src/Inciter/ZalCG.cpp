@@ -863,8 +863,8 @@ ZalCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += m_dtp[p];
   }
 
-  zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_u, d->V(), d->T(), d->Dt(),
-                m_tp, m_rhs, m_triinpoel );
+  zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u,
+                d->T(), d->Dt(), m_rhs );
 
   if (g_cfg.get< tag::steady >()) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];

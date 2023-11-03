@@ -36,27 +36,27 @@ advedge( const tk::real supint[],
          const tk::Fields& U,
          const std::array< std::vector< tk::real >, 3 >& coord,
          tk::real dt,
+         tk::real t,
          std::size_t p,
          std::size_t q,
-         tk::real f[] )
+         tk::real f[],
+         const std::function< std::vector< tk::real >
+                 ( tk::real, tk::real, tk::real, tk::real ) >& src )
 // *****************************************************************************
 //! Compute advection fluxes on a single edge
 //! \param[in] supint Edge integral
 //! \param[in] U Solution vector to read conserved variables from
 //! \param[in] coord Mesh node coordinates
-//! \param[in] dt Physical time size
+//! \param[in] dt Physical time step size
+//! \param[in] t Physical time
 //! \param[in,out] f Flux computed
+//! \param[in] Function to call to evaluate a problem-sepcific source term
 // *****************************************************************************
 {
   const auto ncomp = U.nprop();
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
-
-  // integral coefficient
-  auto nx = supint[0];
-  auto ny = supint[1];
-  auto nz = supint[2];
 
   // edge vector
   auto dx = x[p] - x[q];
@@ -85,13 +85,40 @@ advedge( const tk::real supint[],
   auto pR = eos::pressure( reR - 0.5*(ruR*ruR + rvR*rvR + rwR*rwR)/rR );
   auto dnR = (ruR*dx + rvR*dy + rwR*dz)/rR;
 
-  // flow fluxes
+  // Taylor-Galerkin first half step
+
+  tk::real ue[ncomp];
   auto dp = pL - pR;
-  auto rh  = 0.5*(rL + rR - dt*(rL*dnL - rR*dnR));
-  auto ruh = 0.5*(ruL + ruR - dt*(ruL*dnL - ruR*dnR + dp*dx));
-  auto rvh = 0.5*(rvL + rvR - dt*(rvL*dnL - rvR*dnR + dp*dy));
-  auto rwh = 0.5*(rwL + rwR - dt*(rwL*dnL - rwR*dnR + dp*dz));
-  auto reh = 0.5*(reL + reR - dt*((reL+pL)*dnL - (reR+pR)*dnR));
+  ue[0] = 0.5*(rL + rR - dt*(rL*dnL - rR*dnR));
+  ue[1] = 0.5*(ruL + ruR - dt*(ruL*dnL - ruR*dnR + dp*dx));
+  ue[2] = 0.5*(rvL + rvR - dt*(rvL*dnL - rvR*dnR + dp*dy));
+  ue[3] = 0.5*(rwL + rwR - dt*(rwL*dnL - rwR*dnR + dp*dz));
+  ue[4] = 0.5*(reL + reR - dt*((reL+pL)*dnL - (reR+pR)*dnR));
+
+  for (std::size_t c=5; c<ncomp; ++c) {
+    ue[c] = 0.5*(U(p,c,0) + U(q,c,0) - dt*(U(p,c,0)*dnL - U(q,c,0)*dnR));
+  }
+
+  if (src) {
+    auto coef = dt/4.0;
+    auto sL = src( x[p], y[p], z[p], t );
+    auto sR = src( x[q], y[q], z[q], t );
+    for (std::size_t c=0; c<ncomp; ++c) {
+      ue[c] += coef*(sL[c] + sR[c]);
+    }
+  }
+
+  // Taylor-Galerkin sceond half step
+
+  auto nx = supint[0];
+  auto ny = supint[1];
+  auto nz = supint[2];
+
+  auto rh  = ue[0];
+  auto ruh = ue[1];
+  auto rvh = ue[2];
+  auto rwh = ue[3];
+  auto reh = ue[4];
   auto ph = eos::pressure( reh - 0.5*(ruh*ruh + rvh*rvh + rwh*rwh)/rh );
   auto vn = (ruh*nx + rvh*ny + rwh*nz)/rh;
   f[0] = -dt*rh*vn;
@@ -100,10 +127,19 @@ advedge( const tk::real supint[],
   f[3] = -dt*(rwh*vn + ph*nz);
   f[4] = -dt*(reh + ph)*vn;
 
-  // scalar fluxes
   for (std::size_t c=5; c<ncomp; ++c) {
-    auto hc = 0.5*(U(p,c,0) + U(q,c,0) - dt*(U(p,c,0)*dnL - U(q,c,0)*dnR));
-    f[c] = -dt*hc*vn;
+    f[c] = -dt*ue[c]*vn;
+  }
+
+  if (src) {
+    auto coef = -5.0/3.0*dt*supint[3];
+    auto xe = (x[p] + x[q])/2.0;
+    auto ye = (y[p] + y[q])/2.0;
+    auto ze = (z[p] + z[q])/2.0;
+    auto se = src( xe, ye, ze, t+dt/2.0 );
+    for (std::size_t c=0; c<ncomp; ++c) {
+      f[ncomp+c] = coef*se[c];
+    }
   }
 }
 
@@ -112,6 +148,7 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
         const std::array< std::vector< tk::real >, 3 >& dsupint,
         const std::array< std::vector< tk::real >, 3 >& coord,
         tk::real dt,
+        tk::real t,
         const tk::Fields& U,
         // cppcheck-suppress constParameter
         tk::Fields& R )
@@ -120,12 +157,14 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] coord Mesh node coordinates
-//! \param[in] dt Physical time size
+//! \param[in] dt Physical time step size
+//! \param[in] t Physical time
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector
 // *****************************************************************************
 {
   auto ncomp = U.nprop();
+  auto src = problems::SRC();
 
   #if defined(__clang__)
     #pragma clang diagnostic push
@@ -140,20 +179,27 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
     const auto N = dsupedge[0].data() + e*4;
     // edge fluxes
-    tk::real f[6][ncomp];
+    tk::real f[6][ncomp*2];
     const auto d = dsupint[0].data();
-    advedge( d+(e*6+0)*4, U, coord, dt, N[0], N[1], f[0] );
-    advedge( d+(e*6+1)*4, U, coord, dt, N[1], N[2], f[1] );
-    advedge( d+(e*6+2)*4, U, coord, dt, N[2], N[0], f[2] );
-    advedge( d+(e*6+3)*4, U, coord, dt, N[0], N[3], f[3] );
-    advedge( d+(e*6+4)*4, U, coord, dt, N[1], N[3], f[4] );
-    advedge( d+(e*6+5)*4, U, coord, dt, N[2], N[3], f[5] );
+    advedge( d+(e*6+0)*4, U, coord, dt, t, N[0], N[1], f[0], src );
+    advedge( d+(e*6+1)*4, U, coord, dt, t, N[1], N[2], f[1], src );
+    advedge( d+(e*6+2)*4, U, coord, dt, t, N[2], N[0], f[2], src );
+    advedge( d+(e*6+3)*4, U, coord, dt, t, N[0], N[3], f[3], src );
+    advedge( d+(e*6+4)*4, U, coord, dt, t, N[1], N[3], f[4], src );
+    advedge( d+(e*6+5)*4, U, coord, dt, t, N[2], N[3], f[5], src );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c] - f[3][c];
       R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c] - f[4][c];
       R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c] - f[5][c];
       R(N[3],c,0) = R(N[3],c,0) + f[3][c] + f[4][c] + f[5][c];
+      if (src) {
+        auto nc = ncomp + c;
+        R(N[0],c,0) += f[0][nc] + f[2][nc] + f[3][nc];
+        R(N[1],c,0) += f[0][nc] + f[1][nc] + f[4][nc];
+        R(N[2],c,0) += f[1][nc] + f[2][nc] + f[5][nc];
+        R(N[3],c,0) += f[3][nc] + f[4][nc] + f[5][nc];
+      }
     }
   }
 
@@ -161,16 +207,22 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
     const auto N = dsupedge[1].data() + e*3;
     // edge fluxes
-    tk::real f[3][ncomp];
+    tk::real f[3][ncomp*2];
     const auto d = dsupint[1].data();
-    advedge( d+(e*3+0)*4, U, coord, dt, N[0], N[1], f[0] );
-    advedge( d+(e*3+1)*4, U, coord, dt, N[1], N[2], f[1] );
-    advedge( d+(e*3+2)*4, U, coord, dt, N[2], N[0], f[2] );
+    advedge( d+(e*3+0)*4, U, coord, dt, t, N[0], N[1], f[0], src );
+    advedge( d+(e*3+1)*4, U, coord, dt, t, N[1], N[2], f[1], src );
+    advedge( d+(e*3+2)*4, U, coord, dt, t, N[2], N[0], f[2], src );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c];
       R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c];
       R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c];
+      if (src) {
+        auto nc = ncomp + c;
+        R(N[0],c,0) += f[0][nc] + f[2][nc];
+        R(N[1],c,0) += f[0][nc] + f[1][nc];
+        R(N[2],c,0) += f[1][nc] + f[2][nc];
+      }
     }
   }
 
@@ -178,13 +230,18 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
     const auto N = dsupedge[2].data() + e*2;
     // edge fluxes
-    tk::real f[ncomp];
+    tk::real f[ncomp*2];
     const auto d = dsupint[2].data();
-    advedge( d+e*4, U, coord, dt, N[0], N[1], f );
+    advedge( d+e*4, U, coord, dt, t, N[0], N[1], f, src );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c,0) -= f[c];
       R(N[1],c,0) += f[c];
+      if (src) {
+        auto nc = ncomp + c;
+        R(N[0],c,0) += f[nc];
+        R(N[1],c,0) += f[nc];
+      }
     }
   }
 
@@ -281,58 +338,25 @@ advbnd( const std::vector< std::size_t >& triinpoel,
   }
 }
 
-static void
-src( const std::array< std::vector< tk::real >, 3 >& coord,
-     const std::vector< tk::real >& v,
-     tk::real dt,
-     tk::real t,
-     const std::vector< tk::real >& tp,
-     tk::Fields& R )
-// *****************************************************************************
-//  Compute source integral
-//! \param[in] coord Mesh node coordinates
-//! \param[in] v Nodal mesh volumes without contributions from other chares
-//! \param[in] t Physical time
-//! \param[in] tp Physical time for each mesh node
-//! \param[in,out] R Right-hand side vector computed
-// *****************************************************************************
-{
-  auto src = problems::SRC();
-  if (!src) return;
-
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  for (std::size_t p=0; p<R.nunk(); ++p) {
-    if (g_cfg.get< tag::steady >()) t = tp[p];
-    auto s = src( x[p], y[p], z[p], t );
-    for (std::size_t c=0; c<s.size(); ++c) R(p,c,0) += dt * s[c] * v[p];
-  }
-}
-
 void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
      const std::array< std::vector< tk::real >, 3 >& coord,
+     const std::vector< std::size_t >& triinpoel,
      const tk::Fields& U,
-     const std::vector< tk::real >& v,
      tk::real t,
      tk::real dt,
-     const std::vector< tk::real >& tp,
-     tk::Fields& R,
-     const std::vector< std::size_t >& triinpoel )
+     tk::Fields& R )
 // *****************************************************************************
 //  Compute right hand side
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] bpsym Boundary point symmetry BC flags
 //! \param[in] coord Mesh node coordinates
+//! \param[in] triinpoel Boundary face connectivity
 //! \param[in] U Unknowns/solution vector in mesh nodes
-//! \param[in] v Nodal mesh volumes without contributions from other chares
 //! \param[in] t Physical time
 //! \param[in] dt Physical time size
-//! \param[in] tp Physical time for each mesh node
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
 {
@@ -345,12 +369,8 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   // zero right hand side for all components
   R.fill( 0.0 );
 
-  // advection
-  advdom( dsupedge, dsupint, coord, dt, U, R );
+  advdom( dsupedge, dsupint, coord, dt, t, U, R );
   advbnd( triinpoel, coord, dt, U, R );
-
-  // source
-  src( coord, v, dt, t, tp, R );
 }
 
 } // zalesak::

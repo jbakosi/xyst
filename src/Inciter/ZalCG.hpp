@@ -174,7 +174,6 @@ class ZalCG : public CBase_ZalCG {
       p | m_bnorm;
       p | m_bnormc;
       p | m_bndpoinint;
-      p | m_bndedgeint;
       p | m_domedgeint;
       p | m_dsupedge;
       p | m_dsupint;
@@ -256,11 +255,6 @@ class ZalCG : public CBase_ZalCG {
     //! \details Key: global node id of boundary point, value: boundary point
     //!   integral contributions.
     std::unordered_map< std::size_t, std::array< tk::real, 3 > > m_bndpoinint;
-    //! Boundary edge integrals
-    //! \details Key: boundary edge-end points with global node ids, value:
-    //!   boundary edge integral contributions.
-    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
-                        tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_bndedgeint;
     //! Domain edge integrals
     std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 4 >,
       tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_domedgeint;

@@ -10,9 +10,6 @@
 */
 // *****************************************************************************
 
-#include <iostream>     // NOT NEEDED
-#include <iomanip>     // NOT NEEDED
-
 #include "Vector.hpp"
 #include "Around.hpp"
 #include "DerivedData.hpp"
@@ -193,7 +190,6 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   // domain edge contributions: tetrahedron superedges
   for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
     const auto N = dsupedge[0].data() + e*4;
-    // edge fluxes
     tk::real f[6][ncomp*2];
     const auto d = dsupint[0].data();
     advedge( d+(e*6+0)*4, U, coord, dt, t, N[0], N[1], f[0], src );
@@ -202,7 +198,6 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     advedge( d+(e*6+3)*4, U, coord, dt, t, N[0], N[3], f[3], src );
     advedge( d+(e*6+4)*4, U, coord, dt, t, N[1], N[3], f[4], src );
     advedge( d+(e*6+5)*4, U, coord, dt, t, N[2], N[3], f[5], src );
-    // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c] - f[3][c];
       R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c] - f[4][c];
@@ -221,13 +216,11 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   // domain edge contributions: triangle superedges
   for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
     const auto N = dsupedge[1].data() + e*3;
-    // edge fluxes
     tk::real f[3][ncomp*2];
     const auto d = dsupint[1].data();
     advedge( d+(e*3+0)*4, U, coord, dt, t, N[0], N[1], f[0], src );
     advedge( d+(e*3+1)*4, U, coord, dt, t, N[1], N[2], f[1], src );
     advedge( d+(e*3+2)*4, U, coord, dt, t, N[2], N[0], f[2], src );
-    // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c];
       R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c];
@@ -244,11 +237,9 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   // domain edge contributions: edges
   for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
     const auto N = dsupedge[2].data() + e*2;
-    // edge fluxes
     tk::real f[ncomp*2];
     const auto d = dsupint[2].data();
     advedge( d+e*4, U, coord, dt, t, N[0], N[1], f, src );
-    // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c,0) -= f[c];
       R(N[1],c,0) += f[c];
@@ -282,7 +273,8 @@ advbnd( const std::vector< std::size_t >& triinpoel,
 //! \param[in,out] R Right-hand side vector
 // *****************************************************************************
 {
-  // access node coordinates
+  auto ncomp = U.nprop();
+
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
@@ -342,7 +334,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[3][2] = rwC*vn + p*nz;
     f[4][2] = (reC + p)*vn;
 
-    for (std::size_t c=0; c<5; ++c) {
+    for (std::size_t c=0; c<ncomp; ++c) {
       auto fab = (f[c][0] + f[c][1])/4.0;
       auto fbc = (f[c][1] + f[c][2])/4.0;
       auto fca = (f[c][2] + f[c][0])/4.0;
@@ -366,7 +358,6 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //  Compute right hand side
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
-//! \param[in] bpsym Boundary point symmetry BC flags
 //! \param[in] coord Mesh node coordinates
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] U Unknowns/solution vector in mesh nodes

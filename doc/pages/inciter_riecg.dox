@@ -150,10 +150,10 @@ can be any total variation diminishing limiter function, e.g., that of van Leer.
 
 The solution is advanced using a multi-stage explicit scheme of the form:
 \f[ \begin{split}
-  U^{v,k} = U^{v,0} - \alpha^k \Delta t \cdot \left.
-  \frac{\text{d}U^v}{\text{d}t}\right|^{k-1}
+  U^{v,k} = U^{v,0} + \alpha^k \Delta t r^{v,k-1}
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}k\f$ is the current stage,
+where \f$\color[HTML]{dcdcdc}r\f$ is the right hand side of the discretized
+governing equations, \f$\color[HTML]{dcdcdc}k\f$ is the current stage,
 \f$\color[HTML]{dcdcdc}m\f$ is the total number of stages,
 \f$\color[HTML]{dcdcdc}\Delta t\f$ is the time step, and
 \f[ \begin{split}

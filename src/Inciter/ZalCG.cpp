@@ -285,37 +285,36 @@ ZalCG::bndint()
   tk::destroy( m_bnorm );
   tk::destroy( m_bndpoinint );
 
-   for (const auto& [ setid, faceids ] : m_bface) { // for all side sets
-     for (auto f : faceids) { // for all side set triangles
-       const auto N = m_triinpoel.data() + f*3;
-       const std::array< tk::real, 3 >
-         ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
-         ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
-       auto n = tk::cross( ba, ca );
-       auto A2 = tk::length( n );
-       n[0] /= A2;
-       n[1] /= A2;
-       n[2] /= A2;
-       const tk::real centroid[3] = {
-         (x[N[0]] + x[N[1]] + x[N[2]]) / 3.0,
-         (y[N[0]] + y[N[1]] + y[N[2]]) / 3.0,
-         (z[N[0]] + z[N[1]] + z[N[2]]) / 3.0 };
-
-       // contribute all edges of triangle
-       for (const auto& [i,j] : tk::lpoet) {
-         auto p = N[i];
-         tk::real r = invdistsq( centroid, p );
-         auto& v = m_bnorm[setid];      // associate side set id
-         auto& bn = v[gid[p]];          // associate global node id of bnd pnt
-         bn[0] += r * n[0];             // inv.dist.sq-weighted normal
-         bn[1] += r * n[1];
-         bn[2] += r * n[2];
-         bn[3] += r;                    // inv.dist.sq of node from centroid
-         auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
-         b[0] += n[0] * A2 / 6.0;       // bnd-point integral
-         b[1] += n[1] * A2 / 6.0;
-         b[2] += n[2] * A2 / 6.0;
-       }
+  for (const auto& [ setid, faceids ] : m_bface) { // for all side sets
+    for (auto f : faceids) { // for all side set triangles
+      const auto N = m_triinpoel.data() + f*3;
+      const std::array< tk::real, 3 >
+        ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
+        ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
+      auto n = tk::cross( ba, ca );
+      auto A2 = tk::length( n );
+      n[0] /= A2;
+      n[1] /= A2;
+      n[2] /= A2;
+      const tk::real centroid[3] = {
+        (x[N[0]] + x[N[1]] + x[N[2]]) / 3.0,
+        (y[N[0]] + y[N[1]] + y[N[2]]) / 3.0,
+        (z[N[0]] + z[N[1]] + z[N[2]]) / 3.0 };
+      // contribute all edges of triangle
+      for (const auto& [i,j] : tk::lpoet) {
+        auto p = N[i];
+        tk::real r = invdistsq( centroid, p );
+        auto& v = m_bnorm[setid];      // associate side set id
+        auto& bn = v[gid[p]];          // associate global node id of bnd pnt
+        bn[0] += r * n[0];             // inv.dist.sq-weighted normal
+        bn[1] += r * n[1];
+        bn[2] += r * n[2];
+        bn[3] += r;                    // inv.dist.sq of node from centroid
+        auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
+        b[0] += n[0] * A2 / 6.0;       // bnd-point integral
+        b[1] += n[1] * A2 / 6.0;
+        b[2] += n[2] * A2 / 6.0;
+      }
     }
   }
 }

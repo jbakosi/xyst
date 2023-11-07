@@ -306,47 +306,46 @@ RieCG::bndint()
   tk::destroy( m_bndpoinint );
   tk::destroy( m_bndedgeint );
 
-   for (const auto& [ setid, faceids ] : m_bface) { // for all side sets
-     for (auto f : faceids) { // for all side set triangles
-       const auto N = m_triinpoel.data() + f*3;
-       const std::array< tk::real, 3 >
-         ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
-         ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
-       auto n = tk::cross( ba, ca );
-       auto A2 = tk::length( n );
-       n[0] /= A2;
-       n[1] /= A2;
-       n[2] /= A2;
-       const tk::real centroid[3] = {
-         (x[N[0]] + x[N[1]] + x[N[2]]) / 3.0,
-         (y[N[0]] + y[N[1]] + y[N[2]]) / 3.0,
-         (z[N[0]] + z[N[1]] + z[N[2]]) / 3.0 };
-
-       for (const auto& [i,j] : tk::lpoet) {
-         auto p = N[i];
-         auto q = N[j];
-         tk::real r = invdistsq( centroid, p );
-         auto& v = m_bnorm[setid];      // associate side set id
-         auto& bpn = v[gid[p]];         // associate global node id of bnd pnt
-         bpn[0] += r * n[0];            // inv.dist.sq-weighted normal
-         bpn[1] += r * n[1];
-         bpn[2] += r * n[2];
-         bpn[3] += r;                   // inv.dist.sq of node from centroid
-         auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
-         b[0] += n[0] * A2 / 6.0;        // bnd-point integral
-         b[1] += n[1] * A2 / 6.0;
-         b[2] += n[2] * A2 / 6.0;
-         tk::UnsMesh::Edge ed{ gid[p], gid[q] };
-         tk::real sig = 1.0;
-         if (ed[0] > ed[1]) {
-           std::swap( ed[0], ed[1] );
-           sig = -1.0;
-         }
-         auto& e = m_bndedgeint[ ed ];
-         e[0] += sig * n[0] * A2 / 24.0; // bnd-edge integral
-         e[1] += sig * n[1] * A2 / 24.0;
-         e[2] += sig * n[2] * A2 / 24.0;
-       }
+  for (const auto& [ setid, faceids ] : m_bface) { // for all side sets
+    for (auto f : faceids) { // for all side set triangles
+      const auto N = m_triinpoel.data() + f*3;
+      const std::array< tk::real, 3 >
+        ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
+        ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
+      auto n = tk::cross( ba, ca );
+      auto A2 = tk::length( n );
+      n[0] /= A2;
+      n[1] /= A2;
+      n[2] /= A2;
+      const tk::real centroid[3] = {
+        (x[N[0]] + x[N[1]] + x[N[2]]) / 3.0,
+        (y[N[0]] + y[N[1]] + y[N[2]]) / 3.0,
+        (z[N[0]] + z[N[1]] + z[N[2]]) / 3.0 };
+      for (const auto& [i,j] : tk::lpoet) {
+        auto p = N[i];
+        auto q = N[j];
+        tk::real r = invdistsq( centroid, p );
+        auto& v = m_bnorm[setid];      // associate side set id
+        auto& bpn = v[gid[p]];         // associate global node id of bnd pnt
+        bpn[0] += r * n[0];            // inv.dist.sq-weighted normal
+        bpn[1] += r * n[1];
+        bpn[2] += r * n[2];
+        bpn[3] += r;                   // inv.dist.sq of node from centroid
+        auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
+        b[0] += n[0] * A2 / 6.0;        // bnd-point integral
+        b[1] += n[1] * A2 / 6.0;
+        b[2] += n[2] * A2 / 6.0;
+        tk::UnsMesh::Edge ed{ gid[p], gid[q] };
+        tk::real sig = 1.0;
+        if (ed[0] > ed[1]) {
+          std::swap( ed[0], ed[1] );
+          sig = -1.0;
+        }
+        auto& e = m_bndedgeint[ ed ];
+        e[0] += sig * n[0] * A2 / 24.0; // bnd-edge integral
+        e[1] += sig * n[1] * A2 / 24.0;
+        e[2] += sig * n[2] * A2 / 24.0;
+      }
     }
   }
 }

@@ -919,7 +919,7 @@ ZalCG::aec()
 
   // Antidiffusive contributions: P+/-
 
-  auto ctau = 1.0;
+  auto ctau = g_cfg.get< tag::fctdif >();
   m_p.fill( 0.0 );
 
   // tetrahedron superedges
@@ -1066,10 +1066,16 @@ ZalCG::alw()
       auto a = c*2;
       auto b = a+1;
       for (const auto& [p,q] : tk::lpoed) {
-        auto alwp = max( max(m_rhs(N[p],c,0), m_u(N[p],c,0)),
-                         max(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
-        auto alwn = min( min(m_rhs(N[p],c,0), m_u(N[p],c,0)),
-                         min(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
+        tk::real alwp, alwn;
+        if (g_cfg.get< tag::fctclip >()) {
+          alwp = max( m_rhs(N[p],c,0), m_rhs(N[q],c,0) );
+          alwn = min( m_rhs(N[p],c,0), m_rhs(N[q],c,0) );
+        } else {
+          alwp = max( max(m_rhs(N[p],c,0), m_u(N[p],c,0)),
+                      max(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
+          alwn = min( min(m_rhs(N[p],c,0), m_u(N[p],c,0)),
+                      min(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
+        }
         m_q(N[p],a,0) = max(m_q(N[p],a,0), alwp);
         m_q(N[p],b,0) = min(m_q(N[p],b,0), alwn);
         m_q(N[q],a,0) = max(m_q(N[q],a,0), alwp);
@@ -1085,10 +1091,16 @@ ZalCG::alw()
       auto a = c*2;
       auto b = a+1;
       for (const auto& [p,q] : tk::lpoet) {
-        auto alwp = max( max(m_rhs(N[p],c,0), m_u(N[p],c,0)),
-                         max(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
-        auto alwn = min( min(m_rhs(N[p],c,0), m_u(N[p],c,0)),
-                         min(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
+        tk::real alwp, alwn;
+        if (g_cfg.get< tag::fctclip >()) {
+          alwp = max( m_rhs(N[p],c,0), m_rhs(N[q],c,0) );
+          alwn = min( m_rhs(N[p],c,0), m_rhs(N[q],c,0) );
+        } else {
+          alwp = max( max(m_rhs(N[p],c,0), m_u(N[p],c,0)),
+                      max(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
+          alwn = min( min(m_rhs(N[p],c,0), m_u(N[p],c,0)),
+                      min(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
+        }
         m_q(N[p],a,0) = max(m_q(N[p],a,0), alwp);
         m_q(N[p],b,0) = min(m_q(N[p],b,0), alwn);
         m_q(N[q],a,0) = max(m_q(N[q],a,0), alwp);
@@ -1103,10 +1115,16 @@ ZalCG::alw()
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
-      auto alwp = max( max(m_rhs(N[0],c,0), m_u(N[0],c,0)),
-                       max(m_rhs(N[1],c,0), m_u(N[1],c,0)) );
-      auto alwn = min( min(m_rhs(N[0],c,0), m_u(N[0],c,0)),
-                       min(m_rhs(N[1],c,0), m_u(N[1],c,0)) );
+      tk::real alwp, alwn;
+      if (g_cfg.get< tag::fctclip >()) {
+        alwp = max( m_rhs(N[0],c,0), m_rhs(N[1],c,0) );
+        alwn = min( m_rhs(N[0],c,0), m_rhs(N[1],c,0) );
+      } else {
+        alwp = max( max(m_rhs(N[0],c,0), m_u(N[0],c,0)),
+                    max(m_rhs(N[1],c,0), m_u(N[1],c,0)) );
+        alwn = min( min(m_rhs(N[0],c,0), m_u(N[0],c,0)),
+                    min(m_rhs(N[1],c,0), m_u(N[1],c,0)) );
+      }
       m_q(N[0],a,0) = max(m_q(N[0],a,0), alwp);
       m_q(N[0],b,0) = min(m_q(N[0],b,0), alwn);
       m_q(N[1],a,0) = max(m_q(N[1],a,0), alwp);
@@ -1205,8 +1223,11 @@ ZalCG::lim()
 
   // Limited antidiffusive contributions
 
-  auto ctau = 1.0;
+  auto ctau = g_cfg.get< tag::fctdif >();
   m_a.fill( 0.0 );
+
+  auto fctsys = g_cfg.get< tag::fctsys >();
+  for (auto& c : fctsys) --c;
 
   // tetrahedron superedges
   for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
@@ -1215,18 +1236,24 @@ ZalCG::lim()
     std::size_t i = 0;
     for (const auto& [p,q] : tk::lpoed) {
       auto dif = D[(e*6+i)*4+3];
+      tk::real coef[ncomp], aec[ncomp];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto aec = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        aec[c] = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
         auto a = c*2;
         auto b = a+1;
-        tk::real coef = 1.0;
+        coef[c] = 1.0;
         if (g_cfg.get< tag::fct >()) {
-          coef = min( aec < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                      aec > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+          coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
+                         aec[c] > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
         }
-        aec *= coef;
-        m_a(N[p],c,0) -= aec;
-        m_a(N[q],c,0) += aec;
+      }
+      tk::real cs = 1.0;
+      for (auto c : fctsys) cs = min( cs, coef[c] );
+      for (auto c : fctsys) coef[c] = cs;
+      for (std::size_t c=0; c<ncomp; ++c) {
+        aec[c] *= coef[c];
+        m_a(N[p],c,0) -= aec[c];
+        m_a(N[q],c,0) += aec[c];
       }
       ++i;
     }
@@ -1239,18 +1266,24 @@ ZalCG::lim()
     std::size_t i = 0;
     for (const auto& [p,q] : tk::lpoet) {
       auto dif = D[(e*3+i)*4+3];
+      tk::real coef[ncomp], aec[ncomp];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto aec = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        aec[c] = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
         auto a = c*2;
         auto b = a+1;
-        tk::real coef = 1.0;
+        coef[c] = 1.0;
         if (g_cfg.get< tag::fct >()) {
-          coef = min( aec < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                      aec > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+          coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
+                         aec[c] > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
         }
-        aec *= coef;
-        m_a(N[p],c,0) -= aec;
-        m_a(N[q],c,0) += aec;
+      }
+      tk::real cs = 1.0;
+      for (auto c : fctsys) cs = min( cs, coef[c] );
+      for (auto c : fctsys) coef[c] = cs;
+      for (std::size_t c=0; c<ncomp; ++c) {
+        aec[c] *= coef[c];
+        m_a(N[p],c,0) -= aec[c];
+        m_a(N[q],c,0) += aec[c];
       }
       ++i;
     }
@@ -1260,18 +1293,24 @@ ZalCG::lim()
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
     const auto N = m_dsupedge[2].data() + e*2;
     const auto dif = m_dsupint[2][e*4+3];
+    tk::real coef[ncomp], aec[ncomp];
     for (std::size_t c=0; c<ncomp; ++c) {
-      auto aec = -dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
+      aec[c] = -dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
       auto a = c*2;
       auto b = a+1;
-      tk::real coef = 1.0;
+      coef[c] = 1.0;
       if (g_cfg.get< tag::fct >()) {
-        coef = min( aec < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
-                    aec > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
+        coef[c] = min( aec[c] < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
+                       aec[c] > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
       }
-      aec *= coef;
-      m_a(N[0],c,0) -= aec;
-      m_a(N[1],c,0) += aec;
+    }
+    tk::real cs = 1.0;
+    for (auto c : fctsys) cs = min( cs, coef[c] );
+    for (auto c : fctsys) coef[c] = cs;
+    for (std::size_t c=0; c<ncomp; ++c) {
+      aec[c] *= coef[c];
+      m_a(N[0],c,0) -= aec[c];
+      m_a(N[1],c,0) += aec[c];
     }
   }
 

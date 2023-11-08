@@ -363,7 +363,7 @@ ZalCG::domint()
       n[0] += sig * (grad[p][0] - grad[q][0]) / 24.0;
       n[1] += sig * (grad[p][1] - grad[q][1]) / 24.0;
       n[2] += sig * (grad[p][2] - grad[q][2]) / 24.0;
-      n[3] -= J120;
+      n[3] += J120;
     }
   }
 }
@@ -530,6 +530,12 @@ ZalCG::streamable()
 // Convert integrals into streamable data structures
 // *****************************************************************************
 {
+  m_besym.resize( m_triinpoel.size(), 0 );
+  std::size_t i = 0;
+  for (auto p : m_triinpoel) {
+    m_besym[i++] = static_cast< std::uint8_t >(m_symbcnodeset.count(p));
+  }
+
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
   const auto& is = g_cfg.get< tag::integout >();
@@ -638,14 +644,12 @@ ZalCG::domsuped()
 
   tk::UnsMesh::FaceSet untri;
   for (std::size_t e=0; e<inpoel.size()/4; e++) {
-    std::size_t N[4] = {
-      inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
+    const auto N = inpoel.data() + e*4;
     for (const auto& [a,b,c] : tk::lpofa) untri.insert( { N[a], N[b], N[c] } );
   }
 
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    std::size_t N[4] = {
-      inpoel[e*4+0], inpoel[e*4+1], inpoel[e*4+2], inpoel[e*4+3] };
+    const auto N = inpoel.data() + e*4;
     int f = 0;
     tk::real sig[6];
     decltype(m_domedgeint)::const_iterator d[6];
@@ -862,7 +866,7 @@ ZalCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += m_dtp[p];
   }
 
-  zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u,
+  zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym, m_u,
                 d->T(), d->Dt(), m_rhs );
 
   if (g_cfg.get< tag::steady >()) {
@@ -890,11 +894,6 @@ ZalCG::comrhs(
 //  Receive contributions to right-hand side vector on chare-boundaries
 //! \param[in] inrhs Partial contributions of RHS to chare-boundary nodes. Key: 
 //!   global mesh node IDs, value: contributions for all scalar components.
-//! \details This function receives contributions to m_rhs, which stores the
-//!   right hand side vector at mesh nodes. While m_rhs stores own
-//!   contributions, m_rhsc collects the neighbor chare contributions during
-//!   communication. This way work on m_rhs and m_rhsc is overlapped. The two
-//!   are combined in aec().
 // *****************************************************************************
 {
   using tk::operator+=;
@@ -931,7 +930,7 @@ ZalCG::aec()
     for (const auto& [p,q] : tk::lpoed) {
       auto dif = D[(e*6+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto aec = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        auto aec = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
         auto a = c*2;
         auto b = a+1;
         if (aec > 0.0) std::swap(a,b);
@@ -950,7 +949,7 @@ ZalCG::aec()
     for (const auto& [p,q] : tk::lpoet) {
       auto dif = D[(e*3+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto aec = dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        auto aec = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
         auto a = c*2;
         auto b = a+1;
         if (aec > 0.0) std::swap(a,b);
@@ -966,7 +965,7 @@ ZalCG::aec()
     const auto N = m_dsupedge[2].data() + e*2;
     const auto dif = m_dsupint[2][e*4+3];
     for (std::size_t c=0; c<ncomp; ++c) {
-      auto aec = dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
+      auto aec = -dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
       auto a = c*2;
       auto b = a+1;
       if (aec > 0.0) std::swap(a,b);
@@ -1043,7 +1042,7 @@ ZalCG::alw()
       m_p(i,a,0) /= vol[i];
       m_p(i,b,0) /= vol[i];
       // low-order solution
-      m_rhs(i,c,0) = m_u(i,c,0) + m_rhs(i,c,0)/vol[i] - m_p(i,a,0) - m_p(i,b,0);
+      m_rhs(i,c,0) = m_u(i,c,0) - m_rhs(i,c,0)/vol[i] - m_p(i,a,0) - m_p(i,b,0);
     }
   }
 
@@ -1217,9 +1216,7 @@ ZalCG::lim()
     for (const auto& [p,q] : tk::lpoed) {
       auto dif = D[(e*6+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto ap = ctau * m_u(N[p],c,0);
-        auto aq = ctau * m_u(N[q],c,0);
-        auto aec = dif * (ap - aq);
+        auto aec = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
         auto a = c*2;
         auto b = a+1;
         tk::real coef = 1.0;
@@ -1243,9 +1240,7 @@ ZalCG::lim()
     for (const auto& [p,q] : tk::lpoet) {
       auto dif = D[(e*3+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto ap = ctau * m_u(N[p],c,0);
-        auto aq = ctau * m_u(N[q],c,0);
-        auto aec = dif * (ap - aq);
+        auto aec = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
         auto a = c*2;
         auto b = a+1;
         tk::real coef = 1.0;
@@ -1266,9 +1261,7 @@ ZalCG::lim()
     const auto N = m_dsupedge[2].data() + e*2;
     const auto dif = m_dsupint[2][e*4+3];
     for (std::size_t c=0; c<ncomp; ++c) {
-      auto ap = ctau * m_u(N[0],c,0);
-      auto aq = ctau * m_u(N[1],c,0);
-      auto aec = dif * (ap - aq);
+      auto aec = -dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
       auto a = c*2;
       auto b = a+1;
       tk::real coef = 1.0;

@@ -114,7 +114,7 @@ advedge( const tk::real supint[],
     }
   }
 
-  // Taylor-Galerkin sceond half step
+  // Taylor-Galerkin second half step
 
   auto nx = supint[0];
   auto ny = supint[1];
@@ -127,14 +127,14 @@ advedge( const tk::real supint[],
   auto reh = ue[4];
   auto ph = eos::pressure( reh - 0.5*(ruh*ruh + rvh*rvh + rwh*rwh)/rh );
   auto vn = (ruh*nx + rvh*ny + rwh*nz)/rh;
-  f[0] = -dt*rh*vn;
-  f[1] = -dt*(ruh*vn + ph*nx);
-  f[2] = -dt*(rvh*vn + ph*ny);
-  f[3] = -dt*(rwh*vn + ph*nz);
-  f[4] = -dt*(reh + ph)*vn;
+  f[0] = dt*rh*vn;
+  f[1] = dt*(ruh*vn + ph*nx);
+  f[2] = dt*(rvh*vn + ph*ny);
+  f[3] = dt*(rwh*vn + ph*nz);
+  f[4] = dt*(reh + ph)*vn;
 
   for (std::size_t c=5; c<ncomp; ++c) {
-    f[c] = -dt*ue[c]*vn;
+    f[c] = dt*ue[c]*vn;
   }
 
   if (src) {
@@ -261,6 +261,7 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 static void
 advbnd( const std::vector< std::size_t >& triinpoel,
         const std::array< std::vector< tk::real >, 3 >& coord,
+        const std::vector< std::uint8_t >& besym,
         tk::real dt,
         const tk::Fields& U,
         tk::Fields& R )
@@ -268,6 +269,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
 //! Compute boundary integrals for advection
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] coord Mesh node coordinates
+//! \param[in] besym Boundary element symmetry BC flags
 //! \param[in] dt Physical time size
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector
@@ -309,9 +311,10 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     nz /= 12.0;
 
     tk::real p, vn, f[5][3];
+    const auto sym = besym.data() + e*3;
 
     p = eos::pressure( reA - 0.5*(ruA*ruA + rvA*rvA + rwA*rwA)/rA );
-    vn = (nx*ruA + ny*rvA + nz*rwA)/rA;
+    vn = sym[0] ? 0.0 : (nx*ruA + ny*rvA + nz*rwA)/rA;
     f[0][0] = rA*vn;
     f[1][0] = ruA*vn + p*nx;
     f[2][0] = rvA*vn + p*ny;
@@ -319,7 +322,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[4][0] = (reA + p)*vn;
 
     p = eos::pressure( reB - 0.5*(ruB*ruB + rvB*rvB + rwB*rwB)/rB );
-    vn = (nx*ruB + ny*rvB + nz*rwB)/rB;
+    vn = sym[1] ? 0.0 : (nx*ruB + ny*rvB + nz*rwB)/rB;
     f[0][1] = rB*vn;
     f[1][1] = ruB*vn + p*nx;
     f[2][1] = rvB*vn + p*ny;
@@ -327,7 +330,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[4][1] = (reB + p)*vn;
 
     p = eos::pressure( reC - 0.5*(ruC*ruC + rvC*rvC + rwC*rwC)/rC );
-    vn = (nx*ruC + ny*rvC + nz*rwC)/rC;
+    vn = sym[2] ? 0.0 : (nx*ruC + ny*rvC + nz*rwC)/rC;
     f[0][2] = rC*vn;
     f[1][2] = ruC*vn + p*nx;
     f[2][2] = rvC*vn + p*ny;
@@ -338,9 +341,9 @@ advbnd( const std::vector< std::size_t >& triinpoel,
       auto fab = (f[c][0] + f[c][1])/4.0;
       auto fbc = (f[c][1] + f[c][2])/4.0;
       auto fca = (f[c][2] + f[c][0])/4.0;
-      R(N[0],c,0) -= dt*(fab + fca + f[c][0]);
-      R(N[1],c,0) -= dt*(fab + fbc + f[c][1]);
-      R(N[2],c,0) -= dt*(fbc + fca + f[c][2]);
+      R(N[0],c,0) += dt*(fab + fca + f[c][0]);
+      R(N[1],c,0) += dt*(fab + fbc + f[c][1]);
+      R(N[2],c,0) += dt*(fbc + fca + f[c][2]);
     }
   }
 }
@@ -350,6 +353,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const std::vector< std::size_t >& triinpoel,
+     const std::vector< std::uint8_t >& besym,
      const tk::Fields& U,
      tk::real t,
      tk::real dt,
@@ -361,6 +365,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] coord Mesh node coordinates
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] U Unknowns/solution vector in mesh nodes
+//! \param[in] besym Boundary element symmetry BC flags
 //! \param[in] t Physical time
 //! \param[in] dt Physical time size
 //! \param[in,out] R Right-hand side vector computed
@@ -375,8 +380,9 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   // zero right hand side for all components
   R.fill( 0.0 );
 
+  // advection + src
   advdom( dsupedge, dsupint, coord, dt, t, U, R );
-  advbnd( triinpoel, coord, dt, U, R );
+  advbnd( triinpoel, coord, besym, dt, U, R );
 }
 
 } // zalesak::

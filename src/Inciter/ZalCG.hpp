@@ -177,6 +177,7 @@ class ZalCG : public CBase_ZalCG {
       p | m_domedgeint;
       p | m_dsupedge;
       p | m_dsupint;
+      p | m_besym;
       p | m_dirbcmasks;
       p | m_prebcnodes;
       p | m_prebcvals;
@@ -262,6 +263,8 @@ class ZalCG : public CBase_ZalCG {
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals
     std::array< std::vector< tk::real >, 3 > m_dsupint;
+    //! Streamable boundary point symmetry BC flags
+    std::vector< std::uint8_t > m_besym;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmasks;
     //! Nodes at pressure BCs

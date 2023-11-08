@@ -898,6 +898,9 @@ Config::control()
     get< tag::solver >() = string( L, "solver", "riecg", true );
     print << "Solver: " << get< tag::solver >() << '\n';
     get< tag::fct >() = boolean( L, "fct", true, true );
+    get< tag::fctdif >() = real( L, "fctdif", 1.0, true );
+    get< tag::fctclip >() = boolean( L, "fctclip", false, true );
+    get< tag::fctsys >() = unsigints( L, "fctsys", true );
 
     ic( L, *this );
     bc_dir( L, *this );

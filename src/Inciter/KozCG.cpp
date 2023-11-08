@@ -741,7 +741,7 @@ KozCG::aec()
 
   // Antidiffusive contributions: P+/-,  low-order solution: ul
 
-  auto ctau = 1.0;
+  auto ctau = g_cfg.get< tag::fctdif >();
   m_p.fill( 0.0 );
 
   const auto& inpoel = d->Inpoel();
@@ -864,8 +864,13 @@ KozCG::alw()
       tk::real alwp = -large;
       tk::real alwn = +large;
       for (std::size_t a=0; a<4; ++a) {
-        alwp = max( alwp, max(m_rhs(N[a],c,0), m_u(N[a],c,0)) );
-        alwn = min( alwn, min(m_rhs(N[a],c,0), m_u(N[a],c,0)) );
+        if (g_cfg.get< tag::fctclip >()) {
+          alwp = max( alwp, m_rhs(N[a],c,0) );
+          alwn = min( alwn, m_rhs(N[a],c,0) );
+        } else {
+          alwp = max( alwp, max(m_rhs(N[a],c,0), m_u(N[a],c,0)) );
+          alwn = min( alwn, min(m_rhs(N[a],c,0), m_u(N[a],c,0)) );
+        }
       }
       auto p = c*2;
       auto n = p+1;
@@ -967,7 +972,7 @@ KozCG::lim()
 
   // Limited antidiffusive contributions
 
-  auto ctau = 1.0;
+  auto ctau = g_cfg.get< tag::fctdif >();
   m_a.fill( 0.0 );
 
   const auto& inpoel = d->Inpoel();
@@ -976,6 +981,9 @@ KozCG::lim()
   const auto& y = coord[1];
   const auto& z = coord[2];
 
+  auto fctsys = g_cfg.get< tag::fctsys >();
+  for (auto& c : fctsys) --c;
+
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
     const auto N = inpoel.data() + e*4;
     const std::array< tk::real, 3 >
@@ -983,22 +991,29 @@ KozCG::lim()
       ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
       da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
     const auto J = tk::triple( ba, ca, da );
+    tk::real coef[ncomp], aec[ncomp][4];
     for (std::size_t c=0; c<ncomp; ++c) {
       auto p = c*2;
       auto n = p+1;
-      tk::real coef = 1.0;
-      tk::real aec[4] = { 0.0, 0.0, 0.0, 0.0 };
+      coef[c] = 1.0;
       for (std::size_t a=0; a<4; ++a) {
+        aec[c][a] = 0.0;
         for (std::size_t b=0; b<4; ++b) {
           auto m = J/120.0 * ((a == b) ? 3.0 : -1.0);
-          aec[a] += m * ctau * m_u(N[b],c,0);
+          aec[c][a] += m * ctau * m_u(N[b],c,0);
         }
         if (g_cfg.get< tag::fct >()) {
-          coef = min( coef, aec[a] > 0.0 ? m_q(N[a],p,0) : m_q(N[a],n,0) );
+          coef[c] = min( coef[c],
+                         aec[c][a] > 0.0 ? m_q(N[a],p,0) : m_q(N[a],n,0) );
         }
       }
+    }
+    tk::real cs = 1.0;
+    for (auto c : fctsys) cs = min( cs, coef[c] );
+    for (auto c : fctsys) coef[c] = cs;
+    for (std::size_t c=0; c<ncomp; ++c) {
       for (std::size_t a=0; a<4; ++a) {
-        m_a(N[a],c,0) += coef * aec[a];
+        m_a(N[a],c,0) += coef[c] * aec[c][a];
       }
     }
   }

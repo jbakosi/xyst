@@ -41,6 +41,9 @@ DEFTAG( reorder );
 DEFTAG( part );
 DEFTAG( solver );
 DEFTAG( fct );
+DEFTAG( fctdif );
+DEFTAG( fctclip );
+DEFTAG( fctsys );
 DEFTAG( steady );
 DEFTAG( residual );
 DEFTAG( rescomp );
@@ -133,6 +136,9 @@ using ConfigMembers = brigand::list<
   , tag::part, std::string
   , tag::solver, std::string
   , tag::fct, bool
+  , tag::fctdif, double
+  , tag::fctclip, bool
+  , tag::fctsys, std::vector< uint64_t >
   , tag::steady, bool
   , tag::residual, double
   , tag::rescomp, uint64_t

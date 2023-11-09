@@ -28,63 +28,58 @@ temporal errors which are measured and assessed.
 
 @section riecg_example_vortical_flow_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [93f84cc](https://codeberg.org/xyst/xyst/commit/93f84cc477633742f7c6836d7c678be4062f2ad4) and the control file below.
+To reproduce the results below, use code revision [8c9d1db](https://codeberg.org/xyst/xyst/commit/8c9d1db4d3f843170b585799a539b7851a67d467) and the control file below.
 
 @section riecg_example_vortical_flow_control Control file
 
-@code{.bash}
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+@code{.lua}
+-- vim: filetype=lua:
 
-title "Euler equations computing vortical flow"
+print "Euler equations computing vortical flow"
 
-inciter
+term = 3.0
+ttyi = 10
 
-  term 1.0
-  ttyi 10       # TTY output interval
+solver = "riecg"
 
-  dt 0.002      # 750K
-  #dt 0.001     #   6M
-  #dt 0.0005    #  48M
+dt = 0.002      -- 750K
+--dt = 0.001      --   6M
+--dt = 0.0005      --  48M
 
-  partitioning
-   algorithm mj
-  end
+part = "rcb"
 
-  problem vortical_flow
+problem = {
+  name = "vortical_flow",
+  alpha = 1.0,
+  kappa = 1.0,
+  p0 = 10.0,
+}
 
-  compflow
-    depvar u
-    alpha 1.0
-    beta 1.0
-    p0 10.0
-    material
-      # = 5/3 ratio of specific heats
-      gamma 1.66666666666667 end
-    end
-    bc_dirichlet
-      sideset 1 2 3 4 5 6 end
-    end
-  end
+mat = { spec_heat_ratio = 5/3 }
 
-  field_output
-    interval 1000
-  end
+bc_dir = {
+  { 1, 1, 1, 1, 1, 1 },
+  { 2, 1, 1, 1, 1, 1 },
+  { 3, 1, 1, 1, 1, 1 },
+  { 4, 1, 1, 1, 1, 1 },
+  { 5, 1, 1, 1, 1, 1 },
+  { 6, 1, 1, 1, 1, 1 }
+}
 
-  diagnostics
-    interval 1
-    format scientific
-    precision 12
-  end
+fieldout = {
+  iter = 1000
+}
 
-end
+diag = {
+  iter = 1,
+  format = "scientific"
+}
 @endcode
 
 @section riecg_example_vortical_flow_run Run using the 750K mesh on 32 CPUs
 
 @code{.bash}
-./charmrun +p32 Main/inciter -v -i unitcube_750K.exo -c vortical_flow.q
+./charmrun +p32 Main/inciter -i unitcube_750K.exo -c vortical_flow.q
 @endcode
 
 @section riecg_example_vortical_flow_fieldvis Visualization
@@ -110,7 +105,7 @@ To estimate the order of convergence, the numerical solution is computed using
 three different meshes, whose properties of are tabulated below.
        Mesh     | Points    | Tetrahedra   | h
        :------: | --------: | -----------: | --------:
-           750K |  132,651  |    750,000   | 0.02
+           750K |   132,651 |    750,000   | 0.02
              6M | 1,030,301 |  6,000,000   | 0.01
             48M | 8,120,601 | 48,000,000   | 0.005
 Here h is the average edge length. The next figure shows the time evolution of
@@ -131,10 +126,12 @@ mesh point v.
 
 Gnuplot commands to reproduce the above plot:
 @code{.bash}
-set xlabel "time, s"
+set terminal png size 800,600 enhanced font "Helvetica,16"
+set output "vortical_flow_L1r.png"
+set xlabel "time"
 set ylabel "L1 error"
 set grid
-plot [] [:8e-5] "750K/diag" u 2:20, "6M/diag" u 2:20, "48M/diag" u 2:20
+plot [] [:9e-5] "diag.750K" u 2:20, "diag.6M" u 2:20, "diag.48M" u 2:20
 @endcode
 
 @note For the meshes, contact us using the link at the bottom of the page.
@@ -145,10 +142,10 @@ The following table summarizes the L1 errors in all flow variables at the
 stationary state.
        Mesh     | L1(r)     |  L1(u)     | L1(v)     | L1(w)     | L(e)
        :------: | --------: | ---------: | --------: | --------: | --------:
-       750K     | 6.07e-5   |  6.68e-5   | 4.16e-5   | 7.98e-5   | 1.24e-3
-       6M       | 1.85e-5   |  1.63e-5   | 9.71e-6   | 2.00e-5   | 3.57e-4
-       48M      | 5.08e-6   |  3.93e-6   | 2.25e-6   | 4.89e-6   | 9.84e-5
-       p        | 1.86      |  2.05      | 2.11      | 2.03      | 1.86
+       750K     | 6.87e-5   |  6.83e-5   | 4.15e-5   | 7.92e-5   | 1.41e-3
+       6M       | 1.91e-5   |  1.62e-5   | 9.67e-6   | 2.00e-5   | 3.75e-4
+       48M      | 5.02e-6   |  3.93e-6   | 2.23e-6   | 4.97e-6   | 9.89e-5
+       p        | 1.92      |  2.05      | 2.12      | 2.01      | 1.92
 Here r, u, v, w, and e are the fluid density, velocity in the x, y, z
 directions, and the internal energy, respectively. The order of convergence is
 estimated as

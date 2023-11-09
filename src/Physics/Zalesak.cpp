@@ -49,7 +49,7 @@ advedge( const tk::real supint[],
 //! \param[in] p Left node index of edge
 //! \param[in] q Right node index of edge
 //! \param[in,out] f Flux computed
-//! \param[in] Function to call to evaluate a problem-sepcific source term
+//! \param[in] src Function to call to evaluate a problem-sepcific source term
 // *****************************************************************************
 {
   const auto ncomp = U.nprop();

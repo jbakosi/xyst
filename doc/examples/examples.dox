@@ -19,6 +19,13 @@ The pages below discuss example calculations using the @ref inciter_riecg
   - \subpage riecg_example_diesel
   - \subpage riecg_example_f16
 
+\section kozcg_examples KozCG
+
+The pages below discuss example calculations using the @ref inciter_kozcg
+"KozCG hydrodynamics" solver.
+
+  - \subpage kozcg_example_vortical_flow
+
 See @ref papers for more documentation and more examples.
 
 */

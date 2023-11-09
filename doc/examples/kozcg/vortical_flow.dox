@@ -1,7 +1,7 @@
 /*!
-  \page      riecg_example_vortical_flow RieCG: Vortical flow
+  \page      kozcg_example_vortical_flow KozCG: Vortical flow
 
-This example uses @ref inciter_riecg in @ref inciter_main to compute a problem
+This example uses @ref inciter_kozcg in @ref inciter_main to compute a problem
 whose analytic solution is known, therefore it can be used to verify the
 accuracy of the numerical method and the correctness of the software
 implementation.
@@ -15,7 +15,7 @@ vorticity and velocity gradients is a fundamental source of kinetic energy in
 flows that transition to shear-driven turbulence, and hence an important
 ingredient of computing many practical engineering and atmospheric flows.
 
-@section riecg_example_vortical_flow_setup Problem setup
+@section kozcg_example_vortical_flow_setup Problem setup
 
 The simulation domain is a cube centered around the point {0,0,0}. The initial
 conditions are sampled from the analytic solution at t=0. We set Dirichlet
@@ -26,11 +26,11 @@ approaches a stationary state, the numerical errors in the flow variables
 converge to stationary values, determined by the combination of spatial and
 temporal errors which are measured and assessed.
 
-@section riecg_example_vortical_flow_sha Code revision to reproduce
+@section kozcg_example_vortical_flow_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [8c9d1db](https://codeberg.org/xyst/xyst/commit/8c9d1db4d3f843170b585799a539b7851a67d467) and the control file below.
 
-@section riecg_example_vortical_flow_control Control file
+@section kozcg_example_vortical_flow_control Control file
 
 @code{.lua}
 -- vim: filetype=lua:
@@ -40,7 +40,8 @@ print "Euler equations computing vortical flow"
 term = 3.0
 ttyi = 10
 
-solver = "riecg"
+solver = "kozcg"
+fct = false
 
 dt = 0.002      -- 750K
 --dt = 0.001      --   6M
@@ -76,13 +77,13 @@ diag = {
 }
 @endcode
 
-@section riecg_example_vortical_flow_run Run using the 750K mesh on 32 CPUs
+@section kozcg_example_vortical_flow_run Run using the 750K mesh on 32 CPUs
 
 @code{.bash}
 ./charmrun +p32 Main/inciter -i unitcube_750K.exo -c vortical_flow.q
 @endcode
 
-@section riecg_example_vortical_flow_fieldvis Visualization
+@section kozcg_example_vortical_flow_fieldvis Visualization
 
 [ParaView](https://www.paraview.org) can be used for interactive visualization
 of the numerically computed fields as
@@ -99,7 +100,7 @@ The initial and final velocity, pressure, and total energy are depicted below.
 <img src="images/vort_energy_a=10_b=10_bg.png"/>
 @m_enddiv
 
-@section riecg_example_vortical_flow_error Numerical errors
+@section kozcg_example_vortical_flow_error Numerical errors
 
 To estimate the order of convergence, the numerical solution is computed using
 three different meshes, whose properties of are tabulated below.
@@ -121,31 +122,31 @@ point v, and \f$\color[HTML]{dcdcdc}V^v\f$ denotes the volume associated to
 mesh point v.
 
 @m_div{m-col-m-10 m-center-m}
-<img src="images/vortical_flow_L1r_riecg.png"/>
+<img src="images/vortical_flow_L1r_kozcg.png"/>
 @m_enddiv
 
 Gnuplot commands to reproduce the above plot:
 @code{.bash}
 set terminal png size 800,600 enhanced font "Helvetica,16"
-set output "vortical_flow_L1r_riecg.png"
+set output "vortical_flow_L1r_kozcg.png"
 set xlabel "time"
 set ylabel "L1 error"
 set grid
-plot [] [:9e-5] "diag.750K" u 2:20, "diag.6M" u 2:20, "diag.48M" u 2:20
+plot [] [:1.8e-5] "diag.750K" u 2:20, "diag.6M" u 2:20, "diag.48M" u 2:20
 @endcode
 
 @note For the meshes, contact us using the link at the bottom of the page.
 
-@section riecg_example_vortical_flow_convergence Convergence rate
+@section kozcg_example_vortical_flow_convergence Convergence rate
 
 The following table summarizes the L1 errors in all flow variables at the
 stationary state.
        Mesh     | L1(r)     |  L1(u)     | L1(v)     | L1(w)     | L(e)
        :------: | --------: | ---------: | --------: | --------: | --------:
-       750K     | 6.87e-5   |  6.83e-5   | 4.15e-5   | 7.92e-5   | 1.41e-3
-       6M       | 1.91e-5   |  1.62e-5   | 9.67e-6   | 2.00e-5   | 3.75e-4
-       48M      | 5.02e-6   |  3.93e-6   | 2.23e-6   | 4.97e-6   | 9.89e-5
-       p        | 1.92      |  2.05      | 2.12      | 2.01      | 1.92
+       750K     | 1.35e-5   |  2.41e-5   | 9.78e-6   | 1.05e-4   | 1.80e-4
+       6M       | 3.21e-6   |  5.32e-6   | 1.47e-6   | 1.98e-5   | 4.18e-5
+       48M      | 7.85e-7   |  1.29e-6   | 2.91e-7   | 3.32e-6   | 1.01e-5
+       p        | 2.03      |  2.04      | 2.34      | 2.57      | 2.05
 Here r, u, v, w, and e are the fluid density, velocity in the x, y, z
 directions, and the internal energy, respectively. The order of convergence is
 estimated as
@@ -154,9 +155,9 @@ p = \frac{ \log \left| \left| \varepsilon \right| \right|_1^{m+1} - \log \left|
 \left| \varepsilon \right| \right|_1^m}{ \log h^{m+1} - \log h^m}
 \f]
 where m is a mesh index. As expected, the asymptotic convergence of the
-computed numerical solution in all variables approaches 2.
+computed numerical solution in all variables approximates 2.
 
-@section riecg_example_vortical_flow_refs References
+@section kozcg_example_vortical_flow_refs References
 
 @m_div{m-text m-noindent}
 [1] J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.

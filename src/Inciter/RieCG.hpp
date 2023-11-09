@@ -25,7 +25,7 @@
 
 namespace inciter {
 
-//! RieCG Charm++ chare array used to advance PDEs in time with RieCG+RK
+//! RieCG Charm++ chare array used to advance PDEs in time with RieCG
 class RieCG : public CBase_RieCG {
 
   public:

@@ -46,6 +46,8 @@ advedge( const tk::real supint[],
 //! \param[in] coord Mesh node coordinates
 //! \param[in] dt Physical time step size
 //! \param[in] t Physical time
+//! \param[in] p Left node index of edge
+//! \param[in] q Right node index of edge
 //! \param[in,out] f Flux computed
 //! \param[in] Function to call to evaluate a problem-sepcific source term
 // *****************************************************************************

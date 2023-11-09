@@ -25,7 +25,7 @@
 
 namespace inciter {
 
-//! ZalCG Charm++ chare array used to advance PDEs in time with ZalCG+RK
+//! ZalCG Charm++ chare array used to advance PDEs in time with ZalCG
 class ZalCG : public CBase_ZalCG {
 
   public:

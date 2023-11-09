@@ -25,7 +25,7 @@
 
 namespace inciter {
 
-//! KozCG Charm++ chare array used to advance PDEs in time with KozCG+Euler
+//! KozCG Charm++ chare array used to advance PDEs in time with KozCG
 class KozCG : public CBase_KozCG {
 
   public:

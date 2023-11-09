@@ -1,0 +1,156 @@
+/*!
+  \page      kozcg_example_nonlinear_energy_growth KozCG: Nonlinear energy growth
+
+This example uses @ref inciter_kozcg in @ref inciter_main to compute a problem
+whose analytic solution is known, therefore it can be used to verify the
+accuracy of the numerical method and the correctness of the software
+implementation.
+
+The purpose of this problem is to test nonlinear, time-dependent energy growth
+and the subsequent development of pressure gradients due to coupling between
+the internal energy and the equation of state. The derivation of this test
+problem is given in [1].
+
+@section kozcg_example_nonlinear_energy_growth_setup Problem setup
+
+The simulation domain is a cube centered around the point {0,0,0}. The initial
+conditions are sampled from the analytic solution at t=0. We set Dirichlet
+boundary conditions on the sides of the cube, sampling the analytic solution.
+The numerical solution is time-dependent. The simulation was run for a single
+time unit computing the numerical errors during time stepping and the errors at
+t=1 are used to assess the convergence rate. A time step of 0.001 was used for
+the coarsest mesh and was successively halved for the finer meshes.
+
+To estimate the order of convergence, the numerical solution is computed using
+three different meshes, whose properties of are tabulated below, where h is the
+average edge length.
+       Mesh     | Points    | Tetrahedra   | h
+       :------: | --------: | -----------: | --------:
+           750K |  132,651  |    750,000   | 0.02
+             6M | 1,030,301 |  6,000,000   | 0.01
+            48M | 8,120,601 | 48,000,000   | 0.005
+
+@note For the meshes, contact us using the link at the bottom of the page.
+
+@section kozcg_example_nonlinear_energy_growth_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [8c9d1db](https://codeberg.org/xyst/xyst/commit/8c9d1db4d3f843170b585799a539b7851a67d467) and the control file below.
+
+@section kozcg_example_nonlinear_energy_growth_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Euler equations computing nonlinear energy growth"
+
+term = 1.0
+ttyi = 10
+
+solver = "kozcg"
+fct = false
+
+dt = 0.001      -- 750K
+--dt = 0.0005     --   6M
+--dt = 0.00025      --  48M
+
+part = "rcb"
+
+problem = {
+  name = "nonlinear_energy_growth"
+  alpha = 0.25,
+  beta = { 1.0, 0.75, 0.5 },
+  r0 = 2.0,
+  ce = -1.0,
+  kappa = 0.8
+}
+
+mat = { spec_heat_ratio = 5/3 }
+
+bc_dir = {
+  { 1, 1, 1, 1, 1, 1 },
+  { 2, 1, 1, 1, 1, 1 },
+  { 3, 1, 1, 1, 1, 1 },
+  { 4, 1, 1, 1, 1, 1 },
+  { 5, 1, 1, 1, 1, 1 },
+  { 6, 1, 1, 1, 1, 1 }
+}
+
+fieldout = {
+  iter = 1000
+}
+
+diag = {
+  iter = 1,
+  format = "scientific"
+}
+@endcode
+
+@section kozcg_example_nonlinear_energy_growth_run Run using the 750K mesh on 32 CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -i unitcube_750K.exo -c nonlinear_energy_growth.q
+@endcode
+
+@section kozcg_example_nonlinear_energy_growth_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed fields as
+
+@code{.bash}
+paraview out.e-s.0.32.0
+@endcode
+
+The figures below show the density, energy, and pressure distributions at four
+different times on center planes through the origin.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/nleg_density_t=0.png"/>
+<img src="images/nleg_density_t=03.png"/>
+<img src="images/nleg_density_t=06.png"/>
+<img src="images/nleg_density_t=10.png"/>
+<img src="images/nleg_energy_t=0.png"/>
+<img src="images/nleg_energy_t=03.png"/>
+<img src="images/nleg_energy_t=06.png"/>
+<img src="images/nleg_energy_t=10.png"/>
+<img src="images/nleg_pressure_t=0.png"/>
+<img src="images/nleg_pressure_t=03.png"/>
+<img src="images/nleg_pressure_t=06.png"/>
+<img src="images/nleg_pressure_t=10.png"/>
+@m_enddiv
+
+@section kozcg_example_nonlinear_energy_growth_error Numerical errors and convergence rate
+
+The table below shows the numerical L1 errors of the flow quantities computed.
+The L1 error is computed as
+\f[
+\left| \left| \varepsilon \right| \right|_1 = \frac{\sum_{v=1}^n V^v \left|
+\hat{U}^v - U^{v} \right|} {\sum_{v=1}^n V^v}
+\f]
+where n is the total number of points of the mesh,
+\f$\color[HTML]{dcdcdc}\hat{U}^v\f$ and \f$\color[HTML]{dcdcdc}U^v\f$ are the
+exact and computed solutions at mesh point v, and \f$\color[HTML]{dcdcdc}V^v\f$
+denotes the volume associated to mesh point v. The order of convergence is
+estimated as
+\f[
+p = \frac{ \log \left| \left| \varepsilon \right| \right|_1^{m+1} - \log \left|
+\left| \varepsilon \right| \right|_1^m}{ \log h^{m+1} - \log h^m}
+\f]
+where m is a mesh index. The following table summarizes the L1 errors in all
+flow variables at t=1.
+       Mesh     | L1(r)     |  L1(u)     | L1(v)     | L1(w)     | L1(e)
+       :------: | --------: | ---------: | --------: | --------: | --------:
+       750K     | 4.26e-4   |  5.41e-5   | 4.00e-5   | 3.10e-5   | 8.16e-5
+       6M       | 1.08e-4   |  1.37e-5   | 1.03e-5   | 7.66e-6   | 2.06e-5
+       48M      | 2.73e-5   |  3.45e-6   | 2.63e-6   | 1.90e-6   | 5.18e-6
+       p        | 1.99      |  1.99      | 1.97      | 2.01      | 1.99
+Here r, u, v, w, and e are the fluid density, velocity in the x, y, z
+directions, and the internal energy, respectively. The measured convergence
+rate in all variables approaches $2.0$, consistent with expectations.
+
+@section kozcg_example_nonlinear_energy_growth_refs References
+
+@m_div{m-text m-noindent}
+[1] J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.
+@m_enddiv
+
+*/

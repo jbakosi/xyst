@@ -33,72 +33,60 @@ average edge length.
 
 @section riecg_example_rayleigh_taylor_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [f141902](https://codeberg.org/xyst/xyst/commit/f141902b9746b44deb866869946be99860dbe3c5) and the control file below.
+To reproduce the results below, use code revision [8c9d1db](https://codeberg.org/xyst/xyst/commit/8c9d1db4d3f843170b585799a539b7851a67d467) and the control file below.
 
 @section riecg_example_rayleigh_taylor_control Control file
 
-@code{.bash}
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+@code{.lua}
+-- vim: filetype=lua:
 
-title "Euler equations computing non-stationary Rayleigh-Taylor"
+print "Euler equations computing non-stationary Rayleigh-Taylor"
 
-inciter
+term = 3.0
+ttyi = 10
 
-  #nstep 5
-  term 1.0
-  ttyi 10
+solver = "riecg"
 
-  dt 0.001      # 750K
-  #dt 0.0005    #   6M
-  #dt 0.00025   #  48M
+dt = 0.001      -- 750K
+--dt = 0.0005     --   6M
+--dt = 0.00025      --  48M
 
-  partitioning
-    algorithm rcb
-  end
+part = "rcb"
 
-  problem rayleigh_taylor
-  compflow
-    depvar u
-    alpha 1.0
-    betax 1.0
-    betay 1.0
-    betaz 1.0
-    p0 1.0
-    r0 1.0
-    kappa 1.0
-    material
-      # =5/3 ratio of specific heats
-      gamma 1.66666666666667 end
-    end
-    bc_dirichlet
-      sideset 1 1 1 1 1 1 end
-      sideset 2 1 1 1 1 1 end
-      sideset 3 1 1 1 1 1 end
-      sideset 4 1 1 1 1 1 end
-      sideset 5 1 1 1 1 1 end
-      sideset 6 1 1 1 1 1 end
-    end
-  end
+problem = {
+  name = "rayleigh_taylor",
+  alpha = 1.0,
+  beta = { 1.0, 1.0, 1.0 },
+  p0 = 1.0,
+  r0 = 1.0,
+  kappa = 1.0,
+}
 
-  field_output
-    interval 1000
-  end
+mat = { spec_heat_ratio = 5/3 }
 
-  diagnostics
-    interval 1
-    format scientific
-     precision 12
-  end
+bc_dir = {
+  { 1, 1, 1, 1, 1, 1 },
+  { 2, 1, 1, 1, 1, 1 },
+  { 3, 1, 1, 1, 1, 1 },
+  { 4, 1, 1, 1, 1, 1 },
+  { 5, 1, 1, 1, 1, 1 },
+  { 6, 1, 1, 1, 1, 1 }
+}
 
-end
+fieldout = {
+  iter = 1000
+}
+
+diag = {
+  iter = 1,
+  format = "scientific"
+}
 @endcode
 
 @section riecg_example_rayleigh_taylor_run Run using the 750K mesh on 32 CPUs
 
 @code{.bash}
-./charmrun +p32 Main/inciter -v -i unitcube_750K.exo -c rayleigh_taylor.q
+./charmrun +p32 Main/inciter -i unitcube_750K.exo -c rayleigh_taylor.q
 @endcode
 
 @section riecg_example_rayleigh_taylor_fieldvis Visualization
@@ -157,10 +145,10 @@ where m is a mesh index. The following table summarizes the L1 errors in all
 flow variables at t=1.
        Mesh     | L1(r)     |  L1(u)     | L1(v)     | L1(w)     | L1(e)
        :------: | --------: | ---------: | --------: | --------: | --------:
-       750K     | 2.46e-3   |  6.56e-4   | 6.51e-4   | 8.04e-4   | 1.43e-2
-       6M       | 7.04e-4   |  1.98e-4   | 1.94e-4   | 2.40e-4   | 3.95e-3
-       48M      | 1.93e-4   |  5.74e-5   | 5.45e-5   | 6.66e-5   | 1.04e-3
-       p        | 1.86      |  1.79      | 1.83      | 1.85      | 1.92
+       750K     | 4.72e-3   |  8.50e-4   | 8.84e-4   | 1.05e-3   | 2.31e-2
+       6M       | 1.35e-3   |  2.85e-4   | 2.80e-4   | 3.53e-4   | 6.62e-3
+       48M      | 3.73e-4   |  8.72e-5   | 8.24e-5   | 1.03e-4   | 1.82e-3
+       p        | 1.86      |  1.71      | 1.76      | 1.78      | 1.86
 Here r, u, v, w, and e are the fluid density, velocity in the x, y, z
 directions, and the internal energy, respectively. The order of convergence
 approaches the expected value of 2.0.

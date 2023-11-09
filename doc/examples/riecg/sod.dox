@@ -42,7 +42,7 @@ Here h is the average edge length along the length of the tube.
 
 @section riecg_example_sod_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [60bbe39](https://codeberg.org/xyst/xyst/commit/60bbe390be00d4fc38e0396f1674562a71df1516) and the control file below.
+To reproduce the results below, use code revision [965089c](https://codeberg.org/xyst/xyst/commit/965089c994396839e9180e68f81318328da54489) and the control file below.
 
 @section riecg_example_sod_control Control file
 

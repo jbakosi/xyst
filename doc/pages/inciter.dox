@@ -23,19 +23,14 @@ balancing. The solution along partition boundaries, that exists on multiple
 processing elements, is made consistent with _asynchronous_ communication which
 hides latencies by enabling overlapping of computation and communication.
 
-Inciter can solve the Euler equations, modeling compressible flow and optional
-coupled transported passive scalars. The numerical method is a continuous
-Galerkin finite element method storing solution values at nodes of the
-computational mesh. The
-[super](https://doi.org/10.1016/0045-7825(94)90133-3)-[edge](https://doi.org/10.2514/3.12118)-based
-implementation of the finite element operators help reduce indirect addressing
-and increases performance. On each edge an approximate Riemann solver is
-invoked with MUSCL reconstruction and slope limiting. This is combined with
-Runge-Kutta time stepping, see @ref inciter_riecg for a high-level description
-of the numerical method and @ref papers for more details.
+Inciter contains multiple solvers. The numerical methods belong to the familiy
+of continuous Galerkin finite element methods storing solution values at nodes
+of the computational mesh. See the links below and @ref papers for more details
+on the solvers.
 
 @section inciter_pages Related pages
 - @ref inciter_riecg "RieCG hydrodynamics"
+- @ref inciter_kozcg "KozCG hydrodynamics"
 - @ref riecg_performance "RieCG performance"
 - @ref examples "Examples"
 - @ref papers "Publications"

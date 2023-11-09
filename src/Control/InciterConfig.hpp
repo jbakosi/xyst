@@ -16,6 +16,7 @@
 #include "TaggedTuple.hpp"
 
 namespace tag {
+DEFTAG( commit );
 DEFTAG( input );
 DEFTAG( control );
 DEFTAG( output );
@@ -111,7 +112,8 @@ namespace ctr {
 
 //! Member data for tagged tuple
 using ConfigMembers = brigand::list<
-    tag::input, std::string
+    tag::commit, std::string
+  , tag::input, std::string
   , tag::control, std::string
   , tag::output, std::string
   , tag::diag, std::string

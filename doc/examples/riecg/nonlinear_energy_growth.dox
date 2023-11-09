@@ -34,72 +34,60 @@ average edge length.
 
 @section riecg_example_nonlinear_energy_growth_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [f141902](https://codeberg.org/xyst/xyst/commit/f141902b9746b44deb866869946be99860dbe3c5) and the control file below.
+To reproduce the results below, use code revision [8c9d1db](https://codeberg.org/xyst/xyst/commit/8c9d1db4d3f843170b585799a539b7851a67d467) and the control file below.
 
 @section riecg_example_nonlinear_energy_growth_control Control file
 
-@code{.bash}
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+@code{.lua}
+-- vim: filetype=lua:
 
-title "Euler equations computing nonlinear energy growth"
+print "Euler equations computing nonlinear energy growth"
 
-inciter
+term = 1.0
+ttyi = 10
 
-  term 1.0      # Physical time at which to terminate
-  ttyi 10       # TTY output interval
+solver = "riecg"
 
-  dt 0.001      # 750K
-  #dt 0.0005    #   6M
-  #dt 0.00025   #  48M
+dt = 0.001      -- 750K
+--dt = 0.0005     --   6M
+--dt = 0.00025      --  48M
 
-  partitioning
-    algorithm mj
-  end
+part = "rcb"
 
-  problem nonlinear_energy_growth
+problem = {
+  name = "nonlinear_energy_growth"
+  alpha = 0.25,
+  beta = { 1.0, 0.75, 0.5 },
+  r0 = 2.0,
+  ce = -1.0,
+  kappa = 0.8
+}
 
-  compflow
-    depvar u
-    alpha 0.25
-    betax 1.0
-    betay 0.75
-    betaz 0.5
-    r0 2.0
-    ce -1.0
-    kappa 0.8
-    material
-      # =5/3 ratio of specific heats
-      gamma 1.66666666666667 end
-    end
-    bc_dirichlet
-      sideset 1 1 1 1 1 1 end
-      sideset 2 1 1 1 1 1 end
-      sideset 3 1 1 1 1 1 end
-      sideset 4 1 1 1 1 1 end
-      sideset 5 1 1 1 1 1 end
-      sideset 6 1 1 1 1 1 end
-    end
-  end
+mat = { spec_heat_ratio = 5/3 }
 
-  field_output
-    interval 1000
-  end
+bc_dir = {
+  { 1, 1, 1, 1, 1, 1 },
+  { 2, 1, 1, 1, 1, 1 },
+  { 3, 1, 1, 1, 1, 1 },
+  { 4, 1, 1, 1, 1, 1 },
+  { 5, 1, 1, 1, 1, 1 },
+  { 6, 1, 1, 1, 1, 1 }
+}
 
-  diagnostics
-    interval 1
-    format scientific
-    precision 12
-  end
+fieldout = {
+  iter = 1000
+}
 
-end
+diag = {
+  iter = 1,
+  format = "scientific"
+}
 @endcode
 
 @section riecg_example_nonlinear_energy_growth_run Run using the 750K mesh on 32 CPUs
 
 @code{.bash}
-./charmrun +p32 Main/inciter -v -i unitcube_750K.exo -c nonlinear_energy_growth.q
+./charmrun +p32 Main/inciter -i unitcube_750K.exo -c nonlinear_energy_growth.q
 @endcode
 
 @section riecg_example_nonlinear_energy_growth_fieldvis Visualization

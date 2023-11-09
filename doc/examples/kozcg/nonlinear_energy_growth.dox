@@ -26,7 +26,7 @@ three different meshes, whose properties of are tabulated below, where h is the
 average edge length.
        Mesh     | Points    | Tetrahedra   | h
        :------: | --------: | -----------: | --------:
-           750K |  132,651  |    750,000   | 0.02
+           750K |   132,651 |    750,000   | 0.02
              6M | 1,030,301 |  6,000,000   | 0.01
             48M | 8,120,601 | 48,000,000   | 0.005
 

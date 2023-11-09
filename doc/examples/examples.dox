@@ -26,6 +26,7 @@ The pages below discuss example calculations using the @ref inciter_kozcg
 
   - \subpage kozcg_example_vortical_flow
   - \subpage kozcg_example_taylor_green
+  - \subpage kozcg_example_rayleigh_taylor
 
 See @ref papers for more documentation and more examples.
 

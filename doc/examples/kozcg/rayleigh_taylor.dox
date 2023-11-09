@@ -1,7 +1,7 @@
 /*!
-  \page      riecg_example_rayleigh_taylor RieCG: Rayleigh-Taylor unstable configuration
+  \page      kozcg_example_rayleigh_taylor KozCG: Rayleigh-Taylor unstable configuration
 
-This example uses @ref inciter_riecg in @ref inciter_main to compute a problem
+This example uses @ref inciter_kozcg in @ref inciter_main to compute a problem
 whose analytic solution is known, therefore it can be used to verify the
 accuracy of the numerical method and the correctness of the software
 implementation.
@@ -10,7 +10,7 @@ The purpose of this test case is to assess time dependent fluid motion in the
 presence of Rayleigh-Taylor unstable conditions, i.e., opposing density and
 pressure gradients. The derivation of this test problem is given in [1].
 
-@section riecg_example_rayleigh_taylor_setup Problem setup
+@section kozcg_example_rayleigh_taylor_setup Problem setup
 
 The simulation domain is a cube centered around the point {0,0,0}. The initial
 conditions are sampled from the analytic solution at t=0. We set Dirichlet
@@ -31,11 +31,11 @@ average edge length.
 
 @note For the meshes, contact us using the link at the bottom of the page.
 
-@section riecg_example_rayleigh_taylor_sha Code revision to reproduce
+@section kozcg_example_rayleigh_taylor_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [8c9d1db](https://codeberg.org/xyst/xyst/commit/8c9d1db4d3f843170b585799a539b7851a67d467) and the control file below.
 
-@section riecg_example_rayleigh_taylor_control Control file
+@section kozcg_example_rayleigh_taylor_control Control file
 
 @code{.lua}
 -- vim: filetype=lua:
@@ -45,7 +45,8 @@ print "Euler equations computing non-stationary Rayleigh-Taylor"
 term = 3.0
 ttyi = 10
 
-solver = "riecg"
+solver = "kozcg"
+fct = false
 
 dt = 0.001      -- 750K
 --dt = 0.0005     --   6M
@@ -83,13 +84,13 @@ diag = {
 }
 @endcode
 
-@section riecg_example_rayleigh_taylor_run Run using the 750K mesh on 32 CPUs
+@section kozcg_example_rayleigh_taylor_run Run using the 750K mesh on 32 CPUs
 
 @code{.bash}
 ./charmrun +p32 Main/inciter -i unitcube_750K.exo -c rayleigh_taylor.q
 @endcode
 
-@section riecg_example_rayleigh_taylor_fieldvis Visualization
+@section kozcg_example_rayleigh_taylor_fieldvis Visualization
 
 [ParaView](https://www.paraview.org) can be used for interactive visualization
 of the numerically computed fields as
@@ -124,7 +125,7 @@ surface at the final simulation time.
 <img src="images/rt_velocity.png"/>
 @m_enddiv
 
-@section riecg_example_rayleigh_taylor_error Numerical errors and convergence rate
+@section kozcg_example_rayleigh_taylor_error Numerical errors and convergence rate
 
 The table below shows the numerical L1 errors of the flow quantities computed.
 The L1 error is computed as
@@ -145,15 +146,15 @@ where m is a mesh index. The following table summarizes the L1 errors in all
 flow variables at t=1.
        Mesh     | L1(r)     |  L1(u)     | L1(v)     | L1(w)     | L1(e)
        :------: | --------: | ---------: | --------: | --------: | --------:
-       750K     | 4.72e-3   |  8.50e-4   | 8.84e-4   | 1.05e-3   | 2.31e-2
-       6M       | 1.35e-3   |  2.85e-4   | 2.80e-4   | 3.53e-4   | 6.62e-3
-       48M      | 3.73e-4   |  8.72e-5   | 8.24e-5   | 1.03e-4   | 1.82e-3
-       p        | 1.86      |  1.71      | 1.76      | 1.78      | 1.86
+       750K     | 1.09e-3   |  6.65e-4   | 9.17e-4   | 7.21e-4   | 5.22e-3
+       6M       | 3.08e-4   |  1.85e-4   | 2.50e-4   | 1.98e-4   | 1.54e-3
+       48M      | 8.03e-5   |  4.93e-5   | 6.38e-5   | 5.13e-5   | 4.13e-4
+       p        | 1.94      |  1.91      | 1.97      | 1.95      | 1.90
 Here r, u, v, w, and e are the fluid density, velocity in the x, y, z
 directions, and the internal energy, respectively. The order of convergence
 approaches the expected value of 2.0.
 
-@section riecg_example_rayleigh_taylor_refs References
+@section kozcg_example_rayleigh_taylor_refs References
 
 @m_div{m-text m-noindent}
 [1] J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.

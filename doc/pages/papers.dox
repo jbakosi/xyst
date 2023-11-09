@@ -5,7 +5,14 @@ This page collects peer-reviewed journal papers related to the algorithms
 implemented in Xyst.
 
 - @m_div{m-text m-strong}
-  J. Bakosi, M. Constans, Z. Horváth, Á. Kovács, L. Környei, M. Charest, A. Pandare, P.. Rutherford, J. Waltz. **[Complex-Geometry 3D Computational Fluid Dynamics with Automatic Load Balancing](https://doi.org/10.3390/fluids8050147)**, Fluids, 8(5):147, 2023.
+  J. Bakosi, **[Open-source complex-geometry 3D fluid dynamics for applications with
+unpredictable heterogeneous dynamic high-performance-computing loads](https://doi.org/10.1016/j.cma.2023.116586)**, Computer Methods in Applied Mechanics and Engineering, Volume 418, Part B, 2024.
+  @m_enddiv
+
+  This paper discusses algorithmic aspects and computational performance of the numerical method implemented in Xyst as @ref inciter_riecg "RieCG" and demonstrates automatic load balancing for unpredictable loads on both shared-, and distributed-memory machines.
+
+- @m_div{m-text m-strong}
+  J. Bakosi, M. Constans, Z. Horváth, Á. Kovács, L. Környei, M. Charest, A. Pandare, P.. Rutherford, J. Waltz, **[Complex-Geometry 3D Computational Fluid Dynamics with Automatic Load Balancing](https://doi.org/10.3390/fluids8050147)**, Fluids, 8(5):147, 2023.
   @m_enddiv
 
   This paper verifies and validates the numerical method implemented in Xyst as @ref inciter_riecg "RieCG" and demonstrates the benefits of automatic load balancing for irregular workloads.

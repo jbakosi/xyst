@@ -1229,6 +1229,15 @@ ZalCG::lim()
   auto fctsys = g_cfg.get< tag::fctsys >();
   for (auto& c : fctsys) --c;
 
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
   // tetrahedron superedges
   for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
     const auto N = m_dsupedge[0].data() + e*4;
@@ -1313,6 +1322,12 @@ ZalCG::lim()
       m_a(N[1],c,0) += aec[c];
     }
   }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
 
   // Communicate limited antidiffusive contributions
   if (d->NodeCommMap().empty()) {

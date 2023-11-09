@@ -145,7 +145,7 @@ flow variables at t=1.
        p        | 1.99      |  1.99      | 1.97      | 2.01      | 1.99
 Here r, u, v, w, and e are the fluid density, velocity in the x, y, z
 directions, and the internal energy, respectively. The measured convergence
-rate in all variables approaches $2.0$, consistent with expectations.
+rate in all variables approaches 2.0, consistent with expectations.
 
 @section kozcg_example_nonlinear_energy_growth_refs References
 

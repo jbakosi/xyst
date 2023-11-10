@@ -40,7 +40,7 @@ dt( const std::vector< tk::real >& vol, const tk::Fields& U )
     auto v = U(p,2,0)/r;
     auto w = U(p,3,0)/r;
     auto pr = eos::pressure( U(p,4,0) - 0.5*r*(u*u + v*v + w*w) );
-    auto c = eos::soundspeed( r, pr );
+    auto c = eos::soundspeed( r, std::max(pr,0.0) );
     auto L = std::cbrt( vol[p] );
     auto vel = std::sqrt( u*u + v*v + w*w );
     auto euler_dt = L / std::max( vel+c, 1.0e-8 );

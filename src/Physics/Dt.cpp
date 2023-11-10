@@ -66,10 +66,10 @@ dt( const std::vector< tk::real >& vol,
   auto cfl = g_cfg.get< tag::cfl >();
 
   for (std::size_t p=0; p<U.nunk(); ++p) {
-    auto r  = U(p,0,0);
-    auto u  = U(p,1,0)/r;
-    auto v  = U(p,2,0)/r;
-    auto w  = U(p,3,0)/r;
+    auto r = U(p,0,0);
+    auto u = U(p,1,0)/r;
+    auto v = U(p,2,0)/r;
+    auto w = U(p,3,0)/r;
     auto pr = eos::pressure( U(p,4,0) - 0.5*r*(u*u + v*v + w*w) );
     auto c = eos::soundspeed( r, std::max(pr,0.0) );
     auto L = std::cbrt( vol[p] );

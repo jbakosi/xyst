@@ -136,7 +136,7 @@ rhs( const std::vector< std::size_t >& inpoel,
     auto rw = ue[3];
     auto pr = eos::pressure( ue[4] - 0.5*(ru*ru + rv*rv + rw*rw)/r );
 
-    coef = dt/6.0;
+    coef = 1.0/6.0;
     for (std::size_t j=0; j<3; ++j) {
       auto uj = ue[j+1] / ue[0];
       for (std::size_t a=0; a<4; ++a) {
@@ -161,7 +161,7 @@ rhs( const std::vector< std::size_t >& inpoel,
         t = (tp[N[0]] + tp[N[1]] + tp[N[2]] + tp[N[3]])/4.0;
       }
       auto se = src( xe, ye, ze, t+dt/2.0 );
-      coef = dt*J/24.0;
+      coef = J/24.0;
       for (std::size_t a=0; a<4; ++a) {
         for (std::size_t c=0; c<ncomp; ++c) {
           R(N[a],c,0) += coef * se[c];

@@ -684,16 +684,7 @@ KozCG::rhs()
   auto d = Disc();
 
   // Compute own portion of right-hand side for all equations
-
-  if (g_cfg.get< tag::steady >()) {
-    for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += m_dtp[p];
-  }
-
   kozak::rhs( d->Inpoel(), d->Coord(), d->Dt(), d->T(), m_tp, m_u, m_rhs );
-
-  if (g_cfg.get< tag::steady >()) {
-    for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];
-  }
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
@@ -832,6 +823,21 @@ KozCG::alw()
     for (std::size_t c=0; c<p.size(); ++c) m_p(i,c,0) += p[c];
   }
   tk::destroy(m_pc);
+
+  // Multiply rhs with dt
+  if (g_cfg.get< tag::steady >()) {
+
+    for (std::size_t i=0; i<npoin; ++i) {
+      for (std::size_t c=0; c<ncomp; ++c) {
+        m_rhs(i,c,0) *= m_dtp[i];
+      }
+    }
+
+  } else {
+
+    m_rhs *= d->Dt();
+
+  }
 
   // Finish computing antidiffusive contributions and low-order solution
   for (std::size_t i=0; i<npoin; ++i) {
@@ -1111,11 +1117,7 @@ KozCG::solve()
   auto diag = m_diag.compute( *d, m_a, m_u, g_cfg.get< tag::diag_iter >() );
 
   // Update solution
-  for (std::size_t i=0; i<npoin; ++i) {
-    for (std::size_t c=0; c<ncomp; ++c) {
-      m_u(i,c,0) = m_a(i,c,0);
-    }
-  }
+  m_u = m_a;
 
   // Increase number of iterations and physical time
   d->next();

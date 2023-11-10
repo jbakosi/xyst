@@ -23,16 +23,6 @@ namespace eos {
 using inciter::g_cfg;
 
 //! Compute pressure
-//! \param[in] r Density
-//! \param[in] e Specific internal energy
-//! \return Pressure computed from the ideal gas equation of state
-inline double
-pressure( double r, double e ) {
-  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
-  return r * e * (g-1.0);
-}
-
-//! Compute pressure
 //! \param[in] re Specific internal energy times density
 //! \return Pressure computed from the ideal gas equation of state
 inline double

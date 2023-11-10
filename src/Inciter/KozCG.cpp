@@ -1274,7 +1274,7 @@ KozCG::writeFields( CkCallback cb )
   std::vector< tk::real > p( m_u.nunk() );
   for (std::size_t i=0; i<p.size(); ++i) {
     auto ei = e[i] - 0.5*(u[i]*u[i] + v[i]*v[i] + w[i]*w[i]);
-    p[i] = eos::pressure( r[i], ei );
+    p[i] = eos::pressure( r[i]*ei );
   }
 
   std::vector< std::vector< tk::real > > nodefields{
@@ -1304,7 +1304,7 @@ KozCG::writeFields( CkCallback cb )
       s[4] /= s[0];
       for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
       s[4] -= 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
-      ap[i] = eos::pressure( s[0], s[4] );
+      ap[i] = eos::pressure( s[0]*s[4] );
     }
     for (std::size_t c=0; c<5; ++c) {
       nodefieldnames.push_back( nodefieldnames[c] + "_analytic" );
@@ -1351,7 +1351,7 @@ KozCG::writeFields( CkCallback cb )
       nodesurfs[i+3][j] = s[3]/s[0];
       nodesurfs[i+4][j] = s[4]/s[0];
       auto ei = s[4]/s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
-      nodesurfs[i+5][j] = eos::pressure( s[0], ei );
+      nodesurfs[i+5][j] = eos::pressure( s[0]*ei );
       for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+1+c][j] = s[5+c];
       ++j;
     }
@@ -1389,7 +1389,7 @@ KozCG::out()
         hist[j][3] += n[i] * u[3]/u[0];
         hist[j][4] += n[i] * u[4]/u[0];
         auto ei = u[4]/u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3])/u[0]/u[0];
-        hist[j][5] += n[i] * eos::pressure( u[0], ei );
+        hist[j][5] += n[i] * eos::pressure( u[0]*ei );
         for (std::size_t c=5; c<ncomp; ++c) hist[j][c+1] += n[i] * u[c];
       }
       ++j;

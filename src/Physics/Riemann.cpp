@@ -601,7 +601,7 @@ adv( const tk::UnsMesh::Coords& coord,
     auto p = bpoin[b];
     tk::real u[ncomp];
     primitive( ncomp, p, U, u );
-    auto pr = eos::pressure( u[0], u[4] );
+    auto pr = eos::pressure( u[0]*u[4] );
     // boundary-normal velocity
     auto nx = bpint[b*3+0];
     auto ny = bpint[b*3+1];

@@ -271,10 +271,6 @@ advedge( const tk::UnsMesh::Coords& coord,
   muscl( p, q, coord, G, l[0], l[1], l[2], l[3], l[4],
                          r[0], r[1], r[2], r[3], r[4] );
 
-  // pressure
-  auto pL = eos::pressure( l[0], l[4] );
-  auto pR = eos::pressure( r[0], r[4] );
-
   // dualface-normal velocities
   auto nx = dsupint[0];
   auto ny = dsupint[1];
@@ -291,6 +287,12 @@ advedge( const tk::UnsMesh::Coords& coord,
   r[1] *= r[0];
   r[2] *= r[0];
   r[3] *= r[0];
+
+  // pressure
+  auto pL = eos::pressure(l[4] - 0.5*(l[1]*l[1] + l[2]*l[2] + l[3]*l[3])/l[0]);
+  auto pR = eos::pressure(r[4] - 0.5*(r[1]*r[1] + r[2]*r[2] + r[3]*r[3])/r[0]);
+  pL = std::max( pL, 0.0 );
+  pR = std::max( pR, 0.0 );
 
   // dissipation
   auto len = tk::length( nx, ny, nz );

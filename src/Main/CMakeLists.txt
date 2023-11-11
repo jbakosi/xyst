@@ -109,9 +109,13 @@ endif()
 
 add_executable(${INCITER_EXECUTABLE}
                LBSwitch.cpp
-               Inciter.cpp)
+               Inciter.cpp
+               XystConfig.cpp)
 
 config_executable(${INCITER_EXECUTABLE})
+
+target_include_directories(${INCITER_EXECUTABLE} PUBLIC
+                           ${PROJECT_BINARY_DIR}/Main)
 
 target_link_libraries(${INCITER_EXECUTABLE}
                       InciterControl

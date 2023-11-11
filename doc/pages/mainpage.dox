@@ -76,8 +76,7 @@ Quinoa, Xyst
 1. Removes the stochastic differential equation solver
 ([walker](https://wlkr.cc)),
 
-2. Replaces Quinoa's solvers with an edge-based implementation of Quinoa's
-ALECG, as @ref inciter_riecg,
+2. Implements different solvers,
 
 3. Uses [Lua](https://www.lua.org) for input files, and
 

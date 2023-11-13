@@ -15,6 +15,41 @@ vorticity and velocity gradients is a fundamental source of kinetic energy in
 flows that transition to shear-driven turbulence, and hence an important
 ingredient of computing many practical engineering and atmospheric flows.
 
+@section riecg_example_vortical_flow_equations Equations solved
+
+The system of equation solved is
+
+\f[ \begin{split}
+  \frac{\partial U}{\partial t} + \frac{\partial F_j}{\partial x_j} = S,\qquad
+  U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \end{Bmatrix}, \enskip F_j =
+  \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p)
+  \end{Bmatrix}, \enskip
+  S = \begin{Bmatrix} S_\rho \\ S_{u,i} \\ S_E \end{Bmatrix}
+\end{split} \f]
+
+detailed at the @ref inciter_riecg page describing its numerical method, with
+the exact solution
+
+\f[ \begin{split}
+\rho & = 1 \\
+u_i(x_i) & = \left( \begin{array}{ccc} 
+  \alpha x_1 - \beta x_2 \\ \beta x_1 + \alpha x_2 \\ - 2 \alpha x_3 \end{array} \right) \\
+p(x_3) & = p_0 - 2 \rho \alpha^2 x_3^2 \\
+e & = p(x_3) \rho \left( \gamma -1 \right)
+\end{split} \f]
+and the source terms
+\f[ \begin{split}
+S_\rho & = 0 \\
+S_{u,i} & = \left( \begin{array}{c}
+\rho \left( \alpha^2 - \beta^2 \right) x_1 - 2 \rho \alpha \beta x_2 \\
+\rho \left( \alpha^2 - \beta^2 \right) x_2 + 2 \rho \alpha \beta x_1 \\
+0
+\end{array} \right) \\
+S_E & = u_i S_{u,i} + \frac{8 \rho \alpha^3 x_3^2}{\gamma - 1}
+\end{split} \f]
+
+For more details, see @ref papers.
+
 @section riecg_example_vortical_flow_setup Problem setup
 
 The simulation domain is a cube centered around the point {0,0,0}. The initial

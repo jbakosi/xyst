@@ -11,6 +11,42 @@ and the subsequent development of pressure gradients due to coupling between
 the internal energy and the equation of state. The derivation of this test
 problem is given in [1].
 
+@section riecg_example_nonlinear_energy_growth_equations Equations solved
+
+The system of equation solved is
+
+\f[ \begin{split}
+  \frac{\partial U}{\partial t} + \frac{\partial F_j}{\partial x_j} = S,\qquad
+  U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \end{Bmatrix}, \enskip F_j =
+  \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p)
+  \end{Bmatrix}, \enskip
+  S = \begin{Bmatrix} S_\rho \\ S_{u,i} \\ S_E \end{Bmatrix}
+\end{split} \f]
+
+detailed at the @ref inciter_riecg page describing its numerical method, with
+the exact solution
+
+\f[ \begin{split}
+\rho\left(x_i,t\right) & = \rho_0 + \exp(-\alpha t ) g(x_i) \\
+u_i(x_i) & = 0 \\
+p(x_i,t) & = \left[ \rho_0 + \exp(-\alpha t) g \right] (\gamma -1) \left( -3 c_e - 3 k
+  h^2 t\right)^{-1/3} \\
+e(x_i,t) & = \left( -3 c_e - 3 k h^2 t\right)^{-1/3} \\
+g(x_i) & = 1 - (x_1^2 + x_2^2 + x_3^2) \\
+h(x_i) & = \cos \left( \beta_{x_1} \pi x_1 \right) \cos \left( \beta_{x_2} \pi x_2 \right) \cos \left( \beta_{x_3} \pi x_3 \right)\\
+\end{split} \f]
+and the source terms
+\f[ \begin{split}
+S_\rho & = -\alpha \exp(-\alpha t) g \\
+S_{u,i} & = 2 k h t \left[\rho_0 + \exp(-\alpha t) g\right]  (\gamma -1)
+  \left(-3 c_e - 3 kh^2 t \right)^{-4/3}  \frac{\partial h}{\partial x_i} \\
+  & \quad + \left(-3 c_e -  3 k h^2 t \right)^{-1/3} (\gamma -1)  \exp(-\alpha t)
+  \frac{\partial g}{\partial x_i}  \\
+S_E & = \rho k h^2 e^4 + e S_{\rho}
+\end{split} \f]
+
+For more details, see @ref papers.
+
 @section riecg_example_nonlinear_energy_growth_setup Problem setup
 
 The simulation domain is a cube centered around the point {0,0,0}. The initial

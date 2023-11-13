@@ -10,6 +10,47 @@ The purpose of this test case is to assess time dependent fluid motion in the
 presence of Rayleigh-Taylor unstable conditions, i.e., opposing density and
 pressure gradients. The derivation of this test problem is given in [1].
 
+@section kozcg_example_rayleigh_taylor_equations Equations solved
+
+The system of equation solved is
+
+\f[ \begin{split}
+  \frac{\partial U}{\partial t} + \frac{\partial F_j}{\partial x_j} = S,\qquad
+  U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \end{Bmatrix}, \enskip F_j =
+  \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p)
+  \end{Bmatrix}, \enskip
+  S = \begin{Bmatrix} S_\rho \\ S_{u,i} \\ S_E \end{Bmatrix}
+\end{split} \f]
+
+detailed at the @ref inciter_kozcg page describing its numerical method, with
+the exact solution
+
+\f[ \begin{split}
+\rho(x_i) & = \rho_0 - \left( \beta_1 x_1^2 + \beta_2 x_2^2 + \beta_3 x_3^2 \right) \\
+u_i(x_i,t) & = f(t) g(x_i) = \cos(k \pi t) \left( \begin{array}{ccc}
+        x_3 \sin (\pi x_1)  \\
+        x_3 \cos (\pi x_2) \\
+        -\frac{1}{2} \pi x_3^2 \left[ \cos (\pi x_1) - \sin(\pi x_2) \right]
+   \end{array} \right) \\
+p(x_i) & = p_0 + \alpha \left( \beta_1 x_1^2 + \beta_2 x_2^2 + \beta_3 x_3^2 \right) \\
+E(x_i,t) & = \frac{p(x_i)} {\rho \left( \gamma -1 \right) }+ \frac{1}{2} f^2(t) g_j g_j
+\end{split} \f]
+and the source terms
+\f[ \begin{split}
+S_\rho & = u_i \frac{\partial \rho}{\partial x_i} \\
+S_{u,i} & = \rho g_i \frac{\partial f}{\partial t} + f g_i S_{\rho} +
+  \rho f^2 g_j \frac{\partial g_i}{\partial x_j} + \frac{\partial p}{\partial
+  x_i} \\
+S_E & = \rho g_i g_i f \frac{\partial f}{\partial t} + \left[ \frac{p}{\rho
+  \left( \gamma -1 \right) } + \frac{1}{2} f^2 g_i g_i \right] S_{\rho} \\
+  & \quad + \rho f g_i \left[  \frac{1}{\rho \left( \gamma -1 \right)}
+  \frac{\partial p}{\partial x_i} - \frac{p}{\rho^2 \left(\gamma -1 \right)}
+  \frac{\partial \rho}{\partial x_i} + f^2 g_j \frac{\partial g_j}{\partial
+  x_i} \right] + f g_i \frac{\partial p}{\partial x_i}.
+\end{split} \f]
+
+For more details, see @ref papers.
+
 @section kozcg_example_rayleigh_taylor_setup Problem setup
 
 The simulation domain is a cube centered around the point {0,0,0}. The initial

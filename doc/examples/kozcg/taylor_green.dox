@@ -10,6 +10,41 @@ We compute 3D simulations of the 2D Taylor-Green vortex, see e.g., [1]. This is
 a time-invariant solution of the problem. A similar configuration was also
 computed in [2,3] on a different, practically 2D, domain.
 
+@section kozcg_example_taylor_green_equations Equations solved
+
+The system of equation solved is
+
+\f[ \begin{split}
+  \frac{\partial U}{\partial t} + \frac{\partial F_j}{\partial x_j} = S,\qquad
+  U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \end{Bmatrix}, \enskip F_j =
+  \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p)
+  \end{Bmatrix}, \enskip
+  S = \begin{Bmatrix} S_\rho \\ S_{u,i} \\ S_E \end{Bmatrix}
+\end{split} \f]
+
+detailed at the @ref inciter_kozcg page describing its numerical method, with
+the exact solution
+
+\f[ \begin{split}
+\rho(x_i) & = 1 \\
+u_i(x_i) & = \left( \begin{array}{ccc}
+        \sin(\pi x_1) \cos(\pi x_2) \\
+        -\cos(\pi x_1) \sin(\pi x_2) \\
+        0
+   \end{array} \right) \\
+p(x_i) & = 10 + \frac{\rho}{4} \left[ \cos(2 \pi x_1) + \cos(2\pi x_2) \right] \\
+e(x_i) & = \frac{p(x_i)}{\rho \left( \gamma - 1\right)}
+\end{split} \f]
+and the source terms
+\f[ \begin{split}
+S_\rho & = 0 \\
+S_{u,i} & = 0 \\
+S_E & = \frac{3 \pi}{8} \left[ \cos(3 \pi x_1) \cos( \pi x_2) - \cos( 3 \pi x_2
+\cos x_1) \right]
+\end{split} \f]
+
+For more details, see @ref papers.
+
 @section kozcg_example_taylor_green_setup Problem setup
 
 The simulation domain is a cube centered around the point {0,0,0}. The initial

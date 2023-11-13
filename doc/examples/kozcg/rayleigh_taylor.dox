@@ -46,7 +46,7 @@ S_E & = \rho g_i g_i f \frac{\partial f}{\partial t} + \left[ \frac{p}{\rho
   & \quad + \rho f g_i \left[  \frac{1}{\rho \left( \gamma -1 \right)}
   \frac{\partial p}{\partial x_i} - \frac{p}{\rho^2 \left(\gamma -1 \right)}
   \frac{\partial \rho}{\partial x_i} + f^2 g_j \frac{\partial g_j}{\partial
-  x_i} \right] + f g_i \frac{\partial p}{\partial x_i}.
+  x_i} \right] + f g_i \frac{\partial p}{\partial x_i}
 \end{split} \f]
 
 For more details, see @ref papers.

@@ -530,7 +530,7 @@ ZalCG::streamable()
 // Convert integrals into streamable data structures
 // *****************************************************************************
 {
-  m_besym.resize( m_triinpoel.size(), 0 );
+  m_besym.resize( m_triinpoel.size() );
   std::size_t i = 0;
   for (auto p : m_triinpoel) {
     m_besym[i++] = static_cast< std::uint8_t >(m_symbcnodeset.count(p));

@@ -28,6 +28,7 @@ The pages below discuss example calculations using the @ref inciter_kozcg
   - \subpage kozcg_example_taylor_green
   - \subpage kozcg_example_rayleigh_taylor
   - \subpage kozcg_example_nonlinear_energy_growth
+  - \subpage kozcg_example_sod
 
 See @ref papers for more documentation and more examples.
 

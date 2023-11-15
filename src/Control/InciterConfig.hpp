@@ -40,6 +40,7 @@ DEFTAG( t0 );
 DEFTAG( dt );
 DEFTAG( reorder );
 DEFTAG( part );
+DEFTAG( zoltan_params );
 DEFTAG( solver );
 DEFTAG( fct );
 DEFTAG( fctdif );
@@ -136,6 +137,7 @@ using ConfigMembers = brigand::list<
   , tag::dt, double
   , tag::reorder, bool
   , tag::part, std::string
+  , tag::zoltan_params, std::vector< std::string >
   , tag::solver, std::string
   , tag::fct, bool
   , tag::fctdif, double

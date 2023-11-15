@@ -16,6 +16,7 @@ namespace zoltan {
 
 std::vector< std::size_t >
 partMesh( const std::string& alg,
+          const std::vector< std::string >& zoltan_params,
           const std::vector< std::size_t >& inpoel,
           const std::vector< std::size_t >& /*ginpoel*/,
           const std::array< std::vector< tk::real >, 3 >& coord,
@@ -23,6 +24,7 @@ partMesh( const std::string& alg,
 // *****************************************************************************
 //  Partition mesh using Zoltan with a geometric or graph partitioner
 //! \param[in] alg Partitioning algorithm type
+//! \param[in] zoltan_params Extra parameters pass to zoltan
 //! \param[in] inpoel Mesh connectivity with local ids
 // //! \param[in] ginpoel Mesh connectivity with global ids
 //! \param[in] coord Node coordinates
@@ -36,7 +38,7 @@ partMesh( const std::string& alg,
     //chare = graphPartMesh( ginpoel, npart );
     Throw( "Unimplemented" );
   else
-    chare = geomPartMesh( alg.c_str(), inpoel, coord, npart );
+    chare = geomPartMesh( alg.c_str(), zoltan_params, inpoel, coord, npart );
 
   return chare;
 }

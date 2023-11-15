@@ -138,12 +138,14 @@ centroids( const std::vector< std::size_t >& inpoel,
 
 std::vector< std::size_t >
 geomPartMesh( const char* alg,
+              const std::vector< std::string >& zoltan_params,
               const std::vector< std::size_t >& inpoel,
               const std::array< std::vector< tk::real >, 3 >& coord,
               int npart )
 // *****************************************************************************
 //  Partition mesh using Zoltan with a geometric partitioner
 //! \param[in] alg Partitioning algorithm to use
+//! \param[in] zoltan_params Extra parameters pass to zoltan
 //! \param[in] inpoel Mesh connectivity with local ids
 //! \param[in] coord Node coordinates
 //! \param[in] npart Number of desired partitions
@@ -185,6 +187,11 @@ geomPartMesh( const char* alg,
   Zoltan_Set_Param( zz, "RCB_OUTPUT_LEVEL", "0" );
   Zoltan_Set_Param( zz, "AVERAGE_CUTS", "1" );
   Zoltan_Set_Param( zz, "NUM_GLOBAL_PARTS", std::to_string(npart).c_str() );
+
+  for (std::size_t i=0; i<zoltan_params.size()/2; ++i) {
+    const auto p = zoltan_params.data() + i*2;
+    Zoltan_Set_Param( zz, p[0].c_str(), p[1].c_str() );
+  }
 
   /* Query functions, to provide geometry to Zoltan */
 

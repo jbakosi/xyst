@@ -27,6 +27,7 @@ namespace zoltan {
 //! Partition mesh using Zoltan with a geometric partitioner
 std::vector< std::size_t >
 geomPartMesh( const char* alg,
+              const std::vector< std::string >& zoltan_params,
               const std::vector< std::size_t >& inpoel,
               const std::array< std::vector< tk::real >, 3 >& coord,
               int npart );
@@ -38,6 +39,7 @@ graphPartMesh( const std::vector< std::size_t >& ginpoel, int npart );
 //! Partition mesh using Zoltan with a geometric or graph partitioner
 std::vector< std::size_t >
 partMesh( const std::string& alg,
+          const std::vector< std::string >& zoltan_params,
           const std::vector< std::size_t >& inpoel,
           const std::vector< std::size_t >& ginpoel,
           const std::array< std::vector< tk::real >, 3 >& coord,

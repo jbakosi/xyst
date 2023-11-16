@@ -317,7 +317,7 @@ configure_file( "${PROJECT_SOURCE_DIR}/Main/XystConfig.cpp.in"
 
 add_subdirectory(Base)
 add_subdirectory(Control)
-add_subdirectory(ZoltanInterOp)
+add_subdirectory(Partition)
 add_subdirectory(Statistics)
 add_subdirectory(Mesh)
 add_subdirectory(IO)

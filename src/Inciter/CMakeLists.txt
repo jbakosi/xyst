@@ -24,7 +24,7 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../IO
                            ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_SOURCE_DIR}/../Main
-                           ${PROJECT_SOURCE_DIR}/../ZoltanInterOp
+                           ${PROJECT_SOURCE_DIR}/../Partition
                            ${PROJECT_SOURCE_DIR}/../Statistics
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PROJECT_SOURCE_DIR}/../Physics

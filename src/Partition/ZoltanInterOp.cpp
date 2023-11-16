@@ -1,6 +1,6 @@
 // *****************************************************************************
 /*!
-  \file      src/ZoltanInterOp/ZoltanInterOp.cpp
+  \file      src/Partition/ZoltanInterOp.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
@@ -12,7 +12,7 @@
 
 #include "ZoltanInterOp.hpp"
 
-namespace zoltan {
+namespace inciter {
 
 std::vector< std::size_t >
 partMesh( const std::string& alg,
@@ -32,15 +32,22 @@ partMesh( const std::string& alg,
 //! \return Array of chare ownership IDs mapping elements to chares
 // *****************************************************************************
 {
+  using namespace zoltan;
+
   std::vector< std::size_t > chare;
 
-  if ( alg == "phg" )
+  if ( alg == "phg" ) {
+
     //chare = graphPartMesh( ginpoel, npart );
     Throw( "Unimplemented" );
-  else
+
+  } else {
+
     chare = geomPartMesh( alg.c_str(), zoltan_params, inpoel, coord, npart );
+
+  }
 
   return chare;
 }
 
-} // zoltan::
+} // inciter::

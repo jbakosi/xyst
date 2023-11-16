@@ -121,7 +121,7 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       InciterControl
                       Inciter
                       MeshRefinement
-                      ZoltanInterOp
+                      Partition
                       Base
                       Config
                       Init

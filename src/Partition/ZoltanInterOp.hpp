@@ -1,6 +1,6 @@
 // *****************************************************************************
 /*!
-  \file      src/ZoltanInterOp/ZoltanInterOp.hpp
+  \file      src/Partition/ZoltanInterOp.hpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.
@@ -36,6 +36,10 @@ geomPartMesh( const char* alg,
 std::vector< std::size_t >
 graphPartMesh( const std::vector< std::size_t >& ginpoel, int npart );
 
+} // zoltan::
+
+namespace inciter {
+
 //! Partition mesh using Zoltan with a geometric or graph partitioner
 std::vector< std::size_t >
 partMesh( const std::string& alg,
@@ -45,4 +49,4 @@ partMesh( const std::string& alg,
           const std::array< std::vector< tk::real >, 3 >& coord,
           int npart );
 
-} // zoltan::
+} // inciter::

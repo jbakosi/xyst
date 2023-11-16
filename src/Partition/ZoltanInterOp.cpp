@@ -18,7 +18,7 @@ std::vector< std::size_t >
 partMesh( const std::string& alg,
           const std::vector< std::string >& zoltan_params,
           const std::vector< std::size_t >& inpoel,
-          const std::vector< std::size_t >& /*ginpoel*/,
+          const std::vector< std::size_t >& ginpoel,
           const std::array< std::vector< tk::real >, 3 >& coord,
           int npart )
 // *****************************************************************************
@@ -38,8 +38,7 @@ partMesh( const std::string& alg,
 
   if ( alg == "phg" ) {
 
-    //chare = graphPartMesh( ginpoel, npart );
-    Throw( "Unimplemented" );
+    chare = graphPartMesh( ginpoel, zoltan_params, npart );
 
   } else {
 

@@ -180,19 +180,22 @@ chElem( const std::vector< std::size_t >& chp,
   std::vector< std::size_t > che( inpoel.size()/4 );
 
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    che[e] = std::min( chp[inpoel[e*4+3]],
-               std::min( chp[inpoel[e*4+2]],
-                 std::min( chp[inpoel[e*4+0]], chp[inpoel[e*4+1]] ) ) );
+    const auto i = inpoel.data() + e*4;
+    che[e] = std::min( chp[i[3]],
+               std::min( chp[i[2]], std::min( chp[i[0]], chp[i[1]] ) ) );
   }
 
   return che;
 }
 
 std::vector< std::size_t >
-graphPartMesh( const std::vector< std::size_t >& ginpoel, int npart )
+graphPartMesh( const std::vector< std::size_t >& ginpoel,
+               const std::vector< std::string >& zoltan_params,
+               int npart )
 // *****************************************************************************
 //  Partition mesh using Zoltan with a geometric partitioner
 //! \param[in] ginpoel Mesh connectivity with global ids
+//! \param[in] zoltan_params Extra parameters pass to zoltan
 //! \param[in] npart Number of desired partitions
 //! \return Array of chare ownership IDs mapping elements to chares
 //! \details This function uses Zoltan to partition the mesh in parallel.
@@ -210,13 +213,13 @@ graphPartMesh( const std::vector< std::size_t >& ginpoel, int npart )
 
   zz = Zoltan_Create( MPI_COMM_WORLD );
 
-  Zoltan_Set_Param( zz, "DEBUG_LEVEL", "1" );
+  Zoltan_Set_Param( zz, "DEBUG_LEVEL", "0" );
   Zoltan_Set_Param( zz, "PHG_OUTPUT_LEVEL", "0" );
   Zoltan_Set_Param( zz, "CHECK_HYPERGRAPH", "0" );
   Zoltan_Set_Param( zz, "LB_METHOD", "HYPERGRAPH" );
   Zoltan_Set_Param( zz, "HYPERGRAPH_PACKAGE", "PHG" );
   Zoltan_Set_Param( zz, "LB_APPROACH", "PARTITION" );
-  Zoltan_Set_Param( zz, "PHG_MULTILEVEL", "1" );
+  Zoltan_Set_Param( zz, "PHG_MULTILEVEL", "0" );
   Zoltan_Set_Param( zz, "PHG_CUT_OBJECTIVE", "CONNECTIVITY" );
   Zoltan_Set_Param( zz, "NUM_GID_ENTRIES", "1" );
   Zoltan_Set_Param( zz, "NUM_LID_ENTRIES", "1" );
@@ -225,12 +228,16 @@ graphPartMesh( const std::vector< std::size_t >& ginpoel, int npart )
   Zoltan_Set_Param( zz, "RCB_OUTPUT_LEVEL", "0" );
   Zoltan_Set_Param( zz, "NUM_GLOBAL_PARTS", std::to_string(npart).c_str() );
 
+  for (std::size_t i=0; i<zoltan_params.size()/2; ++i) {
+    const auto p = zoltan_params.data() + i*2;
+    Zoltan_Set_Param( zz, p[0].c_str(), p[1].c_str() );
+  }
+
   // Generate element connectivity storing local node ids
   const auto& [ inpoel, gid, lid ] = tk::global2local( ginpoel );
 
   MESH_DATA myMesh;
   auto npoin = createHyperGraph( inpoel, gid, myMesh );
-  //createHyperGraph( inpoel, gid, gelemid, myMesh );
 
   // Set Zoltan query functions
   Zoltan_Set_Num_Obj_Fn( zz, get_number_of_objects, &myMesh );

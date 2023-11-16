@@ -34,7 +34,9 @@ geomPartMesh( const char* alg,
 
 //! Partition mesh using Zoltan with a geometric partitioner
 std::vector< std::size_t >
-graphPartMesh( const std::vector< std::size_t >& ginpoel, int npart );
+graphPartMesh( const std::vector< std::size_t >& ginpoel,
+               const std::vector< std::string >& zoltan_params,
+               int npart );
 
 } // zoltan::
 

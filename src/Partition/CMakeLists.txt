@@ -5,8 +5,7 @@ include(charm)
 add_library(Partition
             ZoltanInterOp.cpp
             ZoltanGeom.cpp
-            #ZoltanGraph.cpp
-            )
+            ZoltanGraph.cpp)
 
 target_include_directories(Partition PUBLIC
                       ${PROJECT_SOURCE_DIR}/..

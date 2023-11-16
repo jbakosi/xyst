@@ -54,7 +54,7 @@ Config::cmdline( int argc, char** argv )
   if (!argc) return;
 
   // Defaults
-  get< tag::commit >() = tk::git_commit();
+  if (!tk::git_commit().empty()) get< tag::commit >() = tk::git_commit();
   get< tag::output >() = "out";
   get< tag::diag >() = "diag";
   get< tag::checkpoint >() = "restart";

@@ -51,7 +51,7 @@ of testing serial, synchronous (e.g., MPI) parallel, and asynchronous parallel
 Install prerequisites: _Debian-based linux_
 
 @code
-apt install git cmake g++ ninja-build libopenmpi-dev libnetcdf-dev
+apt install git cmake g++ ninja-build libopenmpi-dev libnetcdf-mpi-dev
 @endcode
 
 Clone, build, test
@@ -70,8 +70,8 @@ All executables will be under `build/Main/`.
 
 @section mainpage_history History
 
-Xyst is forked from [Quinoa](https://quinoacomputing.github.io/archive). Compared to
-Quinoa, Xyst
+Xyst is forked from [Quinoa](https://quinoacomputing.github.io/archive).
+Compared to Quinoa, Xyst
 
 1. Removes the stochastic differential equation solver
 ([walker](https://wlkr.cc)),

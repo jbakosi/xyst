@@ -849,7 +849,6 @@ EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/brigand \
                          @CMAKE_CURRENT_SOURCE_DIR@/zoltan \
                          @CMAKE_CURRENT_SOURCE_DIR@/Control/minilua.h \
                          @CMAKE_CURRENT_SOURCE_DIR@/../tests/regression/numdiff \
-                         @CMAKE_CURRENT_SOURCE_DIR@/../external
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded

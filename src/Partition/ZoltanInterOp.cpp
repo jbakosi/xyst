@@ -26,7 +26,7 @@ partMesh( const std::string& alg,
 //! \param[in] alg Partitioning algorithm type
 //! \param[in] zoltan_params Extra parameters pass to zoltan
 //! \param[in] inpoel Mesh connectivity with local ids
-// //! \param[in] ginpoel Mesh connectivity with global ids
+//! \param[in] ginpoel Mesh connectivity with global ids
 //! \param[in] coord Node coordinates
 //! \param[in] npart Number of desired partitions
 //! \return Array of chare ownership IDs mapping elements to chares

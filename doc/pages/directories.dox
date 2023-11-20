@@ -95,8 +95,8 @@ chares for all executables. It contains
 
 In other words, this is where all execution starts for all executables.
 
-@dir src/ZoltanInterOp
-@brief Code interoperating with Zoltan for static mesh partitioning
+@dir src/Partition
+@brief Code interoperating with static mesh partitioners
 
 @details This directory contains functionality specific to mesh partitioning.
 

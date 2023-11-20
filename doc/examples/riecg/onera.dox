@@ -31,74 +31,66 @@ surface symmetry (free-slip) conditions are set.
 
 @section riecg_example_onera_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [aa29b26](https://codeberg.org/xyst/xyst/commit/aa29b264272ceda81089821731ea6ea678d42a14) and the control file below.
+To reproduce the results below, use code revision [6532cbd](https://codeberg.org/xyst/xyst/commit/6532cbd9742e68a919c617044ab5523b9a00f3f4) and the control file below.
 
 @section riecg_example_onera_control Control file
 
-@code{.bash}
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+@code{.lua}
+-- vim: filetype=lua:
 
-title "Onera M6 wing"
+print "Onera M6 wing"
 
-inciter
+ttyi = 10
+cfl = 0.5
 
-  ttyi 10
-  cfl 0.5
+solver = "riecg"
+steady = true
+residual = 1.0e-12
+rescomp = 1
 
-  steady_state true
-  residual 1.0e-7
-  rescomp 1     # convergence check for density
+part = "rcb"    -- 710K 26PEs
+-- part = "multijagged"  -- 2.8M 60PEs
 
-  partitioning
-    algorithm mj
-  end
+ic = {
+  density = 1.225,   -- density of air at STP, kg/m3
+  pressure = 1.0e+5, -- N/m^2
+  -- sound speed: sqrt(1.4*1.0e+5/1.225) = 338.06 m/s
+  -- free stream Mach number: M = 0.84
+  -- angle of attack: 3.06 degrees
+  -- u = M * a * cos(3.06*pi/180) = 283.57
+  -- v = M * a * sin(3.06*pi/180) = 15.159
+  velocity = { 283.57, 15.159, 0.0 }
+}
 
-  compflow
-    depvar u
-    ic
-      density 1.225 end # density of air at STP, kg/m3
-      pressure 1.0e+5 end # N/m^2
-      # sound speed: sqrt(1.4*1.0e+5/1.225) = 338.06 m/s
-      # free stream Mach number: M = 0.84
-      # angle of attack: 3.06 degrees
-      # u = M * a * cos(3.06*pi/180) = 283.57
-      # v = M * a * sin(3.06*pi/180) = 15.159
-      velocity 283.57 15.159 0.0 end
-    end
-    material
-      gamma 1.4 end
-    end
-    bc_sym
-      sideset 3 end
-    end
-    bc_farfield
-      pressure 1.0e+5
-      density 1.225
-      velocity 283.57 15.159 0.0 end
-      sideset 4 end
-    end
-  end
+mat = { spec_heat_ratio = 1.4 }
 
-  field_output
-    interval 1000
-    sideset 3 end
-  end
+bc_sym = {
+  sideset = { 3 }
+}
 
-  diagnostics
-    interval  10
-    format    scientific
-    precision 12
-  end
+bc_far = {
+  pressure = 1.0e+5,
+  density = 1.225,
+  velocity = { 283.57, 15.159, 0.0 },
+  sideset = { 4 }
+}
 
-end
+fieldout = {
+  iter = 1000,
+  sideset = { 3 },
+}
+
+diag = {
+  iter = 10,
+  format = "scientific",
+  precision = 12
+}
 @endcode
 
-@section riecg_example_onera_run Run using the coarse mesh on 32 CPUs
+@section riecg_example_onera_run Run using the coarse mesh on 26 CPUs
 
 @code{.bash}
-./charmrun +p32 Main/inciter -v -i onera_710K.exo -c onera.q
+./charmrun +p26 Main/inciter -v -i onera_710K.exo -c onera.q
 @endcode
 
 @section riecg_example_onera_fieldvis Visualization
@@ -107,14 +99,14 @@ end
 of the numerically computed 3D fields as
 
 @code{.bash}
-paraview out.e-s.0.32.0
+paraview out.e-s.0.26.0
 @endcode
 
 Results only on the wing surface can be visualized by first stitching the
 partitioned surface output files into a single surface output file followed by
 invoking paraview on the stitched surface exo file:
 @code{.bash}
-Main/meshconv -v -i out-surf.3.e-s.0.32.% -o out-surf.3.exo
+Main/meshconv -i out-surf.3.e-s.0.26.% -o out-surf.3.exo
 paraview out-surf.3.exo
 @endcode
 
@@ -136,10 +128,13 @@ mesh computation.
 
 Gnuplot commands to reproduce the above plot:
 @code{.bash}
-set xlabel "log(res)"
-set ylabel "time steps"
+set terminal png size 800,600 enhanced font "Helvetica,16"
+set output "onera_res.png"
+set xlabel "time steps"
+set ylabel "log(res)"
 set logscale y
-plot "diag" u 1:9
+set grid
+plot [] [:1.0e-2] "710K_tol=1.0e-12/diag" u 1:9 w l lw 2, "2.8M_tol=1.0e-12/diag" u 1:9 w l lw 2
 @endcode
 
 The computed pressure coefficient

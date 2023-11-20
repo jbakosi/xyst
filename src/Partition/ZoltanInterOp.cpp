@@ -32,13 +32,15 @@ partMesh( const std::string& alg,
 //! \return Array of chare ownership IDs mapping elements to chares
 // *****************************************************************************
 {
-  using namespace zoltan;
-
   std::vector< std::size_t > chare;
 
   if ( alg == "phg" ) {
 
     chare = graphPartMesh( ginpoel, zoltan_params, npart );
+
+  } else if ( alg == "multijagged" ) {
+
+    chare = geomPartMeshZ2( alg.c_str(), zoltan_params, inpoel, coord, npart );
 
   } else {
 

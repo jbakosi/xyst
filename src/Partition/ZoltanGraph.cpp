@@ -32,7 +32,7 @@
 #include "DerivedData.hpp"
 #include "Reorder.hpp"
 
-namespace zoltan {
+namespace inciter {
 
 //! Zoltan mesh data structure
 struct MESH_DATA {
@@ -289,4 +289,4 @@ graphPartMesh( const std::vector< std::size_t >& ginpoel,
   return chElem( chp, inpoel );
 }
 
-} // zoltan::
+} // inciter::

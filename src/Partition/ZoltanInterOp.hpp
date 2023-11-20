@@ -21,8 +21,7 @@
 #include "Types.hpp"
 #include "Exception.hpp"
 
-//! Interoperation with the Zoltan library, used for static mesh partitioning
-namespace zoltan {
+namespace inciter {
 
 //! Partition mesh using Zoltan with a geometric partitioner
 std::vector< std::size_t >
@@ -38,9 +37,13 @@ graphPartMesh( const std::vector< std::size_t >& ginpoel,
                const std::vector< std::string >& zoltan_params,
                int npart );
 
-} // zoltan::
-
-namespace inciter {
+//! Partition mesh using Zoltan2 with a geometric partitioner
+std::vector< std::size_t >
+geomPartMeshZ2( const char* alg,
+                const std::vector< std::string >& zoltan_params,
+                const std::vector< std::size_t >& inpoel,
+                const std::array< std::vector< tk::real >, 3 >& coord,
+                int npart );
 
 //! Partition mesh using Zoltan with a geometric or graph partitioner
 std::vector< std::size_t >

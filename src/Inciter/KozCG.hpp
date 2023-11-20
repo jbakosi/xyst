@@ -138,7 +138,7 @@ class KozCG : public CBase_KozCG {
     //! Evaluate whether to continue with next time step
     void step();
 
-    // Evaluate whether to do load balancing
+    //! Evaluate whether to do load balancing
     void evalLB( int nrestart );
 
     //! Continue to next time step

@@ -39,7 +39,7 @@
 #include "ZoltanInterOp.hpp"
 #include "ContainerUtil.hpp"
 
-namespace zoltan {
+namespace inciter {
 
 //! Zoltan mesh data structure
 struct MESH_DATA {
@@ -239,4 +239,4 @@ geomPartMesh( const char* alg,
   return chare;
 }
 
-} // zoltan::
+} // inciter::

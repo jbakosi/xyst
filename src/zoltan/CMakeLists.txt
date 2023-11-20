@@ -1,6 +1,6 @@
-project(zoltan C)
+project(zoltan1 C)
 
-file(GLOB zoltan_src src/all/all_allo.c
+file(GLOB zoltan1_src src/all/all_allo.c
           src/coloring/coloring.c src/coloring/color_test.c
           src/coloring/bucket.c src/coloring/g2l_hash.c
           src/graph/graph.c src/ha/divide_machine.c
@@ -97,5 +97,5 @@ file(GLOB zoltan_src src/all/all_allo.c
 
 file(GLOB zoltan_inc src/* src/Utilities/shared src/Utilities/Timer
      LIST_DIRECTORIES true)
-add_library(zoltan ${zoltan_src})
-target_include_directories(zoltan PUBLIC ${zoltan_inc} ${MPI_C_INCLUDE_DIRS})
+add_library(zoltan1 ${zoltan1_src})
+target_include_directories(zoltan1 PUBLIC ${zoltan_inc} ${MPI_C_INCLUDE_DIRS})

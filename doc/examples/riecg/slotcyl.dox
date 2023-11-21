@@ -93,55 +93,47 @@ directions.
 
 @section riecg_example_slotcyl_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [82358a5](https://codeberg.org/xyst/xyst/commit/82358a5f14c685ceb2f6957d09fb3c1ded753b13) and the control file below.
+To reproduce the results below, use code revision [110c5cd](https://codeberg.org/xyst/xyst/commit/110c5cd166504528019797bc6e97906609a91ede) and the control file below.
 
 @section riecg_example_slotcyl_control Control file
 
-@code{.bash}
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+@code{.lua}
+# vim: filetype=lua:
 
-title "Scalar transport: slotted cylinder, cone, hump"
+print "Scalar transport: slotted cylinder, cone, hump"
 
-inciter
+term = math.pi
+ttyi = 100
+cfl = 0.05
 
-  term 3.1415926
-  ttyi 100
-  cfl 0.05
+solver = "riecg"
 
-  partitioning
-   algorithm rcb
-  end
+part = "rcb"
 
-  problem slot_cyl
+problem = {
+  name = "slot_cyl"
+}
 
-  compflow
-    depvar u
-    material
-      gamma 1.66666666666667 end
-    end
-    bc_dirichlet
-      sideset 1 1 1 1 1 1 1 end
-      sideset 2 1 1 1 1 1 1 end 
-      sideset 3 1 1 1 1 1 1 end
-      sideset 4 1 1 1 1 1 0 end
-      sideset 5 1 1 1 1 1 1 end
-      sideset 6 1 1 1 1 1 0 end
-    end
-  end
+mat = { spec_heat_ratio = 5/3 }
 
-  field_output
-    interval 100
-  end
+bc_dir = {
+  { 1, 1, 1, 1, 1, 1, 1 },
+  { 2, 1, 1, 1, 1, 1, 1 },
+  { 3, 1, 1, 1, 1, 1, 1 },
+  { 4, 1, 1, 1, 1, 1, 0 },
+  { 5, 1, 1, 1, 1, 1, 1 },
+  { 6, 1, 1, 1, 1, 1, 0 }
+}
 
-  diagnostics
-    interval 10
-    format scientific
-    precision 12
-  end
+fieldout = {
+  iter = 1000
+}
 
-end
+diag = {
+  iter = 10,
+  format = "scientific",
+  precision = 12
+}
 @endcode
 
 @section riecg_example_slotcyl_run Run using on 32 CPUs
@@ -171,6 +163,17 @@ L2-norm of the conserved flow variables.
 @m_div{m-col-m-10 m-center-m}
 <img src="images/slotcyl_res.png"/>
 @m_enddiv
+
+Gnuplot commands to reproduce the above plot:
+@code{.bash}
+set terminal png size 800,600 enhanced font "Helvetica,16"
+set output "slotcyl_res.png"
+set xlabel "time"
+set ylabel "log(res)"
+set logscale y
+set grid
+plot "diag" u 2:10 w l lw 2 t "L2(dr)", "" u 2:11 w l lw 2 t "L2(dru)", "" u 2:12 w l lw 2 t "L2(drv)", "" u 2:13 w l lw 2 t "L2(drw)", "" u 2:14 w l lw 2 t "L2(drE)"
+@endcode
 
 The scalar field after half revolution is depicted below with several line-outs
 at various locations so the solution can be compared to the analytic solution.

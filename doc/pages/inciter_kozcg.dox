@@ -9,12 +9,7 @@ more details, see @ref papers.
 
 @note In KozCG, _Koz_ stands for [Imre Kozák](https://hu.wikipedia.org/wiki/Koz%C3%A1k_Imre) and _CG_ for continuous Galerkin.
 
-The numerical method in KozCG is an element-based implementation of a finite
-element method for unstructured meshes, composed of tetrahedral cells. The
-solver is intended for the mathematical modelling of energetic, high-speed,
-compressible flows. The implementation of the method uses an
-asynchronous-by-default, distributed-memory, task-parallel programming paradigm
-using the Charm++ runtime system.
+The numerical method in KozCG is an element-based implementation of a finite element method for unstructured meshes, composed of tetrahedral cells. The solver is intended for the computing of compressible flows. A good reference for the finite element method itself is Lohner's book [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746) and on Flux Corrected Transport [Lohner, Morgan, Peraire, Vahdati, Finite element flux-corrected transport (FEM-FCT) for the Euler and Navier--Stokes equations](http://dx.doi.org/10.1002/fld.1650071007). The implementation of the method uses an asynchronous-by-default, distributed-memory, task-parallel programming paradigm using the Charm++ runtime system.
 
 @section kozgcg_euler The equations of compressible flow
 

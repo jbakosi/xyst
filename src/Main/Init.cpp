@@ -94,7 +94,7 @@ void echoBuildEnv( const std::string& executable )
   print.section( "Build environment" );
   print.item( "Hostname", build_hostname() );
   print.item( "Executable", executable );
-  if (!git_commit().empty()) print.item( "Git sha1", git_commit() );
+  if (!git_commit().empty()) print.item( "Git commit", git_commit() );
   print.item( "Build type", build_type() );
   print.item( "C++ compiler", compiler() );
   print.item( "Build date", build_date() );

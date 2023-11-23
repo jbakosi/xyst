@@ -179,7 +179,8 @@ if(NOT CHARM_FOUND)
     include(ExternalProject)
     ExternalProject_add(charm
       PREFIX charm
-      GIT_REPOSITORY https://github.com/UIUC-PPL/charm
+      #GIT_REPOSITORY https://github.com/UIUC-PPL/charm
+      GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/charm
       GIT_TAG v7.0.0-rc2
       PATCH_COMMAND patch -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch
       CMAKE_ARGS -D TARGET=${CHARM_TARGET}
@@ -214,7 +215,8 @@ if(NOT Zoltan2_FOUND)
     include(ExternalProject)
     ExternalProject_add(zoltan2
       PREFIX zoltan2
-      GIT_REPOSITORY https://github.com/trilinos/Trilinos.git
+      #GIT_REPOSITORY https://github.com/trilinos/Trilinos.git
+      GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/Trilinos
       GIT_TAG trilinos-release-12-12-1
       CMAKE_ARGS -D Trilinos_ENABLE_ALL_PACKAGES:BOOL=OFF
                  -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF

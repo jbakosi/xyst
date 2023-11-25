@@ -25,6 +25,8 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const tk::Fields& U,
      tk::real t,
      tk::real dt,
+     const std::vector< tk::real >& tp,
+     const std::vector< tk::real >& dtp,
      tk::Fields& R );
 
 } // zalesak::

@@ -32,8 +32,10 @@ static void
 advedge( const tk::real supint[],
          const tk::Fields& U,
          const std::array< std::vector< tk::real >, 3 >& coord,
-         tk::real dt,
          tk::real t,
+         tk::real dt,
+         const std::vector< tk::real >& tp,
+         const std::vector< tk::real >& dtp,
          std::size_t p,
          std::size_t q,
          tk::real f[],
@@ -44,14 +46,17 @@ advedge( const tk::real supint[],
 //! \param[in] supint Edge integral
 //! \param[in] U Solution vector to read conserved variables from
 //! \param[in] coord Mesh node coordinates
-//! \param[in] dt Physical time step size
 //! \param[in] t Physical time
+//! \param[in] dt Physical time step size
+//! \param[in] tp Phisical time step size for each mesh node (if steady state)
+//! \param[in] dtp Time step size for each mesh node (if steady state)
 //! \param[in] p Left node index of edge
 //! \param[in] q Right node index of edge
 //! \param[in,out] f Flux computed
 //! \param[in] src Function to call to evaluate a problem-sepcific source term
 // *****************************************************************************
 {
+  const auto steady = g_cfg.get< tag::steady >();
   const auto ncomp = U.nprop();
   const auto& x = coord[0];
   const auto& y = coord[1];
@@ -95,6 +100,8 @@ advedge( const tk::real supint[],
 
   // Taylor-Galerkin first half step
 
+  if (steady) dt = (dtp[p] + dtp[q])/2.0;
+
   tk::real ue[ncomp];
   auto dp = pL - pR;
   ue[0] = 0.5*(rL + rR - dt*(rL*dnL - rR*dnR));
@@ -108,6 +115,7 @@ advedge( const tk::real supint[],
   }
 
   if (src) {
+    if (steady) t = (tp[p] + tp[q])/2.0;
     auto coef = dt/4.0;
     auto sL = src( x[p], y[p], z[p], t );
     auto sR = src( x[q], y[q], z[q], t );
@@ -129,18 +137,18 @@ advedge( const tk::real supint[],
   auto reh = ue[4];
   auto ph = eos::pressure( reh - 0.5*(ruh*ruh + rvh*rvh + rwh*rwh)/rh );
   auto vn = (ruh*nx + rvh*ny + rwh*nz)/rh;
-  f[0] = dt*rh*vn;
-  f[1] = dt*(ruh*vn + ph*nx);
-  f[2] = dt*(rvh*vn + ph*ny);
-  f[3] = dt*(rwh*vn + ph*nz);
-  f[4] = dt*(reh + ph)*vn;
+  f[0] = rh*vn;
+  f[1] = ruh*vn + ph*nx;
+  f[2] = rvh*vn + ph*ny;
+  f[3] = rwh*vn + ph*nz;
+  f[4] = (reh + ph)*vn;
 
   for (std::size_t c=5; c<ncomp; ++c) {
-    f[c] = dt*ue[c]*vn;
+    f[c] = ue[c]*vn;
   }
 
   if (src) {
-    auto coef = -5.0/3.0*dt*supint[3];
+    auto coef = -5.0/3.0*supint[3];
     auto xe = (x[p] + x[q])/2.0;
     auto ye = (y[p] + y[q])/2.0;
     auto ze = (z[p] + z[q])/2.0;
@@ -161,8 +169,10 @@ static void
 advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
         const std::array< std::vector< tk::real >, 3 >& dsupint,
         const std::array< std::vector< tk::real >, 3 >& coord,
-        tk::real dt,
         tk::real t,
+        tk::real dt,
+        const std::vector< tk::real >& tp,
+        const std::vector< tk::real >& dtp,
         const tk::Fields& U,
         // cppcheck-suppress constParameter
         tk::Fields& R )
@@ -171,8 +181,10 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] coord Mesh node coordinates
-//! \param[in] dt Physical time step size
 //! \param[in] t Physical time
+//! \param[in] dt Physical time step size
+//! \param[in] tp Phisical time step size for each mesh node (if steady state)
+//! \param[in] dtp Time step size for each mesh node (if steady state)
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector
 // *****************************************************************************
@@ -194,12 +206,12 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[0].data() + e*4;
     tk::real f[6][ncomp*2];
     const auto d = dsupint[0].data();
-    advedge( d+(e*6+0)*4, U, coord, dt, t, N[0], N[1], f[0], src );
-    advedge( d+(e*6+1)*4, U, coord, dt, t, N[1], N[2], f[1], src );
-    advedge( d+(e*6+2)*4, U, coord, dt, t, N[2], N[0], f[2], src );
-    advedge( d+(e*6+3)*4, U, coord, dt, t, N[0], N[3], f[3], src );
-    advedge( d+(e*6+4)*4, U, coord, dt, t, N[1], N[3], f[4], src );
-    advedge( d+(e*6+5)*4, U, coord, dt, t, N[2], N[3], f[5], src );
+    advedge( d+(e*6+0)*4, U, coord, t, dt, tp, dtp, N[0], N[1], f[0], src );
+    advedge( d+(e*6+1)*4, U, coord, t, dt, tp, dtp, N[1], N[2], f[1], src );
+    advedge( d+(e*6+2)*4, U, coord, t, dt, tp, dtp, N[2], N[0], f[2], src );
+    advedge( d+(e*6+3)*4, U, coord, t, dt, tp, dtp, N[0], N[3], f[3], src );
+    advedge( d+(e*6+4)*4, U, coord, t, dt, tp, dtp, N[1], N[3], f[4], src );
+    advedge( d+(e*6+5)*4, U, coord, t, dt, tp, dtp, N[2], N[3], f[5], src );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c] - f[3][c];
       R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c] - f[4][c];
@@ -220,9 +232,9 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[1].data() + e*3;
     tk::real f[3][ncomp*2];
     const auto d = dsupint[1].data();
-    advedge( d+(e*3+0)*4, U, coord, dt, t, N[0], N[1], f[0], src );
-    advedge( d+(e*3+1)*4, U, coord, dt, t, N[1], N[2], f[1], src );
-    advedge( d+(e*3+2)*4, U, coord, dt, t, N[2], N[0], f[2], src );
+    advedge( d+(e*3+0)*4, U, coord, t, dt, tp, dtp, N[0], N[1], f[0], src );
+    advedge( d+(e*3+1)*4, U, coord, t, dt, tp, dtp, N[1], N[2], f[1], src );
+    advedge( d+(e*3+2)*4, U, coord, t, dt, tp, dtp, N[2], N[0], f[2], src );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c];
       R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c];
@@ -241,7 +253,7 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[2].data() + e*2;
     tk::real f[ncomp*2];
     const auto d = dsupint[2].data();
-    advedge( d+e*4, U, coord, dt, t, N[0], N[1], f, src );
+    advedge( d+e*4, U, coord, t, dt, tp, dtp, N[0], N[1], f, src );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c,0) -= f[c];
       R(N[1],c,0) += f[c];
@@ -264,7 +276,6 @@ static void
 advbnd( const std::vector< std::size_t >& triinpoel,
         const std::array< std::vector< tk::real >, 3 >& coord,
         const std::vector< std::uint8_t >& besym,
-        tk::real dt,
         const tk::Fields& U,
         tk::Fields& R )
 // *****************************************************************************
@@ -272,7 +283,6 @@ advbnd( const std::vector< std::size_t >& triinpoel,
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] coord Mesh node coordinates
 //! \param[in] besym Boundary element symmetry BC flags
-//! \param[in] dt Physical time size
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector
 // *****************************************************************************
@@ -343,9 +353,9 @@ advbnd( const std::vector< std::size_t >& triinpoel,
       auto fab = (f[c][0] + f[c][1])/4.0;
       auto fbc = (f[c][1] + f[c][2])/4.0;
       auto fca = (f[c][2] + f[c][0])/4.0;
-      R(N[0],c,0) += dt*(fab + fca + f[c][0]);
-      R(N[1],c,0) += dt*(fab + fbc + f[c][1]);
-      R(N[2],c,0) += dt*(fbc + fca + f[c][2]);
+      R(N[0],c,0) += fab + fca + f[c][0];
+      R(N[1],c,0) += fab + fbc + f[c][1];
+      R(N[2],c,0) += fbc + fca + f[c][2];
     }
   }
 }
@@ -359,6 +369,8 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const tk::Fields& U,
      tk::real t,
      tk::real dt,
+     const std::vector< tk::real >& tp,
+     const std::vector< tk::real >& dtp,
      tk::Fields& R )
 // *****************************************************************************
 //  Compute right hand side
@@ -370,6 +382,8 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] besym Boundary element symmetry BC flags
 //! \param[in] t Physical time
 //! \param[in] dt Physical time size
+//! \param[in] tp Phisical time step size for each mesh node (if steady state)
+//! \param[in] dtp Time step size for each mesh node (if steady state)
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
 {
@@ -383,8 +397,8 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   R.fill( 0.0 );
 
   // advection + src
-  advdom( dsupedge, dsupint, coord, dt, t, U, R );
-  advbnd( triinpoel, coord, besym, dt, U, R );
+  advdom( dsupedge, dsupint, coord, t, dt, tp, dtp, U, R );
+  advbnd( triinpoel, coord, besym, U, R );
 }
 
 } // zalesak::

@@ -862,16 +862,8 @@ ZalCG::rhs()
 
   // Compute own portion of right-hand side for all equations
 
-  if (g_cfg.get< tag::steady >()) {
-    for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += m_dtp[p];
-  }
-
   zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym, m_u,
-                d->T(), d->Dt(), m_rhs );
-
-  if (g_cfg.get< tag::steady >()) {
-    for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];
-  }
+                d->T(), d->Dt(), m_tp, m_dtp, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
@@ -1035,14 +1027,17 @@ ZalCG::alw()
   tk::destroy(m_pc);
 
   // Finish computing antidiffusive contributions and low-order solution
+  auto dt = d->Dt();
   for (std::size_t i=0; i<npoin; ++i) {
+    if (g_cfg.get< tag::steady >()) dt = m_dtp[i];
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
       m_p(i,a,0) /= vol[i];
       m_p(i,b,0) /= vol[i];
       // low-order solution
-      m_rhs(i,c,0) = m_u(i,c,0) - m_rhs(i,c,0)/vol[i] - m_p(i,a,0) - m_p(i,b,0);
+      m_rhs(i,c,0) = m_u(i,c,0) - dt*m_rhs(i,c,0)/vol[i]
+                                - m_p(i,a,0) - m_p(i,b,0);
     }
   }
 

@@ -1006,6 +1006,7 @@ ZalCG::alw()
 // *****************************************************************************
 {
   auto d = Disc();
+  const auto steady = g_cfg.get< tag::steady >();
   const auto npoin = m_u.nunk();
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
@@ -1029,7 +1030,7 @@ ZalCG::alw()
   // Finish computing antidiffusive contributions and low-order solution
   auto dt = d->Dt();
   for (std::size_t i=0; i<npoin; ++i) {
-    if (g_cfg.get< tag::steady >()) dt = m_dtp[i];
+    if (steady) dt = m_dtp[i];
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;

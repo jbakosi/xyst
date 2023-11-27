@@ -19,9 +19,10 @@ namespace kozak {
 void
 rhs( const std::vector< std::size_t >& inpoel,
      const std::array< std::vector< tk::real >, 3 >& coord,
-     tk::real dt,
      tk::real t,
+     tk::real dt,
      const std::vector< tk::real >& tp,
+     const std::vector< tk::real >& dtp,
      const tk::Fields& U,
      tk::Fields& R );
 

@@ -29,9 +29,10 @@ using inciter::g_cfg;
 void
 rhs( const std::vector< std::size_t >& inpoel,
      const std::array< std::vector< tk::real >, 3 >& coord,
-     tk::real dt,
      tk::real t,
+     tk::real dt,
      const std::vector< tk::real >& tp,
+     const std::vector< tk::real >& dtp,
      const tk::Fields& U,
      tk::Fields& R )
 // *****************************************************************************
@@ -41,7 +42,8 @@ rhs( const std::vector< std::size_t >& inpoel,
 //! \param[in] U Unknowns/solution vector in mesh nodes
 //! \param[in] t Physical time
 //! \param[in] dt Physical time size
-//! \param[in] tp Physical time for each mesh node
+//! \param[in] tp Phisical time step size for each mesh node (if steady state)
+//! \param[in] dtp Time step size for each mesh node (if steady state)
 //! \param[in,out] R Right-hand side vector computed
 // *****************************************************************************
 {
@@ -51,6 +53,7 @@ rhs( const std::vector< std::size_t >& inpoel,
   // zero right hand side for all components
   R.fill( 0.0 );
 
+  const auto steady = g_cfg.get< tag::steady >();
   const auto ncomp = U.nprop();
   const auto& x = coord[0];
   const auto& y = coord[1];
@@ -100,6 +103,8 @@ rhs( const std::vector< std::size_t >& inpoel,
       ue[c] = (U(N[0],c,0) + U(N[1],c,0) + U(N[2],c,0) + U(N[3],c,0))/4.0;
     }
 
+    if (steady) dt = (dtp[N[0]] + dtp[N[1]] + dtp[N[2]] + dtp[N[3]])/4.0;
+
     auto coef = dt/J/2.0;
     for (std::size_t j=0; j<3; ++j) {
       for (std::size_t a=0; a<4; ++a) {
@@ -119,8 +124,8 @@ rhs( const std::vector< std::size_t >& inpoel,
 
     if (src) {
       coef = dt/8.0;
+      if (steady) t = (tp[N[0]] + tp[N[1]] + tp[N[2]] + tp[N[3]])/4.0;
       for (std::size_t a=0; a<4; ++a) {
-        if (g_cfg.get< tag::steady >()) t = tp[N[a]];
         auto s = src( x[N[a]], y[N[a]], z[N[a]], t );
         for (std::size_t c=0; c<ncomp; ++c) {
           ue[c] += coef * s[c];
@@ -157,9 +162,6 @@ rhs( const std::vector< std::size_t >& inpoel,
       auto xe = (x[N[0]] + x[N[1]] + x[N[2]] + x[N[3]])/4.0;
       auto ye = (y[N[0]] + y[N[1]] + y[N[2]] + y[N[3]])/4.0;
       auto ze = (z[N[0]] + z[N[1]] + z[N[2]] + z[N[3]])/4.0;
-      if (g_cfg.get< tag::steady >()) {
-        t = (tp[N[0]] + tp[N[1]] + tp[N[2]] + tp[N[3]])/4.0;
-      }
       auto se = src( xe, ye, ze, t+dt/2.0 );
       coef = J/24.0;
       for (std::size_t a=0; a<4; ++a) {

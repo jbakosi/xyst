@@ -684,7 +684,8 @@ KozCG::rhs()
   auto d = Disc();
 
   // Compute own portion of right-hand side for all equations
-  kozak::rhs( d->Inpoel(), d->Coord(), d->Dt(), d->T(), m_tp, m_u, m_rhs );
+  kozak::rhs( d->Inpoel(), d->Coord(), d->T(), d->Dt(), m_tp, m_dtp, m_u,
+              m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
@@ -803,6 +804,7 @@ KozCG::alw()
 // *****************************************************************************
 {
   auto d = Disc();
+  const auto steady = g_cfg.get< tag::steady >();
   const auto npoin = m_u.nunk();
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
@@ -824,30 +826,18 @@ KozCG::alw()
   }
   tk::destroy(m_pc);
 
-  // Multiply rhs with dt
-  if (g_cfg.get< tag::steady >()) {
-
-    for (std::size_t i=0; i<npoin; ++i) {
-      for (std::size_t c=0; c<ncomp; ++c) {
-        m_rhs(i,c,0) *= m_dtp[i];
-      }
-    }
-
-  } else {
-
-    m_rhs *= d->Dt();
-
-  }
-
   // Finish computing antidiffusive contributions and low-order solution
+  auto dt = d->Dt();
   for (std::size_t i=0; i<npoin; ++i) {
+    if (steady) dt = m_dtp[i];
     for (std::size_t c=0; c<ncomp; ++c) {
       auto p = c*2;
       auto n = p+1;
       m_p(i,p,0) /= vol[i];
       m_p(i,n,0) /= vol[i];
       // low-order solution
-      m_rhs(i,c,0) = m_u(i,c,0) + m_rhs(i,c,0)/vol[i] - m_p(i,p,0) - m_p(i,n,0);
+      m_rhs(i,c,0) = m_u(i,c,0) + dt*m_rhs(i,c,0)/vol[i]
+                                - m_p(i,p,0) - m_p(i,n,0);
     }
   }
 

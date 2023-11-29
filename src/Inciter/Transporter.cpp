@@ -1151,11 +1151,11 @@ Transporter::diagnostics( CkReductionMsg* msg )
   // Continue time step
   if (g_cfg.get< tag::solver >() == "riecg") {
     // cppcheck-suppress uninitvar
-    m_riecg[ meshid ].refine( l2res );
+    m_riecg[ meshid ].evalres( l2res );
   }
   else if (g_cfg.get< tag::solver >() == "zalcg") {
     // cppcheck-suppress uninitvar
-    m_zalcg[ meshid ].refine( l2res );
+    m_zalcg[ meshid ].evalres( l2res );
   }
   else if (g_cfg.get< tag::solver >() == "kozcg") {
     // cppcheck-suppress uninitvar

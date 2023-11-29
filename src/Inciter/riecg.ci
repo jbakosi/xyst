@@ -29,7 +29,7 @@ module riecg {
       entry void setup();
       entry void box( tk::real v );
       entry void start();
-      entry void refine( const std::vector< tk::real >& l2ref );
+      entry void evalres( const std::vector< tk::real >& l2ref );
       entry [reductiontarget] void advance( tk::real newdt );
       entry void comnorm( const std::unordered_map< int,
         std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& inbnd );
@@ -40,7 +40,6 @@ module riecg {
       entry void feop();
       entry void step();
       entry void integrals();
-      entry void next();
       entry void stage();
       entry void evalLB( int nrestart );
 
@@ -48,16 +47,16 @@ module riecg {
       // charm++/manual.html, Sec. "Structured Control Flow: Structured Dagger".
 
       entry void wait4int() {
-        when ownnorm_complete(), comnorm_complete() serial "int" { merge(); } }
+        when ownnorm_complete(), comnorm_complete() serial { merge(); } }
 
       entry void wait4grad() {
-        when owngrad_complete(), comgrad_complete() serial "grad" { rhs(); } }
+        when owngrad_complete(), comgrad_complete() serial { rhs(); } }
 
       entry void wait4rhs() {
-        when ownrhs_complete(), comrhs_complete() serial "rhs" { solve(); } }
+        when ownrhs_complete(), comrhs_complete() serial { solve(); } }
 
       entry void wait4stage() {
-        when feop_complete(), resize_complete() serial "stage" { stage(); } }
+        when feop_complete(), resize_complete() serial { stage(); } }
 
       entry void ownnorm_complete();
       entry void comnorm_complete();

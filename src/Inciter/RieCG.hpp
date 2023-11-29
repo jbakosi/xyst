@@ -102,8 +102,8 @@ class RieCG : public CBase_RieCG {
     void comrhs( const std::unordered_map< std::size_t,
                          std::vector< tk::real > >& inrhs );
 
-    //! Optionally refine/derefine mesh
-    void refine( const std::vector< tk::real >& l2res );
+    //! Evaluate residuals
+    void evalres( const std::vector< tk::real >& l2res );
 
     //! Receive new mesh from Refiner
     void resizePostAMR(
@@ -134,9 +134,6 @@ class RieCG : public CBase_RieCG {
 
     //! Evaluate whether to continue with next time step stage
     void stage();
-
-    //! Continue to next time step
-    void next();
 
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{
@@ -348,6 +345,9 @@ class RieCG : public CBase_RieCG {
 
     //! Advance systems of equations
     void solve();
+
+    //! Optionally refine/derefine mesh
+    void refine();
 
     //! Compute time step size
     void dt();

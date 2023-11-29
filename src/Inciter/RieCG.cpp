@@ -446,7 +446,7 @@ RieCG::ResumeFromSync()
 {
   if (Disc()->It() == 0) Throw( "it = 0 in ResumeFromSync()" );
 
-  if (!g_cfg.get< tag::nonblocking >()) next();
+  if (!g_cfg.get< tag::nonblocking >()) dt();
 }
 
 void
@@ -504,7 +504,7 @@ RieCG::start()
   // Zero grind-timer
   Disc()->grindZero();
   // Continue to first time step
-  next();
+  dt();
 }
 
 void
@@ -905,15 +905,6 @@ RieCG::BC( tk::real t )
 }
 
 void
-RieCG::next()
-// *****************************************************************************
-// Continue to next time step
-// *****************************************************************************
-{
-  dt();
-}
-
-void
 RieCG::dt()
 // *****************************************************************************
 // Compute time step size
@@ -969,7 +960,6 @@ RieCG::advance( tk::real newdt )
   // Set new time step size
   if (m_stage == 0) Disc()->setdt( newdt );
 
-  // Compute gradients for next time step stage
   grad();
 }
 
@@ -980,22 +970,21 @@ RieCG::grad()
 // *****************************************************************************
 {
   auto d = Disc();
-  const auto& lid = d->Lid();
 
-  riemann::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
-                 m_u, m_grad );
+  riemann::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge,
+                 m_bsupint, m_u, m_grad );
 
   // Send gradient contributions to neighbor chares
   if (d->NodeCommMap().empty()) {
     comgrad_complete();
   } else {
+    const auto& lid = d->Lid();
     for (const auto& [c,n] : d->NodeCommMap()) {
-      decltype(m_gradc) exp;
+      std::unordered_map< std::size_t, std::vector< tk::real > > exp;
       for (auto g : n) exp[g] = m_grad[ tk::cref_find(lid,g) ];
       thisProxy[c].comgrad( exp );
     }
   }
-
   owngrad_complete();
 }
 
@@ -1030,6 +1019,7 @@ RieCG::rhs()
 {
   auto d = Disc();
   const auto& lid = d->Lid();
+  const auto steady = g_cfg.get< tag::steady >();
 
   // Combine own and communicated contributions to gradients
   for (const auto& [g,r] : m_gradc) {
@@ -1047,7 +1037,7 @@ RieCG::rhs()
   // Compute own portion of right-hand side for all equations
   auto prev_rkcoef = m_stage == 0 ? 0.0 : rkcoef[m_stage-1];
 
-  if (g_cfg.get< tag::steady >()) {
+  if (steady) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
   }
 
@@ -1055,7 +1045,7 @@ RieCG::rhs()
     m_bpoin, m_bpint, m_bpsym, d->Coord(), m_grad, m_u, d->V(), d->T(),
     m_tp, m_rhs );
 
-  if (g_cfg.get< tag::steady >()) {
+  if (steady) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= prev_rkcoef * m_dtp[p];
   }
 
@@ -1064,7 +1054,7 @@ RieCG::rhs()
     comrhs_complete();
   } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
-      decltype(m_rhsc) exp;
+      std::unordered_map< std::size_t, std::vector< tk::real > > exp;
       for (auto g : n) exp[g] = m_rhs[ tk::cref_find(lid,g) ];
       thisProxy[c].comrhs( exp );
     }
@@ -1105,6 +1095,7 @@ RieCG::solve()
 {
   auto d = Disc();
   const auto lid = d->Lid();
+  const auto steady = g_cfg.get< tag::steady >();
 
   // Combine own and communicated contributions to rhs
   for (const auto& [g,r] : m_rhsc) {
@@ -1113,30 +1104,17 @@ RieCG::solve()
   }
   tk::destroy(m_rhsc);
 
-  // divide weak result in rhs by nodal volume
-  const auto& vol = d->Vol();
-  for (std::size_t p=0; p<m_rhs.nunk(); ++p)
-    for (std::size_t c=0; c<m_rhs.nprop(); ++c)
-      m_rhs(p,c,0) /= vol[p];
-
   // Update state at time n
   if (m_stage == 0) m_un = m_u;
 
-  // Solve the sytem
-  if (g_cfg.get< tag::steady >()) {
-
-    // Advance solution, converging to stationary state
-    for (std::size_t i=0; i<m_u.nunk(); ++i) {
-      for (std::size_t c=0; c<m_u.nprop(); ++c) {
-        m_u(i,c,0) = m_un(i,c,0) - rkcoef[m_stage] * m_dtp[i] * m_rhs(i,c,0);
-      }
+  // Advance solution
+  auto dt = d->Dt();
+  const auto& vol = d->Vol();
+  for (std::size_t i=0; i<m_u.nunk(); ++i) {
+    if (steady) dt = m_dtp[i];
+    for (std::size_t c=0; c<m_u.nprop(); ++c) {
+      m_u(i,c,0) = m_un(i,c,0) - rkcoef[m_stage] * dt * m_rhs(i,c,0) / vol[i];
     }
-
-  } else {
-
-    // Advance non-stationary solution
-    m_u = m_un - rkcoef[m_stage] * d->Dt() * m_rhs;
-
   }
 
   // Configure and apply scalar source to solution (if defined)
@@ -1146,63 +1124,60 @@ RieCG::solve()
   // Enforce boundary conditions
   BC( d->T() + rkcoef[m_stage] * d->Dt() );
 
-  // Activate SDAG wait for next time step stage
-  thisProxy[ thisIndex ].wait4grad();
-  thisProxy[ thisIndex ].wait4rhs();
-
   if (m_stage < 2) {
+
+    // Activate SDAG wait for next time step stage
+    thisProxy[ thisIndex ].wait4grad();
+    thisProxy[ thisIndex ].wait4rhs();
 
     // start next time step stage
     stage();
 
   } else {
 
-    // Activate SDAG waits for finishing a this time step stage
+    // Activate SDAG waits for finishing this time step stage
     thisProxy[ thisIndex ].wait4stage();
     // Compute diagnostics, e.g., residuals
-    auto diag_computed =
-      m_diag.compute( *d, m_u, m_un, g_cfg.get< tag::diag_iter >() );
+    auto diag = m_diag.compute( *d, m_u, m_un, g_cfg.get< tag::diag_iter >() );
     // Increase number of iterations and physical time
     d->next();
     // Advance physical time for local time stepping
-    if (g_cfg.get< tag::steady >()) {
+    if (steady) {
       using tk::operator+=;
       m_tp += m_dtp;
     }
     // Continue to mesh refinement
-    if (!diag_computed) refine( std::vector< tk::real >( m_u.nprop(), 1.0 ) );
+    if (!diag) evalres( std::vector< tk::real >( m_u.nprop(), 1.0 ) );
 
   }
 }
 
 void
-RieCG::refine( const std::vector< tk::real >& l2res )
+RieCG::evalres( const std::vector< tk::real >& l2res )
 // *****************************************************************************
-// Optionally refine/derefine mesh
+//  Evaluate residuals
 //! \param[in] l2res L2-norms of the residual for each scalar component
 //!   computed across the whole problem
 // *****************************************************************************
 {
+  if (g_cfg.get< tag::steady >()) {
+    const auto rc = g_cfg.get< tag::rescomp >() - 1;
+    Disc()->residual( l2res[rc] );
+  }
+
+  refine();
+}
+
+void
+RieCG::refine()
+// *****************************************************************************
+// Optionally refine/derefine mesh
+// *****************************************************************************
+{
   auto d = Disc();
 
-  if (g_cfg.get< tag::steady >()) {
-
-    const auto residual = g_cfg.get< tag::residual >();
-    const auto rc = g_cfg.get< tag::rescomp >() - 1;
-
-    // this is the last time step if max time of max number of time steps
-    // reached or the residual has reached its convergence criterion
-    if (d->finished() or (l2res[rc] > 0.0 and l2res[rc] < residual))
-      m_finished = 1;
-    else
-      d->residual( l2res[rc] );   // store/update residual
-
-  } else {
-
-    // this is the last time step if max time or max iterations reached
-    if (d->finished()) m_finished = 1;
-
-  }
+  // See if this is the last time step
+  if (d->finished()) m_finished = 1;
 
   auto dtref = g_cfg.get< tag::href_dt >();
   auto dtfreq = g_cfg.get< tag::href_dtfreq >();
@@ -1464,6 +1439,7 @@ RieCG::integrals()
   auto d = Disc();
 
   if (d->integiter() or d->integtime() or d->integrange()) {
+
     using namespace integrals;
     std::vector< std::map< int, tk::real > > ints( NUMINT );
     // Prepend integral vector with metadata on the current time step:
@@ -1487,8 +1463,11 @@ RieCG::integrals()
     auto stream = serialize( d->MeshId(), ints );
     d->contribute( stream.first, stream.second.get(), IntegralsMerger,
       CkCallback(CkIndex_Transporter::integrals(nullptr), d->Tr()) );
+
   } else {
+
     step();
+
   }
 }
 
@@ -1526,11 +1505,11 @@ RieCG::evalLB( int nrestart )
   if ( (d->It()) % lbfreq == 0 || d->It() == 2 ) {
 
     AtSync();
-    if (nonblocking) next();
+    if (nonblocking) dt();
 
   } else {
 
-    next();
+    dt();
 
   }
 }

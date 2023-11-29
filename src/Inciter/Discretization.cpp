@@ -343,8 +343,9 @@ Discretization::comvol( const std::vector< std::size_t >& gid,
 {
   Assert( nodevol.size() == gid.size(), "Size mismatch" );
 
-  for (std::size_t i=0; i<gid.size(); ++i)
+  for (std::size_t i=0; i<gid.size(); ++i) {
     m_volc[ gid[i] ] += nodevol[i];
+  }
 
   if (++m_nvol == m_nodeCommMap.size()) {
     m_nvol = 0;
@@ -888,8 +889,10 @@ Discretization::finished() const
   const auto eps = std::numeric_limits< tk::real >::epsilon();
   const auto nstep = g_cfg.get< tag::nstep >();
   const auto term = g_cfg.get< tag::term >();
+  const auto residual = g_cfg.get< tag::residual >();
 
-  return std::abs(m_t-term) < eps or m_it >= nstep;
+  return std::abs(m_t-term) < eps or m_it >= nstep or
+         (m_res > 0.0 and m_res < residual);
 }
 
 void

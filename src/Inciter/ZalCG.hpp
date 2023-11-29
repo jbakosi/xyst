@@ -111,8 +111,8 @@ class ZalCG : public CBase_ZalCG {
     void comlim( const std::unordered_map< std::size_t,
                          std::vector< tk::real > >& inlim );
 
-    //! Optionally refine/derefine mesh
-    void refine( const std::vector< tk::real >& l2res );
+    //! Evaluate residuals
+    void evalres( const std::vector< tk::real >& l2res );
 
     //! Receive new mesh from Refiner
     void resizePostAMR(
@@ -346,6 +346,9 @@ class ZalCG : public CBase_ZalCG {
 
     //! Advance systems of equations
     void solve();
+
+    //! Optionally refine/derefine mesh
+    void refine();
 
     //! Compute time step size
     void dt();

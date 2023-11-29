@@ -830,6 +830,7 @@ ZalCG::dt()
   thisProxy[ thisIndex ].wait4rhs();
   thisProxy[ thisIndex ].wait4alw();
   thisProxy[ thisIndex ].wait4sol();
+  thisProxy[ thisIndex ].wait4step();
 
   // Contribute to minimum dt across all chares and advance to next step
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
@@ -846,9 +847,7 @@ ZalCG::advance( tk::real newdt )
   // Set new time step size
   Disc()->setdt( newdt );
 
-  // Compute rhs
   rhs();
-  // Compute aec
   aec();
 }
 
@@ -861,7 +860,6 @@ ZalCG::rhs()
   auto d = Disc();
 
   // Compute own portion of right-hand side for all equations
-
   zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym, m_u,
                 d->T(), d->Dt(), m_tp, m_dtp, m_rhs );
 
@@ -871,7 +869,7 @@ ZalCG::rhs()
   } else {
     const auto& lid = d->Lid();
     for (const auto& [c,n] : d->NodeCommMap()) {
-      decltype(m_rhsc) exp;
+      std::unordered_map< std::size_t, std::vector< tk::real > > exp;
       for (auto g : n) exp[g] = m_rhs[ tk::cref_find(lid,g) ];
       thisProxy[c].comrhs( exp );
     }
@@ -1392,13 +1390,6 @@ ZalCG::solve()
   // Enforce boundary conditions
   BC( m_a, d->T() + d->Dt() );
 
-  // Activate SDAG wait for next time step
-  thisProxy[ thisIndex ].wait4rhs();
-  thisProxy[ thisIndex ].wait4alw();
-  thisProxy[ thisIndex ].wait4sol();
-  // Activate SDAG waits for finishing a this time step
-  thisProxy[ thisIndex ].wait4step();
-
   // Compute diagnostics, e.g., residuals
   auto diag = m_diag.compute( *d, m_a, m_u, g_cfg.get< tag::diag_iter >() );
 
@@ -1417,37 +1408,35 @@ ZalCG::solve()
     m_tp += m_dtp;
   }
   // Continue to mesh refinement
-  if (!diag) refine( std::vector< tk::real >( ncomp, 1.0 ) );
+  if (!diag) evalres( std::vector< tk::real >( ncomp, 1.0 ) );
 }
 
 void
-ZalCG::refine( const std::vector< tk::real >& l2res )
+ZalCG::evalres( const std::vector< tk::real >& l2res )
 // *****************************************************************************
-// Optionally refine/derefine mesh
+//  Evaluate residuals
 //! \param[in] l2res L2-norms of the residual for each scalar component
 //!   computed across the whole problem
 // *****************************************************************************
 {
+  if (g_cfg.get< tag::steady >()) {
+    const auto rc = g_cfg.get< tag::rescomp >() - 1;
+    Disc()->residual( l2res[rc] );
+  }
+
+  refine();
+}
+
+void
+ZalCG::refine()
+// *****************************************************************************
+// Optionally refine/derefine mesh
+// *****************************************************************************
+{
   auto d = Disc();
 
-  if (g_cfg.get< tag::steady >()) {
-
-    const auto residual = g_cfg.get< tag::residual >();
-    const auto rc = g_cfg.get< tag::rescomp >() - 1;
-
-    // this is the last time step if max time of max number of time steps
-    // reached or the residual has reached its convergence criterion
-    if (d->finished() or (l2res[rc] > 0.0 and l2res[rc] < residual))
-      m_finished = 1;
-    else
-      d->residual( l2res[rc] );   // store/update residual
-
-  } else {
-
-    // this is the last time step if max time or max iterations reached
-    if (d->finished()) m_finished = 1;
-
-  }
+  // See if this is the last time step
+  if (d->finished()) m_finished = 1;
 
   auto dtref = g_cfg.get< tag::href_dt >();
   auto dtfreq = g_cfg.get< tag::href_dtfreq >();

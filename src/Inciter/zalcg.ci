@@ -54,8 +54,10 @@ module zalcg {
         when ownnorm_complete(), comnorm_complete() serial { merge(); } }
 
       entry void wait4rhs() {
-        when ownrhs_complete(), comrhs_complete(),
-             ownaec_complete(), comaec_complete() serial { alw(); } }
+        when ownrhs_complete(), comrhs_complete() serial { fct(); } }
+
+      entry void wait4aec() {
+        when ownaec_complete(), comaec_complete() serial { alw(); } }
 
       entry void wait4alw() {
         when ownalw_complete(), comalw_complete() serial { lim(); } }

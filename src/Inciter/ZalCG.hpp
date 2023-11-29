@@ -335,6 +335,9 @@ class ZalCG : public CBase_ZalCG {
     //! Compute righ-hand side vector of transport equations
     void rhs();
 
+    //! Continue with flux-corrected transport if enabled
+    void fct();
+
     //! Compute antidiffusive contributions: P+/-
     void aec();
 

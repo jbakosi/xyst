@@ -828,6 +828,7 @@ ZalCG::dt()
 
   // Actiavate SDAG waits for next time step
   thisProxy[ thisIndex ].wait4rhs();
+  thisProxy[ thisIndex ].wait4aec();
   thisProxy[ thisIndex ].wait4alw();
   thisProxy[ thisIndex ].wait4sol();
   thisProxy[ thisIndex ].wait4step();
@@ -848,7 +849,6 @@ ZalCG::advance( tk::real newdt )
   Disc()->setdt( newdt );
 
   rhs();
-  aec();
 }
 
 void
@@ -894,6 +894,25 @@ ZalCG::comrhs(
     m_nrhs = 0;
     comrhs_complete();
   }
+}
+
+void
+ZalCG::fct()
+// *****************************************************************************
+// Continue with flux-corrected transport if enabled
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto& lid = d->Lid();
+
+  // Combine own and communicated contributions to rhs
+  for (const auto& [g,r] : m_rhsc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
+  }
+  tk::destroy(m_rhsc);
+
+  if (g_cfg.get< tag::fct >()) aec(); else solve();
 }
 
 void
@@ -1009,13 +1028,6 @@ ZalCG::alw()
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
   const auto& vol = d->Vol();
-
-  // Combine own and communicated contributions to rhs
-  for (const auto& [g,r] : m_rhsc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
-  }
-  tk::destroy(m_rhsc);
 
   // Combine own and communicated contributions to antidiffusive contributions
   // and low-order solution
@@ -1301,11 +1313,8 @@ ZalCG::lim()
       aec[c] = -dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
       auto a = c*2;
       auto b = a+1;
-      coef[c] = 1.0;
-      if (g_cfg.get< tag::fct >()) {
-        coef[c] = min( aec[c] < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
-                       aec[c] > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
-      }
+      coef[c] = min( aec[c] < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
+                     aec[c] > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
     }
     tk::real cs = 1.0;
     for (auto c : fctsys) cs = min( cs, coef[c] );
@@ -1367,6 +1376,7 @@ ZalCG::solve()
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
   const auto& vol = d->Vol();
+  const auto steady = g_cfg.get< tag::steady >();
 
   // Combine own and communicated contributions to limited antidiffusive
   // contributions
@@ -1376,11 +1386,26 @@ ZalCG::solve()
   }
   tk::destroy(m_ac);
 
-  // Apply limited antidiffusive contributions to low-order solution
-  for (std::size_t i=0; i<npoin; ++i) {
-    for (std::size_t c=0; c<ncomp; ++c) {
-      m_a(i,c,0) = m_rhs(i,c,0) + m_a(i,c,0)/vol[i];
+  if (g_cfg.get< tag::fct >()) {
+
+    // Apply limited antidiffusive contributions to low-order solution
+    for (std::size_t i=0; i<npoin; ++i) {
+      for (std::size_t c=0; c<ncomp; ++c) {
+        m_a(i,c,0) = m_rhs(i,c,0) + m_a(i,c,0)/vol[i];
+      }
     }
+
+  } else {
+
+    // Apply rhs
+    auto dt = d->Dt();
+    for (std::size_t i=0; i<npoin; ++i) {
+      if (steady) dt = m_dtp[i];
+      for (std::size_t c=0; c<ncomp; ++c) {
+        m_a(i,c,0) = m_u(i,c,0) - dt*m_rhs(i,c,0)/vol[i];
+      }
+    }
+
   }
 
   // Configure and apply scalar source to solution (if defined)
@@ -1403,7 +1428,7 @@ ZalCG::solve()
   // Increase number of iterations and physical time
   d->next();
   // Advance physical time for local time stepping
-  if (g_cfg.get< tag::steady >()) {
+  if (steady) {
     using tk::operator+=;
     m_tp += m_dtp;
   }

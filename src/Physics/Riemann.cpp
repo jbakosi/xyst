@@ -377,12 +377,12 @@ grad( const std::vector< std::size_t >& bpoin,
       for (std::size_t j=0; j<3; ++j) {
         tk::real f[6];
         const auto d = dsupint[0].data();
-        f[0] = d[(e*6+0)*3+j] * ( u[1][c] + u[0][c] );
-        f[1] = d[(e*6+1)*3+j] * ( u[2][c] + u[1][c] );
-        f[2] = d[(e*6+2)*3+j] * ( u[0][c] + u[2][c] );
-        f[3] = d[(e*6+3)*3+j] * ( u[3][c] + u[0][c] );
-        f[4] = d[(e*6+4)*3+j] * ( u[3][c] + u[1][c] );
-        f[5] = d[(e*6+5)*3+j] * ( u[3][c] + u[2][c] );
+        f[0] = d[(e*6+0)*3+j] * (u[1][c] + u[0][c]);
+        f[1] = d[(e*6+1)*3+j] * (u[2][c] + u[1][c]);
+        f[2] = d[(e*6+2)*3+j] * (u[0][c] + u[2][c]);
+        f[3] = d[(e*6+3)*3+j] * (u[3][c] + u[0][c]);
+        f[4] = d[(e*6+4)*3+j] * (u[3][c] + u[1][c]);
+        f[5] = d[(e*6+5)*3+j] * (u[3][c] + u[2][c]);
         G(N[0],c*3+j,0) = G(N[0],c*3+j,0) - f[0] + f[2] - f[3];
         G(N[1],c*3+j,0) = G(N[1],c*3+j,0) + f[0] - f[1] - f[4];
         G(N[2],c*3+j,0) = G(N[2],c*3+j,0) + f[1] - f[2] - f[5];
@@ -402,9 +402,9 @@ grad( const std::vector< std::size_t >& bpoin,
       for (std::size_t j=0; j<3; ++j) {
         tk::real f[3];
         const auto d = dsupint[1].data();
-        f[0] = d[(e*3+0)*3+j] * ( u[1][c] + u[0][c] );
-        f[1] = d[(e*3+1)*3+j] * ( u[2][c] + u[1][c] );
-        f[2] = d[(e*3+2)*3+j] * ( u[0][c] + u[2][c] );
+        f[0] = d[(e*3+0)*3+j] * (u[1][c] + u[0][c]);
+        f[1] = d[(e*3+1)*3+j] * (u[2][c] + u[1][c]);
+        f[2] = d[(e*3+2)*3+j] * (u[0][c] + u[2][c]);
         G(N[0],c*3+j,0) = G(N[0],c*3+j,0) - f[0] + f[2];
         G(N[1],c*3+j,0) = G(N[1],c*3+j,0) + f[0] - f[1];
         G(N[2],c*3+j,0) = G(N[2],c*3+j,0) + f[1] - f[2];
@@ -418,9 +418,10 @@ grad( const std::vector< std::size_t >& bpoin,
     tk::real u[2][ncomp];
     primitive( ncomp, N[0], U, u[0] );
     primitive( ncomp, N[1], U, u[1] );
+    const auto d = dsupint[2].data() + e*3;
     for (std::size_t c=0; c<ncomp; ++c) {
       for (std::size_t j=0; j<3; ++j) {
-        tk::real f = dsupint[2][e*3+j] * ( u[1][c] + u[0][c] );
+        tk::real f = d[j] * (u[1][c] + u[0][c]);
         G(N[0],c*3+j,0) -= f;
         G(N[1],c*3+j,0) += f;
       }
@@ -452,9 +453,9 @@ grad( const std::vector< std::size_t >& bpoin,
       for (std::size_t j=0; j<3; ++j) {
         tk::real f[3];
         const auto b = bsupint[0].data();
-        f[0] = b[(e*3+0)*3+j] * ( u[1][c] + u[0][c] );
-        f[1] = b[(e*3+1)*3+j] * ( u[2][c] + u[1][c] );
-        f[2] = b[(e*3+2)*3+j] * ( u[0][c] + u[2][c] );
+        f[0] = b[(e*3+0)*3+j] * (u[1][c] + u[0][c]);
+        f[1] = b[(e*3+1)*3+j] * (u[2][c] + u[1][c]);
+        f[2] = b[(e*3+2)*3+j] * (u[0][c] + u[2][c]);
         G(N[0],c*3+j,0) = G(N[0],c*3+j,0) - f[0] + f[2];
         G(N[1],c*3+j,0) = G(N[1],c*3+j,0) + f[0] - f[1];
         G(N[2],c*3+j,0) = G(N[2],c*3+j,0) + f[1] - f[2];
@@ -470,7 +471,7 @@ grad( const std::vector< std::size_t >& bpoin,
     primitive( ncomp, N[1], U, u[1] );
     for (std::size_t c=0; c<ncomp; ++c) {
       for (std::size_t j=0; j<3; ++j) {
-        tk::real f = bsupint[1][e*3+j] * ( u[1][c] + u[0][c] );
+        tk::real f = bsupint[1][e*3+j] * (u[1][c] + u[0][c]);
         G(N[0],c*3+j,0) -= f;
         G(N[1],c*3+j,0) += f;
       }

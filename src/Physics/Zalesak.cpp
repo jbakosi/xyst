@@ -175,7 +175,23 @@ advedge( const tk::real supint[],
   if (!stab2 && !stab4) return;
 
   auto stab2coef = g_cfg.get< tag::stab2coef >();
-  if (stab4) stab2coef = 1.0;
+  auto b = 0.0;
+  tk::real d2rL = 0.0, d2ruL = 0.0, d2rvL = 0.0, d2rwL = 0.0, d2reL = 0.0;
+  tk::real d2rR = 0.0, d2ruR = 0.0, d2rvR = 0.0, d2rwR = 0.0, d2reR = 0.0;
+  if (stab4) {
+    stab2coef = 1.0;
+    b = std::max( S(p,0,0), S(q,0,0) );
+    d2rL  = G(p,3+0,0);
+    d2ruL = G(p,3+1,0);
+    d2rvL = G(p,3+2,0);
+    d2rwL = G(p,3+3,0);
+    d2reL = G(p,3+4,0);
+    d2rR  = G(q,3+0,0);
+    d2ruR = G(q,3+1,0);
+    d2rvR = G(q,3+2,0);
+    d2rwR = G(q,3+3,0);
+    d2reR = G(q,3+4,0);
+  }
 
   auto vnL = (ruL*nx + rvL*ny + rwL*nz)/rL;
   auto vnR = (ruR*nx + rvR*ny + rwR*nz)/rR;
@@ -185,21 +201,6 @@ advedge( const tk::real supint[],
   auto sl = std::abs(vnL) + cL*len;
   auto sr = std::abs(vnR) + cR*len;
   auto fw = stab2coef * std::max( sl, sr );
-
-  auto b = 0.0;
-  if (stab4) b = std::max( S(p,0,0), S(q,0,0) );
-
-  auto d2rL  = G(p,3+0,0);
-  auto d2ruL = G(p,3+1,0);
-  auto d2rvL = G(p,3+2,0);
-  auto d2rwL = G(p,3+3,0);
-  auto d2reL = G(p,3+4,0);
-
-  auto d2rR  = G(q,3+0,0);
-  auto d2ruR = G(q,3+1,0);
-  auto d2rvR = G(q,3+2,0);
-  auto d2rwR = G(q,3+3,0);
-  auto d2reR = G(q,3+4,0);
 
   auto s2c = 1.0 - b;
   auto s4c = 0.25 * b * dl;

@@ -696,6 +696,29 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 
 } // point_source::
 
+namespace gyor {
+
+static std::vector< tk::real >
+ic( tk::real, tk::real, tk::real, tk::real t )
+// *****************************************************************************
+//! Set initial conditions prescribing gyor
+//! \param[in] t Time where to evaluate the solution
+//! \return Values of conserved variables
+// *****************************************************************************
+{
+  auto r = 1.225;
+  auto p = 1.0e5;
+
+  auto u = 5.0 * std::cos(t);
+  auto v = 5.0 * std::sin(t);
+  auto w = 0.0;
+  tk::real rE = eos::totalenergy( r, u, v, w, p );
+
+  return { r, r*u, r*v, r*w, rE };
+}
+
+} // gyor::
+
 std::function< std::vector< tk::real >
              ( tk::real, tk::real, tk::real, tk::real ) >
 IC()
@@ -727,6 +750,8 @@ IC()
     ic = slot_cyl::ic;
   else if (problem == "point_src")
     ic = point_source::ic;
+  else if (problem == "gyor")
+    ic = gyor::ic;
   else
     Throw( "problem type ic not hooked up" );
 

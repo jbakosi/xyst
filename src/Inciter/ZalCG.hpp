@@ -20,10 +20,13 @@
 #include "Table.hpp"
 #include "DerivedData.hpp"
 #include "NodeDiagnostics.hpp"
+#include "InciterConfig.hpp"
 
 #include "NoWarning/zalcg.decl.h"
 
 namespace inciter {
+
+extern ctr::Config g_cfg;
 
 //! ZalCG Charm++ chare array used to advance PDEs in time with ZalCG
 class ZalCG : public CBase_ZalCG {
@@ -94,6 +97,13 @@ class ZalCG : public CBase_ZalCG {
     void comnorm( const std::unordered_map< int,
       std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& inbnd );
 
+    //! Receive contributions to node gradients on chare-boundaries
+    void comgrad( const std::unordered_map< std::size_t,
+                          std::vector< tk::real > >& ingrad );
+
+    //! Receive contributions to stabilization contributions on chare-boundaries
+    void comstab( const std::unordered_map< std::size_t, tk::real >& instab );
+
     //! Receive contributions to right-hand side vector on chare-boundaries
     void comrhs( const std::unordered_map< std::size_t,
                          std::vector< tk::real > >& inrhs );
@@ -150,6 +160,8 @@ class ZalCG : public CBase_ZalCG {
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
     void pup( PUP::er &p ) override {
       p | m_disc;
+      p | m_ngrad;
+      p | m_nstab;
       p | m_nrhs;
       p | m_nnorm;
       p | m_naec;
@@ -168,13 +180,23 @@ class ZalCG : public CBase_ZalCG {
       // do not pup these, will recompute after migration anyway
       if (p.isUnpacking()) {
         m_rhs.resize( m_u.nunk(), m_u.nprop() );
+        m_grad.resize( g_cfg.get< tag::stab4 >() ? m_u.nunk() : 0,
+                       3 + m_u.nprop() );
+        m_stab.resize( m_grad.nunk(), 1UL );
       }
       p | m_rhsc;
+      p | m_gradc;
+      p | m_stabc;
       p | m_diag;
       p | m_bnorm;
       p | m_bnormc;
       p | m_bndpoinint;
+      p | m_bndedgeint;
       p | m_domedgeint;
+      p | m_bpoin;
+      p | m_bpint;
+      p | m_bsupedge;
+      p | m_bsupint;
       p | m_dsupedge;
       p | m_dsupint;
       p | m_besym;
@@ -201,6 +223,10 @@ class ZalCG : public CBase_ZalCG {
   private:
     //! Discretization proxy
     CProxy_Discretization m_disc;
+    //! Counter for receiving gradients
+    std::size_t m_ngrad;
+    //! Counter for receiving stabilization coefficients
+    std::size_t m_nstab;
     //! Counter for right-hand side vector nodes updated
     std::size_t m_nrhs;
     //! Counter for receiving boundary point normals
@@ -256,15 +282,36 @@ class ZalCG : public CBase_ZalCG {
     //! \details Key: global node id of boundary point, value: boundary point
     //!   integral contributions.
     std::unordered_map< std::size_t, std::array< tk::real, 3 > > m_bndpoinint;
+    //! Boundary edge integrals
+    //! \details Key: boundary edge-end points with global node ids, value:
+    //!   boundary edge integral contributions.
+    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
+                        tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_bndedgeint;
     //! Domain edge integrals
     std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 4 >,
       tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_domedgeint;
+    //! Streamable boundary point local ids
+    std::vector< std::size_t > m_bpoin;
+    //! Streamable boundary point integrals
+    std::vector< tk::real > m_bpint;
+    //! Superedge (face, edge) end points with local ids for boundary edges
+    std::array< std::vector< std::size_t >, 2 > m_bsupedge;
+    //! Superedge (tet, face, edge) boundary edge integrals
+    std::array< std::vector< tk::real >, 2 > m_bsupint;
     //! Superedge (tet, face, edge) end points with local ids for domain edges
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals
     std::array< std::vector< tk::real >, 3 > m_dsupint;
     //! Streamable boundary point symmetry BC flags
     std::vector< std::uint8_t > m_besym;
+    //! Gradients in mesh nodes
+    tk::Fields m_grad;
+    //! Gradients receive buffer
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_gradc;
+    //! Stabilization coefficients in mesh nodes
+    tk::Fields m_stab;
+    //! Stabilization coefficients receive buffer
+    std::unordered_map< std::size_t, tk::real > m_stabc;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmasks;
     //! Nodes at pressure BCs
@@ -331,6 +378,12 @@ class ZalCG : public CBase_ZalCG {
 
     //! Combine own and communicated portions of the integrals
     void merge();
+
+    //! Compute gradients for next time step
+    void grad();
+
+    //! Compute stabilization coefficients for next time step
+    void stab();
 
     //! Compute righ-hand side vector of transport equations
     void rhs();

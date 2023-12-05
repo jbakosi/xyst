@@ -48,6 +48,8 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
               const std::map< int, std::vector< std::size_t > >& bnode,
               const std::vector< std::size_t >& triinpoel ) :
   m_disc( disc ),
+  m_ngrad( 0 ),
+  m_nstab( 0 ),
   m_nrhs( 0 ),
   m_nnorm( 0 ),
   m_naec( 0 ),
@@ -61,6 +63,8 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
   m_q( m_u.nunk(), m_u.nprop()*2 ),
   m_a( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
+  m_grad( g_cfg.get< tag::stab4 >() ? m_u.nunk() : 0, 3 + m_u.nprop() ),
+  m_stab( m_grad.nunk(), 1 ),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
   m_finished( 0 )
@@ -284,6 +288,7 @@ ZalCG::bndint()
 
   tk::destroy( m_bnorm );
   tk::destroy( m_bndpoinint );
+  tk::destroy( m_bndedgeint );
 
   for (const auto& [ setid, faceids ] : m_bface) { // for all side sets
     for (auto f : faceids) { // for all side set triangles
@@ -303,6 +308,7 @@ ZalCG::bndint()
       // contribute all edges of triangle
       for (const auto& [i,j] : tk::lpoet) {
         auto p = N[i];
+        auto q = N[j];
         tk::real r = invdistsq( centroid, p );
         auto& v = m_bnorm[setid];      // associate side set id
         auto& bn = v[gid[p]];          // associate global node id of bnd pnt
@@ -314,6 +320,16 @@ ZalCG::bndint()
         b[0] += n[0] * A2 / 6.0;       // bnd-point integral
         b[1] += n[1] * A2 / 6.0;
         b[2] += n[2] * A2 / 6.0;
+        tk::UnsMesh::Edge ed{ gid[p], gid[q] };
+        tk::real sig = 1.0;
+        if (ed[0] > ed[1]) {
+          std::swap( ed[0], ed[1] );
+          sig = -1.0;
+        }
+        auto& e = m_bndedgeint[ ed ];
+        e[0] += sig * n[0] * A2 / 24.0; // bnd-edge integral
+        e[1] += sig * n[1] * A2 / 24.0;
+        e[2] += sig * n[2] * A2 / 24.0;
       }
     }
   }
@@ -360,9 +376,9 @@ ZalCG::domint()
         sig = -1.0;
       }
       auto& n = m_domedgeint[ ed ];
-      n[0] += sig * (grad[p][0] - grad[q][0]) / 24.0;
-      n[1] += sig * (grad[p][1] - grad[q][1]) / 24.0;
-      n[2] += sig * (grad[p][2] - grad[q][2]) / 24.0;
+      n[0] += sig * (grad[p][0] - grad[q][0]) / 48.0;
+      n[1] += sig * (grad[p][1] - grad[q][1]) / 48.0;
+      n[2] += sig * (grad[p][2] - grad[q][2]) / 48.0;
       n[3] += J120;
     }
   }
@@ -530,8 +546,22 @@ ZalCG::streamable()
 // Convert integrals into streamable data structures
 // *****************************************************************************
 {
-  m_besym.resize( m_triinpoel.size() );
+  const auto& lid = Disc()->Lid();
+
+  // Convert boundary point integrals into streamable data structures
+  m_bpoin.resize( m_bndpoinint.size() );
+  m_bpint.resize( m_bndpoinint.size() * 3 );
   std::size_t i = 0;
+  for (const auto& [g,b] : m_bndpoinint) {
+    m_bpoin[i] = tk::cref_find( lid, g );
+    m_bpint[i*3+0] = b[0];
+    m_bpint[i*3+1] = b[1];
+    m_bpint[i*3+2] = b[2];
+    ++i;
+  }
+
+  m_besym.resize( m_triinpoel.size() );
+  i = 0;
   for (auto p : m_triinpoel) {
     m_besym[i++] = static_cast< std::uint8_t >(m_symbcnodeset.count(p));
   }
@@ -571,6 +601,10 @@ ZalCG::streamable()
     }
   }
   tk::destroy( m_bndpoinint );
+
+  // Generate boundary superedges
+  bndsuped();
+  tk::destroy( m_bndedgeint );
 
   // Generate superedges for domain integral
   domsuped();
@@ -614,6 +648,91 @@ ZalCG::streamable()
   }
   tk::destroy( m_farbcnodeset );
   tk::destroy( m_bnorm );
+}
+
+void
+ZalCG::bndsuped()
+// *****************************************************************************
+// Generate superedge-groups for boundary-edge loops
+//! \see See Lohner, Sec. 15.1.6.2, An Introduction to Applied CFD Techniques,
+//!      Wiley, 2008.
+// *****************************************************************************
+{
+  #ifndef NDEBUG
+  auto nbedge = m_bndedgeint.size();
+  #endif
+
+  const auto& lid = Disc()->Lid();
+  const auto& gid = Disc()->Gid();
+
+  tk::destroy( m_bsupedge[0] );
+  tk::destroy( m_bsupedge[1] );
+
+  tk::destroy( m_bsupint[0] );
+  tk::destroy( m_bsupint[1] );
+
+  for (const auto& [setid, tri] : m_bface) {
+    for (auto e : tri) {
+      std::size_t N[3] = { m_triinpoel[e*3+0], m_triinpoel[e*3+1],
+                           m_triinpoel[e*3+2] };
+      int f = 0;
+      tk::real sig[3];
+      decltype(m_bndedgeint)::const_iterator b[3];
+      for (const auto& [p,q] : tk::lpoet) {
+        tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+        sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
+        b[f] = m_bndedgeint.find( ed );
+        if (b[f] == end(m_bndedgeint)) break; else ++f;
+      }
+      if (f == 3) {
+        m_bsupedge[0].push_back( N[0] );
+        m_bsupedge[0].push_back( N[1] );
+        m_bsupedge[0].push_back( N[2] );
+        m_bsupedge[0].push_back( m_symbcnodeset.count(N[0]) );
+        m_bsupedge[0].push_back( m_symbcnodeset.count(N[1]) );
+        m_bsupedge[0].push_back( m_symbcnodeset.count(N[2]) );
+        for (int ed=0; ed<3; ++ed) {
+          m_bsupint[0].push_back( sig[ed] * b[ed]->second[0] );
+          m_bsupint[0].push_back( sig[ed] * b[ed]->second[1] );
+          m_bsupint[0].push_back( sig[ed] * b[ed]->second[2] );
+          m_bndedgeint.erase( b[ed] );
+        }
+      }
+    }
+  }
+
+  m_bsupedge[1].resize( m_bndedgeint.size()*4 );
+  m_bsupint[1].resize( m_bndedgeint.size()*3 );
+  std::size_t k = 0;
+  for (const auto& [ed,b] : m_bndedgeint) {
+    auto p = tk::cref_find( lid, ed[0] );
+    auto q = tk::cref_find( lid, ed[1] );
+    auto e = m_bsupedge[1].data() + k*4;
+    e[0] = p;
+    e[1] = q;
+    e[2] = m_symbcnodeset.count(p);
+    e[3] = m_symbcnodeset.count(q);
+    auto i = m_bsupint[1].data() + k*3;
+    i[0] = b[0];
+    i[1] = b[1];
+    i[2] = b[2];
+    ++k;
+  }
+
+  //std::cout << std::setprecision(2)
+  //          << "superedges: ntri:" << m_bsupedge[0].size()/6
+  //          << "(nedge:" << m_bsupedge[0].size()/3 << ","
+  //          << 100.0 * static_cast< tk::real >( m_bsupedge[0].size()/3 ) /
+  //                     static_cast< tk::real >( nbedge )
+  //          << "%) + nedge:"
+  //          << m_bsupedge[1].size()/4 << "("
+  //          << 100.0 * static_cast< tk::real >( m_bsupedge[1].size()/4 ) /
+  //                     static_cast< tk::real >( nbedge )
+  //          << "%) = " << m_bsupedge[0].size()/2 + m_bsupedge[1].size()/4
+  //          << " of "<< nbedge << " total boundary edges\n";
+
+  Assert( m_bsupedge[0].size()/2 + m_bsupedge[1].size()/4 == nbedge,
+          "Not all boundary edges accounted for in superedge groups" );
 }
 
 void
@@ -666,10 +785,11 @@ ZalCG::domsuped()
       m_dsupedge[0].push_back( N[3] );
       for (const auto& [a,b,c] : tk::lpofa) untri.erase( { N[a], N[b], N[c] } );
       for (int ed=0; ed<6; ++ed) {
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[0] );
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[1] );
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[2] );
-        m_dsupint[0].push_back( d[ed]->second[3] );
+        const auto& ded = d[ed]->second;
+        m_dsupint[0].push_back( sig[ed] * ded[0] );
+        m_dsupint[0].push_back( sig[ed] * ded[1] );
+        m_dsupint[0].push_back( sig[ed] * ded[2] );
+        m_dsupint[0].push_back( ded[3] );
         m_domedgeint.erase( d[ed] );
       }
     }
@@ -690,10 +810,11 @@ ZalCG::domsuped()
       m_dsupedge[1].push_back( N[1] );
       m_dsupedge[1].push_back( N[2] );
       for (int ed=0; ed<3; ++ed) {
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[0] );
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[1] );
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[2] );
-        m_dsupint[1].push_back( d[ed]->second[3] );
+        const auto& ded = d[ed]->second;
+        m_dsupint[1].push_back( sig[ed] * ded[0] );
+        m_dsupint[1].push_back( sig[ed] * ded[1] );
+        m_dsupint[1].push_back( sig[ed] * ded[2] );
+        m_dsupint[1].push_back( ded[3] );
         m_domedgeint.erase( d[ed] );
       }
     }
@@ -827,6 +948,8 @@ ZalCG::dt()
   }
 
   // Actiavate SDAG waits for next time step
+  thisProxy[ thisIndex ].wait4grad();
+  thisProxy[ thisIndex ].wait4stab();
   thisProxy[ thisIndex ].wait4rhs();
   thisProxy[ thisIndex ].wait4aec();
   thisProxy[ thisIndex ].wait4alw();
@@ -848,7 +971,108 @@ ZalCG::advance( tk::real newdt )
   // Set new time step size
   Disc()->setdt( newdt );
 
-  rhs();
+  if (g_cfg.get< tag::stab4 >()) grad(); else rhs();
+}
+
+void
+ZalCG::grad()
+// *****************************************************************************
+// Compute gradients for next time step
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto& lid = d->Lid();
+
+  zalesak::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge,
+                 m_bsupint, m_u, m_grad );
+
+  // Send gradient contributions to neighbor chares
+  if (d->NodeCommMap().empty()) {
+    comgrad_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      std::unordered_map< std::size_t, std::vector< tk::real > > exp;
+      for (auto g : n) exp[g] = m_grad[ tk::cref_find(lid,g) ];
+      thisProxy[c].comgrad( exp );
+    }
+  }
+  owngrad_complete();
+}
+
+void
+ZalCG::comgrad(
+  const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
+// *****************************************************************************
+//  Receive contributions to node gradients on chare-boundaries
+//! \param[in] ingrad Partial contributions to chare-boundary nodes. Key:
+//!   global mesh node IDs, value: contributions for all scalar components.
+// *****************************************************************************
+{
+  using tk::operator+=;
+  for (const auto& [g,r] : ingrad) m_gradc[g] += r;
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_ngrad == Disc()->NodeCommMap().size()) {
+    m_ngrad = 0;
+    comgrad_complete();
+  }
+}
+
+void
+ZalCG::stab()
+// *****************************************************************************
+// Compute stabilization coefficients for next time step
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto& lid = d->Lid();
+
+    // Combine own and communicated contributions to gradients
+  for (const auto& [g,r] : m_gradc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c,0) += r[c];
+  }
+  tk::destroy(m_gradc);
+
+  // divide weak result in gradients by nodal volume
+  const auto& vol = d->Vol();
+  for (std::size_t p=0; p<m_grad.nunk(); ++p)
+    for (std::size_t c=0; c<m_grad.nprop(); ++c)
+      m_grad(p,c,0) /= vol[p];
+
+  zalesak::stab( m_dsupedge, d->Coord(), m_u, m_grad, m_stab );
+
+  // Send stabilization coefficient contributions to neighbor chares
+  if (d->NodeCommMap().empty()) {
+    comstab_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      std::unordered_map< std::size_t, tk::real > exp;
+      for (auto g : n) exp[g] = m_stab(tk::cref_find(lid,g),0,0);
+      thisProxy[c].comstab( exp );
+    }
+  }
+  ownstab_complete();
+}
+
+void
+ZalCG::comstab( const std::unordered_map< std::size_t, tk::real >& instab )
+// *****************************************************************************
+//  Receive contributions to stabilization coefficients on chare-boundaries
+//! \param[in] instab Partial contributions to chare-boundary nodes. Key:
+//!   global mesh node IDs, value: contributions for all scalar components.
+// *****************************************************************************
+{
+  for (const auto& [g,r] : instab) {
+    auto& s = m_stabc[g];
+    s = std::max( s, r );
+  }
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_nstab == Disc()->NodeCommMap().size()) {
+    m_nstab = 0;
+    comstab_complete();
+  }
 }
 
 void
@@ -858,16 +1082,23 @@ ZalCG::rhs()
 // *****************************************************************************
 {
   auto d = Disc();
+  const auto& lid = d->Lid();
+
+    // Combine own and communicated contributions to stabilization coefficients
+  for (const auto& [g,r] : m_stabc) {
+    auto i = tk::cref_find( lid, g );
+    m_stab(i,0,0) = std::max( m_stab(i,0,0), r );
+  }
+  tk::destroy(m_stabc);
 
   // Compute own portion of right-hand side for all equations
-  zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym, m_u,
-                d->T(), d->Dt(), m_tp, m_dtp, m_rhs );
+  zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym,
+                d->T(), d->Dt(), m_tp, m_dtp, m_u, m_stab, m_grad, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
     comrhs_complete();
   } else {
-    const auto& lid = d->Lid();
     for (const auto& [c,n] : d->NodeCommMap()) {
       std::unordered_map< std::size_t, std::vector< tk::real > > exp;
       for (auto g : n) exp[g] = m_rhs[ tk::cref_find(lid,g) ];

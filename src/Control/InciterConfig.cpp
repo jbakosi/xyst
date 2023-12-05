@@ -898,7 +898,9 @@ Config::control()
     get< tag::part >() = string( L, "part", "rcb", true );
     get< tag::zoltan_params >() = stringlist( L, "zoltan_params", true );
     get< tag::solver >() = string( L, "solver", "riecg", true );
-    print << "Solver: " << get< tag::solver >() << '\n';
+    get< tag::stab2 >() = boolean( L, "stab2", false, true );
+    get< tag::stab2coef >() = real( L, "stab2coef", 0.2, true );
+    get< tag::stab4 >() = boolean( L, "stab4", false, true );
     get< tag::fct >() = boolean( L, "fct", true, true );
     get< tag::fctdif >() = real( L, "fctdif", 1.0, true );
     get< tag::fctclip >() = boolean( L, "fctclip", false, true );
@@ -916,6 +918,8 @@ Config::control()
     integout( L, *this );
     diag( L, *this );
     href( L, *this );
+
+    print << "Solver: " << get< tag::solver >() << '\n';
 
   } else {
     err = lua_tostring( L, -1 );

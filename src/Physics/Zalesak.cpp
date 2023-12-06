@@ -670,6 +670,7 @@ stab( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   S.fill( 0.0 );
 
   // Lambda to compute the pressure sensor function on edge {p,q}
+  const auto eps = std::numeric_limits< tk::real >::epsilon()*1.0e+3;
   auto beta = [&]( std::size_t p, std::size_t q,
                    tk::real pL, tk::real pR,
                    tk::real dpL[3], tk::real dpR[3] )
@@ -682,8 +683,8 @@ stab( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     auto dpz = dpL[2] + dpR[2];
     auto dp = 0.5*(dx*dpx + dy*dpy + dz*dpz);
     auto ps = pL - pR;
-    auto e = ps - dp;
-    auto d = abs(ps) + abs(dp);
+    auto e = abs(ps - dp);
+    auto d = abs(ps) + abs(dp) + eps;
     return 1.0 - e/d;
   };
 

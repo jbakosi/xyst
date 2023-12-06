@@ -1487,11 +1487,8 @@ ZalCG::lim()
         aec[c] = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
         auto a = c*2;
         auto b = a+1;
-        coef[c] = 1.0;
-        if (g_cfg.get< tag::fct >()) {
-          coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                         aec[c] > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
-        }
+        coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
+                       aec[c] > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
       }
       tk::real cs = 1.0;
       for (auto c : fctsys) cs = min( cs, coef[c] );
@@ -1517,11 +1514,8 @@ ZalCG::lim()
         aec[c] = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
         auto a = c*2;
         auto b = a+1;
-        coef[c] = 1.0;
-        if (g_cfg.get< tag::fct >()) {
-          coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                         aec[c] > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
-        }
+        coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
+                       aec[c] > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
       }
       tk::real cs = 1.0;
       for (auto c : fctsys) cs = min( cs, coef[c] );

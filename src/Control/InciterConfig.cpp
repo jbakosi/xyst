@@ -876,7 +876,7 @@ Config::control()
   const auto& controlfile = get< tag::control >();
 
   tk::Print print;
-  print.section( "Parsing control file: " + controlfile );
+  print.section( "Control file: " + controlfile );
 
   lua_State* L = luaL_newstate();
   luaL_openlibs( L );

@@ -933,7 +933,7 @@ Config::control()
   auto logfilename = tk::inciter_executable() + "_control.log";
   tk::Writer log( logfilename );
   tk::print( log.stream(), *this );
-  print << "Parsed data saved in " << logfilename << '\n';
+  print << "Control data saved in " << logfilename << '\n';
 }
 
 } // ctr::

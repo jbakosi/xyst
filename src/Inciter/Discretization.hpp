@@ -98,7 +98,8 @@ class Discretization : public CBase_Discretization {
     void setRefiner( const CProxy_Refiner& ref );
 
     //! Collect nodal volumes across chare boundaries
-    void comvol( const std::vector< std::size_t >& gid,
+    void comvol( int c,
+                 const std::vector< std::size_t >& gid,
                  const std::vector< tk::real >& nodevol );
 
     //! Sum mesh volumes and contribute own mesh volume to total volume
@@ -106,6 +107,12 @@ class Discretization : public CBase_Discretization {
 
     //! Compute mesh cell statistics
     void stat( tk::real mesh_volume );
+
+    //! Decide whether to run deactivation procedure in this time step
+    bool deactivate() const;
+
+    //!  Reduction target to receive number of deactivated chares
+    void deactivated( int n );
 
     //! Compute total box IC volume
     void
@@ -138,6 +145,11 @@ class Discretization : public CBase_Discretization {
     const std::vector< tk::real >& V() const { return m_v; }
     //! Nodal mesh volumes at current time step accessors as const-ref
     const std::vector< tk::real >& Vol() const { return m_vol; }
+    //! Access chare-volume contributions per chare per chare-boundary node
+    const std::unordered_map< int,
+            std::unordered_map< std::size_t, tk::real > >& Cvolc() const {
+      return m_cvolc;
+    }
 
     //! Set 'initial' flag
     //! \param[in] i Value to put in 'initial'
@@ -307,6 +319,7 @@ class Discretization : public CBase_Discretization {
       p | m_v;
       p | m_vol;
       p | m_volc;
+      p | m_cvolc;
       p | m_boxvol;
       p | m_timer;
       p | m_refined;
@@ -315,6 +328,7 @@ class Discretization : public CBase_Discretization {
       p | m_histdata;
       p | m_res;
       p | m_res0;
+      p | m_deactivated;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -408,6 +422,10 @@ class Discretization : public CBase_Discretization {
     //!   cell volumes / 4) with contributions from other chares on
     //!   chare-boundaries.
     std::unordered_map< std::size_t, tk::real > m_volc;
+    //! Chare-volume contributions per chare per chare-boundary node
+    //! \details Outer key: chare id, value: local node id and node volume
+    std::unordered_map< int, std::unordered_map< std::size_t, tk::real > >
+      m_cvolc;
     //! Volume of user-defined box IC
     tk::real m_boxvol;
     //! Timer measuring a time step
@@ -424,6 +442,8 @@ class Discretization : public CBase_Discretization {
     tk::real m_res;
     //! Residual at previous ETA calcuation (during convergence to steady state)
     tk::real m_res0;
+    //! Numberf of deactived chares
+    int m_deactivated;
 
     //! Set mesh coordinates based on coordinates map
     tk::UnsMesh::Coords setCoord( const tk::UnsMesh::CoordMap& coordmap );

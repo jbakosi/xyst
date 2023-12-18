@@ -45,6 +45,8 @@ module zalcg {
                            std::vector< tk::real > >& inalw );
       entry void comlim( const std::unordered_map< std::size_t,
                            std::vector< tk::real > >& inlim );
+      entry void comrea( int reactivate );
+      entry void comact( int ch, int deactivated );
       entry void feop();
       entry void step();
       entry void integrals();
@@ -75,6 +77,9 @@ module zalcg {
       entry void wait4sol() {
         when ownlim_complete(), comlim_complete() serial { solve(); } }
 
+      entry void wait4act() {
+        when ownact_complete(), comact_complete() serial { refine(); } }
+
       entry void wait4step() {
         when feop_complete(), resize_complete() serial { out(); } }
 
@@ -92,6 +97,8 @@ module zalcg {
       entry void comalw_complete();
       entry void ownlim_complete();
       entry void comlim_complete();
+      entry void ownact_complete();
+      entry void comact_complete();
       entry void feop_complete();
       entry void resize_complete();
     }

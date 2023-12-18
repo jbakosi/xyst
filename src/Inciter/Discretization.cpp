@@ -69,7 +69,8 @@ Discretization::Discretization(
   m_prevstatus( std::chrono::high_resolution_clock::now() ),
   m_nrestart( 0 ),
   m_res( 0.0 ),
-  m_res0( 0.0 )
+  m_res0( 0.0 ),
+  m_deactivated( 0 )
 // *****************************************************************************
 //  Constructor
 //! \param[in] meshid Mesh ID
@@ -324,7 +325,8 @@ Discretization::vol()
       std::vector< tk::real > v( n.size() );
       std::size_t j = 0;
       for (auto i : n) v[ j++ ] = m_vol[ tk::cref_find(m_lid,i) ];
-      thisProxy[c].comvol( std::vector<std::size_t>(begin(n), end(n)), v );
+      thisProxy[c].comvol( thisIndex,
+                           std::vector<std::size_t>(begin(n), end(n)), v );
     }
   }
 
@@ -332,10 +334,12 @@ Discretization::vol()
 }
 
 void
-Discretization::comvol( const std::vector< std::size_t >& gid,
+Discretization::comvol( int c,
+                        const std::vector< std::size_t >& gid,
                         const std::vector< tk::real >& nodevol )
 // *****************************************************************************
 //  Receive nodal volumes on chare-boundaries
+//! \param[in] c Sender chare id
 //! \param[in] gid Global mesh node IDs at which we receive volume contributions
 //! \param[in] nodevol Partial sums of nodal volume contributions to
 //!    chare-boundary nodes
@@ -343,8 +347,10 @@ Discretization::comvol( const std::vector< std::size_t >& gid,
 {
   Assert( nodevol.size() == gid.size(), "Size mismatch" );
 
+  auto& cvolc = m_cvolc[c];
   for (std::size_t i=0; i<gid.size(); ++i) {
     m_volc[ gid[i] ] += nodevol[i];
+    cvolc[ tk::cref_find(m_lid,gid[i]) ] = nodevol[i];
   }
 
   if (++m_nvol == m_nodeCommMap.size()) {
@@ -910,6 +916,32 @@ Discretization::residual( tk::real r )
   }
 }
 
+bool
+Discretization::deactivate() const
+// *****************************************************************************
+//  Decide whether to run deactivation procedure in this time step
+//! \return True to run deactivation prcedure in this time step
+// *****************************************************************************
+{
+  auto dea = g_cfg.get< tag::deactivate >();
+  auto deafreq = g_cfg.get< tag::deafreq >();
+
+  if (dea and not m_nodeCommMap.empty() and (m_it == 1 or m_it % deafreq == 0))
+    return true;
+  else
+    return false;
+}
+
+void
+Discretization::deactivated( int n )
+// *****************************************************************************
+//  Reduction target to receive number of deactived chares
+//! \param[in] n Sum of deactivated chares
+// *****************************************************************************
+{
+  m_deactivated = n;
+}
+
 void
 Discretization::status()
 // *****************************************************************************
@@ -967,6 +999,7 @@ Discretization::status()
     if (m_refined) print << 'h';
     if ((m_it % lbfreq == 0 || m_it == 2) && not finished()) print << 'l';
     if (not benchmark && (not (m_it % rsfreq) || finished())) print << 'c';
+    if (deactivate()) print << "\td:" << m_deactivated << '/' << m_nchare;
 
     print << '\n';
   }

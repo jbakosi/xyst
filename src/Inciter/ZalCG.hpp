@@ -124,6 +124,12 @@ class ZalCG : public CBase_ZalCG {
     //! Evaluate residuals
     void evalres( const std::vector< tk::real >& l2res );
 
+    //! Receive activation request
+    void comrea( int reactivate );
+
+    //! Receive activation status
+    void comact( int ch, int deactivated );
+
     //! Receive new mesh from Refiner
     void resizePostAMR(
       const std::vector< std::size_t >& ginpoel,
@@ -167,6 +173,12 @@ class ZalCG : public CBase_ZalCG {
       p | m_naec;
       p | m_nalw;
       p | m_nlim;
+      p | m_nrea;
+      p | m_nact;
+      p | m_todeactivate;
+      p | m_toreactivate;
+      p | m_deactivated;
+      p | m_inactive;
       p | m_bnode;
       p | m_bface;
       p | m_triinpoel;
@@ -187,6 +199,7 @@ class ZalCG : public CBase_ZalCG {
       p | m_rhsc;
       p | m_gradc;
       p | m_stabc;
+      p | m_vol;
       p | m_diag;
       p | m_bnorm;
       p | m_bnormc;
@@ -199,6 +212,7 @@ class ZalCG : public CBase_ZalCG {
       p | m_bsupint;
       p | m_dsupedge;
       p | m_dsupint;
+      p | m_chbndedge;
       p | m_besym;
       p | m_dirbcmasks;
       p | m_prebcnodes;
@@ -237,11 +251,23 @@ class ZalCG : public CBase_ZalCG {
     std::size_t m_nalw;
     //! Counter for receiving limited antidiffusive contributions
     std::size_t m_nlim;
+    //! Counter for receiving reactivation requests
+    std::size_t m_nrea;
+    //! Counter for receiving activation status communications
+    std::size_t m_nact;
+    //! Flag: 1 if chare desires to deactivate
+    int m_todeactivate;
+    //! Flag: 1 if chare desires to reactivate
+    int m_toreactivate;
+    //! Flag: 1 if chare is deactivated, 0 if active
+    int m_deactivated;
+    //! Deactived chares this chare communicates with
+    std::unordered_set< int > m_inactive;
     //! Boundary node lists mapped to side set ids used in the input file
     std::map< int, std::vector< std::size_t > > m_bnode;
     //! Boundary face lists mapped to side set ids used in the input file
     std::map< int, std::vector< std::size_t > > m_bface;
-    //! Boundary triangle face connecitivity where BCs are set by user
+    //! Chare-boundary triangle face connecitivity
     std::vector< std::size_t > m_triinpoel;
     //! Unknown/solution vector at mesh nodes
     tk::Fields m_u;
@@ -302,6 +328,10 @@ class ZalCG : public CBase_ZalCG {
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals
     std::array< std::vector< tk::real >, 3 > m_dsupint;
+    //! Chare-boundary edge end-points with integrals
+    //! \details Outer key: neighbor chare id, value: contents of domain-edge
+    //!   integral associated to the edge with local node ids
+    std::unordered_map< int, decltype(m_domedgeint) > m_chbndedge;
     //! Streamable boundary point symmetry BC flags
     std::vector< std::uint8_t > m_besym;
     //! Gradients in mesh nodes
@@ -312,6 +342,8 @@ class ZalCG : public CBase_ZalCG {
     tk::Fields m_stab;
     //! Stabilization coefficients receive buffer
     std::unordered_map< std::size_t, tk::real > m_stabc;
+    //! Nodal volumes dynamically adjusted for deactivated chares
+    std::vector< tk::real > m_vol;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmasks;
     //! Nodes at pressure BCs
@@ -370,6 +402,12 @@ class ZalCG : public CBase_ZalCG {
     //! Generate superedge-groups for domain-edge integral
     void domsuped();
 
+    //! Generate edges along chare boundary
+    void chbnded();
+
+    //! Apply diffusion on active hull
+    void huldif();
+
     //! Output mesh and particle fields to files
     void out();
 
@@ -378,6 +416,9 @@ class ZalCG : public CBase_ZalCG {
 
     //! Combine own and communicated portions of the integrals
     void merge();
+
+    //! Compute next time step
+    void compute();
 
     //! Compute gradients for next time step
     void grad();
@@ -403,7 +444,25 @@ class ZalCG : public CBase_ZalCG {
     //! Advance systems of equations
     void solve();
 
-    //! Optionally refine/derefine mesh
+    //! Adjust node volumes along inactive neighbor chares
+    void deavol();
+
+    //! Decide if edge is active
+    int active( std::size_t p,
+                std::size_t q,
+                tk::real tol,
+                const std::vector< uint64_t >& sys );
+
+    //! Decide whether to deactivate this chare
+    int dea( const std::vector< uint64_t >& sys );
+
+    //! Decide whether to teactivate a neighbor chare
+    std::unordered_map< int, int > rea( const std::vector< uint64_t >& sys );
+
+    //! Deactivate regions
+    void deactivate();
+
+    //! Refine/derefine mesh
     void refine();
 
     //! Compute time step size

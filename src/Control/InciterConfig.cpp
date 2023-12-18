@@ -905,6 +905,11 @@ Config::control()
     get< tag::fctdif >() = real( L, "fctdif", 1.0, true );
     get< tag::fctclip >() = boolean( L, "fctclip", false, true );
     get< tag::fctsys >() = unsigints( L, "fctsys", true );
+    get< tag::deactivate >() = boolean( L, "deactivate", false, true );
+    get< tag::deatol >() = real( L, "deatol", 1.0e-3, true );
+    get< tag::deadif >() = real( L, "deadif", 0.0, true );
+    get< tag::deafreq >() = unsigint( L, "deafreq", 5, true );
+    get< tag::deasys >() = unsigints( L, "deasys", true );
 
     ic( L, *this );
     bc_dir( L, *this );

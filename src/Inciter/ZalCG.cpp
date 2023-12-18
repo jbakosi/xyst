@@ -55,6 +55,11 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
   m_naec( 0 ),
   m_nalw( 0 ),
   m_nlim( 0 ),
+  m_nrea( 0 ),
+  m_nact( 0 ),
+  m_todeactivate( 0 ),
+  m_toreactivate( 0 ),
+  m_deactivated( 0 ),
   m_bnode( bnode ),
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
@@ -65,6 +70,7 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
   m_rhs( m_u.nunk(), m_u.nprop() ),
   m_grad( g_cfg.get< tag::stab4 >() ? m_u.nunk() : 0, 3 + m_u.nprop() ),
   m_stab( m_grad.nunk(), 1 ),
+  m_vol( Disc()->Vol() ),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
   m_finished( 0 )
@@ -604,11 +610,12 @@ ZalCG::streamable()
 
   // Generate boundary superedges
   bndsuped();
-  tk::destroy( m_bndedgeint );
-
+  // Generate edges along chare boundary
+  chbnded();
+  // Adjust node volumes along inactive neighbor chares
+  deavol();
   // Generate superedges for domain integral
   domsuped();
-  tk::destroy( m_domedgeint );
 
   // Convert symmetry BC data to streamable data structures
   tk::destroy( m_symbcnodes );
@@ -673,8 +680,7 @@ ZalCG::bndsuped()
 
   for (const auto& [setid, tri] : m_bface) {
     for (auto e : tri) {
-      std::size_t N[3] = { m_triinpoel[e*3+0], m_triinpoel[e*3+1],
-                           m_triinpoel[e*3+2] };
+      const auto N = m_triinpoel.data() + e*3;
       int f = 0;
       tk::real sig[3];
       decltype(m_bndedgeint)::const_iterator b[3];
@@ -718,6 +724,8 @@ ZalCG::bndsuped()
     i[2] = b[2];
     ++k;
   }
+
+  tk::destroy( m_bndedgeint );
 
   //std::cout << std::setprecision(2)
   //          << "superedges: ntri:" << m_bsupedge[0].size()/6
@@ -835,6 +843,8 @@ ZalCG::domsuped()
     ++k;
   }
 
+  tk::destroy( m_domedgeint );
+
   //std::cout << std::setprecision(2)
   //          << "superedges: ntet:" << m_dsupedge[0].size()/4 << "(nedge:"
   //          << m_dsupedge[0].size()/4*6 << ","
@@ -854,6 +864,57 @@ ZalCG::domsuped()
   Assert( m_dsupedge[0].size()/4*6 + m_dsupedge[1].size() +
           m_dsupedge[2].size()/2 == nedge,
           "Not all edges accounted for in superedge groups" );
+}
+
+void
+ZalCG::chbnded()
+// *****************************************************************************
+// Generate edges along chare-boundary
+// *****************************************************************************
+{
+  auto d = Disc();
+  if (not g_cfg.get< tag::deactivate >() or d->NodeCommMap().empty()) return;
+
+  const auto& inpoel = Disc()->Inpoel();
+  const auto& lid = Disc()->Lid();
+  const auto& gid = Disc()->Gid();
+
+  // Generate elements surrounding points
+  auto esup = tk::genEsup( inpoel, 4 );
+
+  // Collect edges of all tetrahedra surrounding tets of chare-boundary points
+  tk::destroy( m_chbndedge );
+  for (const auto& [c,nodes] : d->NodeCommMap()) {
+    auto& edges = m_chbndedge[c];
+    for (auto g : nodes) {
+      auto p = tk::cref_find(lid,g);
+      for (auto e : tk::Around(esup,p)) {
+        const auto N = inpoel.data() + e*4;
+        for (const auto& [p,q] : tk::lpoed) {
+          tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
+          edges[ { N[p], N[q] } ] = tk::cref_find( m_domedgeint, ed );
+        }
+      }
+    }
+  }
+}
+
+void
+ZalCG::deavol()
+// *****************************************************************************
+// Adjust node volumes along inactive neighbor chares
+// *****************************************************************************
+{
+  auto d = Disc();
+  if (not g_cfg.get< tag::deactivate >() or d->NodeCommMap().empty()) return;
+
+  m_vol = d->Vol();
+  const auto& cvolc = d->Cvolc();
+  for (auto i : m_inactive) {
+    for (const auto& [p,v] : tk::cref_find(cvolc,i)) {
+      m_vol[p] -= v;
+    }
+  }
 }
 
 void
@@ -920,28 +981,34 @@ ZalCG::dt()
 
   auto const_dt = g_cfg.get< tag::dt >();
   auto eps = std::numeric_limits< tk::real >::epsilon();
-  auto d = Disc();
 
-  // use constant dt if configured
-  if (std::abs(const_dt) > eps) {
+  if (not m_deactivated) {
 
-    // cppcheck-suppress redundantInitialization
-    mindt = const_dt;
+    // Adjust node volumes along inactive neighbor chares for next step
+    deavol();
 
-  } else {      // compute dt based on CFL
+    // use constant dt if configured
+    if (std::abs(const_dt) > eps) {
 
-    if (g_cfg.get< tag::steady >()) {
+      // cppcheck-suppress redundantInitialization
+      mindt = const_dt;
 
-      // compute new dt for each mesh point
-      physics::dt( d->Vol(), m_u, m_dtp );
+    } else {      // compute dt based on CFL
 
-      // find the smallest dt of all nodes on this chare
-      mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
+      if (g_cfg.get< tag::steady >()) {
 
-    } else {    // compute new dt for this chare
+        // compute new dt for each mesh point
+        physics::dt( m_vol, m_u, m_dtp );
 
-      // find the smallest dt of all equations on this chare
-      mindt = physics::dt( d->Vol(), m_u );
+        // find the smallest dt of all nodes on this chare
+        mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
+
+      } else {    // compute new dt for this chare
+
+        // find the smallest dt of all equations on this chare
+        mindt = physics::dt( m_vol, m_u );
+
+      }
 
     }
 
@@ -954,6 +1021,7 @@ ZalCG::dt()
   thisProxy[ thisIndex ].wait4aec();
   thisProxy[ thisIndex ].wait4alw();
   thisProxy[ thisIndex ].wait4sol();
+  thisProxy[ thisIndex ].wait4act();
   thisProxy[ thisIndex ].wait4step();
 
   // Contribute to minimum dt across all chares and advance to next step
@@ -971,6 +1039,15 @@ ZalCG::advance( tk::real newdt )
   // Set new time step size
   Disc()->setdt( newdt );
 
+  if (m_deactivated) solve(); else compute();
+}
+
+void
+ZalCG::compute()
+// *****************************************************************************
+// Compute next time step
+// *****************************************************************************
+{
   if (g_cfg.get< tag::stab4 >()) grad(); else rhs();
 }
 
@@ -987,10 +1064,11 @@ ZalCG::grad()
                  m_bsupint, m_u, m_grad );
 
   // Send gradient contributions to neighbor chares
-  if (d->NodeCommMap().empty()) {
+  if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){
     comgrad_complete();
   } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
+      if (m_inactive.count(c)) continue;
       std::unordered_map< std::size_t, std::vector< tk::real > > exp;
       for (auto g : n) exp[g] = m_grad[ tk::cref_find(lid,g) ];
       thisProxy[c].comgrad( exp );
@@ -1012,7 +1090,7 @@ ZalCG::comgrad(
   for (const auto& [g,r] : ingrad) m_gradc[g] += r;
 
   // When we have heard from all chares we communicate with, this chare is done
-  if (++m_ngrad == Disc()->NodeCommMap().size()) {
+  if (++m_ngrad + m_inactive.size() == Disc()->NodeCommMap().size()) {
     m_ngrad = 0;
     comgrad_complete();
   }
@@ -1027,7 +1105,7 @@ ZalCG::stab()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-    // Combine own and communicated contributions to gradients
+  // Combine own and communicated contributions to gradients
   for (const auto& [g,r] : m_gradc) {
     auto i = tk::cref_find( lid, g );
     for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c,0) += r[c];
@@ -1035,18 +1113,18 @@ ZalCG::stab()
   tk::destroy(m_gradc);
 
   // divide weak result in gradients by nodal volume
-  const auto& vol = d->Vol();
   for (std::size_t p=0; p<m_grad.nunk(); ++p)
     for (std::size_t c=0; c<m_grad.nprop(); ++c)
-      m_grad(p,c,0) /= vol[p];
+      m_grad(p,c,0) /= m_vol[p];
 
   zalesak::stab( m_dsupedge, d->Coord(), m_u, m_grad, m_stab );
 
   // Send stabilization coefficient contributions to neighbor chares
-  if (d->NodeCommMap().empty()) {
+  if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){
     comstab_complete();
   } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
+      if (m_inactive.count(c)) continue;
       std::unordered_map< std::size_t, tk::real > exp;
       for (auto g : n) exp[g] = m_stab(tk::cref_find(lid,g),0,0);
       thisProxy[c].comstab( exp );
@@ -1069,7 +1147,7 @@ ZalCG::comstab( const std::unordered_map< std::size_t, tk::real >& instab )
   }
 
   // When we have heard from all chares we communicate with, this chare is done
-  if (++m_nstab == Disc()->NodeCommMap().size()) {
+  if (++m_nstab + m_inactive.size() == Disc()->NodeCommMap().size()) {
     m_nstab = 0;
     comstab_complete();
   }
@@ -1096,10 +1174,11 @@ ZalCG::rhs()
                 d->T(), d->Dt(), m_tp, m_dtp, m_u, m_stab, m_grad, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
-  if (d->NodeCommMap().empty()) {
+  if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){
     comrhs_complete();
   } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
+      if (m_inactive.count(c)) continue;
       std::unordered_map< std::size_t, std::vector< tk::real > > exp;
       for (auto g : n) exp[g] = m_rhs[ tk::cref_find(lid,g) ];
       thisProxy[c].comrhs( exp );
@@ -1121,7 +1200,7 @@ ZalCG::comrhs(
   for (const auto& [g,r] : inrhs) m_rhsc[g] += r;
 
   // When we have heard from all chares we communicate with, this chare is done
-  if (++m_nrhs == Disc()->NodeCommMap().size()) {
+  if (++m_nrhs + m_inactive.size() == Disc()->NodeCommMap().size()) {
     m_nrhs = 0;
     comrhs_complete();
   }
@@ -1215,10 +1294,11 @@ ZalCG::aec()
   }
 
   // Communicate antidiffusive edge and low-order solution contributions
-  if (d->NodeCommMap().empty()) {
+  if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){
     comaec_complete();
   } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
+      if (m_inactive.count(c)) continue;
       decltype(m_pc) exp;
       for (auto g : n) exp[g] = m_p[ tk::cref_find(lid,g) ];
       thisProxy[c].comaec( exp );
@@ -1241,7 +1321,7 @@ ZalCG::comaec( const std::unordered_map< std::size_t,
   for (const auto& [g,a] : inaec) m_pc[g] += a;
 
   // When we have heard from all chares we communicate with, this chare is done
-  if (++m_naec == Disc()->NodeCommMap().size()) {
+  if (++m_naec + m_inactive.size() == Disc()->NodeCommMap().size()) {
     m_naec = 0;
     comaec_complete();
   }
@@ -1258,7 +1338,6 @@ ZalCG::alw()
   const auto npoin = m_u.nunk();
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
-  const auto& vol = d->Vol();
 
   // Combine own and communicated contributions to antidiffusive contributions
   // and low-order solution
@@ -1275,10 +1354,10 @@ ZalCG::alw()
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
-      m_p(i,a,0) /= vol[i];
-      m_p(i,b,0) /= vol[i];
+      m_p(i,a,0) /= m_vol[i];
+      m_p(i,b,0) /= m_vol[i];
       // low-order solution
-      m_rhs(i,c,0) = m_u(i,c,0) - dt*m_rhs(i,c,0)/vol[i]
+      m_rhs(i,c,0) = m_u(i,c,0) - dt*m_rhs(i,c,0)/m_vol[i]
                                 - m_p(i,a,0) - m_p(i,b,0);
     }
   }
@@ -1370,10 +1449,11 @@ ZalCG::alw()
   }
 
   // Communicate allowed limits contributions
-  if (d->NodeCommMap().empty()) {
+  if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){
     comalw_complete();
   } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
+      if (m_inactive.count(c)) continue;
       decltype(m_qc) exp;
       for (auto g : n) exp[g] = m_q[ tk::cref_find(lid,g) ];
       thisProxy[c].comalw( exp );
@@ -1404,7 +1484,7 @@ ZalCG::comalw( const std::unordered_map< std::size_t,
   }
 
   // When we have heard from all chares we communicate with, this chare is done
-  if (++m_nalw == Disc()->NodeCommMap().size()) {
+  if (++m_nalw + m_inactive.size() == Disc()->NodeCommMap().size()) {
     m_nalw = 0;
     comalw_complete();
   }
@@ -1558,10 +1638,11 @@ ZalCG::lim()
   #endif
 
   // Communicate limited antidiffusive contributions
-  if (d->NodeCommMap().empty()) {
+  if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){
     comlim_complete();
   } else {
     for (const auto& [c,n] : d->NodeCommMap()) {
+      if (m_inactive.count(c)) continue;
       decltype(m_ac) exp;
       for (auto g : n) exp[g] = m_a[ tk::cref_find(lid,g) ];
       thisProxy[c].comlim( exp );
@@ -1584,7 +1665,7 @@ ZalCG::comlim( const std::unordered_map< std::size_t,
   for (const auto& [g,a] : inlim) m_ac[g] += a;
 
   // When we have heard from all chares we communicate with, this chare is done
-  if (++m_nlim == Disc()->NodeCommMap().size()) {
+  if (++m_nlim + m_inactive.size() == Disc()->NodeCommMap().size()) {
     m_nlim = 0;
     comlim_complete();
   }
@@ -1600,64 +1681,70 @@ ZalCG::solve()
   const auto npoin = m_u.nunk();
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
-  const auto& vol = d->Vol();
   const auto steady = g_cfg.get< tag::steady >();
 
-  // Combine own and communicated contributions to limited antidiffusive
-  // contributions
-  for (const auto& [g,a] : m_ac) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<a.size(); ++c) m_a(i,c,0) += a[c];
-  }
-  tk::destroy(m_ac);
+  if (m_deactivated) {
 
-  if (g_cfg.get< tag::fct >()) {
-
-    // Apply limited antidiffusive contributions to low-order solution
-    for (std::size_t i=0; i<npoin; ++i) {
-      for (std::size_t c=0; c<ncomp; ++c) {
-        m_a(i,c,0) = m_rhs(i,c,0) + m_a(i,c,0)/vol[i];
-      }
-    }
+    m_a = m_u;
 
   } else {
 
-    // Apply rhs
-    auto dt = d->Dt();
-    for (std::size_t i=0; i<npoin; ++i) {
-      if (steady) dt = m_dtp[i];
-      for (std::size_t c=0; c<ncomp; ++c) {
-        m_a(i,c,0) = m_u(i,c,0) - dt*m_rhs(i,c,0)/vol[i];
+    // Combine own and communicated contributions to limited antidiffusive
+    // contributions
+    for (const auto& [g,a] : m_ac) {
+      auto i = tk::cref_find( lid, g );
+      for (std::size_t c=0; c<a.size(); ++c) m_a(i,c,0) += a[c];
+    }
+    tk::destroy(m_ac);
+
+    if (g_cfg.get< tag::fct >()) {
+
+      // Apply limited antidiffusive contributions to low-order solution
+      for (std::size_t i=0; i<npoin; ++i) {
+        for (std::size_t c=0; c<ncomp; ++c) {
+          m_a(i,c,0) = m_rhs(i,c,0) + m_a(i,c,0)/m_vol[i];
+        }
       }
+
+    } else {
+
+      // Apply rhs
+      auto dt = d->Dt();
+      for (std::size_t i=0; i<npoin; ++i) {
+        if (steady) dt = m_dtp[i];
+        for (std::size_t c=0; c<ncomp; ++c) {
+          m_a(i,c,0) = m_u(i,c,0) - dt*m_rhs(i,c,0)/m_vol[i];
+        }
+      }
+
     }
 
+    // Configure and apply scalar source to solution (if defined)
+    auto src = problems::PHYS_SRC();
+    if (src) src( d->Coord(), d->T(), m_a );
+
+    // Enforce boundary conditions
+    BC( m_a, d->T() + d->Dt() );
+
   }
-
-  // Configure and apply scalar source to solution (if defined)
-  auto src = problems::PHYS_SRC();
-  if (src) src( d->Coord(), d->T(), m_a );
-
-  // Enforce boundary conditions
-  BC( m_a, d->T() + d->Dt() );
 
   // Compute diagnostics, e.g., residuals
   auto diag = m_diag.compute( *d, m_a, m_u, g_cfg.get< tag::diag_iter >() );
 
   // Update solution
-  for (std::size_t i=0; i<npoin; ++i) {
-    for (std::size_t c=0; c<ncomp; ++c) {
-      m_u(i,c,0) = m_a(i,c,0);
-    }
-  }
+  m_u = m_a;
+  m_a.fill( 0.0 );
 
   // Increase number of iterations and physical time
   d->next();
+
   // Advance physical time for local time stepping
   if (steady) {
     using tk::operator+=;
     m_tp += m_dtp;
   }
-  // Continue to mesh refinement
+
+  // Evaluate residuals
   if (!diag) evalres( std::vector< tk::real >( ncomp, 1.0 ) );
 }
 
@@ -1669,12 +1756,211 @@ ZalCG::evalres( const std::vector< tk::real >& l2res )
 //!   computed across the whole problem
 // *****************************************************************************
 {
+  auto d = Disc();
+
   if (g_cfg.get< tag::steady >()) {
     const auto rc = g_cfg.get< tag::rescomp >() - 1;
-    Disc()->residual( l2res[rc] );
+    d->residual( l2res[rc] );
   }
 
-  refine();
+  if (d->deactivate()) deactivate(); else refine();
+}
+
+int
+ZalCG::active( std::size_t p,
+               std::size_t q,
+               tk::real tol,
+               const std::vector< uint64_t >& sys )
+// *****************************************************************************
+//  Decide if edge is active
+//! \param[in] p Local id of left edge-end point
+//! \param[in] q Local id of right edge-end point
+//! \param[in] tol Tolerance to use
+//! \param[in] sys List of components to consider
+//! \return True if active, false if not
+// *****************************************************************************
+{
+  using std::abs;
+  using std::max;
+
+  tk::real maxdiff = 0.0;
+  for (auto c : sys) {
+    auto e = abs( m_u(p,c,0) - m_u(q,c,0) );
+    auto d = abs( m_u(p,c,0) ) + abs( m_u(q,c,0) ) + 1.0e-3;
+    maxdiff = max( maxdiff, e/d );
+  }
+
+  return maxdiff > tol;
+}
+
+int
+ZalCG::dea( const std::vector< uint64_t >& sys )
+// *****************************************************************************
+//  Decide whether to deactivate this chare
+//! \param[in] sys List of components to consider
+//! \return Nonzero to deactivate, zero to keep active
+// *****************************************************************************
+{
+  if (m_deactivated) return 1;
+
+  auto tol = g_cfg.get< tag::deatol >();
+
+  // tetrahedron superedges
+  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
+    const auto N = m_dsupedge[0].data() + e*4;
+    for (const auto& [p,q] : tk::lpoed) {
+      if (active(N[p],N[q],tol,sys)) return 0;
+    }
+  }
+
+  // triangle superedges
+  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
+    const auto N = m_dsupedge[1].data() + e*3;
+    for (const auto& [p,q] : tk::lpoet) {
+      if (active(N[p],N[q],tol,sys)) return 0;
+    }
+  }
+
+  // edges
+  for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
+    const auto N = m_dsupedge[2].data() + e*2;
+    if (active(N[0],N[1],tol,sys)) return 0;
+  }
+
+  return 1;
+}
+
+std::unordered_map< int, int >
+ZalCG::rea( const std::vector< uint64_t >& sys )
+// *****************************************************************************
+// Decide whether to reactivate any neighbor chare
+//! \param[in] sys List of components to consider
+//! \return Reactivation status (value=1 to reactivate) mapped to neighbor chare
+// *****************************************************************************
+{
+  auto tol = g_cfg.get< tag::deatol >();
+
+  std::unordered_map< int, int > req;
+
+  for (const auto& [c,edges] : m_chbndedge) {
+    auto& r = req[c];
+    r = 0;
+    if (m_inactive.count(c)) {
+      for (const auto& [e,supint] : edges) {
+        if (active(e[0],e[1],tol,sys)) {
+          r = 1;
+          break;
+        }
+      }
+    }
+  }
+
+  return req;
+}
+
+void
+ZalCG::huldif()
+// *****************************************************************************
+// Apply diffusion on active hull
+// *****************************************************************************
+{
+  const auto npoin = m_u.nunk();
+  const auto ncomp = m_u.nprop();
+  const auto dif = g_cfg.get< tag::deadif >();
+
+  m_rhs.fill( 0.0 );
+  for (const auto& [ch,edges] : m_chbndedge) {
+    if (m_inactive.count(ch)) {
+      for (const auto& [e,supint] : edges) {
+        auto p = e[0];
+        auto q = e[1];
+        auto fw = dif * supint[3];
+        for (std::size_t c=0; c<ncomp; ++c) {
+         auto f = fw*(m_u(p,c,0) - m_u(q,c,0));
+          m_rhs(p,c,0) -= f;
+          m_rhs(q,c,0) += f;
+        }
+      }
+    }
+  }
+
+  for (std::size_t i=0; i<npoin; ++i) {
+    for (std::size_t c=0; c<ncomp; ++c) {
+      m_u(i,c,0) += m_rhs(i,c,0)/m_vol[i];
+    }
+  }
+}
+
+void
+ZalCG::deactivate()
+// *****************************************************************************
+// Deactivate regions
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  // Apply diffusion on active hull
+  huldif();
+
+  auto sys = g_cfg.get< tag::deasys >();
+  for (auto& c : sys) --c;
+
+  // Decide whether to deactivate this chare
+  if (d->It() == 1) m_todeactivate = dea( sys );
+
+  // Decide whether to reactivate any neighbor chare
+  auto req = rea( sys );
+
+  // Communicate reactivation requests
+  for (const auto& [c,n] : d->NodeCommMap()) {
+    thisProxy[c].comrea( tk::cref_find(req,c) );
+  }
+}
+
+void
+ZalCG::comrea( int reactivate )
+// *****************************************************************************
+//  Receive reactivation request
+//! \param[in] reactivate 1 if sender wants to reactivate this chare, 0 if not
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  if (m_deactivated and reactivate) m_toreactivate = 1;
+  if (m_todeactivate) m_deactivated = 1;
+  if (m_toreactivate) m_deactivated = 0;
+
+  // Communicate activation status to neighbors
+  if (++m_nrea == d->NodeCommMap().size()) {
+    m_nrea = 0;
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      thisProxy[c].comact( thisIndex, m_deactivated );
+    }
+    ownact_complete();
+  }
+}
+
+void
+ZalCG::comact( int ch, int deactivated )
+// *****************************************************************************
+//  Receive deactivation status
+//! \param[in] ch Sender chare id
+//! \param[in] deactivated 1 if sender was deactivated, 0 if not
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  if (deactivated) m_inactive.insert(ch); else m_inactive.erase(ch);
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_nact == d->NodeCommMap().size()) {
+    // Sum number of deactivated chares for diagnostics
+    contribute( sizeof(int), &m_deactivated, CkReduction::sum_int,
+      CkCallback(CkReductionTarget(Discretization,deactivated), m_disc[0]) );
+    m_todeactivate = m_toreactivate = 0;
+    m_nact = 0;
+    comact_complete();
+  }
 }
 
 void
@@ -1794,7 +2080,7 @@ ZalCG::writeFields( CkCallback cb )
   // Field output
 
   std::vector< std::string > nodefieldnames
-    {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
+    {"density", "velocityx", "velocityy", "velocityz", "energy", "pressure"};
 
   using tk::operator/=;
   auto r = m_u.extract( 0, 0 );

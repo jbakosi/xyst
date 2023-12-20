@@ -999,7 +999,7 @@ Discretization::status()
     if (m_refined) print << 'h';
     if ((m_it % lbfreq == 0 || m_it == 2) && not finished()) print << 'l';
     if (not benchmark && (not (m_it % rsfreq) || finished())) print << 'c';
-    if (deactivate()) print << "\td:" << m_deactivated << '/' << m_nchare;
+    if (deactivate()) print << "\te:" << m_deactivated << '/' << m_nchare;
 
     print << '\n';
   }

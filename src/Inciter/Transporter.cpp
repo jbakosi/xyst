@@ -1069,7 +1069,8 @@ Transporter::inthead( const tk::Print& print )
   "             t - physics time history output\n"
   "             h - h-refinement\n"
   "             l - load balancing\n"
-  "             c - checkpoint\n"
+  "             c - checkpoint\n" << (g_cfg.get< tag::deactivate >() ?
+  "             e:x/y - deactivation with x of y parts inactive\n" : "") <<
   "\n      it             t            dt        ETE        ETA        EGT  flg\n"
     "--------------------------------------------------------------------------\n";
 }

@@ -112,9 +112,9 @@ Transporter::Transporter( CkMigrateMessage* m ) :
 //! \param[in] m Charm++ migrate message
 // *****************************************************************************
 {
-   auto print = tk::Print();
-   print << "\nXyst> Restarted from checkpoint\n";
-   inthead( print );
+  auto print = tk::Print();
+  print << "\nXyst> Restarted from checkpoint\n";
+  inthead( print );
 }
 
 bool

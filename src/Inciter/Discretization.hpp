@@ -108,11 +108,17 @@ class Discretization : public CBase_Discretization {
     //! Compute mesh cell statistics
     void stat( tk::real mesh_volume );
 
+    //! Decide whether to start the deactivation procedure in this time step
+    bool deastart();
+
     //! Decide whether to run deactivation procedure in this time step
     bool deactivate() const;
 
-    //!  Reduction target to receive number of deactivated chares
+    //!  Receive deactivation report
     void deactivated( int n );
+
+    //! Decide whether to do load balancing this time step
+    bool lb() const;
 
     //! Compute total box IC volume
     void
@@ -150,6 +156,9 @@ class Discretization : public CBase_Discretization {
             std::unordered_map< std::size_t, tk::real > >& Cvolc() const {
       return m_cvolc;
     }
+
+    //! Access number of chares
+    int nchare() const { return m_nchare; }
 
     //! Set 'initial' flag
     //! \param[in] i Value to put in 'initial'
@@ -328,7 +337,8 @@ class Discretization : public CBase_Discretization {
       p | m_histdata;
       p | m_res;
       p | m_res0;
-      p | m_deactivated;
+      p | m_dea;
+      p | m_deastarted;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -443,7 +453,9 @@ class Discretization : public CBase_Discretization {
     //! Residual at previous ETA calcuation (during convergence to steady state)
     tk::real m_res0;
     //! Numberf of deactived chares
-    int m_deactivated;
+    int m_dea;
+    //! Flag: 1 if deactivation procedure has started
+    int m_deastarted;
 
     //! Set mesh coordinates based on coordinates map
     tk::UnsMesh::Coords setCoord( const tk::UnsMesh::CoordMap& coordmap );

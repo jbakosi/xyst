@@ -645,7 +645,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
   return u;
 }
 
-static void
+static double
 src( const std::array< std::vector< tk::real >, 3 >& coord,
      tk::real t,
      tk::Fields& U )
@@ -654,12 +654,13 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 //! \param[in] coord Mesh node coordinates
 //! \param[in] t Physical time
 //! \param[in,out] U Solution vector at recent time step
+//! \return dt multiplier after flow no longer updated after scalar release
 //! \note This is different from other source terms, because this directly
 //!   modifies the solution instead of applied as a source term mathematically.
 //!   Hence the function signature is also different.
 // *****************************************************************************
 {
-  if (U.nprop() == 5) return;
+  if (U.nprop() == 5) return 1.0;
 
   const auto& source = g_cfg.get< tag::problem_src >();
   const auto& location = source.get< tag::location >();
@@ -671,7 +672,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
       std::abs(radius - largereal) < 1.0e-12 ||
       std::abs(release_time - largereal) < 1.0e-12)
   {
-    return;
+    return 1.0;
   }
 
   auto sx = location[0];
@@ -680,7 +681,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
   auto sr = radius;
   auto st = release_time;
 
-  if (t < st) return;
+  if (t < st) return 1.0;
 
   const auto& x = coord[0];
   const auto& y = coord[1];
@@ -692,6 +693,8 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
     auto rz = sz - z[i];
     if (rx*rx + ry*ry + rz*rz < sr*sr) U(i,5,0) = 1.0;
   }
+
+  return source.get< tag::freezeflow >();
 }
 
 } // point_source::
@@ -884,9 +887,9 @@ SRC()
   return src;
 }
 
-std::function< void( const std::array< std::vector< tk::real >, 3 >&,
-                     tk::real,
-                     tk::Fields& ) >
+std::function< double( const std::array< std::vector< tk::real >, 3 >&,
+                       tk::real,
+                       tk::Fields& ) >
 PHYS_SRC()
 // *****************************************************************************
 //  Query user config and assign function to apply source to numerical solution
@@ -895,9 +898,9 @@ PHYS_SRC()
 {
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
-  std::function< void( const std::array< std::vector< tk::real >, 3 >&,
-                       tk::real,
-                       tk::Fields& ) > src;
+  std::function< double( const std::array< std::vector< tk::real >, 3 >&,
+                         tk::real,
+                         tk::Fields& ) > src;
 
   if (problem == "point_src") {
     src = point_source::src;

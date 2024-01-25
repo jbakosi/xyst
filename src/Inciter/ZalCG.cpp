@@ -55,7 +55,7 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
   m_naec( 0 ),
   m_nalw( 0 ),
   m_nlim( 0 ),
-  m_nrea( 0 ),
+  m_ndea( 0 ),
   m_nact( 0 ),
   m_todeactivate( 0 ),
   m_toreactivate( 0 ),
@@ -73,7 +73,8 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
   m_vol( Disc()->Vol() ),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
-  m_finished( 0 )
+  m_finished( 0 ),
+  m_freezeflow( 1.0 )
 // *****************************************************************************
 //  Constructor
 //! \param[in] disc Discretization proxy
@@ -869,7 +870,7 @@ ZalCG::domsuped()
 void
 ZalCG::chbnded()
 // *****************************************************************************
-// Generate edges along chare-boundary
+// Generate chare-boundary edge data structures for deactivation
 // *****************************************************************************
 {
   auto d = Disc();
@@ -882,20 +883,23 @@ ZalCG::chbnded()
   // Generate elements surrounding points
   auto esup = tk::genEsup( inpoel, 4 );
 
-  // Collect edges of all tetrahedra surrounding tets of chare-boundary points
+  // Collect edges of all tetrahedra surrounding chare-boundary points
   tk::destroy( m_chbndedge );
   for (const auto& [c,nodes] : d->NodeCommMap()) {
-    auto& edges = m_chbndedge[c];
+    std::unordered_map< tk::UnsMesh::Edge, tk::real,
+                        tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > edges;
     for (auto g : nodes) {
       auto p = tk::cref_find(lid,g);
       for (auto e : tk::Around(esup,p)) {
         const auto N = inpoel.data() + e*4;
         for (const auto& [p,q] : tk::lpoed) {
-          tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-          edges[ { N[p], N[q] } ] = tk::cref_find( m_domedgeint, ed );
+          tk::UnsMesh::Edge ged{ gid[N[p]], gid[N[q]] };
+          edges[ { N[p], N[q] } ] = tk::cref_find(m_domedgeint,ged)[3];
         }
       }
     }
+    auto& ed = m_chbndedge[c];
+    for (const auto& [e,sint] : edges) ed.emplace_back( e, sint );
   }
 }
 
@@ -993,22 +997,15 @@ ZalCG::dt()
       // cppcheck-suppress redundantInitialization
       mindt = const_dt;
 
-    } else {      // compute dt based on CFL
+    } else {
 
       if (g_cfg.get< tag::steady >()) {
-
-        // compute new dt for each mesh point
         physics::dt( m_vol, m_u, m_dtp );
-
-        // find the smallest dt of all nodes on this chare
         mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
-
-      } else {    // compute new dt for this chare
-
-        // find the smallest dt of all equations on this chare
+      } else {
         mindt = physics::dt( m_vol, m_u );
-
       }
+      mindt *= m_freezeflow;
 
     }
 
@@ -1021,6 +1018,7 @@ ZalCG::dt()
   thisProxy[ thisIndex ].wait4aec();
   thisProxy[ thisIndex ].wait4alw();
   thisProxy[ thisIndex ].wait4sol();
+  thisProxy[ thisIndex ].wait4dea();
   thisProxy[ thisIndex ].wait4act();
   thisProxy[ thisIndex ].wait4step();
 
@@ -1170,8 +1168,8 @@ ZalCG::rhs()
   tk::destroy(m_stabc);
 
   // Compute own portion of right-hand side for all equations
-  zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym,
-                d->T(), d->Dt(), m_tp, m_dtp, m_u, m_stab, m_grad, m_rhs );
+  zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_freezeflow, m_triinpoel,
+    m_besym, d->T(), d->Dt(), m_tp, m_dtp, m_u, m_stab, m_grad, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){
@@ -1680,7 +1678,6 @@ ZalCG::solve()
   auto d = Disc();
   const auto npoin = m_u.nunk();
   const auto ncomp = m_u.nprop();
-  const auto& lid = d->Lid();
   const auto steady = g_cfg.get< tag::steady >();
 
   if (m_deactivated) {
@@ -1692,22 +1689,23 @@ ZalCG::solve()
     // Combine own and communicated contributions to limited antidiffusive
     // contributions
     for (const auto& [g,a] : m_ac) {
-      auto i = tk::cref_find( lid, g );
+      auto i = tk::cref_find( d->Lid(), g );
       for (std::size_t c=0; c<a.size(); ++c) m_a(i,c,0) += a[c];
     }
     tk::destroy(m_ac);
 
-    if (g_cfg.get< tag::fct >()) {
+    tk::Fields u;
+    std::size_t cstart = m_freezeflow > 1.0 ? 5 : 0;
+    if (cstart) u = m_u;
 
+    if (g_cfg.get< tag::fct >()) {
       // Apply limited antidiffusive contributions to low-order solution
       for (std::size_t i=0; i<npoin; ++i) {
         for (std::size_t c=0; c<ncomp; ++c) {
           m_a(i,c,0) = m_rhs(i,c,0) + m_a(i,c,0)/m_vol[i];
         }
       }
-
     } else {
-
       // Apply rhs
       auto dt = d->Dt();
       for (std::size_t i=0; i<npoin; ++i) {
@@ -1716,15 +1714,23 @@ ZalCG::solve()
           m_a(i,c,0) = m_u(i,c,0) - dt*m_rhs(i,c,0)/m_vol[i];
         }
       }
-
     }
 
     // Configure and apply scalar source to solution (if defined)
     auto src = problems::PHYS_SRC();
-    if (src) src( d->Coord(), d->T(), m_a );
+    if (src) m_freezeflow = src( d->Coord(), d->T(), m_a );
 
     // Enforce boundary conditions
     BC( m_a, d->T() + d->Dt() );
+
+    // Explicitly zero out flow for freezeflow
+    if (cstart) {
+      for (std::size_t i=0; i<npoin; ++i) {
+        for (std::size_t c=0; c<cstart; ++c) {
+          m_a(i,c,0) = u(i,c,0);
+        }
+      }
+    }
 
   }
 
@@ -1769,25 +1775,21 @@ ZalCG::evalres( const std::vector< tk::real >& l2res )
 int
 ZalCG::active( std::size_t p,
                std::size_t q,
-               tk::real tol,
                const std::vector< uint64_t >& sys )
 // *****************************************************************************
 //  Decide if edge is active
 //! \param[in] p Local id of left edge-end point
 //! \param[in] q Local id of right edge-end point
-//! \param[in] tol Tolerance to use
 //! \param[in] sys List of components to consider
 //! \return True if active, false if not
 // *****************************************************************************
 {
-  using std::abs;
-  using std::max;
+  auto tol = g_cfg.get< tag::deatol >();
 
   tk::real maxdiff = 0.0;
   for (auto c : sys) {
-    auto e = abs( m_u(p,c,0) - m_u(q,c,0) );
-    auto d = abs( m_u(p,c,0) ) + abs( m_u(q,c,0) ) + 1.0e-3;
-    maxdiff = max( maxdiff, e/d );
+    auto e = std::abs( m_u(p,c,0) - m_u(q,c,0) );
+    maxdiff = std::max( maxdiff, e );
   }
 
   return maxdiff > tol;
@@ -1801,15 +1803,14 @@ ZalCG::dea( const std::vector< uint64_t >& sys )
 //! \return Nonzero to deactivate, zero to keep active
 // *****************************************************************************
 {
+  if (m_toreactivate) return 0;
   if (m_deactivated) return 1;
-
-  auto tol = g_cfg.get< tag::deatol >();
 
   // tetrahedron superedges
   for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
     const auto N = m_dsupedge[0].data() + e*4;
     for (const auto& [p,q] : tk::lpoed) {
-      if (active(N[p],N[q],tol,sys)) return 0;
+      if (active(N[p],N[q],sys)) return 0;
     }
   }
 
@@ -1817,45 +1818,36 @@ ZalCG::dea( const std::vector< uint64_t >& sys )
   for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
     const auto N = m_dsupedge[1].data() + e*3;
     for (const auto& [p,q] : tk::lpoet) {
-      if (active(N[p],N[q],tol,sys)) return 0;
+      if (active(N[p],N[q],sys)) return 0;
     }
   }
 
   // edges
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
     const auto N = m_dsupedge[2].data() + e*2;
-    if (active(N[0],N[1],tol,sys)) return 0;
+    if (active(N[0],N[1],sys)) return 0;
   }
 
   return 1;
 }
 
-std::unordered_map< int, int >
-ZalCG::rea( const std::vector< uint64_t >& sys )
+void
+ZalCG::rea( const std::vector< uint64_t >& sys, std::unordered_set< int >& req )
 // *****************************************************************************
-// Decide whether to reactivate any neighbor chare
+//  Decide whether to reactivate any neighbor chare
 //! \param[in] sys List of components to consider
-//! \return Reactivation status (value=1 to reactivate) mapped to neighbor chare
+//! \param[in,out] req Set of neighbor chares to reactivate
 // *****************************************************************************
 {
-  auto tol = g_cfg.get< tag::deatol >();
-
-  std::unordered_map< int, int > req;
-
   for (const auto& [c,edges] : m_chbndedge) {
-    auto& r = req[c];
-    r = 0;
-    if (m_inactive.count(c)) {
-      for (const auto& [e,supint] : edges) {
-        if (active(e[0],e[1],tol,sys)) {
-          r = 1;
-          break;
-        }
+    if (not m_inactive.count(c)) continue;
+    for (const auto& [e,sint] : edges) {
+      if (active(e[0],e[1],sys)) {
+        req.insert(c);
+        break;
       }
     }
   }
-
-  return req;
 }
 
 void
@@ -1864,22 +1856,24 @@ ZalCG::huldif()
 // Apply diffusion on active hull
 // *****************************************************************************
 {
+  const auto eps = std::numeric_limits< tk::real >::epsilon();
+  const auto dif = g_cfg.get< tag::deadif >();
+  if (std::abs(dif) < eps) return;
+
   const auto npoin = m_u.nunk();
   const auto ncomp = m_u.nprop();
-  const auto dif = g_cfg.get< tag::deadif >();
 
   m_rhs.fill( 0.0 );
   for (const auto& [ch,edges] : m_chbndedge) {
-    if (m_inactive.count(ch)) {
-      for (const auto& [e,supint] : edges) {
-        auto p = e[0];
-        auto q = e[1];
-        auto fw = dif * supint[3];
-        for (std::size_t c=0; c<ncomp; ++c) {
-         auto f = fw*(m_u(p,c,0) - m_u(q,c,0));
-          m_rhs(p,c,0) -= f;
-          m_rhs(q,c,0) += f;
-        }
+    if (not m_inactive.count(ch)) continue;
+    for (const auto& [e,sint] : edges) {
+      auto p = e[0];
+      auto q = e[1];
+      auto fw = dif * sint;
+      for (std::size_t c=0; c<ncomp; ++c) {
+       auto f = fw*(m_u(p,c,0) - m_u(q,c,0));
+        m_rhs(p,c,0) -= f;
+        m_rhs(q,c,0) += f;
       }
     }
   }
@@ -1899,51 +1893,67 @@ ZalCG::deactivate()
 {
   auto d = Disc();
 
-  // Apply diffusion on active hull
-  huldif();
+  std::unordered_set< int > reactivate;
 
-  auto sys = g_cfg.get< tag::deasys >();
-  for (auto& c : sys) --c;
-
-  // Decide whether to deactivate this chare
-  if (d->It() == 1) m_todeactivate = dea( sys );
-
-  // Decide whether to reactivate any neighbor chare
-  auto req = rea( sys );
-
-  // Communicate reactivation requests
-  for (const auto& [c,n] : d->NodeCommMap()) {
-    thisProxy[c].comrea( tk::cref_find(req,c) );
+  if (not m_deactivated) {
+    // Apply diffusion on active hull
+    huldif();
+    // Query scalar components to deactivate based on
+    auto sys = g_cfg.get< tag::deasys >();
+    for (auto& c : sys) --c;
+    // Decide whether to deactivate this chare
+    if (d->deastart() and dea(sys)) m_todeactivate = 1;
+    // Decide whether to reactivate any neighbor chare
+    rea( sys, reactivate );
   }
+
+  // Communicate deactivation requests
+  for (const auto& [c,n] : d->NodeCommMap()) {
+    thisProxy[c].comdea( reactivate.count(c) );
+  }
+  owndea_complete();
 }
 
 void
-ZalCG::comrea( int reactivate )
+ZalCG::comdea( std::size_t reactivate )
 // *****************************************************************************
-//  Receive reactivation request
+//  Communicate deactivation desires
 //! \param[in] reactivate 1 if sender wants to reactivate this chare, 0 if not
 // *****************************************************************************
 {
   auto d = Disc();
 
   if (m_deactivated and reactivate) m_toreactivate = 1;
+
+  // Communicate activation status to neighbors
+  if (++m_ndea == d->NodeCommMap().size()) {
+    m_ndea = 0;
+    comdea_complete();
+  }
+}
+
+void
+ZalCG::activate()
+// *****************************************************************************
+// Compute deactivation status
+// *****************************************************************************
+{
+  auto d = Disc();
+
   if (m_todeactivate) m_deactivated = 1;
   if (m_toreactivate) m_deactivated = 0;
 
-  // Communicate activation status to neighbors
-  if (++m_nrea == d->NodeCommMap().size()) {
-    m_nrea = 0;
-    for (const auto& [c,n] : d->NodeCommMap()) {
-      thisProxy[c].comact( thisIndex, m_deactivated );
-    }
-    ownact_complete();
+  // Communicate deactivation status
+  for (const auto& [c,n] : d->NodeCommMap()) {
+    thisProxy[c].comact( thisIndex, m_deactivated );
   }
+  ownact_complete();
 }
 
 void
 ZalCG::comact( int ch, int deactivated )
 // *****************************************************************************
-//  Receive deactivation status
+//  Communicate deactivation status
 //! \param[in] ch Sender chare id
 //! \param[in] deactivated 1 if sender was deactivated, 0 if not
 // *****************************************************************************
@@ -1954,13 +1964,36 @@ ZalCG::comact( int ch, int deactivated )
 
   // When we have heard from all chares we communicate with, this chare is done
   if (++m_nact == d->NodeCommMap().size()) {
-    // Sum number of deactivated chares for diagnostics
+    // Aggregate deactivation status to every chare
     contribute( sizeof(int), &m_deactivated, CkReduction::sum_int,
-      CkCallback(CkReductionTarget(Discretization,deactivated), m_disc[0]) );
-    m_todeactivate = m_toreactivate = 0;
+                CkCallback(CkReductionTarget(ZalCG,deastat), thisProxy) );
+    m_todeactivate = 0;
+    m_toreactivate = 0;
     m_nact = 0;
     comact_complete();
   }
+}
+
+void
+ZalCG::deastat( int dea )
+// *****************************************************************************
+//  Receive aggregate deactivation status
+//! \param[in] dea Sum of deactived chares
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  // Disallow deactivating all chares
+  if (dea == d->nchare()) {
+    dea = 0;
+    m_deactivated = 0;
+    m_inactive.clear();
+  }
+
+  // Report number of deactivated chares for diagnostics
+  if (thisIndex == 0) d->deactivated( dea );
+
+  deastat_complete();
 }
 
 void
@@ -2088,15 +2121,15 @@ ZalCG::writeFields( CkCallback cb )
   auto v = m_u.extract( 2, 0 );  v /= r;
   auto w = m_u.extract( 3, 0 );  w /= r;
   auto e = m_u.extract( 4, 0 );  e /= r;
-  std::vector< tk::real > p( m_u.nunk() );
-  for (std::size_t i=0; i<p.size(); ++i) {
+  std::vector< tk::real > pr( m_u.nunk() );
+  for (std::size_t i=0; i<pr.size(); ++i) {
     auto ei = e[i] - 0.5*(u[i]*u[i] + v[i]*v[i] + w[i]*w[i]);
-    p[i] = eos::pressure( r[i]*ei );
+    pr[i] = eos::pressure( r[i]*ei );
   }
 
   std::vector< std::vector< tk::real > > nodefields{
     std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
-    std::move(p) };
+    std::move(pr) };
 
   for (std::size_t c=0; c<ncomp-5; ++c) {
     nodefieldnames.push_back( "c" + std::to_string(c) );
@@ -2140,9 +2173,9 @@ ZalCG::writeFields( CkCallback cb )
   // Surface output
 
   std::vector< std::string > nodesurfnames
-    {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
+    {"density", "velocityx", "velocityy", "velocityz", "energy", "pressure"};
 
-  for (std::size_t c=1; c<ncomp-5; ++c) {
+  for (std::size_t c=0; c<ncomp-5; ++c) {
     nodesurfnames.push_back( "c" + std::to_string(c) );
   }
 
@@ -2169,7 +2202,7 @@ ZalCG::writeFields( CkCallback cb )
       nodesurfs[i+4][j] = s[4]/s[0];
       auto ei = s[4]/s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
       nodesurfs[i+5][j] = eos::pressure( s[0]*ei );
-      for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+1+c][j] = s[5+c];
+      for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+6+c][j] = s[5+c];
       ++j;
     }
   }
@@ -2272,14 +2305,11 @@ ZalCG::evalLB( int nrestart )
   // finished flag
   if (d->restarted( nrestart )) m_finished = 0;
 
-  const auto lbfreq = g_cfg.get< tag::lbfreq >();
-  const auto nonblocking = g_cfg.get< tag::nonblocking >();
-
   // Load balancing if user frequency is reached or after the second time-step
-  if ( (d->It()) % lbfreq == 0 || d->It() == 2 ) {
+  if (d->lb()) {
 
     AtSync();
-    if (nonblocking) next();
+    if (g_cfg.get< tag::nonblocking >()) next();
 
   } else {
 
@@ -2321,7 +2351,7 @@ ZalCG::step()
   auto d = Disc();
 
   // Output one-liner status report to screen
-  d->status();
+  if (thisIndex == 0) d->status();
 
   if (not m_finished) {
 

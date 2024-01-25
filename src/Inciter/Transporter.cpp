@@ -1070,7 +1070,7 @@ Transporter::inthead( const tk::Print& print )
   "             h - h-refinement\n"
   "             l - load balancing\n"
   "             c - checkpoint\n" << (g_cfg.get< tag::deactivate >() ?
-  "             e:x/y - deactivation with x of y parts inactive\n" : "") <<
+  "             e:x/y - x of y work units deactivated\n" : "") <<
   "\n      it             t            dt        ETE        ETA        EGT  flg\n"
     "--------------------------------------------------------------------------\n";
 }

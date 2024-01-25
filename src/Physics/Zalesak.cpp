@@ -110,8 +110,9 @@ advedge( const tk::real supint[],
 
   if (steady) dt = (dtp[p] + dtp[q])/2.0;
 
-  // flow
   tk::real ue[ncomp];
+
+  // flow
   auto dp = pL - pR;
   ue[0] = 0.5*(rL + rR - dt*(rL*dnL - rR*dnR));
   ue[1] = 0.5*(ruL + ruR - dt*(ruL*dnL - ruR*dnR + dp*dx));
@@ -137,7 +138,6 @@ advedge( const tk::real supint[],
 
   // Taylor-Galerkin second half step
 
-  // flow
   auto rh  = ue[0];
   auto ruh = ue[1];
   auto rvh = ue[2];
@@ -145,6 +145,8 @@ advedge( const tk::real supint[],
   auto reh = ue[4];
   auto ph = eos::pressure( reh - 0.5*(ruh*ruh + rvh*rvh + rwh*rwh)/rh );
   auto vn = (ruh*nx + rvh*ny + rwh*nz)/rh;
+
+  // flow
   f[0] = 2.0*rh*vn;
   f[1] = 2.0*(ruh*vn + ph*nx);
   f[2] = 2.0*(rvh*vn + ph*ny);
@@ -226,6 +228,7 @@ static void
 advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
         const std::array< std::vector< tk::real >, 3 >& dsupint,
         const std::array< std::vector< tk::real >, 3 >& coord,
+        tk::real freezeflow,
         tk::real t,
         tk::real dt,
         const std::vector< tk::real >& tp,
@@ -240,6 +243,7 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] coord Mesh node coordinates
+//! \param[in] freezeflow dt multiplier after flow no longer updated
 //! \param[in] t Physical time
 //! \param[in] dt Physical time step size
 //! \param[in] tp Phisical time step size for each mesh node (if steady state)
@@ -252,6 +256,8 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 {
   auto ncomp = U.nprop();
   auto src = problems::SRC();
+
+  std::size_t cstart = freezeflow > 1.0 ? 5 : 0;
 
   #if defined(__clang__)
     #pragma clang diagnostic push
@@ -273,7 +279,7 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     advedge( d+(e*6+3)*4, U,S,G, coord, t, dt, tp, dtp, N[0], N[3], f[3], src );
     advedge( d+(e*6+4)*4, U,S,G, coord, t, dt, tp, dtp, N[1], N[3], f[4], src );
     advedge( d+(e*6+5)*4, U,S,G, coord, t, dt, tp, dtp, N[2], N[3], f[5], src );
-    for (std::size_t c=0; c<ncomp; ++c) {
+    for (std::size_t c=cstart; c<ncomp; ++c) {
       R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c] - f[3][c];
       R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c] - f[4][c];
       R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c] - f[5][c];
@@ -296,7 +302,7 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     advedge( d+(e*3+0)*4, U,S,G, coord, t, dt, tp, dtp, N[0], N[1], f[0], src );
     advedge( d+(e*3+1)*4, U,S,G, coord, t, dt, tp, dtp, N[1], N[2], f[1], src );
     advedge( d+(e*3+2)*4, U,S,G, coord, t, dt, tp, dtp, N[2], N[0], f[2], src );
-    for (std::size_t c=0; c<ncomp; ++c) {
+    for (std::size_t c=cstart; c<ncomp; ++c) {
       R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c];
       R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c];
       R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c];
@@ -315,7 +321,7 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     tk::real f[ncomp*2];
     const auto d = dsupint[2].data();
     advedge( d+e*4, U,S,G, coord, t, dt, tp, dtp, N[0], N[1], f, src );
-    for (std::size_t c=0; c<ncomp; ++c) {
+    for (std::size_t c=cstart; c<ncomp; ++c) {
       R(N[0],c,0) -= f[c];
       R(N[1],c,0) += f[c];
       if (src) {
@@ -336,6 +342,7 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 static void
 advbnd( const std::vector< std::size_t >& triinpoel,
         const std::array< std::vector< tk::real >, 3 >& coord,
+        tk::real freezeflow,
         const std::vector< std::uint8_t >& besym,
         const tk::Fields& U,
         tk::Fields& R )
@@ -343,6 +350,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
 //! Compute boundary integrals for advection
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] coord Mesh node coordinates
+//! \param[in] freezeflow dt multiplier after flow no longer updated
 //! \param[in] besym Boundary element symmetry BC flags
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector
@@ -353,6 +361,8 @@ advbnd( const std::vector< std::size_t >& triinpoel,
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
+
+  std::size_t cstart = freezeflow > 1.0 ? 5 : 0;
 
   for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
     const auto N = triinpoel.data() + e*3;
@@ -410,7 +420,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[3][2] = rwC*vn + p*nz;
     f[4][2] = (reC + p)*vn;
 
-    for (std::size_t c=0; c<ncomp; ++c) {
+    for (std::size_t c=cstart; c<ncomp; ++c) {
       auto fab = (f[c][0] + f[c][1])/4.0;
       auto fbc = (f[c][1] + f[c][2])/4.0;
       auto fca = (f[c][2] + f[c][0])/4.0;
@@ -775,6 +785,7 @@ void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
      const std::array< std::vector< tk::real >, 3 >& coord,
+     tk::real freezeflow,
      const std::vector< std::size_t >& triinpoel,
      const std::vector< std::uint8_t >& besym,
      tk::real t,
@@ -790,6 +801,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] coord Mesh node coordinates
+//! \param[in] freezeflow dt multiplier after flow no longer updated
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] besym Boundary element symmetry BC flags
 //! \param[in] t Physical time
@@ -809,8 +821,8 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
           "side vector incorrect" );
 
   R.fill( 0.0 );
-  advdom( dsupedge, dsupint, coord, t, dt, tp, dtp, U, S, G, R );
-  advbnd( triinpoel, coord, besym, U, R );
+  advdom( dsupedge, dsupint, coord, freezeflow, t, dt, tp, dtp, U, S, G, R );
+  advbnd( triinpoel, coord, freezeflow, besym, U, R );
 }
 
 } // zalesak::

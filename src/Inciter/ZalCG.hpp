@@ -124,10 +124,13 @@ class ZalCG : public CBase_ZalCG {
     //! Evaluate residuals
     void evalres( const std::vector< tk::real >& l2res );
 
-    //! Receive activation request
-    void comrea( int reactivate );
+    //! Communicate deactivation requests
+    void comdea( std::size_t reactivate );
 
-    //! Receive activation status
+    //! Receive aggregate deactivation status
+    void deastat( int dea );
+
+    //! Communicate deactivation status
     void comact( int ch, int deactivated );
 
     //! Receive new mesh from Refiner
@@ -173,7 +176,7 @@ class ZalCG : public CBase_ZalCG {
       p | m_naec;
       p | m_nalw;
       p | m_nlim;
-      p | m_nrea;
+      p | m_ndea;
       p | m_nact;
       p | m_todeactivate;
       p | m_toreactivate;
@@ -227,6 +230,7 @@ class ZalCG : public CBase_ZalCG {
       p | m_dtp;
       p | m_tp;
       p | m_finished;
+      p | m_freezeflow;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -251,8 +255,8 @@ class ZalCG : public CBase_ZalCG {
     std::size_t m_nalw;
     //! Counter for receiving limited antidiffusive contributions
     std::size_t m_nlim;
-    //! Counter for receiving reactivation requests
-    std::size_t m_nrea;
+    //! Counter for receiving deactivation requests
+    std::size_t m_ndea;
     //! Counter for receiving activation status communications
     std::size_t m_nact;
     //! Flag: 1 if chare desires to deactivate
@@ -328,10 +332,11 @@ class ZalCG : public CBase_ZalCG {
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals
     std::array< std::vector< tk::real >, 3 > m_dsupint;
-    //! Chare-boundary edge end-points with integrals
-    //! \details Outer key: neighbor chare id, value: contents of domain-edge
-    //!   integral associated to the edge with local node ids
-    std::unordered_map< int, decltype(m_domedgeint) > m_chbndedge;
+    //! Chare-boundary edge end-points with difffusion integral
+    //! \details Key: neighbor chare id, value: domain-edge end-points and
+    //!   diffusion integral associated to the edge
+    std::unordered_map< int,
+      std::vector< std::tuple< tk::UnsMesh::Edge, tk::real > > > m_chbndedge;
     //! Streamable boundary point symmetry BC flags
     std::vector< std::uint8_t > m_besym;
     //! Gradients in mesh nodes
@@ -371,6 +376,8 @@ class ZalCG : public CBase_ZalCG {
     std::vector< tk::real > m_tp;
     //! True in the last time step
     int m_finished;
+    //! dt multiplier after flow no longer updated
+    tk::real m_freezeflow;
 
     //! Access bound Discretization class pointer
     Discretization* Disc() const {
@@ -402,7 +409,7 @@ class ZalCG : public CBase_ZalCG {
     //! Generate superedge-groups for domain-edge integral
     void domsuped();
 
-    //! Generate edges along chare boundary
+    //! Generate chare-boundary edge data structures for deactivation
     void chbnded();
 
     //! Apply diffusion on active hull
@@ -450,17 +457,20 @@ class ZalCG : public CBase_ZalCG {
     //! Decide if edge is active
     int active( std::size_t p,
                 std::size_t q,
-                tk::real tol,
                 const std::vector< uint64_t >& sys );
 
     //! Decide whether to deactivate this chare
     int dea( const std::vector< uint64_t >& sys );
 
     //! Decide whether to teactivate a neighbor chare
-    std::unordered_map< int, int > rea( const std::vector< uint64_t >& sys );
+    void rea( const std::vector< uint64_t >& sys,
+              std::unordered_set< int >& req );
 
     //! Deactivate regions
     void deactivate();
+
+    //! Compute deactivation status
+    void activate();
 
     //! Refine/derefine mesh
     void refine();

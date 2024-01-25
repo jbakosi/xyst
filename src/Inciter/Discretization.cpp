@@ -70,7 +70,8 @@ Discretization::Discretization(
   m_nrestart( 0 ),
   m_res( 0.0 ),
   m_res0( 0.0 ),
-  m_deactivated( 0 )
+  m_dea( 0 ),
+  m_deastarted( 0 )
 // *****************************************************************************
 //  Constructor
 //! \param[in] meshid Mesh ID
@@ -917,6 +918,21 @@ Discretization::residual( tk::real r )
 }
 
 bool
+Discretization::deastart()
+// *****************************************************************************
+//  Decide whether to start the deactivation procedure in this time step
+//! \return True to start the deactivation prcedure in this time step
+// *****************************************************************************
+{
+  if (not m_deastarted and m_t > g_cfg.get<tag::deatime>() + m_dt) {
+    m_deastarted = 1;
+    return true;
+  }
+
+  return false;
+}
+
+bool
 Discretization::deactivate() const
 // *****************************************************************************
 //  Decide whether to run deactivation procedure in this time step
@@ -926,7 +942,7 @@ Discretization::deactivate() const
   auto dea = g_cfg.get< tag::deactivate >();
   auto deafreq = g_cfg.get< tag::deafreq >();
 
-  if (dea and not m_nodeCommMap.empty() and (m_it == 1 or m_it % deafreq == 0))
+  if (dea and !m_nodeCommMap.empty() and m_it % deafreq == 0)
     return true;
   else
     return false;
@@ -935,11 +951,27 @@ Discretization::deactivate() const
 void
 Discretization::deactivated( int n )
 // *****************************************************************************
-//  Reduction target to receive number of deactived chares
+//  Receive deactivation report
 //! \param[in] n Sum of deactivated chares
 // *****************************************************************************
 {
-  m_deactivated = n;
+  m_dea = n;
+}
+
+bool
+Discretization::lb() const
+// *****************************************************************************
+//  Decide whether to do load balancing this time step
+//! \return True to do load balancing in this time step
+// *****************************************************************************
+{
+  auto lbfreq = g_cfg.get< tag::lbfreq >();
+  auto lbtime = g_cfg.get< tag::lbtime >();
+
+  if ((m_t > lbtime and m_it % lbfreq == 0) or m_it == 2)
+    return true;
+  else
+    return false;
 }
 
 void
@@ -948,23 +980,22 @@ Discretization::status()
 // Output one-liner status report
 // *****************************************************************************
 {
-  // Query after how many time steps user wants TTY dump
   const auto ttyi = g_cfg.get< tag::ttyi >();
 
-  // estimate grind time (taken between this and the previous time step)
-  using std::chrono::duration_cast;
-  using ms = std::chrono::milliseconds;
-  using clock = std::chrono::high_resolution_clock;
-  auto grind_time = duration_cast< ms >(clock::now() - m_prevstatus).count();
-  m_prevstatus = clock::now();
+  if (thisIndex == 0 and m_meshid == 0 and m_it % ttyi == 0) {
 
-  if (thisIndex==0 and m_meshid == 0 and not (m_it%ttyi)) {
+    // estimate grind time (taken between this and the previous time step)
+    using std::chrono::duration_cast;
+    using ms = std::chrono::milliseconds;
+    using clock = std::chrono::high_resolution_clock;
+    auto grind_time = duration_cast< ms >(clock::now() - m_prevstatus).count()
+                      / static_cast< long >( ttyi );
+    m_prevstatus = clock::now();
 
     const auto term = g_cfg.get< tag::term >();
     const auto t0 = g_cfg.get< tag::t0 >();
     const auto nstep = g_cfg.get< tag::nstep >();
     const auto diag = g_cfg.get< tag::diag_iter >();
-    const auto lbfreq = g_cfg.get< tag::lbfreq >();
     const auto rsfreq = g_cfg.get< tag::rsfreq >();
     const auto benchmark = g_cfg.get< tag::benchmark >();
     const auto residual = g_cfg.get< tag::residual >();
@@ -997,9 +1028,11 @@ Discretization::status()
     if (histiter() or histtime() or histrange()) print << 't';
     if (integiter() or integtime() or integrange()) print << 'i';
     if (m_refined) print << 'h';
-    if ((m_it % lbfreq == 0 || m_it == 2) && not finished()) print << 'l';
+    if (lb() and not finished()) print << 'l';
     if (not benchmark && (not (m_it % rsfreq) || finished())) print << 'c';
-    if (deactivate()) print << "\te:" << m_deactivated << '/' << m_nchare;
+    if (m_deastarted and deactivate()) {
+      print << "\te:" << m_dea << '/' << m_nchare;
+    }
 
     print << '\n';
   }

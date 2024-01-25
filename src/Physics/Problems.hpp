@@ -36,9 +36,9 @@ std::function< std::vector< tk::real >
 SRC();
 
 //  Query user config and assign function to apply source to numerical solution
-std::function< void( const std::array< std::vector< tk::real >, 3 >&,
-                     tk::real,
-                     tk::Fields& ) >
+std::function< double( const std::array< std::vector< tk::real >, 3 >&,
+                       tk::real,
+                       tk::Fields& ) >
 PHYS_SRC();
 
 //! Set inital conditions

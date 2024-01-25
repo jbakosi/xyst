@@ -627,7 +627,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
 
 } // slot_cyl::
 
-namespace point_source {
+namespace point_src {
 
 static std::vector< tk::real >
 ic( tk::real x, tk::real y, tk::real z, tk::real t )
@@ -697,7 +697,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
   return source.get< tag::freezeflow >();
 }
 
-} // point_source::
+} // point_src::
 
 namespace gyor {
 
@@ -752,7 +752,7 @@ IC()
   else if (problem == "slot_cyl")
     ic = slot_cyl::ic;
   else if (problem == "point_src")
-    ic = point_source::ic;
+    ic = point_src::ic;
   else if (problem == "gyor")
     ic = gyor::ic;
   else
@@ -903,7 +903,7 @@ PHYS_SRC()
                          tk::Fields& ) > src;
 
   if (problem == "point_src") {
-    src = point_source::src;
+    src = point_src::src;
   }
 
   return src;

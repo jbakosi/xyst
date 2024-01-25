@@ -394,7 +394,7 @@ ZalCG::domint()
 void
 ZalCG::comnorm( const decltype(m_bnorm)& inbnd )
 // *****************************************************************************
-// Receive contributions to boundary point normals on chare-boundaries
+//  Receive contributions to boundary point normals on chare-boundaries
 //! \param[in] inbnd Incoming partial sums of boundary point normals
 // *****************************************************************************
 {
@@ -1160,7 +1160,7 @@ ZalCG::rhs()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-    // Combine own and communicated contributions to stabilization coefficients
+  // Combine own and communicated contributions to stabilization coefficients
   for (const auto& [g,r] : m_stabc) {
     auto i = tk::cref_find( lid, g );
     m_stab(i,0,0) = std::max( m_stab(i,0,0), r );

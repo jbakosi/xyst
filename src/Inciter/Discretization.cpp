@@ -745,8 +745,8 @@ Discretization::fieldtime() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  const auto eps = std::numeric_limits< tk::real >::epsilon();
-  const auto ft = g_cfg.get< tag::fieldout_time >();
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto ft = g_cfg.get< tag::fieldout_time >();
 
   if (ft < eps) return false;
 
@@ -785,7 +785,7 @@ Discretization::histiter() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  const auto hist = g_cfg.get< tag::histout_iter >();
+  auto hist = g_cfg.get< tag::histout_iter >();
   const auto& hist_points = g_cfg.get< tag::histout >();
 
   return m_it % hist == 0 and not hist_points.empty();
@@ -800,8 +800,8 @@ Discretization::histtime() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  const auto eps = std::numeric_limits< tk::real >::epsilon();
-  const auto ht = g_cfg.get< tag::histout_time >();
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto ht = g_cfg.get< tag::histout_time >();
 
   if (ht < eps) return false;
 
@@ -817,7 +817,7 @@ Discretization::histrange() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  const auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto eps = std::numeric_limits< tk::real >::epsilon();
 
   bool output = false;
 
@@ -840,7 +840,7 @@ Discretization::integiter() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  const auto integ = g_cfg.get< tag::integout_iter >();
+  auto integ = g_cfg.get< tag::integout_iter >();
   const auto& sidesets_integral = g_cfg.get< tag::integout >();
 
   return m_it % integ == 0 and not sidesets_integral.empty();
@@ -855,8 +855,8 @@ Discretization::integtime() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  const auto eps = std::numeric_limits< tk::real >::epsilon();
-  const auto it = g_cfg.get< tag::integout_time >();
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto it = g_cfg.get< tag::integout_time >();
 
   if (it < eps) return false;
 
@@ -872,7 +872,7 @@ Discretization::integrange() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  const auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto eps = std::numeric_limits< tk::real >::epsilon();
 
   bool output = false;
 
@@ -893,10 +893,10 @@ Discretization::finished() const
 //! \return True if this is the last time step
 // *****************************************************************************
 {
-  const auto eps = std::numeric_limits< tk::real >::epsilon();
-  const auto nstep = g_cfg.get< tag::nstep >();
-  const auto term = g_cfg.get< tag::term >();
-  const auto residual = g_cfg.get< tag::residual >();
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto nstep = g_cfg.get< tag::nstep >();
+  auto term = g_cfg.get< tag::term >();
+  auto residual = g_cfg.get< tag::residual >();
 
   return std::abs(m_t-term) < eps or m_it >= nstep or
          (m_res > 0.0 and m_res < residual);
@@ -909,7 +909,7 @@ Discretization::residual( tk::real r )
 //! \param[in] r Current residual
 // *****************************************************************************
 {
-  const auto ttyi = g_cfg.get< tag::ttyi >();
+  auto ttyi = g_cfg.get< tag::ttyi >();
 
   if (not (m_it%ttyi)) {
     m_res0 = m_res;

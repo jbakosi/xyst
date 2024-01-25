@@ -113,7 +113,7 @@ std::pair< std::vector< std::size_t >, std::vector< std::size_t > >
 genEdpas( int mvecl, std::size_t nnpe, std::size_t npoin,
           const std::vector< std::size_t >& inpoed );
 
-//! Generate total number of boundary faces in this chunk
+//! Generate number of boundary-faces and triangle boundary-face connectivity
 std::size_t
 genNbfacTet( std::size_t tnbfac,
              const std::vector< std::size_t >& inpoel,
@@ -137,7 +137,7 @@ genEsuf( std::size_t nfpe,
          const std::vector< std::size_t >& belem,
          const std::vector< int >& esuelTet );
 
-//! Generate derived data structure, node-face connectivity
+//! Generate derived data structure, points on faces for tetrahedra only
 std::vector< std::size_t >
 genInpofaTet( std::size_t nipfac,
               std::size_t nbfac,
@@ -145,7 +145,7 @@ genInpofaTet( std::size_t nipfac,
               const std::vector< std::size_t >& triinpoel,
               const std::vector< int >& esuelTet );
 
-//! Generate derived data structure, host/boundary element
+//! Generate derived data structure, boundary elements
 std::vector< std::size_t >
 genBelemTet( std::size_t nbfac,
               const std::vector< std::size_t >& inpofa,

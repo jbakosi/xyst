@@ -939,9 +939,7 @@ genNbfacTet( std::size_t tnbfac,
              std::vector< std::size_t >& triinpoel,
              std::map< int, std::vector< std::size_t > >& bface )
 // *****************************************************************************
-//  Generate the number of boundary-faces and the triangle boundary-face
-//  connectivity for a chunk of a full mesh.
-//  \warning This is for Triangular face-elements only.
+//  Generate number of boundary-faces and triangle boundary-face connectivity
 //! \param[in] tnbfac Total number of boundary faces in the entire mesh.
 //! \param[in] inpoel Inteconnectivity of points and elements. These are the
 //!   node ids of each element of an unstructured mesh.
@@ -969,6 +967,7 @@ genNbfacTet( std::size_t tnbfac,
 //!   an already partitioned mesh. This function then intersects
 //!   triinpoel_complete with inpoel and returns only those faces that share
 //!   nodes with inpoel.
+//! \warning This is for Triangular face-elements only.
 // *****************************************************************************
 {
   // cppcheck-suppress unreadVariable
@@ -1164,14 +1163,14 @@ genNipfac( std::size_t nfpe,
            std::size_t nbfac,
            const std::vector< int >& esuelTet )
 // *****************************************************************************
-//  Generate derived data, number of internal and physical-boundary faces in the
-//  mesh. This does not include faces that are on partition/chare-boundaries.
+//  Generate number of internal and physical-boundary faces
 //! \param[in] nfpe Number of faces per element.
 //! \param[in] nbfac Number of boundary faces.
 //! \param[in] esuelTet Elements surrounding elements.
 //! \return Total number of faces in the mesh
 //! \details The unsigned integer here gives the number of internal and
-//     physical-boundary faces in the mesh.
+//!    physical-boundary faces in the mesh. The data structure does not include
+//!    faces that are on partition/chare-boundaries.
 // *****************************************************************************
 {
   Assert( !esuelTet.empty(), "Attempt to call genNipfac() with empty esuelTet" );
@@ -1208,7 +1207,7 @@ genEsuf( std::size_t nfpe,
          const std::vector< std::size_t >& belem,
          const std::vector< int >& esuelTet )
 // *****************************************************************************
-//  Generate derived data, elements surrounding faces
+//  Generate derived data structure, elements surrounding faces
 //! \param[in] nfpe  Number of faces per element.
 //! \param[in] nipfac Number of internal and physical-boundary faces.
 //! \param[in] nbfac Number of boundary faces.
@@ -1266,7 +1265,7 @@ genInpofaTet( std::size_t nipfac,
               const std::vector< std::size_t >& triinpoel,
               const std::vector< int >& esuelTet )
 // *****************************************************************************
-//  Generate derived data, points on faces for tetrahedra only
+//  Generate derived data structure, points on faces for tetrahedra only
 //! \param[in] nipfac Number of internal and physical-boundary faces.
 //! \param[in] nbfac Number of boundary faces.
 //! \param[in] inpoel Element-node connectivity.
@@ -1333,15 +1332,16 @@ genBelemTet( std::size_t nbfac,
               const std::pair< std::vector< std::size_t >,
                                std::vector< std::size_t > >& esup )
 // *****************************************************************************
-//  Generate derived data, and array of elements which share one or more of
-//   their faces with the physical boundary, i.e. where exodus specifies a
-//   side-set for faces. Such elements are sometimes also called host or
-//   boundary elements.
+//  Generate derived data, boundary elements
 //! \param[in] nbfac Number of boundary faces.
 //! \param[in] inpofa Face-node connectivity.
 //! \param[in] esup Elements surrounding points as linked lists, see tk::genEsup
 //! \return Host elements or boundary elements. The unsigned integer vector
 //!   gives the elements to the left of each boundary face in the mesh.
+//! \details The data structure generated here contains an array of elements
+//!   which share one or more of their faces with the physical boundary, i.e.,
+//!   where exodus specifies a side-set for faces. Such elements are sometimes
+//!   also called host or boundary elements.
 // *****************************************************************************
 {
   std::vector< std::size_t > belem(nbfac);

@@ -334,7 +334,7 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
     print.item( "Partitioner", g_cfg.get< tag::part >() );
     print.item( "Virtualization", g_cfg.get< tag::virt >() );
     // Print out initial mesh statistics
-    meshstat( "Initial load distribution" );
+    meshstat( "Mesh read from file" );
 
     // Tell meshwriter the total number of chares
     m_meshwriter[meshid].nchare( m_nchare[meshid] );
@@ -682,7 +682,7 @@ Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
     tk::Print print;
     m_progMesh.end( print );
     if (g_cfg.get< tag::href_t0 >()) {
-      meshstat( "Initially refined mesh graph statistics" );
+      meshstat( "Mesh initially refined" );
     }
   }
 

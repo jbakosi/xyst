@@ -24,6 +24,7 @@ LBSwitch::LBSwitch()
 // *****************************************************************************
 {
   TurnManualLBOff();
+  if (CkMyPe() == 0) Print() << "Xyst> Load balancing on\n";
 }
 
 void
@@ -31,7 +32,7 @@ void
 LBSwitch::off()
 // *****************************************************************************
 //  Turn off automatic load balancing
-//! \details Since this is a [procinit] routine, the runtime system executes the
+//! \details Since this is a [initproc] routine, the runtime system executes the
 //!   routine exactly once on every PE early on in the Charm++ init
 //!   sequence. Must be static as it is called without an object. See also:
 //!   Section "Initializations at Program Startup" at in the Charm++ manual

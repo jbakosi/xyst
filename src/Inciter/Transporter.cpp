@@ -813,7 +813,6 @@ Transporter::comfinal( std::size_t summeshid )
     tk::Print print;
     m_progWork.end( print );
     tk::CProxy_LBSwitch::ckNew();
-    print << "Xyst> Load balancing on (if enabled in Charm++)\n";
   }
 }
 

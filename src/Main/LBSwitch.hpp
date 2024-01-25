@@ -13,6 +13,8 @@
 #ifndef LBSwitch_h
 #define LBSwitch_h
 
+#include "Print.hpp"
+
 #include "NoWarning/lbswitch.decl.h"
 
 namespace tk {
@@ -33,7 +35,10 @@ class LBSwitch : public CBase_LBSwitch {
       #pragma clang diagnostic ignored "-Wundefined-func-template"
     #endif
     //! Migrate constructor
-    explicit LBSwitch( CkMigrateMessage* m ) : CBase_LBSwitch( m ) {}
+    explicit LBSwitch( CkMigrateMessage* m ) : CBase_LBSwitch( m ) {
+      TurnManualLBOff();
+      if (CkMyPe() == 0) Print() << "Xyst> Load balancing on\n";
+    }
     #if defined(__clang__)
       #pragma clang diagnostic pop
     #endif

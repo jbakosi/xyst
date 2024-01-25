@@ -170,6 +170,17 @@ ZalCG::setupBC()
     }
   }
 
+  // Augment Pressure BC nodes with nodes not necessarily part of faces
+  for (const auto& s : g_cfg.get< tag::bc_pre >()) {
+    auto k = m_bnode.find(s[0]);
+    if (k != end(m_bnode)) {
+      auto& n = pre[ k->first ];
+      for (auto g : k->second) {
+        n.insert( tk::cref_find(lid,g) );
+      }
+    }
+  }
+
   // Prepare density and pressure values for pressure BC nodes
   const auto& pbc_set = g_cfg.get< tag::bc_pre >();
   if (!pbc_set.empty()) {
@@ -235,6 +246,8 @@ ZalCG::setupBC()
 
   // If farfield BC is set on a node, will not also set symmetry BC
   for (auto i : m_farbcnodeset) m_symbcnodeset.erase(i);
+  // If pressure BC is set on a node, will not also set symmetry BC
+  for (auto i : m_prebcnodes) m_symbcnodeset.erase(i);
 }
 
 void

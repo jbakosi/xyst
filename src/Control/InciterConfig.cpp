@@ -834,6 +834,7 @@ problem( lua_State* L, Config& cfg )
       s.get< tag::location >() = vector( L, "location" );
       s.get< tag::radius >() = real( L, "radius" );
       s.get< tag::release_time >() = real( L, "release_time" );
+      s.get< tag::freezeflow >() = real( L, "freezeflow", 1.0 );
     }
     lua_pop( L, 1 );
   }
@@ -863,6 +864,42 @@ href( lua_State* L, Config& cfg )
   cfg.get< tag::href_refvar >() = unsigints( L, "refvar" );
   cfg.get< tag::href_error >() = string( L, "error", "jump" );
   cfg.get< tag::href_maxlevels >() = unsigint( L, "maxlevels", 2 );
+
+  lua_pop( L, 1 );
+}
+
+static void
+deactivate( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse deactivate table
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  lua_getglobal( L, "deactivate" );
+
+  cfg.get< tag::deafreq >() = unsigint( L, "freq", 0 );
+  cfg.get< tag::deatol >() = real( L, "tol", 1.0e-3 );
+  cfg.get< tag::deadif >() = real( L, "dif", 0.0 );
+  cfg.get< tag::deasys >() = unsigints( L, "sys" );
+  cfg.get< tag::deatime >() = real( L, "time", 0.0 );
+
+  cfg.get< tag::deactivate >() = cfg.get< tag::deafreq >();  // on if freq > 0
+
+  lua_pop( L, 1 );
+}
+
+static void
+lb( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse lb (load balancing configuration) table
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  lua_getglobal( L, "lb" );
+
+  cfg.get< tag::lbtime >() = real( L, "time", 0.0 );
 
   lua_pop( L, 1 );
 }
@@ -905,11 +942,6 @@ Config::control()
     get< tag::fctdif >() = real( L, "fctdif", 1.0, true );
     get< tag::fctclip >() = boolean( L, "fctclip", false, true );
     get< tag::fctsys >() = unsigints( L, "fctsys", true );
-    get< tag::deactivate >() = boolean( L, "deactivate", false, true );
-    get< tag::deatol >() = real( L, "deatol", 1.0e-3, true );
-    get< tag::deadif >() = real( L, "deadif", 0.0, true );
-    get< tag::deafreq >() = unsigint( L, "deafreq", 5, true );
-    get< tag::deasys >() = unsigints( L, "deasys", true );
 
     ic( L, *this );
     bc_dir( L, *this );
@@ -923,6 +955,8 @@ Config::control()
     integout( L, *this );
     diag( L, *this );
     href( L, *this );
+    deactivate( L, *this );
+    lb( L, *this );
 
     print << "Solver: " << get< tag::solver >() << '\n';
 

@@ -31,6 +31,7 @@ DEFTAG( nonblocking );
 DEFTAG( benchmark );
 DEFTAG( feedback );
 DEFTAG( lbfreq );
+DEFTAG( lbtime );
 DEFTAG( rsfreq );
 DEFTAG( nstep );
 DEFTAG( ttyi );
@@ -54,6 +55,7 @@ DEFTAG( deatol );
 DEFTAG( deadif );
 DEFTAG( deafreq );
 DEFTAG( deasys );
+DEFTAG( deatime );
 DEFTAG( steady );
 DEFTAG( residual );
 DEFTAG( rescomp );
@@ -69,6 +71,7 @@ DEFTAG( problem_src );
 DEFTAG( location );
 DEFTAG( radius );
 DEFTAG( release_time );
+DEFTAG( freezeflow );
 DEFTAG( fieldout );
 DEFTAG( fieldout_iter );
 DEFTAG( fieldout_time );
@@ -136,6 +139,7 @@ using ConfigMembers = brigand::list<
   , tag::benchmark, bool
   , tag::feedback, bool
   , tag::lbfreq, uint64_t
+  , tag::lbtime, double
   , tag::rsfreq, uint64_t
   , tag::nstep, uint64_t
   , tag::ttyi, uint64_t
@@ -159,6 +163,7 @@ using ConfigMembers = brigand::list<
   , tag::deadif, double
   , tag::deafreq, uint64_t
   , tag::deasys, std::vector< uint64_t >
+  , tag::deatime, double
   , tag::steady, bool
   , tag::residual, double
   , tag::rescomp, uint64_t
@@ -172,8 +177,9 @@ using ConfigMembers = brigand::list<
   , tag::problem_ce, double
   , tag::problem_src, tk::TaggedTuple< brigand::list<
                         tag::location, std::vector< double >
-                          , tag::radius, double
-                          , tag::release_time, double
+                      , tag::radius, double
+                      , tag::release_time, double
+                      , tag::freezeflow, double
                       > >
   , tag::fieldout, std::vector< int >
   , tag::fieldout_iter, uint64_t

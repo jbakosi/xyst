@@ -2181,6 +2181,33 @@ ZalCG::writeFields( CkCallback cb )
     }
   }
 
+  std::vector< tk::real > bnded, hull, dea;
+  if (g_cfg.get< tag::deactivate >()) {
+    nodefieldnames.push_back( "chbnded" );
+    bnded.resize( m_u.nunk(), 0.0 );
+    for (const auto& [ch,edges] : m_chbndedge) {
+      for (const auto& [ed,sint] : edges) {
+        bnded[ed[0]] = bnded[ed[1]] = 1.0;
+      }
+    }
+    nodefields.push_back( bnded );
+
+    nodefieldnames.push_back( "activehull" );
+    hull.resize( m_u.nunk(), 0.0 );
+    for (const auto& [ch,edges] : m_chbndedge) {
+      if (m_inactive.count(ch)) {
+        for (const auto& [e,sint] : edges) {
+          hull[e[0]] = hull[e[1]] = 1.0;
+        }
+      }
+    }
+    nodefields.push_back( hull );
+
+    nodefieldnames.push_back( "deactivated" );
+    dea.resize( m_u.nunk(), static_cast<tk::real>(m_deactivated) );
+    nodefields.push_back( dea );
+  }
+
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 
   // Surface output
@@ -2192,8 +2219,13 @@ ZalCG::writeFields( CkCallback cb )
     nodesurfnames.push_back( "c" + std::to_string(c) );
   }
 
-  std::vector< std::vector< tk::real > > nodesurfs;
+  if (g_cfg.get< tag::deactivate >()) {
+    nodesurfnames.push_back( "chbnded" );
+    nodesurfnames.push_back( "activehull" );
+    nodesurfnames.push_back( "deactivated" );
+  }
 
+  std::vector< std::vector< tk::real > > nodesurfs;
   const auto& lid = d->Lid();
   auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
   const auto& f = g_cfg.get< tag::fieldout >();
@@ -2203,7 +2235,9 @@ ZalCG::writeFields( CkCallback cb )
     if (b == end(bnode)) continue;
     const auto& nodes = b->second;
     auto i = nodesurfs.size();
-    nodesurfs.insert( end(nodesurfs), ncomp + 1,
+    auto ns = ncomp + 1;
+    if (g_cfg.get< tag::deactivate >()) ns += 3;
+    nodesurfs.insert( end(nodesurfs), ns,
                       std::vector< tk::real >( nodes.size() ) );
     std::size_t j = 0;
     for (auto n : nodes) {
@@ -2216,9 +2250,16 @@ ZalCG::writeFields( CkCallback cb )
       auto ei = s[4]/s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
       nodesurfs[i+5][j] = eos::pressure( s[0]*ei );
       for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+6+c][j] = s[5+c];
+      if (g_cfg.get< tag::deactivate >()) {
+        nodesurfs[i+7][j] = bnded[n];
+        nodesurfs[i+8][j] = hull[n];
+        nodesurfs[i+9][j] = dea[n];
+      }
       ++j;
     }
   }
+
+  Assert( nodesurfdnames.size() == nodesurfs.size(), "Size mismatch" );
 
   // Send mesh and fields data (solution dump) for output to file
   d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,lid),

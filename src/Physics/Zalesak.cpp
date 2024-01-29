@@ -212,8 +212,11 @@ advedge( const tk::real supint[],
   f[3] -= fw*(s2c*(rwL - rwR) + s4c*(d2rwR - d2rwL));
   f[4] -= fw*(s2c*(reL - reR) + s4c*(d2reR - d2reL));
   for (std::size_t c=5; c<ncomp; ++c) {
-    auto d2cL = G(p,3+c,0);
-    auto d2cR = G(q,3+c,0);
+    tk::real d2cL = 0.0, d2cR = 0.0;
+    if (stab4) {
+      d2cL = G(p,3+c,0);
+      d2cR = G(q,3+c,0);
+    }
     f[c] -= fw*(s2c*(U(p,c,0) - U(q,c,0)) + s4c*(d2cR - d2cL));
   }
 

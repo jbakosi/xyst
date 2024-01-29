@@ -37,7 +37,7 @@ that this point has not yet been reached at approximately 65K CPUs for this
 problem. The point of diminishing returns is affected by the scalability of the
 algorithm, its implementation, the problem size, the efficiency of the
 underlying runtime system, the hardware, and its configuration. One practical
-result from this figure is that as the number of computatinoal elements (and
+result from this figure is that as the number of computational elements (and
 points) per CPU core decreases with more resources available for a fixed-size
 problem, this solver implementation (on these machines) is scalable at least as
 low as 12K elements (and 2.8K points) per CPU core.  This can be used to

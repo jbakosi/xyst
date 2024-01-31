@@ -11,7 +11,7 @@ more details, see @ref papers.
 
 The numerical method in KozCG is an element-based implementation of a finite element method for unstructured meshes, composed of tetrahedral cells. The solver is intended for the computing of compressible flows. A good reference for the finite element method itself is Lohner's book [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746) and on Flux Corrected Transport [Lohner, Morgan, Peraire, Vahdati, Finite element flux-corrected transport (FEM-FCT) for the Euler and Navier--Stokes equations](http://dx.doi.org/10.1002/fld.1650071007). The implementation of the method uses an asynchronous-by-default, distributed-memory, task-parallel programming paradigm using the Charm++ runtime system.
 
-@section kozgcg_euler The equations of compressible flow
+@section kozcg_euler The equations of compressible flow
 
 The governing equations solved are the 3D unsteady Euler equations, governing
 inviscid compressible flow, written here in the flux-conservative form
@@ -40,7 +40,7 @@ exact form of the equation of state is of secondary importance, any arbitrary
 (i.e. analytic or tabulated) equation of state can be used to relate density
 and internal energy to pressure.
 
-@section kozgcg_space Discretization in space
+@section kozcg_space Discretization in space
 To arrive at a continuous Galerkin finite element method we start from the weak
 form of the governing equations above,
 \f[ \begin{split}
@@ -100,7 +100,7 @@ According to the sum above, only those elements contribute to a given row
 \f$\color[HTML]{dcdcdc}v\f$ (scatter), thus
 \f$\color[HTML]{dcdcdc}{\mbox{\boldmath$M$}}_c\f$ is sparse.
 
-@section kozgcg_time Discretization in time
+@section kozcg_time Discretization in time
 
 The equation above is discretized in time using a Lax-Wendroff
 (Taylor-Galerkin) scheme, implemented using two stages:
@@ -132,7 +132,7 @@ solutions at the half step. Note that the first step discretizes the flux
 integral _before_ integration by parts, while the second one _after_
 integration by parts, hence the difference in sign.
 
-@section kozgcg_fct Flux-corrected transport
+@section kozcg_fct Flux-corrected transport
 
 Flux-corrected transport (FCT) is a solution to circumvent the consequence of
 Godunov's theorem, which states that no linear scheme of order greater than 1
@@ -191,7 +191,7 @@ the solution to the next time step using the equation above, where
 \f$\color[HTML]{dcdcdc}0 \le C_e \le 1\f$ is the limit coefficient for a given
 element \f$\color[HTML]{dcdcdc}e\f$.
 
-@section kozgcg_limiting The limiting procedure
+@section kozcg_limiting The limiting procedure
 
 The weak sum above shows that the left hand side is the consistent mass matrix.
 \f$\color[HTML]{dcdcdc}{\mbox{\boldmath$M$}}_c\f$ is lumped by summing the rows

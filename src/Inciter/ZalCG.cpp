@@ -2259,7 +2259,7 @@ ZalCG::writeFields( CkCallback cb )
     }
   }
 
-  Assert( nodesurfdnames.size() == nodesurfs.size(), "Size mismatch" );
+  Assert( nodesurfnames.size() == nodesurfs.size(), "Size mismatch" );
 
   // Send mesh and fields data (solution dump) for output to file
   d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,lid),

@@ -31,6 +31,7 @@ on the solvers.
 @section inciter_pages Related pages
 - @ref inciter_riecg "RieCG hydrodynamics"
 - @ref inciter_kozcg "KozCG hydrodynamics"
+- @ref inciter_zalcg "ZalCG hydrodynamics"
 - @ref riecg_performance "RieCG performance"
 - @ref examples "Examples"
 - @ref papers "Publications"

@@ -45,7 +45,7 @@ pressure in time at the 3 gauge locations depicted in the figure above.
 
 @section riecg_example_square_cavity_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [aa29b26](https://codeberg.org/xyst/xyst/commit/aa29b264272ceda81089821731ea6ea678d42a14) and the control file below.
+To reproduce the results below, use code revision [7b4edaf](https://codeberg.org/xyst/xyst/commit/7b4edaf326b8bf44b649d9364d0e228df08b53f2) and the control file below.
 
 @section riecg_example_square_cavity_control Control file
 
@@ -59,9 +59,10 @@ print [[Igra, Falcovitz, Reichenbach, Heilig, 'Experimental and
         105-130, 1996.]]
 
 term = 200.0
-ttyi = 10
+ttyi = 100
 cfl = 0.5
 
+solver = "riecg"
 part = "rcb"
 
 mat = { spec_heat_ratio = 1.407 }
@@ -152,17 +153,16 @@ different meshes listed in the following table.
              0  |     33,983  |     100,620  | 0.0911
              1  |    138,518  |     423,826  | 0.0475
              2  |    545,982  |   1,664,333  | 0.0268
-             3  |  6,656,300  |  29,960,340  | 0.0100
 Here h is the average edge length.
 
 @note For the meshes, contact us using the link at the bottom of the page.
 
 The following figures show the computed fluid density fields at t=200us from
-the calculations using mesh 0 and 3.
+the calculations using mesh 0 and 2.
 
 @m_div{m-col-m-10 m-center-m}
 <img src="images/squarecav_density_mesh0.png"/>
-<img src="images/squarecav_density_mesh3.png"/>
+<img src="images/squarecav_density_mesh2.png"/>
 @m_enddiv
 
 As expected, increasing the mesh resolution yields sharper resolution of the

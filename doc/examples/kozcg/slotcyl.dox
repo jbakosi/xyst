@@ -160,10 +160,10 @@ The scalar field after half revolution is depicted below with several line-outs
 at various locations so the solution can be compared to the analytic solution.
 
 @m_div{m-col-m-10 m-center-m}
-<img src="images/slotcyl_kozg_x0.5.png"/>
-<img src="images/slotcyl_kozg_x0.75.png"/>
-<img src="images/slotcyl_kozg_y0.25.png"/>
-<img src="images/slotcyl_kozg_y0.75.png"/>
+<img src="images/slotcyl_kozcg_x0.5.png"/>
+<img src="images/slotcyl_kozcg_x0.75.png"/>
+<img src="images/slotcyl_kozcg_y0.25.png"/>
+<img src="images/slotcyl_kozcg_y0.75.png"/>
 @m_enddiv
 
 @section kozcg_example_slotcyl_references References

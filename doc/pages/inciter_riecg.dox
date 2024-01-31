@@ -72,11 +72,11 @@ the governing equations for a vertex
 where \f$\color[HTML]{dcdcdc}vw\f$ represent all edges connected to
 \f$\color[HTML]{dcdcdc}v\f$, \f$\color[HTML]{dcdcdc}V\f$ is the volume
 surrounding \f$\color[HTML]{dcdcdc}v\f$, \f$\color[HTML]{dcdcdc}F^{vw}_j\f$
-numerical flux between \f$\color[HTML]{dcdcdc}v\f$ and
+is the numerical flux between \f$\color[HTML]{dcdcdc}v\f$ and
 \f$\color[HTML]{dcdcdc}w\f$.  The first term on the right-hand-side above is
 evaluated for all vertices within the domain. The last two terms are only
 evaluated for vertices \f$\color[HTML]{dcdcdc}v\f$ and surrounding edges
-\f$\color[HTML]{dcdcdc}vw\f$ that lie on the domain boundary. As such,
+\f$\color[HTML]{dcdcdc}vw\f$ that lie on the domain boundary.
 \f$\color[HTML]{dcdcdc}F^v_j\f$ denotes the boundary flux. The term
 \f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is effectively the area-weighted normal to
 the dual face separating \f$\color[HTML]{dcdcdc}v\f$ and
@@ -87,11 +87,11 @@ the dual face separating \f$\color[HTML]{dcdcdc}v\f$ and
   \right) \, \text{d} \Omega
 \end{split} \f]
 where \f$\color[HTML]{dcdcdc}\Omega_h \in vw\f$ represents all elements
-attached to an edge \f$\color[HTML]{dcdcdc}vw\f$. This numerical
+attached to edge \f$\color[HTML]{dcdcdc}vw\f$. This numerical
 scheme is guaranteed to be conservative since
 \f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is antisymmetric. The boundary terms
 \f$\color[HTML]{dcdcdc}B^{vw}_j\f$ and \f$\color[HTML]{dcdcdc}B^v_j\f$ are
-defined by the following:
+defined as
 \f[ \begin{split}
   B^{vw}_j &= \frac{1}{2} \sum_{\Gamma_h \in vw} \int_{\Gamma_h} N^v N^w n_j
   \, \text{d} \Gamma \\

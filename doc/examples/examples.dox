@@ -31,6 +31,13 @@ The pages below discuss example calculations using the @ref inciter_kozcg
   - \subpage kozcg_example_sod
   - \subpage kozcg_example_slotcyl
 
+\section zalcg_examples ZalCG
+
+The pages below discuss example calculations using the @ref inciter_zalcg
+"ZalCG hydrodynamics" solver.
+
+  - \subpage zalcg_example_slotcyl
+
 See @ref papers for more documentation and more examples.
 
 */

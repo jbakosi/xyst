@@ -63,7 +63,8 @@ KozCG::KozCG( const CProxy_Discretization& disc,
   m_rhs( m_u.nunk(), m_u.nprop() ),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
-  m_finished( 0 )
+  m_finished( 0 ),
+  m_freezeflow( 1.0 )
 // *****************************************************************************
 //  Constructor
 //! \param[in] disc Discretization proxy
@@ -630,22 +631,15 @@ KozCG::dt()
     // cppcheck-suppress redundantInitialization
     mindt = const_dt;
 
-  } else {      // compute dt based on CFL
+  } else {
 
     if (g_cfg.get< tag::steady >()) {
-
-      // compute new dt for each mesh point
       physics::dt( d->Vol(), m_u, m_dtp );
-
-      // find the smallest dt of all nodes on this chare
       mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
-
-    } else {    // compute new dt for this chare
-
-      // find the smallest dt of all equations on this chare
+    } else {
       mindt = physics::dt( d->Vol(), m_u );
-
     }
+    mindt *= m_freezeflow;
 
   }
 
@@ -1082,6 +1076,10 @@ KozCG::solve()
   }
   tk::destroy(m_ac);
 
+  tk::Fields u;
+  std::size_t cstart = m_freezeflow > 1.0 ? 5 : 0;
+  if (cstart) u = m_u;
+
   // Apply limited antidiffusive contributions to low-order solution
   for (std::size_t i=0; i<npoin; ++i) {
     for (std::size_t c=0; c<ncomp; ++c) {
@@ -1093,8 +1091,22 @@ KozCG::solve()
   auto src = problems::PHYS_SRC();
   if (src) src( d->Coord(), d->T(), m_a );
 
+  // Freeze flow if configured and apply multiplier on scalar(s)
+  if (d->T() > g_cfg.get< tag::freezetime >()) {
+    m_freezeflow = g_cfg.get< tag::freezeflow >();
+  }
+
   // Enforce boundary conditions
   BC( m_a, d->T() + d->Dt() );
+
+  // Explicitly zero out flow for freezeflow
+  if (cstart) {
+    for (std::size_t i=0; i<npoin; ++i) {
+      for (std::size_t c=0; c<cstart; ++c) {
+        m_a(i,c,0) = u(i,c,0);
+      }
+    }
+  }
 
   // Activate SDAG wait for next time step
   thisProxy[ thisIndex ].wait4rhs();

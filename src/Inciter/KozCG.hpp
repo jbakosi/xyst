@@ -187,6 +187,7 @@ class KozCG : public CBase_KozCG {
       p | m_dtp;
       p | m_tp;
       p | m_finished;
+      p | m_freezeflow;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -282,6 +283,8 @@ class KozCG : public CBase_KozCG {
     std::vector< tk::real > m_tp;
     //! True in the last time step
     int m_finished;
+    //! dt multiplier after flow no longer updated
+    tk::real m_freezeflow;
 
     //! Access bound Discretization class pointer
     Discretization* Disc() const {

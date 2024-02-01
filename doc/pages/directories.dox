@@ -62,7 +62,7 @@ subdirectories mirrored.
 @brief Include files turning on/off specific compiler warnings for third-party library includes
 
 @dir src/Physics
-@brief Functions implementing physcs: operators, boundary conditions, test
+@brief Functions implementing physics: operators, boundary conditions, test
 problem-specific functionality, etc.
 
 @dir src/Mesh

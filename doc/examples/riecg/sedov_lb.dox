@@ -1,9 +1,10 @@
 /*!
-  \page      riecg_example_sedov_lb RieCG: Automatic load balancing
+  \page      riecg_example_sedov_lb RieCG: Irregular Sedov blast with load balancing
 
 This example uses @ref inciter_riecg in @ref inciter_main to induce parallel
-load imbalance and uses Charm++ to homogenize the computational load speeding
-up the simulation by an order of magnitude. See also @ref papers.
+load imbalance and uses Charm++ to homogenize heterogeneous, dynamics, and
+unpredictable computational load speeding up the simulation by an order of
+magnitude. See also @ref papers.
 
 With respect to solving partial differential equations on meshes, there is no
 magic using Charm++ compared to the message passing interface (MPI): the
@@ -65,24 +66,25 @@ becomes inhomogeneous and work units must all wait for the slowest one.
 
 @section riecg_example_sedov_lb_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [aa29b26](https://codeberg.org/xyst/xyst/commit/aa29b264272ceda81089821731ea6ea678d42a14), the following patch
+To reproduce the results below, use code revision [fadd412](https://codeberg.org/xyst/xyst/commit/fadd41251b69fb366da1ef9b420e5826a457d452), the following patch
 @code{.patch}
 diff --git a/src/Physics/EOS.hpp b/src/Physics/EOS.hpp
-index fe14fc7..c4c803f 100644
+index e697caf..8403cb6 100644
 --- a/src/Physics/EOS.hpp
 +++ b/src/Physics/EOS.hpp
-@@ -10,6 +10,7 @@
+@@ -10,6 +10,8 @@
  // *****************************************************************************
  #pragma once
 
 +#include <thread>
- #include "Inciter/InputDeck/InputDeck.hpp"
++
+ #include "InciterConfig.hpp"
 
  namespace inciter {
-@@ -28,6 +29,8 @@ inline tk::real
- pressure( tk::real r, tk::real e ) {
-   using inciter::g_inputdeck;
-   auto g = g_inputdeck.get< tag::param, tag::compflow, tag::gamma >()[0][0];
+@@ -29,6 +31,8 @@ using inciter::g_cfg;
+ inline double
+ pressure( double r, double e ) {
+   auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
 +  using namespace std::chrono_literals;
 +  if (r > 2.0) std::this_thread::sleep_for( 1ms );
    return r * e * (g-1.0);
@@ -98,59 +100,45 @@ Then use the control file below.
 
 @section riecg_example_sedov_lb_control Control file
 
-@code{.bash}
-# vim: filetype=sh:
-# This is a comment
-# Keywords are case-sensitive
+@code{.lua}
+-- vim: filetype=lua:
 
-title "Sedov blast wave"
+print "Sedov blast wave"
 
-inciter
+nstep = 500
+ttyi = 1
+cfl = 0.5
 
-  #nstep 10
-  term 1.0
+part = "rcb"
 
-  cfl 0.5
-  ttyi 100
+problem = {
+  name = "sedov",
+  -- p0 = 4.86e+3        -- sedov_coarse.exo
+  -- p0 = 3.63e+4        -- sedov00.exo
+  -- p0 = 2.32e+5        -- sedov01.exo
+     p0 = 1.85e+6        -- sedov02.exo
+  -- p0 = 14773333.33333 -- sedov02.exo+t0ref:u
+}
 
-  partitioning
-    algorithm rcb
-  end
+mat = { spec_heat_ratio = 5/3 }
 
-  problem sedov
+bc_sym = {
+  sideset = { 1, 2, 3 }
+}
 
-  compflow
-    depvar u
+--href = {
+--  t0 = true,
+--  init = { "uniform" }
+--}
 
-    #p0 4.86e+3        # sedov_coarse.exo,   V(orig) = 8.50791e-06
-    #p0 3.63e+4        # sedov00.exo,        V(orig) = 1.13809e-06
-    #p0 2.32e+5        # sedov01.exo,        V(orig) = 1.78336e-07
-     p0 1.85e+6        # sedov02.exo,        V(orig) = 2.22920e-08
-    #p0 14773333.33333 # sedov02.exo+t0ref:u,V(orig) = 2.78650e-09
+diag = {
+  iter = 1000,
+  format = "scientific"
+}
 
-    material
-      gamma 1.66666666666667 end
-    end
-    bc_sym
-      sideset 1 2 3 end
-    end
-  end
-
-  #amr
-  # t0ref true
-  # initial uniform
-  #end
-
-  diagnostics
-    interval 10
-    format scientific
-  end
-
-  field_output
-    interval 1000
-  end
-
-end
+fieldout = {
+  iter = 1000
+}
 @endcode
 
 @note For the mesh, contact us using the link at the bottom of the page.
@@ -180,7 +168,7 @@ time: in this particular case the extra load would make the simulation about
 36x more expensive, which load balancing speeds up by 6.1x.
 
 @m_div{m-col-m-10 m-center-m}
-<img src="images/sedov_lb.png"/>
+<img src="images/sedov_lb_N1_SMP.png"/>
 @m_enddiv
 
 Measured wall-clock time of each time step during the Sedov calculation without
@@ -191,9 +179,9 @@ Timings for the Sedov problem with and without load balancing on a single
 (shared-memory) workstation.
        Case     |  Extra load  | Total time, s  | Speed-up
        :------: | -----------: | -------------: | --------:
-             0  |          no  |           825  |    -
-             1  |         yes  |        30,276  |    1.0x
-             2  |         yes  |         4,958  |    6.1x
+             0  |          no  |           600  |    -
+             1  |         yes  |        17,310  |    1.0x
+             2  |         yes  |         3,358  |    5.2x
 
 @section riecg_example_sedov_lb_run_dist Run on multiple compute nodes
 
@@ -229,9 +217,9 @@ Timings for the Sedov problem with and without load balancing on 8
 (network-connected, distributed-memory) compute nodes.
        Case                |  Extra load   | Total time, s  | Speed-up
        :-----------------: | ------------: | -------------: | --------:
-       no extra load       |          no   |            95  |    -
-       extra load, no LB   |         yes   |        14,616  |    1.0x
-       extra load, LB      |         yes   |         1,399  |   10.5x
+       no extra load       |          no   |           108  |    -
+       extra load, no LB   |         yes   |        14,744  |    1.0x
+       extra load, LB      |         yes   |         1,425  |   10.4x
 
 @section riecg_example_sedov_lb_summary Summary
 

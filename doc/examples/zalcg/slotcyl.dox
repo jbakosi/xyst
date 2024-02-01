@@ -93,7 +93,7 @@ directions.
 
 @section zalcg_example_slotcyl_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [110c5cd](https://codeberg.org/xyst/xyst/commit/110c5cd166504528019797bc6e97906609a91ede) and the control file below.
+To reproduce the results below, use code revision [f99b44a](https://codeberg.org/xyst/xyst/commit/f99b44a2aa82f61cf26d25baa628e154386cbc0c) and the control file below.
 
 @section zalcg_example_slotcyl_control Control file
 
@@ -107,13 +107,15 @@ ttyi = 100
 cfl = 0.1
 
 solver = "zalcg"
-fctsys = { 1, 2, 3, 4, 5 }
 
 part = "rcb"
 
 problem = {
   name = "slot_cyl"
 }
+
+freezeflow = 3.0
+freezetime = 0.0
 
 mat = { spec_heat_ratio = 5/3 }
 

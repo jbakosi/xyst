@@ -110,8 +110,8 @@ paraview out.e-s.0.32.0
 The fluid density on the sphere octant surface using mesh 3 and its radial
 distributions using different mesh resolutions at t=1.0s are depicted below.
 @m_div{m-col-m-10 m-center-m}
-<img src="images/sedov.png"/>
-<img src="images/sedov_line.png"/>
+<img src="images/sedov_riecg.png"/>
+<img src="images/sedov_line_riecg.png"/>
 @m_enddiv
 
 @section riecg_example_sedov_convergence Convergence rate
@@ -129,7 +129,7 @@ the average edge length. As expected, the error around the shock dominates,
 where the numerical method is only first order accurate.
 
 @m_div{m-col-m-10 m-center-m}
-<img src="images/sedov_L1r.png"/>
+<img src="images/sedov_L1r_riecg.png"/>
 @m_enddiv
 
 @section riecg_example_sedov_references References

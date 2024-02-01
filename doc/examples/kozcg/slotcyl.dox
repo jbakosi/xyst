@@ -93,7 +93,7 @@ directions.
 
 @section kozcg_example_slotcyl_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [110c5cd](https://codeberg.org/xyst/xyst/commit/110c5cd166504528019797bc6e97906609a91ede) and the control file below.
+To reproduce the results below, use code revision [30fd9ff](https://codeberg.org/xyst/xyst/commit/30fd9ffc8e9dfe4704e9c9d2abf7ef8f2e37945c) and the control file below.
 
 @section kozcg_example_slotcyl_control Control file
 
@@ -104,16 +104,18 @@ print "Scalar transport: slotted cylinder, cone, hump"
 
 term = math.pi
 ttyi = 100
-cfl = 0.08
+cfl = 0.09
 
 solver = "kozcg"
-fctsys = { 1, 2, 3, 4, 5 }
 
 part = "rcb"
 
 problem = {
   name = "slot_cyl"
 }
+
+freezeflow = 3.0
+freezetime = 0.0
 
 mat = { spec_heat_ratio = 5/3 }
 

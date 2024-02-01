@@ -1,7 +1,7 @@
 /*!
-  \page      riecg_example_square_cavity RieCG: Square cavity
+  \page      zalcg_example_square_cavity ZalCG: Square cavity
 
-This example uses @ref inciter_riecg in @ref inciter_main to a perform a
+This example uses @ref inciter_zalcg in @ref inciter_main to a perform a
 numerical study of the interaction of a planar shock wave with a square cavity.
 The computed numerical results are compared to the experimental data published
 in [1].
@@ -17,7 +17,7 @@ time-dependent problems test the ability of numerical methods for compressible
 flows to accurately propagate waves at distances as well as the accuracy of
 complex wave interaction patterns.
 
-@section riecg_example_square_cavity_setup Problem setup
+@section zalcg_example_square_cavity_setup Problem setup
 
 The problem setup is illustrated in the following figure:
 
@@ -43,11 +43,11 @@ side of State 2 and symmetry (free-slip) conditions are set at walls. The
 numerical simulations are also instrumented to record time histories of the
 pressure in time at the 3 gauge locations depicted in the figure above.
 
-@section riecg_example_square_cavity_sha Code revision to reproduce
+@section zalcg_example_square_cavity_sha Code revision to reproduce
 
 To reproduce the results below, use code revision [7b4edaf](https://codeberg.org/xyst/xyst/commit/7b4edaf326b8bf44b649d9364d0e228df08b53f2) and the control file below.
 
-@section riecg_example_square_cavity_control Control file
+@section zalcg_example_square_cavity_control Control file
 
 @code{.lua}
 -- vim: filetype=lua:
@@ -60,9 +60,11 @@ print [[Igra, Falcovitz, Reichenbach, Heilig, 'Experimental and
 
 term = 200.0
 ttyi = 100
-cfl = 0.5
+cfl = 0.9
 
-solver = "riecg"
+solver = "zalcg"
+fctclip = true
+
 part = "rcb"
 
 mat = { spec_heat_ratio = 1.407 }
@@ -94,7 +96,7 @@ bc_far = { -- inflow (state 2)
 }
 
 fieldout = {
-  iter = 100,
+  --iter = 100,
   time = 20.0
 }
 
@@ -113,13 +115,13 @@ diag = {
 }
 @endcode
 
-@section riecg_example_square_cavity_run Run on 4 CPUs
+@section zalcg_example_square_cavity_run Run on 4 CPUs
 
 @code{.bash}
 ./charmrun +p4 Main/inciter -i squarecav_100K.exo -c squarecav.q
 @endcode
 
-@section riecg_example_square_cavity_fieldvis Visualization
+@section zalcg_example_square_cavity_fieldvis Visualization
 
 [ParaView](https://www.paraview.org) can be used for interactive visualization
 of the numerically computed 3D fields as
@@ -128,7 +130,7 @@ of the numerically computed 3D fields as
 paraview out.e-s.0.4.0
 @endcode
 
-@section riecg_example_square_cavity_pressure Time-evolution of pressure
+@section zalcg_example_square_cavity_pressure Time-evolution of pressure
 
 The figure below depicts the computed pressure field together with a
 shadowgraph taken from the experiments at t=200us. It is clear from the figure,
@@ -140,11 +142,11 @@ patterns and the experimental data. For more a detailed discussion of the
 process with more snapshots in time, see @ref papers.
 
 @m_div{m-col-m-10 m-center-m}
-<img src="images/squarecav_pressure_mesh2_riecg.png"/>
+<img src="images/squarecav_pressure_mesh2_zalcg.png"/>
 <img src="images/igra_t200.png"/>
 @m_enddiv
 
-@section riecg_example_square_cavity_mesh_sensitivity Mesh sensitivity
+@section zalcg_example_square_cavity_mesh_sensitivity Mesh sensitivity
 
 To investigate the effect of mesh resolution, we simulated the problem using 4
 different meshes listed in the following table.
@@ -153,16 +155,17 @@ different meshes listed in the following table.
              0  |     33,983  |     100,620  | 0.0911
              1  |    138,518  |     423,826  | 0.0475
              2  |    545,982  |   1,664,333  | 0.0268
+             3  |  6,656,300  |  29,960,340  | 0.0100
 Here h is the average edge length.
 
 @note For the meshes, contact us using the link at the bottom of the page.
 
 The following figures show the computed fluid density fields at t=200us from
-the calculations using mesh 0 and 2.
+the calculations using mesh 0 and 3.
 
 @m_div{m-col-m-10 m-center-m}
-<img src="images/squarecav_density_mesh0_riecg.png"/>
-<img src="images/squarecav_density_mesh2_riecg.png"/>
+<img src="images/squarecav_density_mesh0_zalcg.png"/>
+<img src="images/squarecav_density_mesh3_zalcg.png"/>
 @m_enddiv
 
 As expected, increasing the mesh resolution yields sharper resolution of the
@@ -170,7 +173,7 @@ shocks and diffuses the vortex, however, due to the conservative nature of the
 numerical scheme, the predicted locations of the shocks do not change with mesh
 refinement.
 
-@section riecg_example_square_cavity_mesh_history Pressure time-histories
+@section zalcg_example_square_cavity_mesh_history Pressure time-histories
 
 The figure below depicts the evolution of the pressure time-histories recorded
 from the numerical simulations at the 3 gauges depicted in the problem setup.
@@ -178,7 +181,7 @@ The pressure histories are displayed from the calculations using Meshes 0 and 2.
 The pressure values are normalized by the pre-shock pressure, p_0.
 
 @m_div{m-col-m-10 m-center-m}
-<img src="images/squarecav_pressure_riecg.png"/>
+<img src="images/squarecav_pressure_zalcg.png"/>
 @m_enddiv
 
 It is evident that mesh resolution does not significantly change the numerical
@@ -189,9 +192,9 @@ experiments, and compared to those obtained from the numerical simulations in
 the table below.
        Gauge    |  Experiment | Computation  | Error
        :------: | ----------: | -----------: | ------:
-            \#0 |        1.25 |        1.26  | -0.79%
-            \#1 |        1.51 |        1.58  | -4.64%
-            \#2 |        1.77 |        1.76  |  0.57%
+            \#0 |        1.25 |        1.26  | -0.8%
+            \#1 |        1.51 |        1.52  | -0.66%
+            \#2 |        1.77 |        1.78  | -0.57%
 
 The errors in the last column are computed by
 \f[
@@ -200,7 +203,7 @@ The errors in the last column are computed by
 where p_s is the first peak in the pressure and p_0 is the pre-shock pressure.
 Again, there is excellent agreement between the experimental and computed data.
 
-@section riecg_example_square_cavity_references References
+@section zalcg_example_square_cavity_references References
 
 @m_div{m-text m-noindent}
 [1] O. Igra, J. Falcovitz, H. Reichenbach, W. Heilig, [Experimental and numerical study of the interaction between a planar shock wave and a square cavity](https://doi.org/10.1017/S0022112096002145), J. Fluid Mech. 313., 105-130, 1996.

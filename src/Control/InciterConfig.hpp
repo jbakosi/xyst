@@ -72,6 +72,7 @@ DEFTAG( location );
 DEFTAG( radius );
 DEFTAG( release_time );
 DEFTAG( freezeflow );
+DEFTAG( freezetime );
 DEFTAG( fieldout );
 DEFTAG( fieldout_iter );
 DEFTAG( fieldout_time );
@@ -179,8 +180,9 @@ using ConfigMembers = brigand::list<
                         tag::location, std::vector< double >
                       , tag::radius, double
                       , tag::release_time, double
-                      , tag::freezeflow, double
                       > >
+  , tag::freezeflow, double
+  , tag::freezetime, double
   , tag::fieldout, std::vector< int >
   , tag::fieldout_iter, uint64_t
   , tag::fieldout_time, double

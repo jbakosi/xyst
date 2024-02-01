@@ -834,7 +834,6 @@ problem( lua_State* L, Config& cfg )
       s.get< tag::location >() = vector( L, "location" );
       s.get< tag::radius >() = real( L, "radius" );
       s.get< tag::release_time >() = real( L, "release_time" );
-      s.get< tag::freezeflow >() = real( L, "freezeflow", 1.0 );
     }
     lua_pop( L, 1 );
   }
@@ -942,6 +941,8 @@ Config::control()
     get< tag::fctdif >() = real( L, "fctdif", 1.0, true );
     get< tag::fctclip >() = boolean( L, "fctclip", false, true );
     get< tag::fctsys >() = unsigints( L, "fctsys", true );
+    get< tag::freezeflow >() = real( L, "freezeflow", 1.0, true );
+    get< tag::freezetime >() = real( L, "freezetime", 0.0, true );
 
     ic( L, *this );
     bc_dir( L, *this );

@@ -1731,7 +1731,12 @@ ZalCG::solve()
 
     // Configure and apply scalar source to solution (if defined)
     auto src = problems::PHYS_SRC();
-    if (src) m_freezeflow = src( d->Coord(), d->T(), m_a );
+    if (src) src( d->Coord(), d->T(), m_a );
+
+    // Freeze flow if configured and apply multiplier on scalar(s)
+    if (d->T() > g_cfg.get< tag::freezetime >()) {
+      m_freezeflow = g_cfg.get< tag::freezeflow >();
+    }
 
     // Enforce boundary conditions
     BC( m_a, d->T() + d->Dt() );

@@ -134,7 +134,7 @@ Mach number distribution and contours on the airplane body and symmetry plane.
 @section zalcg_example_f16_references References
 
 @m_div{m-text m-noindent}
-[2] R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
+[1] R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
 @m_enddiv
 
 */

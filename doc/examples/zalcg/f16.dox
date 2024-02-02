@@ -1,5 +1,5 @@
 /*!
-  \page      zalcg_example_f16 ZalCG: F16 fighter aircraft
+  \page      zalcg_example_f16 ZalCG: F16
 
 This example uses @ref inciter_zalcg in @ref inciter_main to compute the
 stationary flow field around an F-16 fighter jet.

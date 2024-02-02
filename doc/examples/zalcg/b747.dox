@@ -91,7 +91,7 @@ diag = {
 }
 @endcode
 
-@section zalcg_example_b747_run Run using the coarse mesh on 32 CPUs
+@section zalcg_example_b747_run Run on 32 CPUs
 
 @code{.bash}
 ./charmrun +p32 Main/inciter -i b747s.exo -c b747.q |& tee b747.out

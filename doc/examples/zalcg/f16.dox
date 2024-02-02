@@ -1,0 +1,140 @@
+/*!
+  \page      zalcg_example_f16 ZalCG: F16 fighter aircraft
+
+This example uses @ref inciter_zalcg in @ref inciter_main to compute the
+stationary flow field around an F-16 fighter jet.
+
+The test case is configured with the Mach number of 0.84 and an angle
+of attack of 3.06 degrees, which yields a transonic flow. Since the solution
+converges to steady state, the most efficient ways to compute this problem are
+to use implicit time marching or local time stepping [1] of which @ref
+inciter_zalcg implements the latter allowing taking larger time steps for
+larger cells.
+
+@section zalcg_example_f16_setup Problem setup
+
+The mesh, shown below, consists of 6,028,542 tetrahedra connecting 1,042,051
+points. The initial conditions prescribe the Mach number of 0.84 and the
+velocity with an angle of attack of 3.06 degrees. At the outer surface of the
+domain characteristic far-field boundary conditions are applied while symmetry
+(free-slip) conditions are applied on the airplane body.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/f16_mesh.png"/>
+Surface mesh for computing the flow around the F-16, nelem=6M, npoin=1M.
+@m_enddiv
+
+@note Contact us using the link at the bottom of the page for the mesh file.
+
+@section zalcg_example_f16_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [ef921cd](https://codeberg.org/xyst/xyst/commit/ef921cdda09e14f2e2f2ace35535cd69542bb674) and the control file below.
+
+@section zalcg_example_f16_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "F16 in steady transconic flow"
+
+ttyi = 10
+cfl = 0.3
+
+solver = "zalcg"
+fct = false
+stab2 = true
+stab2coef = 0.3
+steady = true
+residual = 8.0e-7
+rescomp = 1
+
+part = "rib"
+
+mat = { spec_heat_ratio = 1.4 }
+
+rho = 1.225     -- density of air at STP, kg/m3
+pre = 1.0e+5    -- N/m^2
+mach = 0.84     -- free stream Mach number
+angle = 3.06    -- angle of attack
+
+-- free stream sound speed
+a = math.sqrt( mat.spec_heat_ratio * pre / rho )
+
+ic = {
+  density = rho,
+  pressure = pre,
+  velocity = { 0.0,
+               mach * a * math.sin(angle*math.pi/180.0),
+              -mach * a * math.cos(angle*math.pi/180.0) }
+}
+
+bc_sym = {
+  sideset = { 1, 2, 7 }
+}
+
+bc_far = {
+  density = rho,
+  pressure = pre,
+  velocity = ic.velocity,
+  sideset = { 12 }
+}
+
+fieldout = {
+  iter = 1000,
+  sideset = { 1, 2, 7 },
+}
+
+diag = {
+  iter = 1,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section zalcg_example_f16_run Run using on 32 CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -i f16b_tet.exo -c f16.q |& tee f16.out
+@endcode
+
+@section zalcg_example_f16_conv Convergence to steady state
+
+The figure below shows the convergence history of the L2-norms of the residuals
+of the conserved quantities.
+@m_div{m-col-m-10 m-center-m}
+<img src="images/f16_res_zalcg.png"/>
+@m_enddiv
+
+@section zalcg_example_f16_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.32.0
+@endcode
+
+Results on the airplane body and symmetry surfaces can be visualized by first
+stitching the partitioned surface output files into a single surface output
+file followed by invoking paraview on the stitched surface exo file:
+@code{.bash}
+Main/meshconv -i out-surf.1.e-s.0.32.% -o out-surf.1.exo
+paraview out-surf.1.exo
+@endcode
+
+The Mach number distribution on the airplane body and symmetry surface is
+depicted below from different angles.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/f16_mach_zalcg.png"/>
+<img src="images/f16_mach2_zalcg.png"/>
+Mach number distribution and contours on the airplane body and symmetry plane.
+@m_enddiv
+
+@section zalcg_example_f16_references References
+
+@m_div{m-text m-noindent}
+[2] R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
+@m_enddiv
+
+*/

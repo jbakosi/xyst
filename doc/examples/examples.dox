@@ -39,6 +39,7 @@ The pages below discuss example calculations using the @ref inciter_zalcg
   - \subpage zalcg_example_sedov
   - \subpage zalcg_example_slotcyl
   - \subpage zalcg_example_square_cavity
+  - \subpage zalcg_example_b747
 
 See @ref papers for more documentation and more examples.
 

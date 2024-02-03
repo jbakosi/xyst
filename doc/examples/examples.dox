@@ -36,6 +36,7 @@ The pages below discuss example calculations using the @ref inciter_zalcg
 "ZalCG hydrodynamics" solver.
 
   - \subpage zalcg_example_sedov
+  - \subpage zalcg_example_sedov_dea
   - \subpage zalcg_example_slotcyl
   - \subpage zalcg_example_square_cavity
   - \subpage zalcg_example_b747

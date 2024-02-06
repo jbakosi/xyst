@@ -1342,7 +1342,7 @@ KozCG::writeFields( CkCallback cb )
   std::vector< std::string > nodesurfnames
     {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
 
-  for (std::size_t c=1; c<ncomp-5; ++c) {
+  for (std::size_t c=0; c<ncomp-5; ++c) {
     nodesurfnames.push_back( "c" + std::to_string(c) );
   }
 

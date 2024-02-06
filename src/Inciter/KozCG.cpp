@@ -1288,15 +1288,15 @@ KozCG::writeFields( CkCallback cb )
   auto v = m_u.extract( 2, 0 );  v /= r;
   auto w = m_u.extract( 3, 0 );  w /= r;
   auto e = m_u.extract( 4, 0 );  e /= r;
-  std::vector< tk::real > p( m_u.nunk() );
-  for (std::size_t i=0; i<p.size(); ++i) {
+  std::vector< tk::real > pr( m_u.nunk() );
+  for (std::size_t i=0; i<pr.size(); ++i) {
     auto ei = e[i] - 0.5*(u[i]*u[i] + v[i]*v[i] + w[i]*w[i]);
-    p[i] = eos::pressure( r[i]*ei );
+    pr[i] = eos::pressure( r[i]*ei );
   }
 
   std::vector< std::vector< tk::real > > nodefields{
     std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
-    std::move(p) };
+    std::move(pr) };
 
   for (std::size_t c=0; c<ncomp-5; ++c) {
     nodefieldnames.push_back( "c" + std::to_string(c) );

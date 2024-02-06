@@ -1,0 +1,253 @@
+/*!
+  \page      zalcg_example_gyor_dea ZalCG: Urban-scale pollution with deactivation
+
+This example demonstrates saving CPU time by dynamically deactivating
+partitions of the computational domain during parallel flow simulation. The
+deactivation algorithm, implemented in @ref inciter_zalcg in @ref inciter_main,
+is independent of the numerical discretization, the dynamic level of
+approximation, e.g., Euler or Navier-Stokes, turbulence models, etc. For a
+different example with deactivation see @ref zalcg_example_sedov_dea.
+
+@section zalcg_example_gyor_dea_idea Deactivation
+
+In some classes of problems the propagating behavior inherent in the equations
+solved can be exploited to save CPU time by deactivating regions of the
+computational domain with little to no activity. For example, in supersonic
+flows the flow field can only be influenced by upstream events. In detonations
+there is no change in the flow field ahead of the detonation wave.  In problems
+involving scalar transport, e.g., atmospheric pollutant or hazardous material
+dispersion, a change of the scalar concentration can only occur in donwstream
+of the source. This last observation is used to invoke a partition-deactivation
+procedure and demonstrated below to yield considerable savings in CPU time. For
+an overview of space marching and deactivation methods see [1] and references
+therein.
+
+@section zalcg_example_gyor_equations Equations solved
+
+In this example we solve the Euler equations coupled to a scalar, representing
+pollutant concentration, as
+\f[ \begin{split}
+  \frac{\partial U}{\partial t} + \frac{\partial F_j}{\partial x_j} = 0,\qquad
+  U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \\ c  \end{Bmatrix}, \enskip F_j =
+  \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p) \\ u_j c
+  \end{Bmatrix}
+\end{split} \f]
+where the summation convention on repeated indices has been applied,
+\f$\color[HTML]{dcdcdc}\rho\f$ is the density, \f$\color[HTML]{dcdcdc}u_i\f$ is
+the velocity vector, \f$\color[HTML]{dcdcdc}E=u_iu_i/2+e\f$ is the specific
+total energy, \f$\color[HTML]{dcdcdc}e\f$ is the specific internal energy, and
+\f$\color[HTML]{dcdcdc}p\f$ is the pressure. \f$\color[HTML]{dcdcdc}S_\rho\f$,
+\f$\color[HTML]{dcdcdc}S_{u,i}\f$, \f$\color[HTML]{dcdcdc}S_E\f$. The system
+is closed with the ideal gas law equation of state
+\f[ \begin{split}
+  p = \rho e (\gamma - 1),
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}\gamma\f$ is the ratio of specific heats.
+
+@note An Euler solver is obviously not the most physically realistic nor the
+most effective way to compute a nearly constant-density low-Mach-number usually
+turbulent flow, such as an urban-scale pollution scenario. However, our goal
+here is to demonstrate the applicability of the partition deactivation
+algorithm to a flow with propagation phenomena. This is justified by the
+deactivation algorithm being independent of the dynamic level of approximation,
+such as the Euler or Navier-Stokes equations, turbulence models, etc.
+
+@section zalcg_example_gyor_dea_problem Problem setup
+
+We configure the @ref inciter_zalcg solver to compute an urban-scale pollution
+problem in a typical city whose computational domain contains many of the
+buildings in downtown Győr, located in North-West of Hungary. The surface mesh
+is displayed with some of its characteristics in the table below.
+       Dimensions, km | h, m | Points    | Tetrahedra
+       :------------: | ---: | --------: | -----------:
+      9.2 x 6.7 x 1.5 | 11.3 | 1,746,029 | 10,058,445
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/gyor_mesh.png"/>
+Surface mesh for computing an urban-scale pollutatnt dispersion study in the
+Hungarianc city of Győr.
+@m_enddiv
+
+@note Contact us using the link at the bottom of the page for the mesh file.
+
+Initial conditions are specified by atmospheric conditions at sea level at 15C
+as
+\f[
+\begin{split}
+u_i(x_i) & = (-10, -10, 0) \enskip \mathrm{m/s} \\
+\rho(x_i) & = 1.225 \enskip \mathrm{kg/m}^3 \\
+p(x_i) & = 1.0 \times 10^{5} \enskip \mathrm{Pa}
+\end{split}
+\f]
+and these conditions are also enforced as Dirichlet boundary conditions on the
+top and sides of the brick-shaped domain during time stepping.
+
+The scalar, \f$\color[HTML]{dcdcdc}c\f$, representing pollutant concentration
+is released from a point source at t=10s of the 140s total time simulated. The
+value of the scalar is normalized to the constant value of c=1.0 at the source.
+After verifying that the norms of the velocity component residuals decrease at
+least two orders in magnitude from their initial values, the flow is assumed to
+be stationary, the numerical values of density, momentum, and total energy are
+no longer updated, and the scalar is released.
+
+In the first time step when the scalar is released we deactivate the entire
+domain. During time stepping partitions gradually reactivate where activity is
+detected on their boundaries of the active domain. This is combined with
+overdecomposition, which yields larger number fo partitions compared to the
+number of CPUs available. Turning on load balancing in Charm++, the dynamically
+changing heterogeneous parallel load is homogeneized across the simulation.
+Combining deactivation, overdecomposition, and load balancing yields savings in
+CPU time.
+
+@section zalcg_example_gyor_dea_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [b1a2c26](https://codeberg.org/xyst/xyst/commit/b1a2c26c0a6f6dc47dc8f48c0912837990fb3f65) and the control file below.
+
+@section zalcg_example_gyor_dea_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Gyor with scalar"
+
+-- meshes:
+-- gyor_m1_10M.exo
+
+scalar_release_time = 10.0
+
+term = 140.0
+
+ttyi = 100
+cfl = 0.9
+
+part = "rcb"
+
+solver = "zalcg"
+stab2 = true
+stab2coef = 0.1
+
+lb = {
+  time = scalar_release_time
+}
+
+deactivate = {
+  sys = { 6 },
+  tol = 0.001,
+  dif = 0.1,
+  freq = 100,
+  time = scalar_release_time
+}
+
+problem = {
+  name = "point_src",
+  src = {
+    location = { 1914.0, 1338.0, 20.0 },
+    radius = 10.0,
+    release_time = scalar_release_time,
+    freezeflow = 5.0
+  }
+}
+
+mat = { spec_heat_ratio = 1.4 }
+
+ic = {
+  density = 1.225,
+  pressure = 1.0e+5,
+  velocity = { -10.0, -10.0, 0.0 }
+}
+
+bc_dir = {
+  { 1, 1, 1, 1, 1, 1, 0 },
+  { 9, 1, 1, 1, 1, 1, 0 }
+}
+
+bc_sym = {
+  sideset = { 10, 21, 22, 23, 24 }
+}
+
+fieldout = {
+  iter = 10000,
+  time = 10.0,
+  sideset = { 10, 21, 22, 23, 24 },
+  --range = {
+  --  { scalar_release_time, term, 10.0 }
+  --}
+}
+
+diag = {
+  iter = 100
+}
+@endcode
+
+@section zalcg_example_gyor_dea_run Run on multiple compute nodes
+
+@code{.bash}
+# no deactivation, no overdecomposition, no load balancing
+./charmrun +p $((32*$SLURM_NNODES)) Main/inciter -c gyor3dea.q -i gyor_m1_10M.exo
+# deactivation + overdecomposition (u=0.55) + load balancing (invoke the 'MetisLB' in the first LB step then the 'GreedyRefine' strategy in every 100th time step)
+./charmrun +p $((32*$SLURM_NNODES)) Main/inciter -c gyor3dea.q -i gyor_m1_10M.exo -u 0.55 -l 100 +balancer MetisLB +balancer GreedyRefineLB
+@endcode
+
+@section zalcg_example_gyor_dea_results Numerical results
+
+The figures below depicts the ground-level concentrations at t=90s to allow
+comparing simulations without overdecomposition, deactivation or load balancing
+(on 128 mesh partitions) and with overdecomposition, deactivation and load
+balancing (on 284 mesh partitions). The numerical solutions are nearly
+indistinguishable.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/gyor3_nodea.png"/>
+Surface distributions of a propagating scalar representing pollutant
+concentration in an urban-scale air quality study with stationary winds,
+computed on 4 networked compute nodes on 128 CPUs _without_ deactivation,
+overdecomposition or load balancing using 128 mesh partitions.
+@m_enddiv
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/gyor3_dealb5.png"/>
+Surface distributions of a propagating scalar representing pollutant
+concentration in an urban-scale air quality study with stationary winds,
+computed on 4 networked compute nodes on 128 CPUs _with_ deactivation,
+overdecomposition and load balancing yielding 284 mesh partitions. Superimposed
+in bright blue color is the deactivation state of the partitions.
+@m_enddiv
+
+@section zalcg_example_gyor_dea_timings Computational cost
+
+The figres below show the time evolution of the computational cost of a single
+time step during the urban-air pollution calculations, comparing the baseline
+with 128 partitions without deactivation, overdecomposition or load balancing
+to that of deactivation, overdecomposition, and load balancing with 284
+partitions. The wall-clock time of a time step is measured on the vertical axis
+in milliseconds, while the elapsed wall-clock time is on the horizontal axis.
+The runs with deactivation, overdecomposition, and load balancing outperform
+the baseline case (without deactivation, overdecomposition or load balancing).
+This is indicated by the green-dashed line finishing earlier and staying below
+the red-dotted line.  Though both simulations advance until the same physical
+time of t=140s, the elapsed wall-clock time is approximately half with
+deactivation.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/gyor_dea.png"/>
+Wall-clock times for each time step measured in milliseconds during computation
+of the urban-air pollution problem without deactivation, overdecomposition or
+load balancing and with deactivation, overdecomposition, and load balancing
+until the same physics time t=140s.
+@m_enddiv
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/gyor_act.png"/>
+Fraction of active partitions in wall-clock time computing the urban-scale
+pollution problem with deactivation, where 100\% indicates the initial stage of
+converging the flow field to a steady state, after which the scalar is released
+into a flow in which the hydrodynamics variables are no longer updated.
+@m_enddiv
+
+@section zalcg_example_gyor_dea_references References
+
+@m_div{m-text m-noindent}
+[1] R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
+@m_enddiv
+
+*/

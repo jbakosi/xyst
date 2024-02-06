@@ -41,6 +41,7 @@ The pages below discuss example calculations using the @ref inciter_zalcg
   - \subpage zalcg_example_square_cavity
   - \subpage zalcg_example_b747
   - \subpage zalcg_example_f16
+  - \subpage zalcg_example_gyor_dea
 
 See @ref papers for more documentation and more examples.
 

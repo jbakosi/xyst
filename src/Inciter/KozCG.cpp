@@ -160,6 +160,17 @@ KozCG::setupBC()
     }
   }
 
+  // Augment Pressure BC nodes with nodes not necessarily part of faces
+  for (const auto& s : g_cfg.get< tag::bc_pre >()) {
+    auto k = m_bnode.find(s[0]);
+    if (k != end(m_bnode)) {
+      auto& n = pre[ k->first ];
+      for (auto g : k->second) {
+        n.insert( tk::cref_find(lid,g) );
+      }
+    }
+  }
+
   // Prepare density and pressure values for pressure BC nodes
   const auto& pbc_set = g_cfg.get< tag::bc_pre >();
   if (!pbc_set.empty()) {
@@ -225,6 +236,8 @@ KozCG::setupBC()
 
   // If farfield BC is set on a node, will not also set symmetry BC
   for (auto i : m_farbcnodeset) m_symbcnodeset.erase(i);
+  // If pressure BC is set on a node, will not also set symmetry BC
+  for (auto i : m_prebcnodes) m_symbcnodeset.erase(i);
 }
 
 void
@@ -1267,7 +1280,7 @@ KozCG::writeFields( CkCallback cb )
   // Field output
 
   std::vector< std::string > nodefieldnames
-    {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
+    {"density", "velocityx", "velocityy", "velocityz", "energy", "pressure"};
 
   using tk::operator/=;
   auto r = m_u.extract( 0, 0 );
@@ -1285,9 +1298,9 @@ KozCG::writeFields( CkCallback cb )
     std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
     std::move(p) };
 
-  for (std::size_t c=5; c<ncomp; ++c) {
-    nodefieldnames.push_back( "c" + std::to_string(c-5) );
-    nodefields.push_back( m_u.extract( c, 0 ) );
+  for (std::size_t c=0; c<ncomp-5; ++c) {
+    nodefieldnames.push_back( "c" + std::to_string(c) );
+    nodefields.push_back( m_u.extract( 5+c, 0 ) );
   }
 
   // query function to evaluate analytic solution (if defined)
@@ -1349,14 +1362,15 @@ KozCG::writeFields( CkCallback cb )
     std::size_t j = 0;
     for (auto n : nodes) {
       const auto s = m_u[n];
-      nodesurfs[i+0][j] = s[0];
-      nodesurfs[i+1][j] = s[1]/s[0];
-      nodesurfs[i+2][j] = s[2]/s[0];
-      nodesurfs[i+3][j] = s[3]/s[0];
-      nodesurfs[i+4][j] = s[4]/s[0];
+      std::size_t p = 0;
+      nodesurfs[i+(p++)][j] = s[0];
+      nodesurfs[i+(p++)][j] = s[1]/s[0];
+      nodesurfs[i+(p++)][j] = s[2]/s[0];
+      nodesurfs[i+(p++)][j] = s[3]/s[0];
+      nodesurfs[i+(p++)][j] = s[4]/s[0];
       auto ei = s[4]/s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
-      nodesurfs[i+5][j] = eos::pressure( s[0]*ei );
-      for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+1+c][j] = s[5+c];
+      nodesurfs[i+(p++)][j] = eos::pressure( s[0]*ei );
+      for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+(p++)+c][j] = s[5+c];
       ++j;
     }
   }

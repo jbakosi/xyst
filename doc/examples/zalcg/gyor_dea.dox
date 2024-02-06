@@ -61,7 +61,7 @@ is displayed with some of its characteristics in the table below.
        Dimensions, km | h, m | Points    | Tetrahedra
        :------------: | ---: | --------: | -----------:
       9.2 x 6.7 x 1.5 | 11.3 | 1,746,029 | 10,058,445
-
+Here h is the average edge length.
 @m_div{m-col-m-12 m-center-m}
 <img src="images/gyor_mesh.png"/>
 Surface mesh for computing an urban-scale pollutatnt dispersion study in the

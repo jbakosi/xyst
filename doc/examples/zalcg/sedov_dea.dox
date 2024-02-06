@@ -3,6 +3,7 @@
 
 This example demonstrates saving CPU time by dynamically deactivating
 partitions of the computational domain during parallel flow simulation.
+For a different example with deactivation see @ref zalcg_example_gyor_dea.
 
 @section zalcg_example_sedov_dea_idea Deactivation
 

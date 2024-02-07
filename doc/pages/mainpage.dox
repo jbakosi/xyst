@@ -28,11 +28,9 @@ Xyst consists of the following tools:
 
 @ref inciter_main --- __Navier-Stokes solver for engineering flows__
 
-_Inciter_ is a fully asynchronous distributed-memory-parallel fluid solver for
-complex engineering geometries. We are working on a flow solver using
-continuous Galerkin finite element methods and solution-adaptive
-mesh-refinement, enabling dynamically concentrating compute resources to
-regions with interesting physics.
+_Inciter_ contains multiple fully asynchronous distributed-memory-parallel flow
+solvers for complex engineering geometries. The solvers use continuous Galerkin
+finite element methods.
 
 @ref meshconv_main --- __Tetrahedron-mesh converter__
 

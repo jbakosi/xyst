@@ -3,7 +3,7 @@
 
 __Navier-Stokes solver for engineering flows__
 
-Inciter is a distributed-memory-parallel fluid solver for complex 3D
+Inciter is a set of distributed-memory-parallel fluid solvers for complex 3D
 engineering geometries. The software implementation facilitates effective use
 of any multi-CPU computer from a laptop to the largest distributed-memory
 machines, combining data-, and task-parallelism on top of the
@@ -23,7 +23,7 @@ balancing. The solution along partition boundaries, that exists on multiple
 processing elements, is made consistent with _asynchronous_ communication which
 hides latencies by enabling overlapping of computation and communication.
 
-Inciter contains multiple solvers. The numerical methods belong to the familiy
+Inciter contains multiple solvers. The numerical methods belong to the family
 of continuous Galerkin finite element methods storing solution values at nodes
 of the computational mesh. See the links below and @ref papers for more details
 on the solvers.

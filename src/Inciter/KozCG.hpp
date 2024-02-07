@@ -254,8 +254,6 @@ class KozCG : public CBase_KozCG {
     //! \details Key: global node id of boundary point, value: boundary point
     //!   integral contributions.
     std::unordered_map< std::size_t, std::array< tk::real, 3 > > m_bndpoinint;
-    //! Streamable boundary point symmetry BC flags
-    std::vector< std::uint8_t > m_bpsym;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmasks;
     //! Nodes at pressure BCs

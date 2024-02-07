@@ -658,8 +658,10 @@ KozCG::dt()
 
   // Actiavate SDAG waits for next time step
   thisProxy[ thisIndex ].wait4rhs();
+  thisProxy[ thisIndex ].wait4aec();
   thisProxy[ thisIndex ].wait4alw();
   thisProxy[ thisIndex ].wait4sol();
+  thisProxy[ thisIndex ].wait4step();
 
   // Contribute to minimum dt across all chares and advance to next step
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
@@ -678,8 +680,6 @@ KozCG::advance( tk::real newdt )
 
   // Compute rhs
   rhs();
-  // Compute aec
-  aec();
 }
 
 void
@@ -725,6 +725,25 @@ KozCG::comrhs(
     m_nrhs = 0;
     comrhs_complete();
   }
+}
+
+void
+KozCG::fct()
+// *****************************************************************************
+// Continue with flux-corrected transport if enabled
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto& lid = d->Lid();
+
+  // Combine own and communicated contributions to rhs
+  for (const auto& [g,r] : m_rhsc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
+  }
+  tk::destroy(m_rhsc);
+
+  if (g_cfg.get< tag::fct >()) aec(); else solve();
 }
 
 void
@@ -817,13 +836,6 @@ KozCG::alw()
   const auto& lid = d->Lid();
   const auto& vol = d->Vol();
   const auto& inpoel = d->Inpoel();
-
-  // Combine own and communicated contributions to rhs
-  for (const auto& [g,r] : m_rhsc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
-  }
-  tk::destroy(m_rhsc);
 
   // Combine own and communicated contributions to antidiffusive contributions
   // and low-order solution
@@ -1080,6 +1092,7 @@ KozCG::solve()
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
   const auto& vol = d->Vol();
+  const auto steady = g_cfg.get< tag::steady >();
 
   // Combine own and communicated contributions to limited antidiffusive
   // contributions
@@ -1093,10 +1106,21 @@ KozCG::solve()
   std::size_t cstart = m_freezeflow > 1.0 ? 5 : 0;
   if (cstart) u = m_u;
 
-  // Apply limited antidiffusive contributions to low-order solution
-  for (std::size_t i=0; i<npoin; ++i) {
-    for (std::size_t c=0; c<ncomp; ++c) {
-      m_a(i,c,0) = m_rhs(i,c,0) + m_a(i,c,0)/vol[i];
+  if (g_cfg.get< tag::fct >()) {
+    // Apply limited antidiffusive contributions to low-order solution
+    for (std::size_t i=0; i<npoin; ++i) {
+      for (std::size_t c=0; c<ncomp; ++c) {
+        m_a(i,c,0) = m_rhs(i,c,0) + m_a(i,c,0)/vol[i];
+      }
+    }
+  } else {
+    // Apply rhs
+    auto dt = d->Dt();
+    for (std::size_t i=0; i<npoin; ++i) {
+      if (steady) dt = m_dtp[i];
+      for (std::size_t c=0; c<ncomp; ++c) {
+        m_a(i,c,0) = m_u(i,c,0) + dt*m_rhs(i,c,0)/vol[i];
+      }
     }
   }
 
@@ -1121,23 +1145,17 @@ KozCG::solve()
     }
   }
 
-  // Activate SDAG wait for next time step
-  thisProxy[ thisIndex ].wait4rhs();
-  thisProxy[ thisIndex ].wait4alw();
-  thisProxy[ thisIndex ].wait4sol();
-  // Activate SDAG waits for finishing this time step
-  thisProxy[ thisIndex ].wait4step();
-
   // Compute diagnostics, e.g., residuals
   auto diag = m_diag.compute( *d, m_a, m_u, g_cfg.get< tag::diag_iter >() );
 
   // Update solution
   m_u = m_a;
+  m_a.fill( 0.0 );
 
   // Increase number of iterations and physical time
   d->next();
   // Advance physical time for local time stepping
-  if (g_cfg.get< tag::steady >()) {
+  if (steady) {
     using tk::operator+=;
     m_tp += m_dtp;
   }

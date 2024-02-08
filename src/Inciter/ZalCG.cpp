@@ -926,6 +926,8 @@ ZalCG::merge()
 // Combine own and communicated portions of the integrals
 // *****************************************************************************
 {
+  auto d = Disc();
+
   // Combine own and communicated contributions to boundary point normals
   bnorm();
 
@@ -933,9 +935,9 @@ ZalCG::merge()
   streamable();
 
   // Enforce boundary conditions using (re-)computed boundary data
-  BC( m_u, Disc()->T() );
+  BC( m_u, d->T() );
 
-  if (Disc()->Initial()) {
+  if (d->Initial()) {
     // Output initial conditions to file
     writeFields( CkCallback(CkIndex_ZalCG::start(), thisProxy[thisIndex]) );
   } else {
@@ -1368,8 +1370,8 @@ ZalCG::alw()
   auto large = std::numeric_limits< tk::real >::max();
   for (std::size_t i=0; i<m_q.nunk(); ++i) {
     for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
-       m_q(i,c*2+0,0) = -large;
-       m_q(i,c*2+1,0) = +large;
+      m_q(i,c*2+0,0) = -large;
+      m_q(i,c*2+1,0) = +large;
     }
   }
 
@@ -2327,6 +2329,7 @@ ZalCG::integrals()
   auto d = Disc();
 
   if (d->integiter() or d->integtime() or d->integrange()) {
+
     using namespace integrals;
     std::vector< std::map< int, tk::real > > ints( NUMINT );
     // Prepend integral vector with metadata on the current time step:
@@ -2350,8 +2353,11 @@ ZalCG::integrals()
     auto stream = serialize( d->MeshId(), ints );
     d->contribute( stream.first, stream.second.get(), IntegralsMerger,
       CkCallback(CkIndex_Transporter::integrals(nullptr), d->Tr()) );
+
   } else {
+
     step();
+
   }
 }
 

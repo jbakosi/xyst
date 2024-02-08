@@ -1277,6 +1277,7 @@ KozCG::writeFields( CkCallback cb )
 
   std::vector< std::string > nodefieldnames
     {"density", "velocityx", "velocityy", "velocityz", "energy", "pressure"};
+  if (g_cfg.get< tag::steady >()) nodefieldnames.push_back( "mach" );
 
   using tk::operator/=;
   auto r = m_u.extract( 0, 0 );
@@ -1284,15 +1285,20 @@ KozCG::writeFields( CkCallback cb )
   auto v = m_u.extract( 2, 0 );  v /= r;
   auto w = m_u.extract( 3, 0 );  w /= r;
   auto e = m_u.extract( 4, 0 );  e /= r;
-  std::vector< tk::real > pr( m_u.nunk() );
+  std::vector< tk::real > pr( m_u.nunk() ), ma;
+  if (g_cfg.get< tag::steady >()) ma.resize( m_u.nunk() );
   for (std::size_t i=0; i<pr.size(); ++i) {
-    auto ei = e[i] - 0.5*(u[i]*u[i] + v[i]*v[i] + w[i]*w[i]);
-    pr[i] = eos::pressure( r[i]*ei );
+    auto vv = u[i]*u[i] + v[i]*v[i] + w[i]*w[i];
+    pr[i] = eos::pressure( r[i]*(e[i] - 0.5*vv) );
+    if (g_cfg.get< tag::steady >()) {
+      ma[i] = std::sqrt(vv) / eos::soundspeed( r[i], pr[i] );
+    }
   }
 
   std::vector< std::vector< tk::real > > nodefields{
     std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
     std::move(pr) };
+  if (g_cfg.get< tag::steady >()) nodefields.push_back( std::move(ma) );
 
   for (std::size_t c=0; c<ncomp-5; ++c) {
     nodefieldnames.push_back( "c" + std::to_string(c) );

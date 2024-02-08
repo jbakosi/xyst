@@ -1133,43 +1133,43 @@ KozCG::solve()
 
   // Increase number of iterations and physical time
   d->next();
+
   // Advance physical time for local time stepping
   if (steady) {
     using tk::operator+=;
     m_tp += m_dtp;
   }
-  // Continue to mesh refinement
-  if (!diag) refine( std::vector< tk::real >( ncomp, 1.0 ) );
+
+  // Evaluate residuals
+  if (!diag) evalres( std::vector< tk::real >( ncomp, 1.0 ) );
 }
 
 void
-KozCG::refine( const std::vector< tk::real >& l2res )
+KozCG::evalres( const std::vector< tk::real >& l2res )
 // *****************************************************************************
-// Optionally refine/derefine mesh
+//  Evaluate residuals
 //! \param[in] l2res L2-norms of the residual for each scalar component
 //!   computed across the whole problem
 // *****************************************************************************
 {
+  if (g_cfg.get< tag::steady >()) {
+    const auto rc = g_cfg.get< tag::rescomp >() - 1;
+    Disc()->residual( l2res[rc] );
+  }
+
+  refine();
+}
+
+void
+KozCG::refine()
+// *****************************************************************************
+// Optionally refine/derefine mesh
+// *****************************************************************************
+{
   auto d = Disc();
 
-  if (g_cfg.get< tag::steady >()) {
-
-    const auto residual = g_cfg.get< tag::residual >();
-    const auto rc = g_cfg.get< tag::rescomp >() - 1;
-
-    // this is the last time step if max time of max number of time steps
-    // reached or the residual has reached its convergence criterion
-    if (d->finished() or (l2res[rc] > 0.0 and l2res[rc] < residual))
-      m_finished = 1;
-    else
-      d->residual( l2res[rc] );   // store/update residual
-
-  } else {
-
-    // this is the last time step if max time or max iterations reached
-    if (d->finished()) m_finished = 1;
-
-  }
+  // See if this is the last time step
+  if (d->finished()) m_finished = 1;
 
   auto dtref = g_cfg.get< tag::href_dt >();
   auto dtfreq = g_cfg.get< tag::href_dtfreq >();

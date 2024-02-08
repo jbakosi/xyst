@@ -1136,7 +1136,7 @@ Transporter::diagnostics( CkReductionMsg* msg )
   }
   else if (g_cfg.get< tag::solver >() == "kozcg") {
     // cppcheck-suppress uninitvar
-    m_kozcg[ meshid ].refine( l2res );
+    m_kozcg[ meshid ].evalres( l2res );
   }
   else {
     Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );

@@ -53,6 +53,16 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   add_compiler_flag("-Wno-exit-time-destructors")
   add_compiler_flag("-Wno-source-uses-openmp")
 
+  # Override default optimization level for release builds
+  if(CMAKE_BUILD_TYPE MATCHES "REL")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O1 -DNDEBUG" CACHE STRING
+        "CMAKE_CXX_FLAGS_RELEASE: Flags used by the compiler during RELEASE builds."
+        FORCE)
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O1 -g -DNDEBUG" CACHE STRING
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO: Flags used by the compiler during RELWITHDEBINFO info."
+        FORCE)
+  endif()
+
   # Linker flags for clang
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)      # clear link flags
   set(CMAKE_EXE_LINKER_FLAGS

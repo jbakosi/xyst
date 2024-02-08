@@ -125,13 +125,15 @@ KozCG::setupBC()
   for (const auto& mask : dbc) {
     ErrChk( mask.size() == nmask, "Incorrect Dirichlet BC mask ncomp" );
     auto n = dir.find( mask[0] );
-    if (n != end(dir))
+    if (n != end(dir)) {
       for (auto p : n->second) {
         auto& m = dirbcset[p];
         if (m.empty()) m.resize( ncomp, 0 );
-        for (std::size_t c=0; c<ncomp; ++c)
+        for (std::size_t c=0; c<ncomp; ++c) {
           if (!m[c]) m[c] = mask[c+1];  // overwrite mask if 0 -> 1
+        }
       }
+    }
   }
   // Compile streamable list of nodes + Dirichlet BC components mask
   tk::destroy( m_dirbcmasks );
@@ -383,7 +385,7 @@ KozCG::ResumeFromSync()
 {
   if (Disc()->It() == 0) Throw( "it = 0 in ResumeFromSync()" );
 
-  if (!g_cfg.get< tag::nonblocking >()) next();
+  if (!g_cfg.get< tag::nonblocking >()) dt();
 }
 
 void
@@ -428,7 +430,7 @@ KozCG::start()
   // Zero grind-timer
   Disc()->grindZero();
   // Continue to first time step
-  next();
+  dt();
 }
 
 void
@@ -564,6 +566,8 @@ KozCG::merge()
 // Combine own and communicated portions of the integrals
 // *****************************************************************************
 {
+  auto d = Disc();
+
   // Combine own and communicated contributions to boundary point normals
   bnorm();
 
@@ -571,9 +575,9 @@ KozCG::merge()
   streamable();
 
   // Enforce boundary conditions using (re-)computed boundary data
-  BC( m_u, Disc()->T() );
+  BC( m_u, d->T() );
 
-  if (Disc()->Initial()) {
+  if (d->Initial()) {
     // Output initial conditions to file
     writeFields( CkCallback(CkIndex_KozCG::start(), thisProxy[thisIndex]) );
   } else {
@@ -602,15 +606,6 @@ KozCG::BC( tk::Fields& u, tk::real t )
 
   // Apply pressure BCs
   physics::prebc( u, m_prebcnodes, m_prebcvals );
-}
-
-void
-KozCG::next()
-// *****************************************************************************
-// Continue to next time step
-// *****************************************************************************
-{
-  dt();
 }
 
 void
@@ -672,7 +667,7 @@ KozCG::advance( tk::real newdt )
 void
 KozCG::rhs()
 // *****************************************************************************
-// Compute right-hand side of transport equations
+// Compute right-hand side
 // *****************************************************************************
 {
   auto d = Disc();
@@ -737,14 +732,14 @@ void
 // cppcheck-suppress unusedFunction
 KozCG::aec()
 // *****************************************************************************
-// Compute antidiffusive contributions: P+/-,  low-order solution: ul
+// Compute antidiffusive contributions: P+/-
 // *****************************************************************************
 {
   auto d = Disc();
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
 
-  // Antidiffusive contributions: P+/-,  low-order solution: ul
+  // Antidiffusive contributions: P+/-
 
   auto ctau = g_cfg.get< tag::fctdif >();
   m_p.fill( 0.0 );
@@ -852,7 +847,7 @@ KozCG::alw()
   using std::max;
   using std::min;
 
-  tk::real large = std::numeric_limits< tk::real >::max();
+  auto large = std::numeric_limits< tk::real >::max();
   for (std::size_t i=0; i<m_q.nunk(); ++i) {
     for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
       m_q(i,c*2+0,0) = -large;
@@ -863,8 +858,8 @@ KozCG::alw()
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
     const auto N = inpoel.data() + e*4;
     for (std::size_t c=0; c<ncomp; ++c) {
-      tk::real alwp = -large;
-      tk::real alwn = +large;
+      auto alwp = -large;
+      auto alwn = +large;
       for (std::size_t a=0; a<4; ++a) {
         if (g_cfg.get< tag::fctclip >()) {
           alwp = max( alwp, m_rhs(N[a],c,0) );
@@ -1013,10 +1008,7 @@ KozCG::lim()
           auto m = J/120.0 * ((a == b) ? 3.0 : -1.0);
           aec[c][a] += m * ctau * m_u(N[b],c,0);
         }
-        if (g_cfg.get< tag::fct >()) {
-          coef[c] = min( coef[c],
-                         aec[c][a] > 0.0 ? m_q(N[a],p,0) : m_q(N[a],n,0) );
-        }
+        coef[c] = min(coef[c], aec[c][a] > 0.0 ? m_q(N[a],p,0) : m_q(N[a],n,0));
       }
     }
     tk::real cs = 1.0;
@@ -1229,7 +1221,6 @@ KozCG::resizePostAMR(
 // *****************************************************************************
 {
   auto d = Disc();
-  auto ncomp = m_u.nprop();
 
   d->Itf() = 0;  // Zero field output iteration count if AMR
   ++d->Itr();    // Increase number of iterations with a change in the mesh
@@ -1253,7 +1244,7 @@ KozCG::resizePostAMR(
 
   // Update solution on new mesh
   for (const auto& n : addedNodes)
-    for (std::size_t c=0; c<ncomp; ++c) {
+    for (std::size_t c=0; c<m_u.nprop(); ++c) {
       Assert(n.first < m_u.nunk(), "Added node index out of bounds post-AMR");
       Assert(n.second[0] < m_u.nunk() && n.second[1] < m_u.nunk(),
         "Indices of parent-edge nodes out of bounds post-AMR");
@@ -1437,6 +1428,7 @@ KozCG::integrals()
   auto d = Disc();
 
   if (d->integiter() or d->integtime() or d->integrange()) {
+
     using namespace integrals;
     std::vector< std::map< int, tk::real > > ints( NUMINT );
     // Prepend integral vector with metadata on the current time step:
@@ -1460,8 +1452,11 @@ KozCG::integrals()
     auto stream = serialize( d->MeshId(), ints );
     d->contribute( stream.first, stream.second.get(), IntegralsMerger,
       CkCallback(CkIndex_Transporter::integrals(nullptr), d->Tr()) );
+
   } else {
+
     step();
+
   }
 }
 
@@ -1478,18 +1473,15 @@ KozCG::evalLB( int nrestart )
   // finished flag
   if (d->restarted( nrestart )) m_finished = 0;
 
-  const auto lbfreq = g_cfg.get< tag::lbfreq >();
-  const auto nonblocking = g_cfg.get< tag::nonblocking >();
-
   // Load balancing if user frequency is reached or after the second time-step
-  if ( (d->It()) % lbfreq == 0 || d->It() == 2 ) {
+  if (d->lb()) {
 
     AtSync();
-    if (nonblocking) next();
+    if (g_cfg.get< tag::nonblocking >()) dt();
 
   } else {
 
-    next();
+    dt();
 
   }
 }
@@ -1527,7 +1519,7 @@ KozCG::step()
   auto d = Disc();
 
   // Output one-liner status report to screen
-  d->status();
+  if (thisIndex == 0) d->status();
 
   if (not m_finished) {
 

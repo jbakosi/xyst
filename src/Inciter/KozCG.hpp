@@ -138,9 +138,6 @@ class KozCG : public CBase_KozCG {
     //! Evaluate whether to do load balancing
     void evalLB( int nrestart );
 
-    //! Continue to next time step
-    void next();
-
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{
     //! \brief Pack/Unpack serialize member function

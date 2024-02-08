@@ -37,7 +37,7 @@ dirbc( tk::Fields& U,
 //! \param[in] t Physical time at which to evaluate BCs
 //! \param[in] U Solution vector at recent time step
 //! \param[in] coord Mesh node coordinates
-//! \param[ini] boxnodes List of nodes at which box user ICs are set
+//! \param[in] boxnodes List of nodes at which box user ICs are set
 //! \param[in] dirbcmasks Nodes and component masks for Dirichlet BCs
 // *****************************************************************************
 {

@@ -2212,68 +2212,74 @@ ZalCG::writeFields( CkCallback cb )
 
   // Surface output
 
-  std::vector< std::string > nodesurfnames
-    {"density", "velocityx", "velocityy", "velocityz", "energy", "pressure" };
-
-  for (std::size_t c=0; c<ncomp-5; ++c) {
-    nodesurfnames.push_back( "c" + std::to_string(c) );
-  }
-
-  if (g_cfg.get< tag::deactivate >()) {
-    nodesurfnames.push_back( "chbnded" );
-    nodesurfnames.push_back( "activehull" );
-    nodesurfnames.push_back( "deactivated" );
-  }
-
-  if (g_cfg.get< tag::steady >()) {
-    nodesurfnames.push_back( "mach" );
-  }
-
+  std::vector< std::string > nodesurfnames;
   std::vector< std::vector< tk::real > > nodesurfs;
-  const auto& lid = d->Lid();
-  auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
+
   const auto& f = g_cfg.get< tag::fieldout >();
-  std::set< int > outsets( begin(f), end(f) );
-  for (auto sideset : outsets) {
-    auto b = bnode.find(sideset);
-    if (b == end(bnode)) continue;
-    const auto& nodes = b->second;
-    auto i = nodesurfs.size();
-    auto ns = ncomp + 1;
-    if (g_cfg.get< tag::deactivate >()) ns += 3;
-    if (g_cfg.get< tag::steady >()) ++ns;
-    nodesurfs.insert( end(nodesurfs), ns,
-                      std::vector< tk::real >( nodes.size() ) );
-    std::size_t j = 0;
-    for (auto n : nodes) {
-      const auto s = m_u[n];
-      std::size_t p = 0;
-      nodesurfs[i+(p++)][j] = s[0];
-      nodesurfs[i+(p++)][j] = s[1]/s[0];
-      nodesurfs[i+(p++)][j] = s[2]/s[0];
-      nodesurfs[i+(p++)][j] = s[3]/s[0];
-      nodesurfs[i+(p++)][j] = s[4]/s[0];
-      auto vv = (s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
-      auto ei = s[4]/s[0] - 0.5*vv;
-      auto sp = eos::pressure( s[0]*ei );
-      nodesurfs[i+(p++)][j] = sp;
-      for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+(p++)+c][j] = s[5+c];
-      if (g_cfg.get< tag::deactivate >()) {
-        nodesurfs[i+(p++)][j] = bnded[n];
-        nodesurfs[i+(p++)][j] = hull[n];
-        nodesurfs[i+(p++)][j] = dea[n];
+
+  if (!f.empty()) {
+    nodesurfnames.push_back( "density" );
+    nodesurfnames.push_back( "velocityx" );
+    nodesurfnames.push_back( "velocityy" );
+    nodesurfnames.push_back( "velocityz" );
+    nodesurfnames.push_back( "energy" );
+    nodesurfnames.push_back( "pressure" );
+
+    for (std::size_t c=0; c<ncomp-5; ++c) {
+      nodesurfnames.push_back( "c" + std::to_string(c) );
+    }
+
+    if (g_cfg.get< tag::deactivate >()) {
+      nodesurfnames.push_back( "chbnded" );
+      nodesurfnames.push_back( "activehull" );
+      nodesurfnames.push_back( "deactivated" );
+    }
+
+    if (g_cfg.get< tag::steady >()) {
+      nodesurfnames.push_back( "mach" );
+    }
+
+    auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
+    std::set< int > outsets( begin(f), end(f) );
+    for (auto sideset : outsets) {
+      auto b = bnode.find(sideset);
+      if (b == end(bnode)) continue;
+      const auto& nodes = b->second;
+      auto i = nodesurfs.size();
+      auto ns = ncomp + 1;
+      if (g_cfg.get< tag::deactivate >()) ns += 3;
+      if (g_cfg.get< tag::steady >()) ++ns;
+      nodesurfs.insert( end(nodesurfs), ns,
+                        std::vector< tk::real >( nodes.size() ) );
+      std::size_t j = 0;
+      for (auto n : nodes) {
+        const auto s = m_u[n];
+        std::size_t p = 0;
+        nodesurfs[i+(p++)][j] = s[0];
+        nodesurfs[i+(p++)][j] = s[1]/s[0];
+        nodesurfs[i+(p++)][j] = s[2]/s[0];
+        nodesurfs[i+(p++)][j] = s[3]/s[0];
+        nodesurfs[i+(p++)][j] = s[4]/s[0];
+        auto vv = (s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
+        auto ei = s[4]/s[0] - 0.5*vv;
+        auto sp = eos::pressure( s[0]*ei );
+        nodesurfs[i+(p++)][j] = sp;
+        for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+(p++)+c][j] = s[5+c];
+        if (g_cfg.get< tag::deactivate >()) {
+          nodesurfs[i+(p++)][j] = bnded[n];
+          nodesurfs[i+(p++)][j] = hull[n];
+          nodesurfs[i+(p++)][j] = dea[n];
+        }
+        if (g_cfg.get< tag::steady >()) {
+          nodesurfs[i+(p++)][j] = std::sqrt(vv) / eos::soundspeed( s[0], sp );
+        }
+        ++j;
       }
-      if (g_cfg.get< tag::steady >()) {
-        nodesurfs[i+(p++)][j] = std::sqrt(vv) / eos::soundspeed( s[0], sp );
-      }
-      ++j;
     }
   }
 
-  Assert( nodesurfnames.size() == nodesurfs.size(), "Size mismatch" );
-
   // Send mesh and fields data (solution dump) for output to file
-  d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,lid),
+  d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,d->Lid()),
             m_triinpoel, {}, nodefieldnames, {}, nodesurfnames,
             {}, nodefields, {}, nodesurfs, cb );
 }

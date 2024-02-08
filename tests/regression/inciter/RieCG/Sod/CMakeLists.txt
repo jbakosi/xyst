@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(compflow_euler_sod ${INCITER_EXECUTABLE}
+add_regression_test(compflow_euler_sod_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES sod.q rectangle_01_1.5k.exo
                     ARGS -c sod.q -i rectangle_01_1.5k.exo
@@ -21,7 +21,7 @@ add_regression_test(compflow_euler_sod ${INCITER_EXECUTABLE}
                                         hist.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_sod_hist_timeint ${INCITER_EXECUTABLE}
+add_regression_test(compflow_euler_sod_hist_timeint_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES sod_hist_timeint.q rectangle_01_1.5k.exo
                     ARGS -c sod_hist_timeint.q -i rectangle_01_1.5k.exo
@@ -39,7 +39,7 @@ add_regression_test(compflow_euler_sod_hist_timeint ${INCITER_EXECUTABLE}
                                         hist.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_sod_surf ${INCITER_EXECUTABLE}
+add_regression_test(compflow_euler_sod_surf_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES sod_surf.q rectangle_01_1.5k.exo
                     ARGS -c sod_surf.q -i rectangle_01_1.5k.exo
@@ -59,7 +59,7 @@ add_regression_test(compflow_euler_sod_surf ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_sod_surf_timeint ${INCITER_EXECUTABLE}
+add_regression_test(compflow_euler_sod_surf_timeint_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES sod_surf_timeint.q rectangle_01_1.5k.exo
                     ARGS -c sod_surf_timeint.q -i rectangle_01_1.5k.exo
@@ -79,7 +79,7 @@ add_regression_test(compflow_euler_sod_surf_timeint ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_sod_userdef ${INCITER_EXECUTABLE}
+add_regression_test(compflow_euler_sod_userdef_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES sod_userdef.q rectangle_01_1.5k.exo
                     ARGS -c sod_userdef.q -i rectangle_01_1.5k.exo
@@ -99,7 +99,7 @@ add_regression_test(compflow_euler_sod_userdef ${INCITER_EXECUTABLE}
 
 # Parallel
 
-add_regression_test(compflow_euler_sod_hist_range ${INCITER_EXECUTABLE}
+add_regression_test(compflow_euler_sod_hist_range_riecg ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES sod_hist_range.q rectangle_01_1.5k.exo
                     ARGS -c sod_hist_range.q -i rectangle_01_1.5k.exo
@@ -117,7 +117,7 @@ add_regression_test(compflow_euler_sod_hist_range ${INCITER_EXECUTABLE}
                                         hist.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_sod_parsurf ${INCITER_EXECUTABLE}
+add_regression_test(compflow_euler_sod_parsurf_riecg ${INCITER_EXECUTABLE}
                     NUMPES 2 PPN 1
                     INPUTFILES sod_surf_rcb.q rectangle_01_1.5k.exo
                     ARGS -c sod_surf_rcb.q -i rectangle_01_1.5k.exo
@@ -134,7 +134,7 @@ add_regression_test(compflow_euler_sod_parsurf ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization + migration
 
-add_regression_test(compflow_euler_sod_u0.8_migr
+add_regression_test(compflow_euler_sod_u0.8_migr_riecg
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES sod.q rectangle_01_1.5k.exo

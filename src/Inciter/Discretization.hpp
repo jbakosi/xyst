@@ -121,8 +121,7 @@ class Discretization : public CBase_Discretization {
     bool lb() const;
 
     //! Compute total box IC volume
-    void
-    boxvol( const std::vector< std::unordered_set< std::size_t > >& nodes );
+    void boxvol();
 
     /** @name Accessors */
     ///@{
@@ -218,6 +217,10 @@ class Discretization : public CBase_Discretization {
     //! Node communication map accessor as const-ref
     const std::unordered_map< int, std::unordered_set< std::size_t > >&
       NodeCommMap() const { return m_nodeCommMap; }
+
+    //! IC boxnodes accessor
+    const std::vector< std::unordered_set< std::size_t > >& BoxNodes() const
+    { return m_boxnodes; }
     //@}
 
     //! Set time step size
@@ -313,6 +316,7 @@ class Discretization : public CBase_Discretization {
       p | m_dt;
       p | m_dtn;
       p | m_nvol;
+      p | m_boxnodes;
       p | m_transporter;
       p | m_meshwriter;
       p | m_refiner;
@@ -390,6 +394,8 @@ class Discretization : public CBase_Discretization {
     //! \brief Number of chares from which we received nodal volume
     //!   contributions on chare boundaries
     std::size_t m_nvol;
+    //! List of nodes at which box user ICs are set for each IC box
+    std::vector< std::unordered_set< std::size_t > > m_boxnodes;
     //! Transporter proxy
     CProxy_Transporter m_transporter;
     //! Mesh writer proxy

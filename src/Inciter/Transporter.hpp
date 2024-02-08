@@ -144,9 +144,6 @@ class Transporter : public CBase_Transporter {
     //! Non-reduction target for receiving progress report on creating workers
     void chcreated() { m_progWork.inc< CREATE >( tk::Print() ); }
 
-    //! Reduction target indicating that the communication maps have been setup
-    void comfinal( std::size_t summeshid );
-
     //! Reduction target summing total mesh volume
     void totalvol( tk::real v, tk::real initial, tk::real summeshid );
 

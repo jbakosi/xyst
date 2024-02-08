@@ -100,13 +100,11 @@ RieCG::RieCG( const CProxy_Discretization& disc,
   // Remap boundary triangle face connectivity
   tk::remap( m_triinpoel, map );
 
+  // Compute total box IC volume
+  d->boxvol();
+
   // Activate SDAG wait for initially computing integrals
   thisProxy[ thisIndex ].wait4int();
-
-  // Signal the runtime system that the workers have been created
-  auto meshid = d->MeshId();
-  contribute( sizeof(std::size_t), &meshid, CkReduction::sum_ulong,
-    CkCallback(CkReductionTarget(Transporter,comfinal), d->Tr()) );
 }
 
 void
@@ -450,21 +448,19 @@ RieCG::ResumeFromSync()
 }
 
 void
-RieCG::setup()
+RieCG::setup( tk::real v )
 // *****************************************************************************
 // Start setup for solution
+//! \param[in] v Total volume within user-specified box
 // *****************************************************************************
 {
   auto d = Disc();
 
-  // Determine which nodes reside in user-defined IC box(es) if any
-  auto boxnodes = problems::boxnodes( d->Coord() );
+  // Store user-defined box IC volume
+  Disc()->Boxvol() = v;
 
   // Set initial conditions
-  problems::initialize( d->Coord(), m_u, d->T(), boxnodes );
-
-  // Start computing the volume of user-defined IC box(es)
-  d->boxvol( boxnodes );
+  problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
   if (!g_cfg.get< tag::histout >().empty()) {
@@ -475,17 +471,6 @@ RieCG::setup()
       var.push_back( "c" + std::to_string(c-5) );
     d->histheader( std::move(var) );
   }
-}
-
-void
-RieCG::box( tk::real v )
-// *****************************************************************************
-// Receive total box IC volume and set conditions in box
-//! \param[in] v Total volume within user-specified box
-// *****************************************************************************
-{
-  // Store user-defined box IC volume
-  Disc()->Boxvol() = v;
 
   // Compute finite element operators
   feop();
@@ -891,8 +876,10 @@ RieCG::BC( tk::real t )
 //! \param[in] t Physical time
 // *****************************************************************************
 {
+  auto d = Disc();
+
   // Apply Dirichlet BCs
-  physics::dirbc( m_u, t, Disc()->Coord(), m_dirbcmasks );
+  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
 
   // Apply symmetry BCs
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms );

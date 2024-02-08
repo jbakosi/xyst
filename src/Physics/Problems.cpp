@@ -13,6 +13,7 @@
 #include "Problems.hpp"
 #include "EOS.hpp"
 #include "InciterConfig.hpp"
+#include "Box.hpp"
 
 namespace inciter {
 
@@ -23,55 +24,6 @@ extern ctr::Config g_cfg;
 namespace problems {
 
 using inciter::g_cfg;
-
-// *****************************************************************************
-//  Determine nodes that lie inside user-defined IC box(es)
-//! \param[in] coord Mesh node coordinates
-//! \return inbox List of nodes at which box user ICs are set for each IC box
-// *****************************************************************************
-std::vector< std::unordered_set< std::size_t > >
-boxnodes( const std::array< std::vector< tk::real >, 3 >& coord ) {
-
-  const auto& icbox = g_cfg.get< tag::ic >();
-
-  if (icbox.empty()) return {};
-
-  std::vector< std::unordered_set< std::size_t > > inbox;
-
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  std::size_t bcnt = 0;
-  for (const auto& b : icbox) {
-    inbox.emplace_back();
-    const auto& bx = b.get< tag::x >();
-    const auto& by = b.get< tag::y >();
-    const auto& bz = b.get< tag::z >();
-    std::vector< tk::real > box{ bx[0], bx[1], by[0], by[1], bz[0], bz[1] };
-
-    const auto eps = std::numeric_limits< tk::real >::epsilon();
-    // Determine which nodes lie in the IC box
-    if ( std::any_of( begin(box), end(box), [=](auto p)
-                      { return abs(p) > eps; } ) )
-    {
-      std::array< tk::real, 3 > b_min{{box[0], box[2], box[4]}};
-      std::array< tk::real, 3 > b_max{{box[1], box[3], box[5]}};
-      for (std::size_t i=0; i<x.size(); ++i) {
-        std::array< tk::real, 3 > node{{ x[i], y[i], z[i] }};
-        if ( node[0]>b_min[0] && node[0]<b_max[0] &&
-             node[1]>b_min[1] && node[1]<b_max[1] &&
-             node[2]>b_min[2] && node[2]<b_max[2] )
-        {
-          inbox[bcnt].insert( i );
-        }
-      }
-    }
-    ++bcnt;
-  }
-
-  return inbox;
-}
 
 namespace userdef {
 
@@ -783,24 +735,21 @@ void
 initialize( const std::array< std::vector< tk::real >, 3 >& coord,
             tk::Fields& U,
             tk::real t,
-            const std::vector< std::unordered_set< std::size_t > >& inbox )
+            const std::vector< std::unordered_set< std::size_t > >& boxnodes )
 // *****************************************************************************
 //  Set inital conditions
 //! \param[in] coord Mesh node coordinates
 //! \param[in,out] U Array of unknowns
 //! \param[in] t Physical time
-//! \param[in] inbox Nodes at which box user ICs are set (for each box IC)
+//! \param[in] boxnodes Nodes at which box user ICs are set (for each box IC)
 // *****************************************************************************
 {
   Assert( coord[0].size() == U.nunk(), "Size mismatch" );
-
-  const auto& icbox = g_cfg.get< tag::ic >();
 
   auto ic = IC();
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
-  auto large = std::numeric_limits< double >::max();
 
   // Set initial conditions dependeing on problem configured
   for (std::size_t i=0; i<x.size(); ++i) {
@@ -810,48 +759,7 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
     Assert( s.size() == U.nprop(), "Size mismatch" );
 
     // Initialize user-defined ICs in boxes
-    for (std::size_t j=0; j<icbox.size(); ++j) {
-      const auto& b = icbox[j];
-      if (inbox.size() > j && inbox[j].find(i) != inbox[j].end()) {
-        auto boxr = b.get< tag::ic_density >();
-        const auto& boxv = b.get< tag::ic_velocity >();
-        auto boxp = b.get< tag::ic_pressure >();
-        auto boxe = b.get< tag::ic_energy >();
-        auto boxt = b.get< tag::ic_temperature >();
-
-        tk::real r = 0.0, ru = 0.0, rv = 0.0, rw = 0.0, re = 0.0;
-        if (std::abs(boxr - large) > 1.0e-12 && boxr > 0.0) {
-          r = boxr;
-        }
-        if (std::abs(boxv[0] - large) > 1.0e-12 &&
-            std::abs(boxv[1] - large) > 1.0e-12 &&
-            std::abs(boxv[2] - large) > 1.0e-12)
-        {
-          ru = r * boxv[0];
-          rv = r * boxv[1];
-          rw = r * boxv[2];
-        }
-        if (std::abs(boxp- large) > 1.0e-12 && boxp> 0.0) {
-          re = eos::totalenergy( r, ru/r, rv/r, rw/r, boxp);
-        }
-        if (std::abs(boxe - large) > 1.0e-12 && boxe > 0.0) {
-          auto ux = ru/r, uy = rv/r, uz = rw/r;
-          auto ke = 0.5*(ux*ux + uy*uy + uz*uz);
-          re = r * (boxe + ke);
-        }
-        if (std::abs(boxt - large) > 1.0e-12 && boxt > 0.0) {
-          auto cv = g_cfg.get< tag::mat_spec_heat_const_vol >();
-          if (std::abs(cv - large) > 1.0e-12 && cv > 0.0) {
-            re = r * boxt * cv;
-          }
-        }
-        s[0] = r;
-        s[1] = ru;
-        s[2] = rv;
-        s[3] = rw;
-        s[4] = re;
-      }
-    }
+    box( i, s, boxnodes );
 
     // Set values for ICs
     for (std::size_t c=0; c<s.size(); ++c) U(i,c,0) = s[c];

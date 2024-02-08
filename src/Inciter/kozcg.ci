@@ -26,8 +26,7 @@ module kozcg {
                    const std::map< int, std::vector< std::size_t > >& bnode,
                    const std::vector< std::size_t >& triinpoel );
       initnode void registerReducers();
-      entry void setup();
-      entry void box( tk::real v );
+      entry void setup( tk::real v );
       entry void start();
       entry void refine( const std::vector< tk::real >& l2ref );
       entry [reductiontarget] void advance( tk::real newdt );

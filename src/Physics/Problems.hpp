@@ -16,10 +16,6 @@
 
 namespace problems {
 
-//! Determine nodes that lie inside user-defined IC box(es)
-std::vector< std::unordered_set< std::size_t > >
-boxnodes( const std::array< std::vector< tk::real >, 3 >& coord );
-
 //! Query user config and assign function to set initial conditions
 std::function< std::vector< tk::real >
              ( tk::real, tk::real, tk::real, tk::real ) >
@@ -43,9 +39,10 @@ PHYS_SRC();
 
 //! Set inital conditions
 void
-initialize( const std::array< std::vector< tk::real >, 3 >& coord,
-            tk::Fields& U,
-            tk::real t,
-            const std::vector< std::unordered_set<std::size_t> >& inbox = {} );
+initialize(
+  const std::array< std::vector< tk::real >, 3 >& coord,
+  tk::Fields& U,
+  tk::real t,
+  const std::vector< std::unordered_set<std::size_t> >& boxnodes = {} );
 
 } // problems::

@@ -12,6 +12,7 @@
 
 #include "BC.hpp"
 #include "EOS.hpp"
+#include "Box.hpp"
 #include "Problems.hpp"
 #include "InciterConfig.hpp"
 
@@ -29,12 +30,14 @@ void
 dirbc( tk::Fields& U,
        tk::real t,
        const std::array< std::vector< tk::real >, 3 >& coord,
+       const std::vector< std::unordered_set< std::size_t > >& boxnodes,
        const std::vector< std::size_t >& dirbcmasks )
 // *****************************************************************************
 //  Set symmetry boundary conditions at nodes
 //! \param[in] t Physical time at which to evaluate BCs
 //! \param[in] U Solution vector at recent time step
 //! \param[in] coord Mesh node coordinates
+//! \param[ini] boxnodes List of nodes at which box user ICs are set
 //! \param[in] dirbcmasks Nodes and component masks for Dirichlet BCs
 // *****************************************************************************
 {
@@ -51,11 +54,14 @@ dirbc( tk::Fields& U,
   auto ic = problems::IC();
 
   for (std::size_t i=0; i<dirbcmasks.size()/nmask; ++i) {
-    auto p = dirbcmasks[i*nmask+0];
-    auto u = ic( x[p], y[p], z[p], t );
-    for (std::size_t c=0; c<ncomp; ++c)
-      if (dirbcmasks[i*nmask+1+c])
+    auto p = dirbcmasks[i*nmask+0];     // local node id
+    auto u = ic( x[p], y[p], z[p], t ); // evaluate solution/ic
+    problems::box( p, u, boxnodes );    // overwrite with box value
+    for (std::size_t c=0; c<ncomp; ++c) {
+      if (dirbcmasks[i*nmask+1+c]) {
         U(p,c,0) = u[c];
+      }
+    }
   }
 }
 

@@ -786,37 +786,6 @@ Transporter::integralsHeader()
 }
 
 void
-Transporter::comfinal( std::size_t summeshid )
-// *****************************************************************************
-// Reduction target indicating that communication maps have been setup
-//! \param[in] summeshid Mesh id (summed accross the distributed mesh)
-// *****************************************************************************
-{
-  auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
-
-  if (g_cfg.get< tag::solver >() == "riecg") {
-    m_riecg[ meshid ].setup();
-  }
-  else if (g_cfg.get< tag::solver >() == "zalcg") {
-    m_zalcg[ meshid ].setup();
-  }
-  else if (g_cfg.get< tag::solver >() == "kozcg") {
-    m_kozcg[ meshid ].setup();
-  }
-  else {
-    Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
-  }
-
-  // Turn on automatic load balancing
-  if (++m_ncom == m_nelem.size()) { // all worker arrays have finished
-    m_ncom = 0;
-    tk::Print print;
-    m_progWork.end( print );
-    tk::CProxy_LBSwitch::ckNew();
-  }
-}
-
-void
 Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
 // *****************************************************************************
 // Reduction target summing total mesh volume across all workers
@@ -1033,16 +1002,24 @@ Transporter::boxvol( tk::real v, tk::real summeshid )
   if (v > 0.0) tk::Print() << "IC-box-volume sum: " + std::to_string(v) << '\n';
 
   if (g_cfg.get< tag::solver >() == "riecg") {
-    m_riecg[ meshid ].box( v );
+    m_riecg[ meshid ].setup( v );
   }
   else if (g_cfg.get< tag::solver >() == "zalcg") {
-    m_zalcg[ meshid ].box( v );
+    m_zalcg[ meshid ].setup( v );
   }
   else if (g_cfg.get< tag::solver >() == "kozcg") {
-    m_kozcg[ meshid ].box( v );
+    m_kozcg[ meshid ].setup( v );
   }
   else {
     Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+  }
+
+  // Turn on automatic load balancing
+  if (++m_ncom == m_nelem.size()) { // all worker arrays have finished
+    m_ncom = 0;
+    tk::Print print;
+    m_progWork.end( print );
+    tk::CProxy_LBSwitch::ckNew();
   }
 }
 

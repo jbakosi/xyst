@@ -76,10 +76,7 @@ class KozCG : public CBase_KozCG {
     void ResumeFromSync() override;
 
     //! Start setup for solution
-    void setup();
-
-    //! Receive total box IC volume and set conditions in box
-    void box( tk::real v );
+    void setup( tk::real v );
 
     // Start time stepping
     void start();

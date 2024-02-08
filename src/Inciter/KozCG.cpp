@@ -772,6 +772,22 @@ KozCG::aec()
     }
   }
 
+  // Apply symmetry BCs on AEC
+  for (std::size_t i=0; i<m_symbcnodes.size(); ++i) {
+    auto p = m_symbcnodes[i];
+    auto nx = m_symbcnorms[i*3+0];
+    auto ny = m_symbcnorms[i*3+1];
+    auto nz = m_symbcnorms[i*3+2];
+    auto rvnp = m_p(p,2,0)*nx + m_p(p,4,0)*ny + m_p(p,6,0)*nz;
+    auto rvnn = m_p(p,3,0)*nx + m_p(p,5,0)*ny + m_p(p,7,0)*nz;
+    m_p(p,2,0) -= rvnp * nx;
+    m_p(p,3,0) -= rvnn * nx;
+    m_p(p,4,0) -= rvnp * ny;
+    m_p(p,5,0) -= rvnn * ny;
+    m_p(p,6,0) -= rvnp * nz;
+    m_p(p,7,0) -= rvnn * nz;
+  }
+
   // Communicate antidiffusive edge and low-order solution contributions
   if (d->NodeCommMap().empty()) {
     comaec_complete();

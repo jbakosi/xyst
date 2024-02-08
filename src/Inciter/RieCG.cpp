@@ -852,6 +852,8 @@ RieCG::merge()
 // Combine own and communicated portions of the integrals
 // *****************************************************************************
 {
+  auto d = Disc();
+
   // Combine own and communicated contributions to boundary point normals
   bnorm();
 
@@ -859,9 +861,9 @@ RieCG::merge()
   streamable();
 
   // Enforce boundary conditions using (re-)computed boundary data
-  BC( Disc()->T() );
+  BC( d->T() );
 
-  if (Disc()->Initial()) {
+  if (d->Initial()) {
     // Output initial conditions to file
     writeFields( CkCallback(CkIndex_RieCG::start(), thisProxy[thisIndex]) );
   } else {
@@ -909,21 +911,13 @@ RieCG::dt()
     // cppcheck-suppress redundantInitialization
     mindt = const_dt;
 
-  } else {      // compute dt based on CFL
+  } else {
 
     if (g_cfg.get< tag::steady >()) {
-
-      // compute new dt for each mesh point
       physics::dt( d->Vol(), m_u, m_dtp );
-
-      // find the smallest dt of all nodes on this chare
       mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
-
-    } else {    // compute new dt for this chare
-
-      // find the smallest dt of all equations on this chare
+    } else {
       mindt = physics::dt( d->Vol(), m_u );
-
     }
 
   }
@@ -1133,7 +1127,7 @@ RieCG::solve()
       using tk::operator+=;
       m_tp += m_dtp;
     }
-    // Continue to mesh refinement
+    // Evaluate residuals
     if (!diag) evalres( std::vector< tk::real >( m_u.nprop(), 1.0 ) );
 
   }

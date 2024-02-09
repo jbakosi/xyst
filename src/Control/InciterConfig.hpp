@@ -50,6 +50,7 @@ DEFTAG( fct );
 DEFTAG( fctdif );
 DEFTAG( fctclip );
 DEFTAG( fctsys );
+DEFTAG( fctfreeze );
 DEFTAG( deactivate );
 DEFTAG( deatol );
 DEFTAG( deadif );
@@ -159,6 +160,7 @@ using ConfigMembers = brigand::list<
   , tag::fctdif, double
   , tag::fctclip, bool
   , tag::fctsys, std::vector< uint64_t >
+  , tag::fctfreeze, double
   , tag::deactivate, bool
   , tag::deatol, double
   , tag::deadif, double

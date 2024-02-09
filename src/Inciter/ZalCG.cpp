@@ -74,7 +74,8 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
   m_finished( 0 ),
-  m_freezeflow( 1.0 )
+  m_freezeflow( 1.0 ),
+  m_fctfreeze( 0 )
 // *****************************************************************************
 //  Constructor
 //! \param[in] disc Discretization proxy
@@ -842,6 +843,13 @@ ZalCG::domsuped()
     ++k;
   }
 
+  if (g_cfg.get< tag::fct >()) {
+    const auto ncomp = m_u.nprop();
+    m_dsuplim[0].resize( m_dsupedge[0].size() * 6 * ncomp );
+    m_dsuplim[1].resize( m_dsupedge[1].size() * 3 * ncomp );
+    m_dsuplim[2].resize( m_dsupedge[2].size() * ncomp );
+  }
+
   tk::destroy( m_domedgeint );
 
   //std::cout << std::setprecision(2)
@@ -1575,12 +1583,15 @@ ZalCG::lim()
   for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
     const auto N = m_dsupedge[0].data() + e*4;
     const auto D = m_dsupint[0].data();
+    auto C = m_dsuplim[0].data();
     std::size_t i = 0;
     for (const auto& [p,q] : tk::lpoed) {
       auto dif = D[(e*6+i)*4+3];
-      tk::real coef[ncomp], aec[ncomp];
+      auto coef = C + (e*6+i)*ncomp;
+      tk::real aec[ncomp];
       for (std::size_t c=0; c<ncomp; ++c) {
         aec[c] = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        if (m_fctfreeze) continue;
         auto a = c*2;
         auto b = a+1;
         coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
@@ -1602,12 +1613,15 @@ ZalCG::lim()
   for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
     const auto N = m_dsupedge[1].data() + e*3;
     const auto D = m_dsupint[1].data();
+    auto C = m_dsuplim[0].data();
     std::size_t i = 0;
     for (const auto& [p,q] : tk::lpoet) {
       auto dif = D[(e*3+i)*4+3];
-      tk::real coef[ncomp], aec[ncomp];
+      auto coef = C + (e*3+i)*ncomp;
+      tk::real aec[ncomp];
       for (std::size_t c=0; c<ncomp; ++c) {
         aec[c] = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        if (m_fctfreeze) continue;
         auto a = c*2;
         auto b = a+1;
         coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
@@ -1629,11 +1643,13 @@ ZalCG::lim()
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
     const auto N = m_dsupedge[2].data() + e*2;
     const auto dif = m_dsupint[2][e*4+3];
-    tk::real coef[ncomp], aec[ncomp];
+    auto coef = m_dsuplim[2].data() + e*ncomp;
+    tk::real aec[ncomp];
     for (std::size_t c=0; c<ncomp; ++c) {
       aec[c] = -dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
       auto a = c*2;
       auto b = a+1;
+      if (m_fctfreeze) continue;
       coef[c] = min( aec[c] < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
                      aec[c] > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
     }
@@ -1790,6 +1806,7 @@ ZalCG::evalres( const std::vector< tk::real >& l2res )
   if (g_cfg.get< tag::steady >()) {
     const auto rc = g_cfg.get< tag::rescomp >() - 1;
     d->residual( l2res[rc] );
+    if (l2res[rc] < g_cfg.get< tag::fctfreeze >()) m_fctfreeze = 1;
   }
 
   if (d->deactivate()) deactivate(); else refine();

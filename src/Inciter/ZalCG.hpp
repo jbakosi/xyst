@@ -212,6 +212,7 @@ class ZalCG : public CBase_ZalCG {
       p | m_bsupint;
       p | m_dsupedge;
       p | m_dsupint;
+      p | m_dsuplim;
       p | m_chbndedge;
       p | m_besym;
       p | m_dirbcmasks;
@@ -228,6 +229,7 @@ class ZalCG : public CBase_ZalCG {
       p | m_tp;
       p | m_finished;
       p | m_freezeflow;
+      p | m_fctfreeze;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -329,6 +331,8 @@ class ZalCG : public CBase_ZalCG {
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals
     std::array< std::vector< tk::real >, 3 > m_dsupint;
+    //! FCT limiter coefficients in domain superedges
+    std::array< std::vector< tk::real >, 3 > m_dsuplim;
     //! Chare-boundary edge end-points with difffusion integral
     //! \details Key: neighbor chare id, value: domain-edge end-points and
     //!   diffusion integral associated to the edge
@@ -375,6 +379,8 @@ class ZalCG : public CBase_ZalCG {
     int m_finished;
     //! dt multiplier after flow no longer updated
     tk::real m_freezeflow;
+    //! Freeze FCT limiter if 1, 0 FCT as usual
+    int m_fctfreeze;
 
     //! Access bound Discretization class pointer
     Discretization* Disc() const {

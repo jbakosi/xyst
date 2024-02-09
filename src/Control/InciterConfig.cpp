@@ -941,6 +941,7 @@ Config::control()
     get< tag::fctdif >() = real( L, "fctdif", 1.0, true );
     get< tag::fctclip >() = boolean( L, "fctclip", false, true );
     get< tag::fctsys >() = unsigints( L, "fctsys", true );
+    get< tag::fctfreeze >() = real( L, "fctfreeze", -largereal, true );
     get< tag::freezeflow >() = real( L, "freezeflow", 1.0, true );
     get< tag::freezetime >() = real( L, "freezetime", 0.0, true );
 

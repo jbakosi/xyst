@@ -10,7 +10,7 @@ cfl = 0.5
 solver = "zalcg"
 fctsys = { 1, 2, 3, 4, 5 }
 
-part = "rcb"
+part = "multijagged"
 
 problem = {
   name = "sedov",

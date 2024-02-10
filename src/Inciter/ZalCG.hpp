@@ -460,14 +460,14 @@ class ZalCG : public CBase_ZalCG {
     //! Decide if edge is active
     int active( std::size_t p,
                 std::size_t q,
-                const std::vector< uint64_t >& sys );
+                const std::vector< uint64_t >& sys ) const;
 
     //! Decide whether to deactivate this chare
-    int dea( const std::vector< uint64_t >& sys );
+    int dea( const std::vector< uint64_t >& sys ) const;
 
     //! Decide whether to teactivate a neighbor chare
     void rea( const std::vector< uint64_t >& sys,
-              std::unordered_set< int >& req );
+              std::unordered_set< int >& req ) const;
 
     //! Deactivate regions
     void deactivate();

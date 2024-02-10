@@ -1815,7 +1815,7 @@ ZalCG::evalres( const std::vector< tk::real >& l2res )
 int
 ZalCG::active( std::size_t p,
                std::size_t q,
-               const std::vector< uint64_t >& sys )
+               const std::vector< uint64_t >& sys ) const
 // *****************************************************************************
 //  Decide if edge is active
 //! \param[in] p Local id of left edge-end point
@@ -1836,7 +1836,7 @@ ZalCG::active( std::size_t p,
 }
 
 int
-ZalCG::dea( const std::vector< uint64_t >& sys )
+ZalCG::dea( const std::vector< uint64_t >& sys ) const
 // *****************************************************************************
 //  Decide whether to deactivate this chare
 //! \param[in] sys List of components to consider
@@ -1873,6 +1873,7 @@ ZalCG::dea( const std::vector< uint64_t >& sys )
 
 void
 ZalCG::rea( const std::vector< uint64_t >& sys, std::unordered_set< int >& req )
+const
 // *****************************************************************************
 //  Decide whether to reactivate any neighbor chare
 //! \param[in] sys List of components to consider

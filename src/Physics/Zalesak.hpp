@@ -39,7 +39,6 @@ void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
      const std::array< std::vector< tk::real >, 3 >& coord,
-     tk::real freezeflow,
      const std::vector< std::size_t >& triinpoel,
      const std::vector< std::uint8_t >& besym,
      tk::real t,

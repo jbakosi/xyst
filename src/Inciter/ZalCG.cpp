@@ -1169,8 +1169,8 @@ ZalCG::rhs()
   tk::destroy(m_stabc);
 
   // Compute own portion of right-hand side for all equations
-  zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_freezeflow, m_triinpoel,
-    m_besym, d->T(), d->Dt(), m_tp, m_dtp, m_u, m_stab, m_grad, m_rhs );
+  zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym,
+                d->T(), d->Dt(), m_tp, m_dtp, m_u, m_stab, m_grad, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){

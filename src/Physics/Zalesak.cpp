@@ -359,6 +359,15 @@ advbnd( const std::vector< std::size_t >& triinpoel,
   const auto& y = coord[1];
   const auto& z = coord[2];
 
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
   for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
     const auto N = triinpoel.data() + e*3;
 
@@ -388,7 +397,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     ny /= 12.0;
     nz /= 12.0;
 
-    tk::real p, vn, f[5][3];
+    tk::real p, vn, f[ncomp][3];
     const auto sym = besym.data() + e*3;
 
     p = eos::pressure( reA - 0.5*(ruA*ruA + rvA*rvA + rwA*rwA)/rA );
@@ -398,6 +407,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[2][0] = rvA*vn + p*ny;
     f[3][0] = rwA*vn + p*nz;
     f[4][0] = (reA + p)*vn;
+    for (std::size_t c=5; c<ncomp; ++c) f[c][0] = U(N[0],0,0)*vn;
 
     p = eos::pressure( reB - 0.5*(ruB*ruB + rvB*rvB + rwB*rwB)/rB );
     vn = sym[1] ? 0.0 : (nx*ruB + ny*rvB + nz*rwB)/rB;
@@ -406,6 +416,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[2][1] = rvB*vn + p*ny;
     f[3][1] = rwB*vn + p*nz;
     f[4][1] = (reB + p)*vn;
+    for (std::size_t c=5; c<ncomp; ++c) f[c][1] = U(N[1],0,0)*vn;
 
     p = eos::pressure( reC - 0.5*(ruC*ruC + rvC*rvC + rwC*rwC)/rC );
     vn = sym[2] ? 0.0 : (nx*ruC + ny*rvC + nz*rwC)/rC;
@@ -414,6 +425,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[2][2] = rvC*vn + p*ny;
     f[3][2] = rwC*vn + p*nz;
     f[4][2] = (reC + p)*vn;
+    for (std::size_t c=5; c<ncomp; ++c) f[c][2] = U(N[2],0,0)*vn;
 
     for (std::size_t c=0; c<ncomp; ++c) {
       auto fab = (f[c][0] + f[c][1])/4.0;
@@ -424,6 +436,12 @@ advbnd( const std::vector< std::size_t >& triinpoel,
       R(N[2],c,0) += fbc + fca + f[c][2];
     }
   }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
 }
 
 void

@@ -55,6 +55,32 @@ add_regression_test(kozcg_restart ${INCITER_EXECUTABLE}
                     CHECKPOINT kozcg_checkpoint
                     LABELS kozcg restart)
 
+add_regression_test(zalcg_checkpoint ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES vortical_flow_zalcg.q unitcube_1k.exo
+                    ARGS -c vortical_flow_zalcg.q -i unitcube_1k.exo
+                    BIN_BASELINE vortical_flow_zalcg_checkpoint.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff_zalcg.cfg
+                    TEXT_BASELINE vortical_flow_zalcg_checkpoint.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.zalcg.cfg
+                    LABELS zalcg restart)
+
+add_regression_test(zalcg_restart ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES vortical_flow_zalcg_restart.q unitcube_1k.exo
+                    ARGS -c vortical_flow_zalcg_restart.q -i unitcube_1k.exo
+                         +restart restart
+                    BIN_BASELINE vortical_flow_zalcg.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff_zalcg.cfg
+                    TEXT_BASELINE vortical_flow_zalcg.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.zalcg.cfg
+                    CHECKPOINT zalcg_checkpoint
+                    LABELS zalcg restart)
+
 # Parallel, checkpoint on 4 PEs, restart on 4 PEs
 
 add_regression_test(riecg_checkpoint ${INCITER_EXECUTABLE}
@@ -136,3 +162,43 @@ add_regression_test(kozcg_restart ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.kozcg.cfg
                     CHECKPOINT kozcg_checkpoint
                     LABELS kozcg restart)
+
+add_regression_test(zalcg_checkpoint ${INCITER_EXECUTABLE}
+                    NUMPES 4
+                    INPUTFILES vortical_flow_zalcg.q unitcube_1k.exo
+                    ARGS -c vortical_flow_zalcg.q -i unitcube_1k.exo
+                    BIN_BASELINE vortical_flow_zalcg_checkpoint.std.exo.0
+                                 vortical_flow_zalcg_checkpoint.std.exo.1
+                                 vortical_flow_zalcg_checkpoint.std.exo.2
+                                 vortical_flow_zalcg_checkpoint.std.exo.3
+                    BIN_RESULT out.e-s.0.4.0
+                               out.e-s.0.4.1
+                               out.e-s.0.4.2
+                               out.e-s.0.4.3
+                    BIN_DIFF_PROG_CONF exodiff_zalcg.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    TEXT_BASELINE vortical_flow_zalcg_checkpoint.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.zalcg.cfg
+                    LABELS zalcg restart)
+
+add_regression_test(zalcg_restart ${INCITER_EXECUTABLE}
+                    NUMPES 4
+                    INPUTFILES vortical_flow_zalcg_restart.q unitcube_1k.exo
+                    ARGS -c vortical_flow_zalcg_restart.q -i unitcube_1k.exo
+                         +restart restart
+                    BIN_BASELINE vortical_flow_zalcg.std.exo.0
+                                 vortical_flow_zalcg.std.exo.1
+                                 vortical_flow_zalcg.std.exo.2
+                                 vortical_flow_zalcg.std.exo.3
+                    BIN_RESULT out.e-s.0.4.0
+                               out.e-s.0.4.1
+                               out.e-s.0.4.2
+                               out.e-s.0.4.3
+                    BIN_DIFF_PROG_CONF exodiff_zalcg.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    TEXT_BASELINE vortical_flow_zalcg.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.zalcg.cfg
+                    CHECKPOINT zalcg_checkpoint
+                    LABELS zalcg restart)

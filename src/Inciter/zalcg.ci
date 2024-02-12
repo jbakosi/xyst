@@ -50,7 +50,6 @@ module zalcg {
       entry void feop();
       entry void step();
       entry void integrals();
-      entry void next();
       entry void evalLB( int nrestart );
 
       // SDAG code follows. See http://charm.cs.illinois.edu/manuals/html/

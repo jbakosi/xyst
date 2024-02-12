@@ -454,7 +454,7 @@ ZalCG::ResumeFromSync()
 {
   if (Disc()->It() == 0) Throw( "it = 0 in ResumeFromSync()" );
 
-  if (!g_cfg.get< tag::nonblocking >()) next();
+  if (!g_cfg.get< tag::nonblocking >()) dt();
 }
 
 void
@@ -499,7 +499,7 @@ ZalCG::start()
   // Zero grind-timer
   Disc()->grindZero();
   // Continue to first time step
-  next();
+  dt();
 }
 
 void
@@ -974,15 +974,6 @@ ZalCG::BC( tk::Fields& u, tk::real t )
 
   // Apply pressure BCs
   physics::prebc( u, m_prebcnodes, m_prebcvals );
-}
-
-void
-ZalCG::next()
-// *****************************************************************************
-// Continue to next time step
-// *****************************************************************************
-{
-  dt();
 }
 
 void
@@ -2418,11 +2409,11 @@ ZalCG::evalLB( int nrestart )
   if (d->lb()) {
 
     AtSync();
-    if (g_cfg.get< tag::nonblocking >()) next();
+    if (g_cfg.get< tag::nonblocking >()) dt();
 
   } else {
 
-    next();
+    dt();
 
   }
 }

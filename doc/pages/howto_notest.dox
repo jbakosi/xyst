@@ -1,0 +1,20 @@
+/*!
+  \page      howto_notest How to disable tests
+
+This page explains how to build Xyst without unit-, and regression tests.
+
+@warning Disabling the tests is recommended.
+
+@section howto_notest_build How to build Xyst without tests
+
+By default we build the @ref unittest_main harness as well as configure
+regression tests. To clone and build without tests do
+
+@code{.bash}
+git clone https://codeberg.org/xyst/xyst.git && cd xyst
+mkdir build && cd build
+cmake -DENABLE_TESTS=false ../src
+make
+@endcode
+
+*/

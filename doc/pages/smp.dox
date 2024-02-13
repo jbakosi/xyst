@@ -1,0 +1,111 @@
+/*!
+  \page      howto_smp How to build in Charm++'s SMP mode
+
+This page explains how to build Xyst in Charm++'s SMP mode.
+
+@section howto_smp_smp Charm++'s SMP mode at a high level
+
+In the simplest setting one lets Charm++ detect the hardware and rely on
+defaults. A more advanced programming non-uniform memory hierarchies is via
+Charm++'s SMP (symmetric multiprocessing) mode. SMP mode allows logically
+separating parallel streams of execution into two types of threads: logical
+nodes and light-weight threads. This is similar to combining MPI ranks and
+OpenMP threads, respectively, as the former have their own memory space (and
+cost more to create) and the latter share memory and processor cache (and cost
+less to create). SMP mode also allows designated communication threads which
+can further increase performance. However, there are significant differences
+between Charm++'s SMP mode and MPI + OpenMP:
+
+  - Charm++ is asynchronous and thus provides the runtime system more freedom
+    in task placement,
+  - Charm++ knows about both paradigms, and,
+  - in Charm++ one writes code using a single parallel programming model which
+    is the same as used in non-SMP mode, i.e., only a recompile is needed.
+
+The latter becomes important in production codes intended to be useful
+(practical, maintainable, extensible) for many years or decades.
+
+Xyst can automatically build Charm++ in SMP mode, Xyst is then can be
+recompiled without modifying any source code to use it in Charm++'s SMP mode.
+Roughly speaking, SMP mode has similar advantages and disadvantages to
+combining some form of shared-memory threading (e.g., OpenMP or POSIX Threads)
+with MPI but with some important distinctions:
+
+  - Charm++'s SMP (as its non-SMP) mode is asynchronous thus automatically
+    enables latency hiding,
+  - Charm++'s SMP (as its non-SMP) mode benefits from automatic load balancing,
+    and
+  - Charm++'s SMP mode does not require maintaining code for multiple parallel
+    programming paradigms.
+
+Charm++ thus increases programmer productivity and effective use of complex
+hardware.
+
+@section howto_smp_diff Charm++'s non-SMP vs. SMP mode in more detail
+
+There are multiple characteristic differences between Charm++'s non-SMP and SMP
+mode. In SMP mode Charm++ differentiates between two fundamentally different
+types of threads: (1) worker threads that do computation and (2) communication
+threads that only send and receive data. The ratio of the number of worker
+threads to communication threads is configurable at runtime to optimize for a
+particular memory hierarchy. For example, one can configure a single logical
+node per a single network-connected node of a larger compute cluster or one can
+also designate one logical node to each CPU socket within a node. In contrast
+in non-SMP mode all threads are the same and both do communication and
+computation.
+
+In SMP mode one configures worker threads into a hierarchy of logical nodes and
+processing elements (PEs). Nodes are implemented as operating system (OS)
+_processes_, while PEs as OS _threads_. OS processes have their own associated
+memory while OS threads share memory within a process. Processes cost more
+cycles to create while threads are more lightweight. As threads share memory
+with other threads within a node (while processes do not), inter-thread
+communication is faster. Context switching can also be less expensive because
+threads are better suited to more efficiently use and share processor cache.
+Communication between PEs within the same logical node is faster than between
+different logical nodes because OS threads share the same address space and can
+directly interact through their shared memory. In SMP mode communication
+between PEs on the same physical node may also be faster than between different
+physical nodes depending on the availability of specific OS features such as
+POSIX Shared Memory and Cross Memory Attach, the specific capabilities of the
+network interconnect in use, and the speed of network loopback. In SMP mode
+there is no waiting to receive messages due to long running functions.  There
+is also no time spent in sending messages by the worker threads and memory is
+limited by the node instead of per core. In SMP mode, intra-node messages use
+simple pointer passing, which bypasses the overhead associated with the network
+and extraneous copies. Another benefit of SMP mode is that the runtime system
+will not pollute the caches of worker threads with communication-related data.
+
+SMP also allows tailoring input and output of large-file data to the underlying
+parallel storage hardware. Since on large machines the parallelism in storage
+is usually significantly less than that of the compute capability, it helps to
+be able to decouple the number of compute work units from the number of
+parallel streams of reading or writing large files.
+
+There are also some drawbacks of SMP mode compared to non-SMP mode. In SMP mode
+at least one core is sacrificed as the communication thread. This may not be
+ideal for compute-bound applications. This communication thread may become a
+serialization bottleneck in applications with large amounts of communication.
+
+In general, in our experience Charm++'s non-SMP mode is easier to use, while
+SMP mode provides more freedom in how computational work is mapped to the
+underlying hardware.  Consequently, SMP mode requires more care and at least
+some idea of the parallel hardware architecture to achieve best performance.
+
+@section howto_smp_build How to build Xyst using Charm++'s SMP mode
+
+Clone, build, and test in SMP mode
+
+@code{.bash}
+git clone https://codeberg.org/xyst/xyst.git && cd xyst
+mkdir build && cd build
+cmake -GNinja -DSMP=on -DRUNNER_ARGS="--bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src
+ninja
+./charmrun +p3 Main/unittest -q +ppn 3 +setcpuaffinity && ctest -j4
+@endcode
+
+The above example uses 4 CPUs to run the test suites. The RUNNER_ARGS and
+POSTFIX_RUNNER_ARGS cmake arguments may your may not be required on a machine,
+depending on the configuration.
+
+*/

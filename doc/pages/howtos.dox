@@ -1,0 +1,8 @@
+/*!
+  \page      howtos Howtos
+
+This page links to pages useful when working with Xyst.
+
+- @ref howto_smp "How to build in Charm++'s SMP mode"
+
+*/

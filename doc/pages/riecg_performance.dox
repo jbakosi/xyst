@@ -30,12 +30,12 @@ larger mesh (794M tetrahedra) well into the range of O(10^4) CPU cores. The
 figure also shows that using the smaller work-load of 144M cells strong scaling
 is ideal at and below 1024 CPUs. Strong scaling is not ideal above 1024 CPUs
 with the smaller mesh, indicated by a nonzero angle between the ideal and the
-blue line with filled blue dots (144M on LUMI machine). The data also shows
-that though non-ideal above 1024 CPUs, parallelism is still practically
-effective in reducing CPU time with increasing compute resources. Even at the
-largest run with 65,536 CPUs, which correspond to only 2,209 tetrahedra and 642
-mesh nodes per compute cores on average, time-to-solution still largely
-decreases with increasing resources.
+blue line with filled blue dots (144M on the LUMI machine). The data also shows
+that though non-ideal above 1024 CPUs, parallelism is still effective in
+reducing CPU time with increasing compute resources. Even at the largest run
+with 65,536 CPUs, which correspond to only 2,209 tetrahedra and 642 mesh nodes
+per compute core on average, time-to-solution still largely decreases with
+increasing resources.
 
 As usual with strong scaling, as more processors are used with the same-size
 problem, communication will eventually overwhelm useful computation and the

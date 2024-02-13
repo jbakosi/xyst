@@ -1,0 +1,21 @@
+/*!
+  \page      howto_dbg How to build in debug mode
+
+This page explains how to build Xyst in debug mode.
+
+@section howto_dbg_build How to build Xyst in debug mode
+
+The default build type is release, which enables optimized code detecting the
+CPU type. To clone and build in debug mode do
+
+@code{.bash}
+git clone https://codeberg.org/xyst/xyst.git && cd xyst
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Debug ../src
+make
+@endcode
+
+Performance will be significantly lower compared to release mode due to extra
+error checking to find programmer errors.
+
+*/

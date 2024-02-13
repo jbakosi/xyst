@@ -8,5 +8,6 @@ This page contains links to useful information regarding Xyst.
 - @ref howto_coverage
 - @ref howto_clang
 - @ref howto_intel
+- @ref howto_dbg
 
 */

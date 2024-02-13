@@ -15,7 +15,7 @@ cmake -DBUILD_DOC=on ../src
 make doc
 @endcode
 
-The documentation will be accessible on the local file system with a web
-browser at xyst/build/doc/html/index.html.
+The documentation will be accessible on the local file system at
+xyst/build/doc/html/index.html.
 
 */

@@ -3,7 +3,7 @@
 
 This page explains how to build Xyst in Charm++'s SMP mode.
 
-@section howto_smp_smp Charm++'s SMP mode at a high level
+@section howto_smp_hi Charm++'s SMP mode at a high level
 
 In the simplest setting one lets Charm++ detect the hardware and rely on
 defaults. A more advanced programming non-uniform memory hierarchies is via
@@ -41,7 +41,7 @@ with MPI but with some important distinctions:
 Charm++ thus increases programmer productivity and effective use of complex
 hardware.
 
-@section howto_smp_diff Charm++'s non-SMP vs. SMP mode in more detail
+@section howto_smp_lo Charm++'s non-SMP vs. SMP mode in more detail
 
 There are multiple characteristic differences between Charm++'s non-SMP and SMP
 mode. In SMP mode Charm++ differentiates between two fundamentally different

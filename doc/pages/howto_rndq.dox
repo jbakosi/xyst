@@ -1,0 +1,29 @@
+/*!
+  \page      howto_rndq How to build using Charm++'s randomized message queues
+
+This page explains how to build Xyst using Charm++'s randomized message queues.
+
+@section howto_rndq_build How to build Xyst with randomized message queues
+
+Randomized message queues in Charm++ enable more extensive testing of the
+correctness of asynchronous algorithms. This is useful for debugging logic
+problems and is highly recommended for serious code development within Xyst.
+However using randomized message queues has an performance overhead so it is
+not recommended for production. The default is off.
+
+To clone, build, and run the tests using Charm++'s randomized message queues
+do
+
+@code{.bash}
+git clone https://codeberg.org/xyst/xyst.git && cd xyst
+mkdir build && cd build
+cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -DCHARM_OPTS=-DRANDOMIZED_MSGQ=true ../../src
+ninja
+./charmrun +p4 Main/unittest && ctest -j4 && cd -
+@endcode
+
+The above will instruct cmake to build Charm++ using randomized message queues,
+build using ninja, and will run the unit-tests and the regression tests on 4
+CPUs.
+
+*/

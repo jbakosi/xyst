@@ -3,13 +3,14 @@
 
 This page contains links to useful information regarding Xyst.
 
-- @ref howto_smp
+- @ref howto_dbg
 - @ref howto_doc
 - @ref howto_coverage
 - @ref howto_clang
 - @ref howto_intel
-- @ref howto_dbg
 - @ref howto_notest
 - @ref howto_make
+- @ref howto_smp
+- @ref howto_rndq
 
 */

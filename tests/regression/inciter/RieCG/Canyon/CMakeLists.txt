@@ -3,7 +3,7 @@
 
 # Parallel
 
-add_regression_test(transport_canyon ${INCITER_EXECUTABLE}
+add_regression_test(canyon_riecg ${INCITER_EXECUTABLE}
                     NUMPES 2 PPN 1
                     INPUTFILES canyon.q canyon.exo
                     ARGS -c canyon.q -i canyon.exo
@@ -18,7 +18,7 @@ add_regression_test(transport_canyon ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(transport_canyon_farfield ${INCITER_EXECUTABLE}
+add_regression_test(canyon_farfield_riecg ${INCITER_EXECUTABLE}
                     NUMPES 2 PPN 1
                     INPUTFILES canyon_farfield.q canyon.exo
                     ARGS -c canyon_farfield.q -i canyon.exo

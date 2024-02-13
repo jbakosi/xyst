@@ -5,7 +5,7 @@
 
 # Serial
 
-add_regression_test(amr_t0ref_u_trans_riecg ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_u_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES slot_cyl_amr_riecg.q unitsquare_01_955.exo
                     ARGS -c slot_cyl_amr_riecg.q -i unitsquare_01_955.exo -f
@@ -15,7 +15,7 @@ add_regression_test(amr_t0ref_u_trans_riecg ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     LABELS riecg amr)
 
-add_regression_test(amr_t0ref_u_trans_reord_riecg ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_u_reord_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES slot_cyl_amr_reord_riecg.q unitsquare_01_955.exo
                     ARGS -c slot_cyl_amr_reord_riecg.q
@@ -26,7 +26,7 @@ add_regression_test(amr_t0ref_u_trans_reord_riecg ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     LABELS riecg amr)
 
-#add_regression_test(amr_t0ref_cc_trans_riecg ${INCITER_EXECUTABLE}
+#add_regression_test(href_t0ref_cc_riecg ${INCITER_EXECUTABLE}
 #                    NUMPES 1
 #                    INPUTFILES slot_cyl_amr_coords.q unitcube_01_364.exo
 #                    ARGS -c slot_cyl_amr_coords.q -i unitcube_01_364.exo
@@ -36,7 +36,7 @@ add_regression_test(amr_t0ref_u_trans_reord_riecg ${INCITER_EXECUTABLE}
 #                    BIN_DIFF_PROG_CONF exodiff.cfg
 #                    LABELS riecg amr)
 
-add_regression_test(amr_t0ref_idiu_trans ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_idiu_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES ic_uniform_deref.q unitsquare_01_141.exo
                     ARGS -c ic_uniform_deref.q -i unitsquare_01_141.exo
@@ -54,7 +54,7 @@ add_regression_test(amr_t0ref_idiu_trans ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_ARGS -m
                     LABELS riecg amr)
 
-add_regression_test(amr_t0ref_uudd_trans ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_uudd_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES uudd.q unitsquare_01_141.exo
                     ARGS -c uudd.q -i unitsquare_01_141.exo
@@ -72,7 +72,7 @@ add_regression_test(amr_t0ref_uudd_trans ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_ARGS -m
                     LABELS riecg amr)
 
-add_regression_test(amr_t0ref_iid_trans ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_iid_riecg ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES iid.q unitsquare_01_141.exo
                     ARGS -c iid.q -i unitsquare_01_141.exo
@@ -90,7 +90,7 @@ add_regression_test(amr_t0ref_iid_trans ${INCITER_EXECUTABLE}
 
 # Parallel, no virtualization
 
-add_regression_test(amr_t0ref_u_trans_riecg ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_u_riecg ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl_amr_riecg.q unitsquare_01_955.exo
                     ARGS -c slot_cyl_amr_riecg.q -i unitsquare_01_955.exo -f
@@ -107,7 +107,7 @@ add_regression_test(amr_t0ref_u_trans_riecg ${INCITER_EXECUTABLE}
                     LABELS riecg amr)
 
 # See 90811bfa
-#add_regression_test(amr_t0ref_ii ${INCITER_EXECUTABLE}
+#add_regression_test(href_t0ref_ii_riecg ${INCITER_EXECUTABLE}
 #                    NUMPES 2
 #                    INPUTFILES ic_ic.q unitsquare_01_141.exo
 #                    ARGS -c ic_ic.q -i unitsquare_01_141.exo
@@ -132,7 +132,7 @@ add_regression_test(amr_t0ref_u_trans_riecg ${INCITER_EXECUTABLE}
 #                    LABELS riecg amr)
 
 # See 90811bfa
-#add_regression_test(amr_t0ref_iu_trans ${INCITER_EXECUTABLE}
+#add_regression_test(href_t0ref_iu_riecg ${INCITER_EXECUTABLE}
 #                    NUMPES 2
 #                    INPUTFILES ic_uniform.q unitsquare_01_141.exo
 #                    ARGS -c ic_uniform.q -i unitsquare_01_141.exo
@@ -144,7 +144,7 @@ add_regression_test(amr_t0ref_u_trans_riecg ${INCITER_EXECUTABLE}
 #                    BIN_DIFF_PROG_CONF exodiff.cfg
 #                    LABELS riecg amr)
 
-add_regression_test(amr_t0ref_idiu_trans ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_idiu_riecg ${INCITER_EXECUTABLE}
                     NUMPES 2
                     INPUTFILES ic_uniform_deref.q unitsquare_01_141.exo
                     ARGS -c ic_uniform_deref.q -i unitsquare_01_141.exo
@@ -172,7 +172,7 @@ add_regression_test(amr_t0ref_idiu_trans ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_ARGS -m
                     LABELS riecg amr)
 
-add_regression_test(amr_t0ref_idddiu_trans ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_idddiu_riecg ${INCITER_EXECUTABLE}
                     NUMPES 2
                     INPUTFILES ic_uniform_deref2.q unitsquare_01_141.exo
                     ARGS -c ic_uniform_deref2.q -i unitsquare_01_141.exo
@@ -200,7 +200,7 @@ add_regression_test(amr_t0ref_idddiu_trans ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_ARGS -m
                     LABELS riecg amr)
 
-add_regression_test(amr_t0ref_uudd_trans ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_uudd_riecg ${INCITER_EXECUTABLE}
                     NUMPES 2
                     INPUTFILES uudd.q unitsquare_01_141.exo
                     ARGS -c uudd.q -i unitsquare_01_141.exo
@@ -228,7 +228,7 @@ add_regression_test(amr_t0ref_uudd_trans ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_ARGS -m
                     LABELS riecg amr)
 
-add_regression_test(amr_t0ref_uuuddd_trans ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_uuuddd_riecg ${INCITER_EXECUTABLE}
                     NUMPES 2
                     INPUTFILES uuuddd.q unitsquare_01_141.exo
                     ARGS -c uuuddd.q -i unitsquare_01_141.exo
@@ -264,7 +264,7 @@ add_regression_test(amr_t0ref_uuuddd_trans ${INCITER_EXECUTABLE}
                     BIN_DIFF_PROG_ARGS -m
                     LABELS riecg amr)
 
-add_regression_test(amr_t0ref_iid_trans ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_iid ${INCITER_EXECUTABLE}
                     NUMPES 2
                     INPUTFILES iid.q unitsquare_01_141.exo
                     ARGS -c iid.q -i unitsquare_01_141.exo
@@ -290,7 +290,7 @@ add_regression_test(amr_t0ref_iid_trans ${INCITER_EXECUTABLE}
 
 # Parallel, virtualization
 
-add_regression_test(amr_t0ref_u_trans_riecg_u0.5 ${INCITER_EXECUTABLE}
+add_regression_test(href_t0ref_u_iecg_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl_amr_riecg.q unitsquare_01_955.exo
                     ARGS -c slot_cyl_amr_riecg.q -i unitsquare_01_955.exo

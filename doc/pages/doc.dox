@@ -1,0 +1,21 @@
+/*!
+  \page      howto_doc How to build the documentation
+
+This page explains how to build the documentation in Xyst, also rendered at
+[https://xyst.cc](https://xyst.cc).
+
+@section howto_doc_build How to build the documentation
+
+Clone and build the documentation
+
+@code{.bash}
+git clone https://codeberg.org/xyst/xyst.git && cd xyst
+mkdir build && cd build
+cmake -DBUILD_DOC=on ../src
+make doc
+@endcode
+
+The documentation will be accessible on the local file system with a web
+browser at xyst/build/doc/html/index.html.
+
+*/

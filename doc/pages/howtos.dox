@@ -6,5 +6,7 @@ This page contains links to useful information when working with Xyst.
 - @ref howto_smp
 - @ref howto_doc
 - @ref howto_coverage
+- @ref howto_clang
+- @ref howto_intel
 
 */

@@ -1,0 +1,15 @@
+/*!
+  \page      howto_intel How to build using the Intel compiler
+
+This page explains how to build Xyst with the Intel compiler.
+
+@section howto_intel_build How to build with the Intel compilers
+
+Xyst uses Charm++'s MPI backend. This means that MPI is required to be built
+using the compiler that builds Charm++ and Xyst. Cmake will pick up the shell
+Unix environment variables CC and CXX pointing to the MPI wrappers which then
+should resolve to the Intel compilers. After that, there is no difference
+compared to what is given on the main page under section @ref mainpage_build in
+how Xyst is built using the Intel compilers.
+
+*/

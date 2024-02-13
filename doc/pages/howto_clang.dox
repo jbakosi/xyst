@@ -1,0 +1,16 @@
+/*!
+  \page      howto_clang How to build using the Clang compiler
+
+This page explains how to build Xyst with the [Clang](https://clang.llvm.org/)
+compiler.
+
+@section howto_clang_build How to build with Clang
+
+Xyst uses Charm++'s MPI backend. This means that MPI is required to be built
+using the compiler that builds Charm++ and Xyst. Cmake will pick up the Unix
+shell environment variables CC and CXX pointing to the MPI wrappers which then
+should resolve to Clang. After that, there is no difference compared to what is
+given on the main page under section @ref mainpage_build in how Xyst is built
+using Clang.
+
+*/

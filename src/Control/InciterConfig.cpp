@@ -137,7 +137,7 @@ Config::help( char** argv )
 // *****************************************************************************
 {
   tk::Print() <<
-    "\nUsage: " << argv[0] << " -i <in.msh> -c <config.q> [OPTION]...\n"
+    "\nUsage: " << argv[0] << " -i <in.exo> -c <config.q> [OPTION]...\n"
     "\n"
     "  -h, -?        Print out this help\n"
     "  -b            Benchmark mode, "
@@ -147,7 +147,7 @@ Config::help( char** argv )
                      "default: " << get< tag::diag >() << "\n" <<
     "  -f            Extra feedback, "
                      "default: " << get< tag::feedback >() << "\n" <<
-    "  -i <in.msh>   Specify input mesh file\n"
+    "  -i <in.exo>   Specify input mesh file\n"
     "  -l <int>      Load balancing frequency, "
                      "default: " << get< tag::lbfreq >() << "\n" <<
     "  -n            Non-blocking migration, "

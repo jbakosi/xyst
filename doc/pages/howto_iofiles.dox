@@ -1,0 +1,46 @@
+/*!
+  \page      howto_iofiles How to understand Inciter's input/output files
+
+This page discusses the input and output files used by @ref inciter_main.
+
+@section howto_iofiles_input How to parameterize Inciter with input files
+
+There are two mandatory input arguments to the @ref inciter_main executable:
+  - `-i <in.exo>` to specify the input mesh file, and
+  - `-c <config.q>` to specify the input control file.
+
+The input mesh file must be in [ExodusII](https://github.com/sandialabs/seacas)
+format. @ref meshconv_main can be used to convert meshes from some other
+formats. The input control file uses the [Lua](https://www.lua.org) language.
+See @ref examples for details on running inciter.
+
+@section howto_iofiles_output How to interpret Inciter's output files
+
+The output file types are as follows.
+  - 3D fields output in mesh nodes in
+    [ExodusII](https://github.com/sandialabs/seacas) format, filenames by
+    default: `out.e-s.*`, visualize with [ParaView](https://www.paraview.org)
+  - 3D surface output in mesh nodes in
+    [ExodusII](https://github.com/sandialabs/seacas) format, filenames by
+    default: `out-surf.*`, visualize with [ParaView](https://www.paraview.org)
+  - Diagnostics (integral quantities) output in text format, filename by
+    default: `diag`
+  - Probe time history output in text format, filenames by default:
+    `out.hist.*`
+  - Surface integral output in text format, filename by default: `out.int`
+  - Edge-length probability distribution function (as a result of domain
+    decomposition) in [gnuplot](http://www.gnuplot.info) format, filename by
+    default: `mesh_edge_pdf.0.txt`
+  - Number-of-domain-elements probability distribution function (as a result of
+    domain decomposition) in [gnuplot](http://www.gnuplot.info) format,
+    filename by default: `mesh_ntet_pdf.0.txt`
+  - Element-volume-cube-root probability distribution function (as a result of
+    domain decomposition) in [gnuplot](http://www.gnuplot.info) format,
+    filename by default: `mesh_vol_pdf.0.txt`
+  - Control file data parsed (as a feedback of the data parsed, interpreted,
+    and used from the input control file) in text format, filename by default:
+    `inciter_control.log`
+
+All output files are created in the current working directory.
+
+*/

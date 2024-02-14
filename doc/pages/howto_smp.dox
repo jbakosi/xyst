@@ -97,7 +97,7 @@ some idea of the parallel hardware architecture to achieve best performance.
 
 To clone, build, and test Xyst in SMP mode do
 
-@code{.bash}
+@code
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
 cmake -GNinja -DSMP=on -DRUNNER_ARGS="--bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src

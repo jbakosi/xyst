@@ -10,7 +10,7 @@ correctness of asynchronous algorithms. This is useful for debugging logic
 problems and is highly recommended for serious code development in Xyst. To
 clone, build, and run the tests using Charm++'s randomized message queues do
 
-@code{.bash}
+@code
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
 cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -DCHARM_OPTS=-DRANDOMIZED_MSGQ=true ../../src

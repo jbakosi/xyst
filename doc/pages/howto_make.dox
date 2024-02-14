@@ -10,7 +10,7 @@ This page explains how to build Xyst using
 If ninja is not available, make is likely there. To clone and build using make
 do
 
-@code{.bash}
+@code
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
 cmake ../src

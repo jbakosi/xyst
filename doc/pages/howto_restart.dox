@@ -1,0 +1,27 @@
+/*!
+  \page      howto_restart How to use checkpoint/restart
+
+This page discusses how to use checkpoint and restart with @ref inciter_main.
+
+@section howto_restart_checkpoint How to save checkpoints
+
+By default checkpoints are automatically saved in the current directory under
+folder `restart/`. By default, a checkpoint is saved at every 1000 time step
+and after the last time step. The checkpoint frequency can be configured by the
+`-r <int>` command line argument.
+
+@note The command line argument `-b` triggers benchmark mode, yielding no
+large file output including checkpoints.
+
+@section howto_restart_restart How to restart from a checkpoint
+
+Restarting from a checkpoint can be done by passing the `+restart restart`
+command line argument. Note that since the argument is preceded by `+`, this
+argument is interpreted by the runtime system. The first `restart` is the
+argument itself, and the second `restart` is the name of the folder in which
+the previous checkpoint was saved.
+
+@note While Charm++ supports checkpoint/restart using unequal number of CPUs,
+this is not yet supported by @ref inciter_main.
+
+*/

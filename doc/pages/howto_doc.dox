@@ -6,7 +6,7 @@ This page explains how to build the documentation in Xyst, also rendered at
 
 @section howto_doc_build How to build the documentation
 
-Clone and build the documentation
+To clone and build the documentation do
 
 @code{.bash}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst

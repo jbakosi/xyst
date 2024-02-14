@@ -1,7 +1,8 @@
 /*!
   \page      howto_smp How to build in Charm++'s SMP mode
 
-This page explains how to build Xyst in Charm++'s SMP mode.
+This page explains how to build Xyst in Charm++'s SMP (symmetric
+multiprocessing) mode.
 
 @section howto_smp_hi Charm++'s SMP mode at a high level
 
@@ -94,7 +95,7 @@ some idea of the parallel hardware architecture to achieve best performance.
 
 @section howto_smp_build How to build Xyst using Charm++'s SMP mode
 
-Clone, build, and test in SMP mode
+To clone, build, and test Xyst in SMP mode do
 
 @code{.bash}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
@@ -105,7 +106,7 @@ ninja
 @endcode
 
 The above example uses 4 CPUs to run the test suites. The RUNNER_ARGS and
-POSTFIX_RUNNER_ARGS cmake arguments may your may not be required on a machine,
+POSTFIX_RUNNER_ARGS cmake arguments may or may not be required on a machine,
 depending on the configuration.
 
 */

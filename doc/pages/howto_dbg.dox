@@ -15,7 +15,7 @@ cmake -DCMAKE_BUILD_TYPE=Debug ../src
 make
 @endcode
 
-Performance will be significantly lower compared to release mode due to extra
-error checking to find programmer errors.
+@warning Performance will be significantly lower compared to release mode due
+to extra checks to find programmer errors.
 
 */

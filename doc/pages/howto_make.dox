@@ -1,7 +1,9 @@
 /*!
-  \page      howto_make How to use make instead on ninja
+  \page      howto_make How to use make instead of ninja
 
-This page explains how to build Xyst using make instead of ninja.
+This page explains how to build Xyst using
+[GNU make](https://www.gnu.org/software/make/) instead of
+[ninja](https://ninja-build.org).
 
 @section howto_make_build How to build Xyst with make instead of ninja
 

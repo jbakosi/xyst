@@ -34,6 +34,7 @@ on the solvers.
 - @ref inciter_zalcg "ZalCG hydrodynamics"
 - @ref riecg_performance "RieCG performance"
 - @ref examples "Examples"
+- @ref howtos "Howto pages"
 - @ref papers "Publications"
 - @ref inciter_design "Software design"
 */

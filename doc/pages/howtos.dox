@@ -14,5 +14,6 @@ This page contains links to useful information regarding Xyst.
 - @ref howto_smp
 - @ref howto_rndq
 - @ref howto_runnerargs
+- @ref riecg_example_onera_fieldvis "How to stitch partitioned surface output to a single file"
 
 */

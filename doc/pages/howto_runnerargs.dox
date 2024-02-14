@@ -1,0 +1,58 @@
+/*!
+  \page      howto_runnerargs How to pass extra arguments to tests
+
+This page explains how to pass extra arguments to the test runner in the build
+system.
+
+@section howto_runnerargs_build How to pass extra arguments to the regression test runner in cmake
+
+To configure how ctest executes regression tests, the following cmake variables cam be used:
+
+  - RUNNER, which sets the parallel/serial test runner, used to run regression
+    tests by ctest, default: `charmrun`
+  - RUNNER_NCPUS_ARG, the argument used to specify the number of processors for
+    the test runner, default: `+p`,
+  - RUNNER_ARGS, which enables passing extra arguments to the parallel/serial
+    test runner, default: `""`,
+  - POSTFIX_RUNNER_ARGS, which enables passing extra arguments to the
+    parallel/serial test runner at the end of the test command line, default:
+    `""`.
+
+Example:
+
+@code
+git clone https://codeberg.org/xyst/xyst.git && cd xyst
+mkdir build && cd build
+cmake -GNinja -DSMP=on -DRUNNER_ARGS="--bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src
+ninja
+./charmrun +p3 Main/unittest -q +ppn 3 +setcpuaffinity && ctest -j4
+@endcode
+
+The above example configures Charm++ to be built in SMP mode with some extra
+arguments preceding and following the test executable commands. As a result, an
+example test command becomes
+
+@code
+ctest -R inciter:compflow_euler_pipe_u0.5_migr_pe4_ppn4 -V
+...
+230: Running test command: '/<absolute_path>/xyst/build/charm/install/bin/charmrun +p 4 --bind-to none -oversubscribe /<absolute_path>/xyst/build/Main/inciter -c pipe.q -i rectangle_01_1.5k.exo -u 0.5 -l 3 +balancer RecBipartLB +LBDebug 1 -q +ppn 4 +setcpuaffinity'
+...
+@endcode
+
+Another example that uses the [slurm](https://slurm.schedmd.com) scheduler:
+
+@code
+git clone https://codeberg.org/xyst/xyst.git && cd xyst
+mkdir build && cd build
+cmake -GNinja -DRUNNER=srun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS=--exact ../../src
+ninja
+srun -n 32 Main/unittest -q
+ctest -j32
+@endcode
+
+The above will build Charm++ in non-SMP mode (the default) and will execute
+regression tests using `srun` and its argument `-n` to specify the number of
+processors a single test should use. This is followed by executing the unit-,
+and regression tests each using 32 CPUs total.
+
+*/

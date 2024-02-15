@@ -30,7 +30,7 @@ nelem=60K, npoin=12K.
 
 @section zalcg_example_bump_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [725c91a](https://codeberg.org/xyst/xyst/commit/725c91aa350334116e75b7c2efa33aec12f23a99) and the control file below.
+To reproduce the results below, use code revision [1bdbb78](https://codeberg.org/xyst/xyst/commit/1bdbb7899a86961cb53ec0713ef3c81099bdf084) and the control file below.
 
 @section zalcg_example_bump_control Control file
 

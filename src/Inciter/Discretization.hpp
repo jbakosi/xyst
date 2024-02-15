@@ -341,6 +341,7 @@ class Discretization : public CBase_Discretization {
       p | m_histdata;
       p | m_res;
       p | m_res0;
+      p | m_res1;
       p | m_dea;
       p | m_deastarted;
     }
@@ -458,6 +459,8 @@ class Discretization : public CBase_Discretization {
     tk::real m_res;
     //! Residual at previous ETA calcuation (during convergence to steady state)
     tk::real m_res0;
+    //! Residual at next ETA calcuation (during convergence to steady state)
+    tk::real m_res1;
     //! Numberf of deactived chares
     int m_dea;
     //! Flag: 1 if deactivation procedure has started

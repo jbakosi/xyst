@@ -71,6 +71,7 @@ Discretization::Discretization(
   m_nrestart( 0 ),
   m_res( 0.0 ),
   m_res0( 0.0 ),
+  m_res1( 0.0 ),
   m_dea( 0 ),
   m_deastarted( 0 )
 // *****************************************************************************
@@ -913,10 +914,12 @@ Discretization::residual( tk::real r )
 {
   auto ttyi = g_cfg.get< tag::ttyi >();
 
-  if (not (m_it%ttyi)) {
-    m_res0 = m_res;
-    m_res = r;
+  if (m_it % ttyi == 0) {
+    m_res0 = m_res1;
+    m_res1 = r;
   }
+
+  m_res = r;
 }
 
 bool
@@ -1004,7 +1007,7 @@ Discretization::status()
 
     // estimate time elapsed and time for accomplishment
     tk::Timer::Watch ete, eta;
-    m_timer.eta( term-t0, m_t-t0, nstep, m_it, m_res0, m_res, residual,
+    m_timer.eta( term-t0, m_t-t0, nstep, m_it, m_res0, m_res1, residual,
                  ete, eta );
 
     tk::Print print;

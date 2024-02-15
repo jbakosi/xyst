@@ -95,7 +95,7 @@ NodeDiagnostics::compute( Discretization& d,
         s[2] /= s[0];
         s[3] /= s[0];
         s[4] = s[4] / s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
-        for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
+        for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
       }
     }
 
@@ -103,12 +103,12 @@ NodeDiagnostics::compute( Discretization& d,
     for (std::size_t i=0; i<u.nunk(); ++i) {
       // Compute sum for L2 norm of the numerical solution
       for (std::size_t c=0; c<ncomp; ++c)
-        diag[L2SOL][c] += u(i,c,0) * u(i,c,0) * v[i];
+        diag[L2SOL][c] += u(i,c) * u(i,c) * v[i];
       // Compute sum for L2 norm of the residual
       for (std::size_t c=0; c<ncomp; ++c)
-        diag[L2RES][c] += (u(i,c,0)-un(i,c,0)) * (u(i,c,0)-un(i,c,0)) * v[i];
+        diag[L2RES][c] += (u(i,c)-un(i,c)) * (u(i,c)-un(i,c)) * v[i];
       // Compute sum for the total energy over the entire domain (first entry)
-      diag[TOTALSOL][0] += u(i,4,0) * v[i];
+      diag[TOTALSOL][0] += u(i,4) * v[i];
       // Compute sum for L2 norm of the numerical-analytic solution
       if (sol) {
         auto nu = u[i];
@@ -117,12 +117,12 @@ NodeDiagnostics::compute( Discretization& d,
         nu[3] /= nu[0];
         nu[4] = nu[4] / nu[0] - 0.5*(nu[1]*nu[1] + nu[2]*nu[2] + nu[3]*nu[3]);
         for (std::size_t c=0; c<5; ++c) {
-          auto du = nu[c] - an(i,c,0);
+          auto du = nu[c] - an(i,c);
           diag[L2ERR][c] += du * du * v[i];
           diag[L1ERR][c] += std::abs( du ) * v[i];
         }
         for (std::size_t c=5; c<ncomp; ++c) {
-          auto du = u(i,c,0) - an(i,c,0);
+          auto du = u(i,c) - an(i,c);
           diag[L2ERR][c] += du * du * v[i];
           diag[L1ERR][c] += std::abs( du ) * v[i];
         }

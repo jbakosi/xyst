@@ -1107,14 +1107,14 @@ ZalCG::stab()
   // Combine own and communicated contributions to gradients
   for (const auto& [g,r] : m_gradc) {
     auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c,0) += r[c];
+    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c) += r[c];
   }
   tk::destroy(m_gradc);
 
   // divide weak result in gradients by nodal volume
   for (std::size_t p=0; p<m_grad.nunk(); ++p)
     for (std::size_t c=0; c<m_grad.nprop(); ++c)
-      m_grad(p,c,0) /= m_vol[p];
+      m_grad(p,c) /= m_vol[p];
 
   zalesak::stab( m_dsupedge, d->Coord(), m_u, m_grad, m_stab );
 
@@ -1125,7 +1125,7 @@ ZalCG::stab()
     for (const auto& [c,n] : d->NodeCommMap()) {
       if (m_inactive.count(c)) continue;
       std::unordered_map< std::size_t, tk::real > exp;
-      for (auto g : n) exp[g] = m_stab(tk::cref_find(lid,g),0,0);
+      for (auto g : n) exp[g] = m_stab(tk::cref_find(lid,g),0);
       thisProxy[c].comstab( exp );
     }
   }
@@ -1164,7 +1164,7 @@ ZalCG::rhs()
   // Combine own and communicated contributions to stabilization coefficients
   for (const auto& [g,r] : m_stabc) {
     auto i = tk::cref_find( lid, g );
-    m_stab(i,0,0) = std::max( m_stab(i,0,0), r );
+    m_stab(i,0) = std::max( m_stab(i,0), r );
   }
   tk::destroy(m_stabc);
 
@@ -1217,7 +1217,7 @@ ZalCG::fct()
   // Combine own and communicated contributions to rhs
   for (const auto& [g,r] : m_rhsc) {
     auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
+    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c) += r[c];
   }
   tk::destroy(m_rhsc);
 
@@ -1248,12 +1248,12 @@ ZalCG::aec()
     for (const auto& [p,q] : tk::lpoed) {
       auto dif = D[(e*6+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto aec = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        auto aec = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
         auto a = c*2;
         auto b = a+1;
         if (aec > 0.0) std::swap(a,b);
-        m_p(N[p],a,0) -= aec;
-        m_p(N[q],b,0) += aec;
+        m_p(N[p],a) -= aec;
+        m_p(N[q],b) += aec;
       }
       ++i;
     }
@@ -1267,12 +1267,12 @@ ZalCG::aec()
     for (const auto& [p,q] : tk::lpoet) {
       auto dif = D[(e*3+i)*4+3];
       for (std::size_t c=0; c<ncomp; ++c) {
-        auto aec = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        auto aec = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
         auto a = c*2;
         auto b = a+1;
         if (aec > 0.0) std::swap(a,b);
-        m_p(N[p],a,0) -= aec;
-        m_p(N[q],b,0) += aec;
+        m_p(N[p],a) -= aec;
+        m_p(N[q],b) += aec;
       }
       ++i;
     }
@@ -1283,12 +1283,12 @@ ZalCG::aec()
     const auto N = m_dsupedge[2].data() + e*2;
     const auto dif = m_dsupint[2][e*4+3];
     for (std::size_t c=0; c<ncomp; ++c) {
-      auto aec = -dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
+      auto aec = -dif * ctau * (m_u(N[0],c) - m_u(N[1],c));
       auto a = c*2;
       auto b = a+1;
       if (aec > 0.0) std::swap(a,b);
-      m_p(N[0],a,0) -= aec;
-      m_p(N[1],b,0) += aec;
+      m_p(N[0],a) -= aec;
+      m_p(N[1],b) += aec;
     }
   }
 
@@ -1298,14 +1298,14 @@ ZalCG::aec()
     auto nx = m_symbcnorms[i*3+0];
     auto ny = m_symbcnorms[i*3+1];
     auto nz = m_symbcnorms[i*3+2];
-    auto rvnp = m_p(p,2,0)*nx + m_p(p,4,0)*ny + m_p(p,6,0)*nz;
-    auto rvnn = m_p(p,3,0)*nx + m_p(p,5,0)*ny + m_p(p,7,0)*nz;
-    m_p(p,2,0) -= rvnp * nx;
-    m_p(p,3,0) -= rvnn * nx;
-    m_p(p,4,0) -= rvnp * ny;
-    m_p(p,5,0) -= rvnn * ny;
-    m_p(p,6,0) -= rvnp * nz;
-    m_p(p,7,0) -= rvnn * nz;
+    auto rvnp = m_p(p,2)*nx + m_p(p,4)*ny + m_p(p,6)*nz;
+    auto rvnn = m_p(p,3)*nx + m_p(p,5)*ny + m_p(p,7)*nz;
+    m_p(p,2) -= rvnp * nx;
+    m_p(p,3) -= rvnn * nx;
+    m_p(p,4) -= rvnp * ny;
+    m_p(p,5) -= rvnn * ny;
+    m_p(p,6) -= rvnp * nz;
+    m_p(p,7) -= rvnn * nz;
   }
 
   // Communicate antidiffusive edge and low-order solution contributions
@@ -1358,7 +1358,7 @@ ZalCG::alw()
   // and low-order solution
   for (const auto& [g,p] : m_pc) {
     auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<p.size(); ++c) m_p(i,c,0) += p[c];
+    for (std::size_t c=0; c<p.size(); ++c) m_p(i,c) += p[c];
   }
   tk::destroy(m_pc);
 
@@ -1369,11 +1369,10 @@ ZalCG::alw()
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
-      m_p(i,a,0) /= m_vol[i];
-      m_p(i,b,0) /= m_vol[i];
+      m_p(i,a) /= m_vol[i];
+      m_p(i,b) /= m_vol[i];
       // low-order solution
-      m_rhs(i,c,0) = m_u(i,c,0) - dt*m_rhs(i,c,0)/m_vol[i]
-                                - m_p(i,a,0) - m_p(i,b,0);
+      m_rhs(i,c) = m_u(i,c) - dt*m_rhs(i,c)/m_vol[i] - m_p(i,a) - m_p(i,b);
     }
   }
 
@@ -1385,8 +1384,8 @@ ZalCG::alw()
   auto large = std::numeric_limits< tk::real >::max();
   for (std::size_t i=0; i<m_q.nunk(); ++i) {
     for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
-      m_q(i,c*2+0,0) = -large;
-      m_q(i,c*2+1,0) = +large;
+      m_q(i,c*2+0) = -large;
+      m_q(i,c*2+1) = +large;
     }
   }
 
@@ -1399,18 +1398,18 @@ ZalCG::alw()
       for (const auto& [p,q] : tk::lpoed) {
         tk::real alwp, alwn;
         if (g_cfg.get< tag::fctclip >()) {
-          alwp = max( m_rhs(N[p],c,0), m_rhs(N[q],c,0) );
-          alwn = min( m_rhs(N[p],c,0), m_rhs(N[q],c,0) );
+          alwp = max( m_rhs(N[p],c), m_rhs(N[q],c) );
+          alwn = min( m_rhs(N[p],c), m_rhs(N[q],c) );
         } else {
-          alwp = max( max(m_rhs(N[p],c,0), m_u(N[p],c,0)),
-                      max(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
-          alwn = min( min(m_rhs(N[p],c,0), m_u(N[p],c,0)),
-                      min(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
+          alwp = max( max(m_rhs(N[p],c), m_u(N[p],c)),
+                      max(m_rhs(N[q],c), m_u(N[q],c)) );
+          alwn = min( min(m_rhs(N[p],c), m_u(N[p],c)),
+                      min(m_rhs(N[q],c), m_u(N[q],c)) );
         }
-        m_q(N[p],a,0) = max(m_q(N[p],a,0), alwp);
-        m_q(N[p],b,0) = min(m_q(N[p],b,0), alwn);
-        m_q(N[q],a,0) = max(m_q(N[q],a,0), alwp);
-        m_q(N[q],b,0) = min(m_q(N[q],b,0), alwn);
+        m_q(N[p],a) = max(m_q(N[p],a), alwp);
+        m_q(N[p],b) = min(m_q(N[p],b), alwn);
+        m_q(N[q],a) = max(m_q(N[q],a), alwp);
+        m_q(N[q],b) = min(m_q(N[q],b), alwn);
       }
     }
   }
@@ -1424,18 +1423,18 @@ ZalCG::alw()
       for (const auto& [p,q] : tk::lpoet) {
         tk::real alwp, alwn;
         if (g_cfg.get< tag::fctclip >()) {
-          alwp = max( m_rhs(N[p],c,0), m_rhs(N[q],c,0) );
-          alwn = min( m_rhs(N[p],c,0), m_rhs(N[q],c,0) );
+          alwp = max( m_rhs(N[p],c), m_rhs(N[q],c) );
+          alwn = min( m_rhs(N[p],c), m_rhs(N[q],c) );
         } else {
-          alwp = max( max(m_rhs(N[p],c,0), m_u(N[p],c,0)),
-                      max(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
-          alwn = min( min(m_rhs(N[p],c,0), m_u(N[p],c,0)),
-                      min(m_rhs(N[q],c,0), m_u(N[q],c,0)) );
+          alwp = max( max(m_rhs(N[p],c), m_u(N[p],c)),
+                      max(m_rhs(N[q],c), m_u(N[q],c)) );
+          alwn = min( min(m_rhs(N[p],c), m_u(N[p],c)),
+                      min(m_rhs(N[q],c), m_u(N[q],c)) );
         }
-        m_q(N[p],a,0) = max(m_q(N[p],a,0), alwp);
-        m_q(N[p],b,0) = min(m_q(N[p],b,0), alwn);
-        m_q(N[q],a,0) = max(m_q(N[q],a,0), alwp);
-        m_q(N[q],b,0) = min(m_q(N[q],b,0), alwn);
+        m_q(N[p],a) = max(m_q(N[p],a), alwp);
+        m_q(N[p],b) = min(m_q(N[p],b), alwn);
+        m_q(N[q],a) = max(m_q(N[q],a), alwp);
+        m_q(N[q],b) = min(m_q(N[q],b), alwn);
       }
     }
   }
@@ -1448,18 +1447,18 @@ ZalCG::alw()
       auto b = a+1;
       tk::real alwp, alwn;
       if (g_cfg.get< tag::fctclip >()) {
-        alwp = max( m_rhs(N[0],c,0), m_rhs(N[1],c,0) );
-        alwn = min( m_rhs(N[0],c,0), m_rhs(N[1],c,0) );
+        alwp = max( m_rhs(N[0],c), m_rhs(N[1],c) );
+        alwn = min( m_rhs(N[0],c), m_rhs(N[1],c) );
       } else {
-        alwp = max( max(m_rhs(N[0],c,0), m_u(N[0],c,0)),
-                    max(m_rhs(N[1],c,0), m_u(N[1],c,0)) );
-        alwn = min( min(m_rhs(N[0],c,0), m_u(N[0],c,0)),
-                    min(m_rhs(N[1],c,0), m_u(N[1],c,0)) );
+        alwp = max( max(m_rhs(N[0],c), m_u(N[0],c)),
+                    max(m_rhs(N[1],c), m_u(N[1],c)) );
+        alwn = min( min(m_rhs(N[0],c), m_u(N[0],c)),
+                    min(m_rhs(N[1],c), m_u(N[1],c)) );
       }
-      m_q(N[0],a,0) = max(m_q(N[0],a,0), alwp);
-      m_q(N[0],b,0) = min(m_q(N[0],b,0), alwn);
-      m_q(N[1],a,0) = max(m_q(N[1],a,0), alwp);
-      m_q(N[1],b,0) = min(m_q(N[1],b,0), alwn);
+      m_q(N[0],a) = max(m_q(N[0],a), alwp);
+      m_q(N[0],b) = min(m_q(N[0],b), alwn);
+      m_q(N[1],a) = max(m_q(N[1],a), alwp);
+      m_q(N[1],b) = min(m_q(N[1],b), alwn);
     }
   }
 
@@ -1525,8 +1524,8 @@ ZalCG::lim()
     for (std::size_t c=0; c<alw.size()/2; ++c) {
       auto a = c*2;
       auto b = a+1;
-      m_q(i,a,0) = max( m_q(i,a,0), alw[a] );
-      m_q(i,b,0) = min( m_q(i,b,0), alw[b] );
+      m_q(i,a) = max( m_q(i,a), alw[a] );
+      m_q(i,b) = min( m_q(i,b), alw[b] );
     }
   }
   tk::destroy(m_qc);
@@ -1536,8 +1535,8 @@ ZalCG::lim()
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
-      m_q(i,a,0) -= m_rhs(i,c,0);
-      m_q(i,b,0) -= m_rhs(i,c,0);
+      m_q(i,a) -= m_rhs(i,c);
+      m_q(i,b) -= m_rhs(i,c);
     }
   }
 
@@ -1548,8 +1547,8 @@ ZalCG::lim()
       auto a = c*2;
       auto b = a+1;
       auto eps = std::numeric_limits< tk::real >::epsilon();
-      m_q(i,a,0) = m_p(i,a,0) <  eps ? 0.0 : min(1.0, m_q(i,a,0)/m_p(i,a,0));
-      m_q(i,b,0) = m_p(i,b,0) > -eps ? 0.0 : min(1.0, m_q(i,b,0)/m_p(i,b,0));
+      m_q(i,a) = m_p(i,a) <  eps ? 0.0 : min(1.0, m_q(i,a)/m_p(i,a));
+      m_q(i,b) = m_p(i,b) > -eps ? 0.0 : min(1.0, m_q(i,b)/m_p(i,b));
     }
   }
 
@@ -1581,20 +1580,20 @@ ZalCG::lim()
       auto coef = C + (e*6+i)*ncomp;
       tk::real aec[ncomp];
       for (std::size_t c=0; c<ncomp; ++c) {
-        aec[c] = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        aec[c] = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
         if (m_fctfreeze) continue;
         auto a = c*2;
         auto b = a+1;
-        coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                       aec[c] > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+        coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a) : m_q(N[p],b),
+                       aec[c] > 0.0 ? m_q(N[q],a) : m_q(N[q],b) );
       }
       tk::real cs = 1.0;
       for (auto c : fctsys) cs = min( cs, coef[c] );
       for (auto c : fctsys) coef[c] = cs;
       for (std::size_t c=0; c<ncomp; ++c) {
         aec[c] *= coef[c];
-        m_a(N[p],c,0) -= aec[c];
-        m_a(N[q],c,0) += aec[c];
+        m_a(N[p],c) -= aec[c];
+        m_a(N[q],c) += aec[c];
       }
       ++i;
     }
@@ -1611,20 +1610,20 @@ ZalCG::lim()
       auto coef = C + (e*3+i)*ncomp;
       tk::real aec[ncomp];
       for (std::size_t c=0; c<ncomp; ++c) {
-        aec[c] = -dif * ctau * (m_u(N[p],c,0) - m_u(N[q],c,0));
+        aec[c] = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
         if (m_fctfreeze) continue;
         auto a = c*2;
         auto b = a+1;
-        coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a,0) : m_q(N[p],b,0),
-                       aec[c] > 0.0 ? m_q(N[q],a,0) : m_q(N[q],b,0) );
+        coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a) : m_q(N[p],b),
+                       aec[c] > 0.0 ? m_q(N[q],a) : m_q(N[q],b) );
       }
       tk::real cs = 1.0;
       for (auto c : fctsys) cs = min( cs, coef[c] );
       for (auto c : fctsys) coef[c] = cs;
       for (std::size_t c=0; c<ncomp; ++c) {
         aec[c] *= coef[c];
-        m_a(N[p],c,0) -= aec[c];
-        m_a(N[q],c,0) += aec[c];
+        m_a(N[p],c) -= aec[c];
+        m_a(N[q],c) += aec[c];
       }
       ++i;
     }
@@ -1637,20 +1636,20 @@ ZalCG::lim()
     auto coef = m_dsuplim[2].data() + e*ncomp;
     tk::real aec[ncomp];
     for (std::size_t c=0; c<ncomp; ++c) {
-      aec[c] = -dif * ctau * (m_u(N[0],c,0) - m_u(N[1],c,0));
+      aec[c] = -dif * ctau * (m_u(N[0],c) - m_u(N[1],c));
       auto a = c*2;
       auto b = a+1;
       if (m_fctfreeze) continue;
-      coef[c] = min( aec[c] < 0.0 ? m_q(N[0],a,0) : m_q(N[0],b,0),
-                     aec[c] > 0.0 ? m_q(N[1],a,0) : m_q(N[1],b,0) );
+      coef[c] = min( aec[c] < 0.0 ? m_q(N[0],a) : m_q(N[0],b),
+                     aec[c] > 0.0 ? m_q(N[1],a) : m_q(N[1],b) );
     }
     tk::real cs = 1.0;
     for (auto c : fctsys) cs = min( cs, coef[c] );
     for (auto c : fctsys) coef[c] = cs;
     for (std::size_t c=0; c<ncomp; ++c) {
       aec[c] *= coef[c];
-      m_a(N[0],c,0) -= aec[c];
-      m_a(N[1],c,0) += aec[c];
+      m_a(N[0],c) -= aec[c];
+      m_a(N[1],c) += aec[c];
     }
   }
 
@@ -1715,7 +1714,7 @@ ZalCG::solve()
     // contributions
     for (const auto& [g,a] : m_ac) {
       auto i = tk::cref_find( d->Lid(), g );
-      for (std::size_t c=0; c<a.size(); ++c) m_a(i,c,0) += a[c];
+      for (std::size_t c=0; c<a.size(); ++c) m_a(i,c) += a[c];
     }
     tk::destroy(m_ac);
 
@@ -1727,7 +1726,7 @@ ZalCG::solve()
       // Apply limited antidiffusive contributions to low-order solution
       for (std::size_t i=0; i<npoin; ++i) {
         for (std::size_t c=0; c<ncomp; ++c) {
-          m_a(i,c,0) = m_rhs(i,c,0) + m_a(i,c,0)/m_vol[i];
+          m_a(i,c) = m_rhs(i,c) + m_a(i,c)/m_vol[i];
         }
       }
     } else {
@@ -1736,7 +1735,7 @@ ZalCG::solve()
       for (std::size_t i=0; i<npoin; ++i) {
         if (steady) dt = m_dtp[i];
         for (std::size_t c=0; c<ncomp; ++c) {
-          m_a(i,c,0) = m_u(i,c,0) - dt*m_rhs(i,c,0)/m_vol[i];
+          m_a(i,c) = m_u(i,c) - dt*m_rhs(i,c)/m_vol[i];
         }
       }
     }
@@ -1757,7 +1756,7 @@ ZalCG::solve()
     if (cstart) {
       for (std::size_t i=0; i<npoin; ++i) {
         for (std::size_t c=0; c<cstart; ++c) {
-          m_a(i,c,0) = u(i,c,0);
+          m_a(i,c) = u(i,c);
         }
       }
     }
@@ -1819,7 +1818,7 @@ ZalCG::active( std::size_t p,
 
   tk::real maxdiff = 0.0;
   for (auto c : sys) {
-    auto e = std::abs( m_u(p,c,0) - m_u(q,c,0) );
+    auto e = std::abs( m_u(p,c) - m_u(q,c) );
     maxdiff = std::max( maxdiff, e );
   }
 
@@ -1903,16 +1902,16 @@ ZalCG::huldif()
       auto q = e[1];
       auto fw = dif * sint;
       for (std::size_t c=0; c<ncomp; ++c) {
-       auto f = fw*(m_u(p,c,0) - m_u(q,c,0));
-        m_rhs(p,c,0) -= f;
-        m_rhs(q,c,0) += f;
+       auto f = fw*(m_u(p,c) - m_u(q,c));
+        m_rhs(p,c) -= f;
+        m_rhs(q,c) += f;
       }
     }
   }
 
   for (std::size_t i=0; i<npoin; ++i) {
     for (std::size_t c=0; c<ncomp; ++c) {
-      m_u(i,c,0) += m_rhs(i,c,0)/m_vol[i];
+      m_u(i,c) += m_rhs(i,c)/m_vol[i];
     }
   }
 }
@@ -2117,7 +2116,7 @@ ZalCG::resizePostAMR(
       Assert(n.first < m_u.nunk(), "Added node index out of bounds post-AMR");
       Assert(n.second[0] < m_u.nunk() && n.second[1] < m_u.nunk(),
         "Indices of parent-edge nodes out of bounds post-AMR");
-      m_u(n.first,c,0) = (m_u(n.second[0],c,0) + m_u(n.second[1],c,0))/2.0;
+      m_u(n.first,c) = (m_u(n.second[0],c) + m_u(n.second[1],c))/2.0;
     }
 
   // Update physical-boundary node-, face-, and element lists
@@ -2149,11 +2148,11 @@ ZalCG::writeFields( CkCallback cb )
   if (g_cfg.get< tag::steady >()) nodefieldnames.push_back( "mach" );
 
   using tk::operator/=;
-  auto r = m_u.extract( 0, 0 );
-  auto u = m_u.extract( 1, 0 );  u /= r;
-  auto v = m_u.extract( 2, 0 );  v /= r;
-  auto w = m_u.extract( 3, 0 );  w /= r;
-  auto e = m_u.extract( 4, 0 );  e /= r;
+  auto r = m_u.extract(0);
+  auto u = m_u.extract(1);  u /= r;
+  auto v = m_u.extract(2);  v /= r;
+  auto w = m_u.extract(3);  w /= r;
+  auto e = m_u.extract(4);  e /= r;
   std::vector< tk::real > pr( m_u.nunk() ), ma;
   if (g_cfg.get< tag::steady >()) ma.resize( m_u.nunk() );
   for (std::size_t i=0; i<pr.size(); ++i) {
@@ -2171,7 +2170,7 @@ ZalCG::writeFields( CkCallback cb )
 
   for (std::size_t c=0; c<ncomp-5; ++c) {
     nodefieldnames.push_back( "c" + std::to_string(c) );
-    nodefields.push_back( m_u.extract( 5+c, 0 ) );
+    nodefields.push_back( m_u.extract(5+c) );
   }
 
   // query function to evaluate analytic solution (if defined)
@@ -2190,19 +2189,19 @@ ZalCG::writeFields( CkCallback cb )
       s[2] /= s[0];
       s[3] /= s[0];
       s[4] /= s[0];
-      for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
+      for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
       s[4] -= 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
       ap[i] = eos::pressure( s[0]*s[4] );
     }
     for (std::size_t c=0; c<5; ++c) {
       nodefieldnames.push_back( nodefieldnames[c] + "_analytic" );
-      nodefields.push_back( an.extract( c, 0 ) );
+      nodefields.push_back( an.extract(c) );
     }
     nodefieldnames.push_back( nodefieldnames[5] + "_analytic" );
     nodefields.push_back( std::move(ap) );
     for (std::size_t c=0; c<ncomp-5; ++c) {
       nodefieldnames.push_back( nodefieldnames[6+c] + "_analytic" );
-      nodefields.push_back( an.extract( 5+c, 0 ) );
+      nodefields.push_back( an.extract(5+c) );
     }
   }
 
@@ -2376,9 +2375,9 @@ ZalCG::integrals()
       const auto& ndA = sint.second;
       for (std::size_t i=0; i<nodes.size(); ++i) {
         auto p = nodes[i];
-        mfr += ndA[i*3+0] * m_u(p,1,0)
-             + ndA[i*3+1] * m_u(p,2,0)
-             + ndA[i*3+2] * m_u(p,3,0);
+        mfr += ndA[i*3+0] * m_u(p,1)
+             + ndA[i*3+1] * m_u(p,2)
+             + ndA[i*3+2] * m_u(p,3);
       }
     }
     auto stream = serialize( d->MeshId(), ints );

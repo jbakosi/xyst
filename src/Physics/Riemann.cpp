@@ -74,8 +74,8 @@ muscl( std::size_t p,
   // MUSCL reconstruction of edge-end-point primitive variables
   for (std::size_t c=0; c<5; ++c) {
 
-    auto g1 = G(p,c*3+0,0)*vw[0] + G(p,c*3+1,0)*vw[1] + G(p,c*3+2,0)*vw[2];
-    auto g2 = G(q,c*3+0,0)*vw[0] + G(q,c*3+1,0)*vw[1] + G(q,c*3+2,0)*vw[2];
+    auto g1 = G(p,c*3+0)*vw[0] + G(p,c*3+1)*vw[1] + G(p,c*3+2)*vw[2];
+    auto g2 = G(q,c*3+0)*vw[0] + G(q,c*3+1)*vw[1] + G(q,c*3+2)*vw[2];
 
     delta2[c] = rs[c] - ls[c];
     delta1[c] = 2.0 * g1 - delta2[c];
@@ -178,8 +178,8 @@ muscl( std::size_t p, std::size_t q, const tk::UnsMesh::Coords& coord,
   // MUSCL reconstruction of edge-end-point primitive variables
   for (std::size_t c=0; c<ns; ++c) {
     auto g = (5+c)*3;
-    auto g1 = G(p,g+0,0)*vw[0] + G(p,g+1,0)*vw[1] + G(p,g+2,0)*vw[2];
-    auto g2 = G(q,g+0,0)*vw[0] + G(q,g+1,0)*vw[1] + G(q,g+2,0)*vw[2];
+    auto g1 = G(p,g+0)*vw[0] + G(p,g+1)*vw[1] + G(p,g+2)*vw[2];
+    auto g2 = G(q,g+0)*vw[0] + G(q,g+1)*vw[1] + G(q,g+2)*vw[2];
 
     delta2[c] = uR[5+c] - uL[5+c];
     delta1[c] = 2.0 * g1 - delta2[c];
@@ -218,12 +218,12 @@ primitive( std::size_t ncomp, std::size_t i, const tk::Fields& U, tk::real u[] )
 //! \param[in,out] u Computed primitive variables
 // *****************************************************************************
 {
-  u[0] = U(i,0,0);
-  u[1] = U(i,1,0) / u[0];
-  u[2] = U(i,2,0) / u[0];
-  u[3] = U(i,3,0) / u[0];
-  u[4] = U(i,4,0) / u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]);
-  for (std::size_t c=5; c<ncomp; ++c) u[c] = U(i,c,0);
+  u[0] = U(i,0);
+  u[1] = U(i,1) / u[0];
+  u[2] = U(i,2) / u[0];
+  u[3] = U(i,3) / u[0];
+  u[4] = U(i,4) / u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]);
+  for (std::size_t c=5; c<ncomp; ++c) u[c] = U(i,c);
 }
 
 static void
@@ -383,10 +383,10 @@ grad( const std::vector< std::size_t >& bpoin,
         f[3] = d[(e*6+3)*3+j] * (u[3][c] + u[0][c]);
         f[4] = d[(e*6+4)*3+j] * (u[3][c] + u[1][c]);
         f[5] = d[(e*6+5)*3+j] * (u[3][c] + u[2][c]);
-        G(N[0],c*3+j,0) = G(N[0],c*3+j,0) - f[0] + f[2] - f[3];
-        G(N[1],c*3+j,0) = G(N[1],c*3+j,0) + f[0] - f[1] - f[4];
-        G(N[2],c*3+j,0) = G(N[2],c*3+j,0) + f[1] - f[2] - f[5];
-        G(N[3],c*3+j,0) = G(N[3],c*3+j,0) + f[3] + f[4] + f[5];
+        G(N[0],c*3+j) = G(N[0],c*3+j) - f[0] + f[2] - f[3];
+        G(N[1],c*3+j) = G(N[1],c*3+j) + f[0] - f[1] - f[4];
+        G(N[2],c*3+j) = G(N[2],c*3+j) + f[1] - f[2] - f[5];
+        G(N[3],c*3+j) = G(N[3],c*3+j) + f[3] + f[4] + f[5];
       }
     }
   }
@@ -405,9 +405,9 @@ grad( const std::vector< std::size_t >& bpoin,
         f[0] = d[(e*3+0)*3+j] * (u[1][c] + u[0][c]);
         f[1] = d[(e*3+1)*3+j] * (u[2][c] + u[1][c]);
         f[2] = d[(e*3+2)*3+j] * (u[0][c] + u[2][c]);
-        G(N[0],c*3+j,0) = G(N[0],c*3+j,0) - f[0] + f[2];
-        G(N[1],c*3+j,0) = G(N[1],c*3+j,0) + f[0] - f[1];
-        G(N[2],c*3+j,0) = G(N[2],c*3+j,0) + f[1] - f[2];
+        G(N[0],c*3+j) = G(N[0],c*3+j) - f[0] + f[2];
+        G(N[1],c*3+j) = G(N[1],c*3+j) + f[0] - f[1];
+        G(N[2],c*3+j) = G(N[2],c*3+j) + f[1] - f[2];
       }
     }
   }
@@ -422,8 +422,8 @@ grad( const std::vector< std::size_t >& bpoin,
     for (std::size_t c=0; c<ncomp; ++c) {
       for (std::size_t j=0; j<3; ++j) {
         tk::real f = d[j] * (u[1][c] + u[0][c]);
-        G(N[0],c*3+j,0) -= f;
-        G(N[1],c*3+j,0) += f;
+        G(N[0],c*3+j) -= f;
+        G(N[1],c*3+j) += f;
       }
     }
   }
@@ -436,9 +436,9 @@ grad( const std::vector< std::size_t >& bpoin,
     tk::real u[ncomp];
     primitive( ncomp, p, U, u );
     for (std::size_t c=0; c<ncomp; ++c) {
-      G(p,c*3+0,0) += bpint[b*3+0] * u[c];
-      G(p,c*3+1,0) += bpint[b*3+1] * u[c];
-      G(p,c*3+2,0) += bpint[b*3+2] * u[c];
+      G(p,c*3+0) += bpint[b*3+0] * u[c];
+      G(p,c*3+1) += bpint[b*3+1] * u[c];
+      G(p,c*3+2) += bpint[b*3+2] * u[c];
     }
   }
 
@@ -456,9 +456,9 @@ grad( const std::vector< std::size_t >& bpoin,
         f[0] = b[(e*3+0)*3+j] * (u[1][c] + u[0][c]);
         f[1] = b[(e*3+1)*3+j] * (u[2][c] + u[1][c]);
         f[2] = b[(e*3+2)*3+j] * (u[0][c] + u[2][c]);
-        G(N[0],c*3+j,0) = G(N[0],c*3+j,0) - f[0] + f[2];
-        G(N[1],c*3+j,0) = G(N[1],c*3+j,0) + f[0] - f[1];
-        G(N[2],c*3+j,0) = G(N[2],c*3+j,0) + f[1] - f[2];
+        G(N[0],c*3+j) = G(N[0],c*3+j) - f[0] + f[2];
+        G(N[1],c*3+j) = G(N[1],c*3+j) + f[0] - f[1];
+        G(N[2],c*3+j) = G(N[2],c*3+j) + f[1] - f[2];
       }
     }
   }
@@ -472,8 +472,8 @@ grad( const std::vector< std::size_t >& bpoin,
     for (std::size_t c=0; c<ncomp; ++c) {
       for (std::size_t j=0; j<3; ++j) {
         tk::real f = bsupint[1][e*3+j] * (u[1][c] + u[0][c]);
-        G(N[0],c*3+j,0) -= f;
-        G(N[1],c*3+j,0) += f;
+        G(N[0],c*3+j) -= f;
+        G(N[1],c*3+j) += f;
       }
     }
   }
@@ -547,10 +547,10 @@ adv( const tk::UnsMesh::Coords& coord,
     advedge( coord, G, d+(e*6+5)*3, N[2], N[3], u[2], u[3], f[5] );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
-      R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c] - f[3][c];
-      R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c] - f[4][c];
-      R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c] - f[5][c];
-      R(N[3],c,0) = R(N[3],c,0) + f[3][c] + f[4][c] + f[5][c];
+      R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c] - f[3][c];
+      R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c] - f[4][c];
+      R(N[2],c) = R(N[2],c) + f[1][c] - f[2][c] - f[5][c];
+      R(N[3],c) = R(N[3],c) + f[3][c] + f[4][c] + f[5][c];
     }
   }
 
@@ -570,9 +570,9 @@ adv( const tk::UnsMesh::Coords& coord,
     advedge( coord, G, d+(e*3+2)*3, N[2], N[0], u[2], u[0], f[2] );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
-      R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c];
-      R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c];
-      R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c];
+      R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
+      R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c];
+      R(N[2],c) = R(N[2],c) + f[1][c] - f[2][c];
     }
   }
 
@@ -588,8 +588,8 @@ adv( const tk::UnsMesh::Coords& coord,
     advedge( coord, G, d+e*3, N[0], N[1], u[0], u[1], f );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
-      R(N[0],c,0) -= f[c];
-      R(N[1],c,0) += f[c];
+      R(N[0],c) -= f[c];
+      R(N[1],c) += f[c];
     }
   }
 
@@ -607,14 +607,14 @@ adv( const tk::UnsMesh::Coords& coord,
     auto nz = bpint[b*3+2];
     auto vn = bpsym[b] ? 0.0 : (nx*u[1] + ny*u[2] + nz*u[3]);
     // flow fluxes
-    R(p,0,0) += U(p,0,0)*vn;
-    R(p,1,0) += U(p,1,0)*vn + pr*nx;
-    R(p,2,0) += U(p,2,0)*vn + pr*ny;
-    R(p,3,0) += U(p,3,0)*vn + pr*nz;
-    R(p,4,0) += (U(p,4,0) + pr)*vn;
+    R(p,0) += U(p,0)*vn;
+    R(p,1) += U(p,1)*vn + pr*nx;
+    R(p,2) += U(p,2)*vn + pr*ny;
+    R(p,3) += U(p,3)*vn + pr*nz;
+    R(p,4) += (U(p,4) + pr)*vn;
     // scalar fluxes
     for (std::size_t c=5; c<U.nprop(); ++c) {
-      R(p,c,0) += U(p,c,0)*vn;
+      R(p,c) += U(p,c)*vn;
     }
   }
 
@@ -633,9 +633,9 @@ adv( const tk::UnsMesh::Coords& coord,
     advedge( coord, G, b+(e*3+2)*3, N[2], N[0], u[2], u[0], f[2], N[5], N[3] );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
-      R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c];
-      R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c];
-      R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c];
+      R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
+      R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c];
+      R(N[2],c) = R(N[2],c) + f[1][c] - f[2][c];
     }
   }
 
@@ -651,8 +651,8 @@ adv( const tk::UnsMesh::Coords& coord,
     advedge( coord, G, b+e*3, N[0], N[1], u[0], u[1], f, N[2], N[3] );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
-      R(N[0],c,0) -= f[c];
-      R(N[1],c,0) += f[c];
+      R(N[0],c) -= f[c];
+      R(N[1],c) += f[c];
     }
   }
 
@@ -688,7 +688,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
   for (std::size_t p=0; p<R.nunk(); ++p) {
     if (g_cfg.get< tag::steady >()) t = tp[p];
     auto s = src( x[p], y[p], z[p], t );
-    for (std::size_t c=0; c<s.size(); ++c) R(p,c,0) -= s[c] * v[p];
+    for (std::size_t c=0; c<s.size(); ++c) R(p,c) -= s[c] * v[p];
   }
 }
 

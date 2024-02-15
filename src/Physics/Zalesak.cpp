@@ -76,20 +76,20 @@ advedge( const tk::real supint[],
   dz /= dl;
 
   // left state
-  auto rL  = U(p,0,0);
-  auto ruL = U(p,1,0);
-  auto rvL = U(p,2,0);
-  auto rwL = U(p,3,0);
-  auto reL = U(p,4,0);
+  auto rL  = U(p,0);
+  auto ruL = U(p,1);
+  auto rvL = U(p,2);
+  auto rwL = U(p,3);
+  auto reL = U(p,4);
   auto pL = eos::pressure( reL - 0.5*(ruL*ruL + rvL*rvL + rwL*rwL)/rL );
   auto dnL = (ruL*dx + rvL*dy + rwL*dz)/rL;
 
   // right state
-  auto rR  = U(q,0,0);
-  auto ruR = U(q,1,0);
-  auto rvR = U(q,2,0);
-  auto rwR = U(q,3,0);
-  auto reR = U(q,4,0);
+  auto rR  = U(q,0);
+  auto ruR = U(q,1);
+  auto rvR = U(q,2);
+  auto rwR = U(q,3);
+  auto reR = U(q,4);
   auto pR = eos::pressure( reR - 0.5*(ruR*ruR + rvR*rvR + rwR*rwR)/rR );
   auto dnR = (ruR*dx + rvR*dy + rwR*dz)/rR;
 
@@ -122,7 +122,7 @@ advedge( const tk::real supint[],
 
   // scalar
   for (std::size_t c=5; c<ncomp; ++c) {
-    ue[c] = 0.5*(U(p,c,0) + U(q,c,0) - dt*(U(p,c,0)*dnL - U(q,c,0)*dnR));
+    ue[c] = 0.5*(U(p,c) + U(q,c) - dt*(U(p,c)*dnL - U(q,c)*dnR));
   }
 
   // source
@@ -182,17 +182,17 @@ advedge( const tk::real supint[],
   tk::real d2rR = 0.0, d2ruR = 0.0, d2rvR = 0.0, d2rwR = 0.0, d2reR = 0.0;
   if (stab4) {
     stab2coef = 1.0;
-    b = std::max( S(p,0,0), S(q,0,0) );
-    d2rL  = G(p,3+0,0);
-    d2ruL = G(p,3+1,0);
-    d2rvL = G(p,3+2,0);
-    d2rwL = G(p,3+3,0);
-    d2reL = G(p,3+4,0);
-    d2rR  = G(q,3+0,0);
-    d2ruR = G(q,3+1,0);
-    d2rvR = G(q,3+2,0);
-    d2rwR = G(q,3+3,0);
-    d2reR = G(q,3+4,0);
+    b = std::max( S(p,0), S(q,0) );
+    d2rL  = G(p,3+0);
+    d2ruL = G(p,3+1);
+    d2rvL = G(p,3+2);
+    d2rwL = G(p,3+3);
+    d2reL = G(p,3+4);
+    d2rR  = G(q,3+0);
+    d2ruR = G(q,3+1);
+    d2rvR = G(q,3+2);
+    d2rwR = G(q,3+3);
+    d2reR = G(q,3+4);
   }
 
   auto vnL = (ruL*nx + rvL*ny + rwL*nz)/rL;
@@ -214,10 +214,10 @@ advedge( const tk::real supint[],
   for (std::size_t c=5; c<ncomp; ++c) {
     tk::real d2cL = 0.0, d2cR = 0.0;
     if (stab4) {
-      d2cL = G(p,3+c,0);
-      d2cR = G(q,3+c,0);
+      d2cL = G(p,3+c);
+      d2cR = G(q,3+c);
     }
-    f[c] -= fw*(s2c*(U(p,c,0) - U(q,c,0)) + s4c*(d2cR - d2cL));
+    f[c] -= fw*(s2c*(U(p,c) - U(q,c)) + s4c*(d2cR - d2cL));
   }
 
   #if defined(__clang__)
@@ -279,16 +279,16 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     advedge( d+(e*6+4)*4, U,S,G, coord, t, dt, tp, dtp, N[1], N[3], f[4], src );
     advedge( d+(e*6+5)*4, U,S,G, coord, t, dt, tp, dtp, N[2], N[3], f[5], src );
     for (std::size_t c=0; c<ncomp; ++c) {
-      R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c] - f[3][c];
-      R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c] - f[4][c];
-      R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c] - f[5][c];
-      R(N[3],c,0) = R(N[3],c,0) + f[3][c] + f[4][c] + f[5][c];
+      R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c] - f[3][c];
+      R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c] - f[4][c];
+      R(N[2],c) = R(N[2],c) + f[1][c] - f[2][c] - f[5][c];
+      R(N[3],c) = R(N[3],c) + f[3][c] + f[4][c] + f[5][c];
       if (src) {
         auto nc = ncomp + c;
-        R(N[0],c,0) += f[0][nc] + f[2][nc] + f[3][nc];
-        R(N[1],c,0) += f[0][nc] + f[1][nc] + f[4][nc];
-        R(N[2],c,0) += f[1][nc] + f[2][nc] + f[5][nc];
-        R(N[3],c,0) += f[3][nc] + f[4][nc] + f[5][nc];
+        R(N[0],c) += f[0][nc] + f[2][nc] + f[3][nc];
+        R(N[1],c) += f[0][nc] + f[1][nc] + f[4][nc];
+        R(N[2],c) += f[1][nc] + f[2][nc] + f[5][nc];
+        R(N[3],c) += f[3][nc] + f[4][nc] + f[5][nc];
       }
     }
   }
@@ -302,14 +302,14 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     advedge( d+(e*3+1)*4, U,S,G, coord, t, dt, tp, dtp, N[1], N[2], f[1], src );
     advedge( d+(e*3+2)*4, U,S,G, coord, t, dt, tp, dtp, N[2], N[0], f[2], src );
     for (std::size_t c=0; c<ncomp; ++c) {
-      R(N[0],c,0) = R(N[0],c,0) - f[0][c] + f[2][c];
-      R(N[1],c,0) = R(N[1],c,0) + f[0][c] - f[1][c];
-      R(N[2],c,0) = R(N[2],c,0) + f[1][c] - f[2][c];
+      R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
+      R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c];
+      R(N[2],c) = R(N[2],c) + f[1][c] - f[2][c];
       if (src) {
         auto nc = ncomp + c;
-        R(N[0],c,0) += f[0][nc] + f[2][nc];
-        R(N[1],c,0) += f[0][nc] + f[1][nc];
-        R(N[2],c,0) += f[1][nc] + f[2][nc];
+        R(N[0],c) += f[0][nc] + f[2][nc];
+        R(N[1],c) += f[0][nc] + f[1][nc];
+        R(N[2],c) += f[1][nc] + f[2][nc];
       }
     }
   }
@@ -321,12 +321,12 @@ advdom( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto d = dsupint[2].data();
     advedge( d+e*4, U,S,G, coord, t, dt, tp, dtp, N[0], N[1], f, src );
     for (std::size_t c=0; c<ncomp; ++c) {
-      R(N[0],c,0) -= f[c];
-      R(N[1],c,0) += f[c];
+      R(N[0],c) -= f[c];
+      R(N[1],c) += f[c];
       if (src) {
         auto nc = ncomp + c;
-        R(N[0],c,0) += f[nc];
-        R(N[1],c,0) += f[nc];
+        R(N[0],c) += f[nc];
+        R(N[1],c) += f[nc];
       }
     }
   }
@@ -371,23 +371,23 @@ advbnd( const std::vector< std::size_t >& triinpoel,
   for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
     const auto N = triinpoel.data() + e*3;
 
-    auto rA  = U(N[0],0,0);
-    auto ruA = U(N[0],1,0);
-    auto rvA = U(N[0],2,0);
-    auto rwA = U(N[0],3,0);
-    auto reA = U(N[0],4,0);
+    auto rA  = U(N[0],0);
+    auto ruA = U(N[0],1);
+    auto rvA = U(N[0],2);
+    auto rwA = U(N[0],3);
+    auto reA = U(N[0],4);
 
-    auto rB  = U(N[1],0,0);
-    auto ruB = U(N[1],1,0);
-    auto rvB = U(N[1],2,0);
-    auto rwB = U(N[1],3,0);
-    auto reB = U(N[1],4,0);
+    auto rB  = U(N[1],0);
+    auto ruB = U(N[1],1);
+    auto rvB = U(N[1],2);
+    auto rwB = U(N[1],3);
+    auto reB = U(N[1],4);
 
-    auto rC  = U(N[2],0,0);
-    auto ruC = U(N[2],1,0);
-    auto rvC = U(N[2],2,0);
-    auto rwC = U(N[2],3,0);
-    auto reC = U(N[2],4,0);
+    auto rC  = U(N[2],0);
+    auto ruC = U(N[2],1);
+    auto rvC = U(N[2],2);
+    auto rwC = U(N[2],3);
+    auto reC = U(N[2],4);
 
     const std::array< tk::real, 3 >
       ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
@@ -407,7 +407,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[2][0] = rvA*vn + p*ny;
     f[3][0] = rwA*vn + p*nz;
     f[4][0] = (reA + p)*vn;
-    for (std::size_t c=5; c<ncomp; ++c) f[c][0] = U(N[0],0,0)*vn;
+    for (std::size_t c=5; c<ncomp; ++c) f[c][0] = U(N[0],0)*vn;
 
     p = eos::pressure( reB - 0.5*(ruB*ruB + rvB*rvB + rwB*rwB)/rB );
     vn = sym[1] ? 0.0 : (nx*ruB + ny*rvB + nz*rwB)/rB;
@@ -416,7 +416,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[2][1] = rvB*vn + p*ny;
     f[3][1] = rwB*vn + p*nz;
     f[4][1] = (reB + p)*vn;
-    for (std::size_t c=5; c<ncomp; ++c) f[c][1] = U(N[1],0,0)*vn;
+    for (std::size_t c=5; c<ncomp; ++c) f[c][1] = U(N[1],0)*vn;
 
     p = eos::pressure( reC - 0.5*(ruC*ruC + rvC*rvC + rwC*rwC)/rC );
     vn = sym[2] ? 0.0 : (nx*ruC + ny*rvC + nz*rwC)/rC;
@@ -425,15 +425,15 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     f[2][2] = rvC*vn + p*ny;
     f[3][2] = rwC*vn + p*nz;
     f[4][2] = (reC + p)*vn;
-    for (std::size_t c=5; c<ncomp; ++c) f[c][2] = U(N[2],0,0)*vn;
+    for (std::size_t c=5; c<ncomp; ++c) f[c][2] = U(N[2],0)*vn;
 
     for (std::size_t c=0; c<ncomp; ++c) {
       auto fab = (f[c][0] + f[c][1])/4.0;
       auto fbc = (f[c][1] + f[c][2])/4.0;
       auto fca = (f[c][2] + f[c][0])/4.0;
-      R(N[0],c,0) += fab + fca + f[c][0];
-      R(N[1],c,0) += fab + fbc + f[c][1];
-      R(N[2],c,0) += fbc + fca + f[c][2];
+      R(N[0],c) += fab + fca + f[c][0];
+      R(N[1],c) += fab + fbc + f[c][1];
+      R(N[2],c) += fbc + fca + f[c][2];
     }
   }
 
@@ -488,11 +488,11 @@ grad( const std::vector< std::size_t >& bpoin,
     const auto N = dsupedge[0].data() + e*4;
     tk::real p[4];
     for (std::size_t a=0; a<4; ++a) {
-      auto r  = U(N[a],0,0);
-      auto ru = U(N[a],1,0);
-      auto rv = U(N[a],2,0);
-      auto rw = U(N[a],3,0);
-      auto re = U(N[a],4,0);
+      auto r  = U(N[a],0);
+      auto ru = U(N[a],1);
+      auto rv = U(N[a],2);
+      auto rw = U(N[a],3);
+      auto re = U(N[a],4);
       p[a] = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
     }
     tk::real f[6];
@@ -505,23 +505,23 @@ grad( const std::vector< std::size_t >& bpoin,
       f[3] = d[(e*6+3)*4+j] * (p[3] + p[0]);
       f[4] = d[(e*6+4)*4+j] * (p[3] + p[1]);
       f[5] = d[(e*6+5)*4+j] * (p[3] + p[2]);
-      G(N[0],j,0) = G(N[0],j,0) - f[0] + f[2] - f[3];
-      G(N[1],j,0) = G(N[1],j,0) + f[0] - f[1] - f[4];
-      G(N[2],j,0) = G(N[2],j,0) + f[1] - f[2] - f[5];
-      G(N[3],j,0) = G(N[3],j,0) + f[3] + f[4] + f[5];
+      G(N[0],j) = G(N[0],j) - f[0] + f[2] - f[3];
+      G(N[1],j) = G(N[1],j) + f[0] - f[1] - f[4];
+      G(N[2],j) = G(N[2],j) + f[1] - f[2] - f[5];
+      G(N[3],j) = G(N[3],j) + f[3] + f[4] + f[5];
     }
     // Laplacian of conserved quantities
     for (std::size_t c=0; c<ncomp; ++c) {
-      f[0] = d[(e*6+0)*4+3] * (U(N[0],c,0) - U(N[1],c,0));
-      f[1] = d[(e*6+1)*4+3] * (U(N[1],c,0) - U(N[2],c,0));
-      f[2] = d[(e*6+2)*4+3] * (U(N[2],c,0) - U(N[0],c,0));
-      f[3] = d[(e*6+3)*4+3] * (U(N[0],c,0) - U(N[3],c,0));
-      f[4] = d[(e*6+4)*4+3] * (U(N[1],c,0) - U(N[3],c,0));
-      f[5] = d[(e*6+5)*4+3] * (U(N[2],c,0) - U(N[3],c,0));
-      G(N[0],3+c,0) = G(N[0],3+c,0) - f[0] + f[2] - f[3];
-      G(N[1],3+c,0) = G(N[1],3+c,0) + f[0] - f[1] - f[4];
-      G(N[2],3+c,0) = G(N[2],3+c,0) + f[1] - f[2] - f[5];
-      G(N[3],3+c,0) = G(N[3],3+c,0) + f[3] + f[4] + f[5];
+      f[0] = d[(e*6+0)*4+3] * (U(N[0],c) - U(N[1],c));
+      f[1] = d[(e*6+1)*4+3] * (U(N[1],c) - U(N[2],c));
+      f[2] = d[(e*6+2)*4+3] * (U(N[2],c) - U(N[0],c));
+      f[3] = d[(e*6+3)*4+3] * (U(N[0],c) - U(N[3],c));
+      f[4] = d[(e*6+4)*4+3] * (U(N[1],c) - U(N[3],c));
+      f[5] = d[(e*6+5)*4+3] * (U(N[2],c) - U(N[3],c));
+      G(N[0],3+c) = G(N[0],3+c) - f[0] + f[2] - f[3];
+      G(N[1],3+c) = G(N[1],3+c) + f[0] - f[1] - f[4];
+      G(N[2],3+c) = G(N[2],3+c) + f[1] - f[2] - f[5];
+      G(N[3],3+c) = G(N[3],3+c) + f[3] + f[4] + f[5];
     }
   }
 
@@ -530,11 +530,11 @@ grad( const std::vector< std::size_t >& bpoin,
     const auto N = dsupedge[1].data() + e*3;
     tk::real p[3];
     for (std::size_t a=0; a<3; ++a) {
-      auto r  = U(N[a],0,0);
-      auto ru = U(N[a],1,0);
-      auto rv = U(N[a],2,0);
-      auto rw = U(N[a],3,0);
-      auto re = U(N[a],4,0);
+      auto r  = U(N[a],0);
+      auto ru = U(N[a],1);
+      auto rv = U(N[a],2);
+      auto rw = U(N[a],3);
+      auto re = U(N[a],4);
       p[a] = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
     }
     tk::real f[3];
@@ -544,18 +544,18 @@ grad( const std::vector< std::size_t >& bpoin,
       f[0] = d[(e*3+0)*4+j] * (p[1] + p[0]);
       f[1] = d[(e*3+1)*4+j] * (p[2] + p[1]);
       f[2] = d[(e*3+2)*4+j] * (p[0] + p[2]);
-      G(N[0],j,0) = G(N[0],j,0) - f[0] + f[2];
-      G(N[1],j,0) = G(N[1],j,0) + f[0] - f[1];
-      G(N[2],j,0) = G(N[2],j,0) + f[1] - f[2];
+      G(N[0],j) = G(N[0],j) - f[0] + f[2];
+      G(N[1],j) = G(N[1],j) + f[0] - f[1];
+      G(N[2],j) = G(N[2],j) + f[1] - f[2];
     }
     // Laplacian of conserved quantities
     for (std::size_t c=0; c<ncomp; ++c) {
-      f[0] = d[(e*3+0)*4+3] * (U(N[0],c,0) - U(N[1],c,0));
-      f[1] = d[(e*3+1)*4+3] * (U(N[1],c,0) - U(N[2],c,0));
-      f[2] = d[(e*3+2)*4+3] * (U(N[2],c,0) - U(N[0],c,0));
-      G(N[0],3+c,0) = G(N[0],3+c,0) - f[0] + f[2];
-      G(N[1],3+c,0) = G(N[1],3+c,0) + f[0] - f[1];
-      G(N[2],3+c,0) = G(N[2],3+c,0) + f[1] - f[2];
+      f[0] = d[(e*3+0)*4+3] * (U(N[0],c) - U(N[1],c));
+      f[1] = d[(e*3+1)*4+3] * (U(N[1],c) - U(N[2],c));
+      f[2] = d[(e*3+2)*4+3] * (U(N[2],c) - U(N[0],c));
+      G(N[0],3+c) = G(N[0],3+c) - f[0] + f[2];
+      G(N[1],3+c) = G(N[1],3+c) + f[0] - f[1];
+      G(N[2],3+c) = G(N[2],3+c) + f[1] - f[2];
     }
   }
 
@@ -564,25 +564,25 @@ grad( const std::vector< std::size_t >& bpoin,
     const auto N = dsupedge[2].data() + e*2;
     tk::real p[2];
     for (std::size_t a=0; a<2; ++a) {
-      auto r  = U(N[a],0,0);
-      auto ru = U(N[a],1,0);
-      auto rv = U(N[a],2,0);
-      auto rw = U(N[a],3,0);
-      auto re = U(N[a],4,0);
+      auto r  = U(N[a],0);
+      auto ru = U(N[a],1);
+      auto rv = U(N[a],2);
+      auto rw = U(N[a],3);
+      auto re = U(N[a],4);
       p[a] = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
     }
     const auto d = dsupint[2].data() + e*4;
     // pressure gradient
     for (std::size_t j=0; j<3; ++j) {
       tk::real f = d[j] * (p[1] + p[0]);
-      G(N[0],j,0) -= f;
-      G(N[1],j,0) += f;
+      G(N[0],j) -= f;
+      G(N[1],j) += f;
     }
     // Laplacian of conserved quantities
     for (std::size_t c=0; c<ncomp; ++c) {
-      tk::real f = d[3] * (U(N[0],c,0) - U(N[1],c,0));
-      G(N[0],3+c,0) -= f;
-      G(N[1],3+c,0) += f;
+      tk::real f = d[3] * (U(N[0],c) - U(N[1],c));
+      G(N[0],3+c) -= f;
+      G(N[1],3+c) += f;
     }
   }
 
@@ -591,16 +591,16 @@ grad( const std::vector< std::size_t >& bpoin,
   // boundary point contributions
   for (std::size_t b=0; b<bpoin.size(); ++b) {
     auto i = bpoin[b];
-    auto r  = U(i,0,0);
-    auto ru = U(i,1,0);
-    auto rv = U(i,2,0);
-    auto rw = U(i,3,0);
-    auto re = U(i,4,0);
+    auto r  = U(i,0);
+    auto ru = U(i,1);
+    auto rv = U(i,2);
+    auto rw = U(i,3);
+    auto re = U(i,4);
     auto p = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
     // pressure gradient
-    G(i,0,0) += bpint[b*3+0] * p;
-    G(i,1,0) += bpint[b*3+1] * p;
-    G(i,2,0) += bpint[b*3+2] * p;
+    G(i,0) += bpint[b*3+0] * p;
+    G(i,1) += bpint[b*3+1] * p;
+    G(i,2) += bpint[b*3+2] * p;
   }
 
   // boundary edge contributions: triangle superedges
@@ -608,11 +608,11 @@ grad( const std::vector< std::size_t >& bpoin,
     const auto N = bsupedge[0].data() + e*6;
     tk::real p[3];
     for (std::size_t a=0; a<3; ++a) {
-      auto r  = U(N[a],0,0);
-      auto ru = U(N[a],1,0);
-      auto rv = U(N[a],2,0);
-      auto rw = U(N[a],3,0);
-      auto re = U(N[a],4,0);
+      auto r  = U(N[a],0);
+      auto ru = U(N[a],1);
+      auto rv = U(N[a],2);
+      auto rw = U(N[a],3);
+      auto re = U(N[a],4);
       p[a] = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
     }
     // pressure gradient
@@ -622,9 +622,9 @@ grad( const std::vector< std::size_t >& bpoin,
       f[0] = b[(e*3+0)*3+j] * (p[1] + p[0]);
       f[1] = b[(e*3+1)*3+j] * (p[2] + p[1]);
       f[2] = b[(e*3+2)*3+j] * (p[0] + p[2]);
-      G(N[0],j,0) = G(N[0],j,0) - f[0] + f[2];
-      G(N[1],j,0) = G(N[1],j,0) + f[0] - f[1];
-      G(N[2],j,0) = G(N[2],j,0) + f[1] - f[2];
+      G(N[0],j) = G(N[0],j) - f[0] + f[2];
+      G(N[1],j) = G(N[1],j) + f[0] - f[1];
+      G(N[2],j) = G(N[2],j) + f[1] - f[2];
     }
   }
 
@@ -633,19 +633,19 @@ grad( const std::vector< std::size_t >& bpoin,
     const auto N = bsupedge[1].data() + e*4;
     tk::real p[2];
     for (std::size_t a=0; a<2; ++a) {
-      auto r  = U(N[a],0,0);
-      auto ru = U(N[a],1,0);
-      auto rv = U(N[a],2,0);
-      auto rw = U(N[a],3,0);
-      auto re = U(N[a],4,0);
+      auto r  = U(N[a],0);
+      auto ru = U(N[a],1);
+      auto rv = U(N[a],2);
+      auto rw = U(N[a],3);
+      auto re = U(N[a],4);
       p[a] = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
     }
     // pressure gradient
     const auto b = bsupint[1].data() + e*3;
     for (std::size_t j=0; j<3; ++j) {
       tk::real f = b[j] * (p[1] + p[0]);
-      G(N[0],j,0) -= f;
-      G(N[1],j,0) += f;
+      G(N[0],j) -= f;
+      G(N[1],j) += f;
     }
   }
 
@@ -716,15 +716,15 @@ stab( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[0].data() + e*4;
     tk::real p[4], dp[4][3];
     for (std::size_t a=0; a<4; ++a) {
-      auto r  = U(N[a],0,0);
-      auto ru = U(N[a],1,0);
-      auto rv = U(N[a],2,0);
-      auto rw = U(N[a],3,0);
-      auto re = U(N[a],4,0);
+      auto r  = U(N[a],0);
+      auto ru = U(N[a],1);
+      auto rv = U(N[a],2);
+      auto rw = U(N[a],3);
+      auto re = U(N[a],4);
       p[a] = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
-      dp[a][0] = G(N[a],0,0);
-      dp[a][1] = G(N[a],1,0);
-      dp[a][2] = G(N[a],2,0);
+      dp[a][0] = G(N[a],0);
+      dp[a][1] = G(N[a],1);
+      dp[a][2] = G(N[a],2);
     }
     tk::real b[6];  // pressure sensor function in edges
     b[0] = beta( 0, 1, p[0], p[1], dp[0], dp[1] );
@@ -734,10 +734,10 @@ stab( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     b[4] = beta( 1, 3, p[1], p[3], dp[1], dp[3] );
     b[5] = beta( 2, 3, p[2], p[3], dp[2], dp[3] );
     // store in points max of connecting edges
-    S(N[0],0,0) = max( S(N[0],0,0), max(b[0],max(b[2],b[3])) );
-    S(N[1],0,0) = max( S(N[1],0,0), max(b[0],max(b[1],b[4])) );
-    S(N[2],0,0) = max( S(N[2],0,0), max(b[1],max(b[2],b[5])) );
-    S(N[3],0,0) = max( S(N[3],0,0), max(b[3],max(b[4],b[5])) );
+    S(N[0],0) = max( S(N[0],0), max(b[0],max(b[2],b[3])) );
+    S(N[1],0) = max( S(N[1],0), max(b[0],max(b[1],b[4])) );
+    S(N[2],0) = max( S(N[2],0), max(b[1],max(b[2],b[5])) );
+    S(N[3],0) = max( S(N[3],0), max(b[3],max(b[4],b[5])) );
   }
 
   // domain edge contributions: triangle superedges
@@ -745,24 +745,24 @@ stab( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[1].data() + e*3;
     tk::real p[3], dp[3][3];
     for (std::size_t a=0; a<3; ++a) {
-      auto r  = U(N[a],0,0);
-      auto ru = U(N[a],1,0);
-      auto rv = U(N[a],2,0);
-      auto rw = U(N[a],3,0);
-      auto re = U(N[a],4,0);
+      auto r  = U(N[a],0);
+      auto ru = U(N[a],1);
+      auto rv = U(N[a],2);
+      auto rw = U(N[a],3);
+      auto re = U(N[a],4);
       p[a] = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
-      dp[a][0] = G(N[a],0,0);
-      dp[a][1] = G(N[a],1,0);
-      dp[a][2] = G(N[a],2,0);
+      dp[a][0] = G(N[a],0);
+      dp[a][1] = G(N[a],1);
+      dp[a][2] = G(N[a],2);
     }
     tk::real b[3];  // pressure sensor function in edges
     b[0] = beta( 0, 1, p[0], p[1], dp[0], dp[1] );
     b[1] = beta( 1, 2, p[1], p[2], dp[1], dp[2] );
     b[2] = beta( 2, 0, p[2], p[0], dp[2], dp[0] );
     // store in points max of connecting edges
-    S(N[0],0,0) = max( S(N[0],0,0), max(b[0],b[2]) );
-    S(N[1],0,0) = max( S(N[1],0,0), max(b[0],b[1]) );
-    S(N[2],0,0) = max( S(N[2],0,0), max(b[1],b[2]) );
+    S(N[0],0) = max( S(N[0],0), max(b[0],b[2]) );
+    S(N[1],0) = max( S(N[1],0), max(b[0],b[1]) );
+    S(N[2],0) = max( S(N[2],0), max(b[1],b[2]) );
   }
 
   // domain edge contributions: edges
@@ -770,21 +770,21 @@ stab( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[2].data() + e*2;
     tk::real p[2], dp[2][3];
     for (std::size_t a=0; a<2; ++a) {
-      auto r  = U(N[a],0,0);
-      auto ru = U(N[a],1,0);
-      auto rv = U(N[a],2,0);
-      auto rw = U(N[a],3,0);
-      auto re = U(N[a],4,0);
+      auto r  = U(N[a],0);
+      auto ru = U(N[a],1);
+      auto rv = U(N[a],2);
+      auto rw = U(N[a],3);
+      auto re = U(N[a],4);
       p[a] = eos::pressure( re - 0.5*(ru*ru + rv*rv + rw*rw)/r );
-      dp[a][0] = G(N[a],0,0);
-      dp[a][1] = G(N[a],1,0);
-      dp[a][2] = G(N[a],2,0);
+      dp[a][0] = G(N[a],0);
+      dp[a][1] = G(N[a],1);
+      dp[a][2] = G(N[a],2);
     }
     // pressure sensor function in edge
     auto b = beta( 0, 1, p[0], p[1], dp[0], dp[1] );
     // store in points max of connecting edges
-    S(N[0],0,0) = max( S(N[0],0,0), b );
-    S(N[1],0,0) = max( S(N[1],0,0), b );
+    S(N[0],0) = max( S(N[0],0), b );
+    S(N[1],0) = max( S(N[1],0), b );
   }
 
   #if defined(__clang__)

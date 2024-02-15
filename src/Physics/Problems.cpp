@@ -642,7 +642,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
     auto rx = sx - x[i];
     auto ry = sy - y[i];
     auto rz = sz - z[i];
-    if (rx*rx + ry*ry + rz*rz < sr*sr) U(i,5,0) = 1.0;
+    if (rx*rx + ry*ry + rz*rz < sr*sr) U(i,5) = 1.0;
   }
 
   return;
@@ -762,7 +762,7 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
     box( i, s, boxnodes );
 
     // Set values for ICs
-    for (std::size_t c=0; c<s.size(); ++c) U(i,c,0) = s[c];
+    for (std::size_t c=0; c<s.size(); ++c) U(i,c) = s[c];
 
   }
 }

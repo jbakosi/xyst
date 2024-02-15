@@ -149,7 +149,7 @@ struct AMRError_common {
   
     // generate a linear scalar field with a slope in only x direction
     tk::Fields ux( npoin, 1 );
-    for (std::size_t p=0; p<npoin; ++p) ux(p,0,0) = coord[0][p];
+    for (std::size_t p=0; p<npoin; ++p) ux(p,0) = coord[0][p];
     // test jump error indicator on all edges
     for (std::size_t e=0; e<inpoed.size()/2; ++e) {
       edge_t edge{ inpoed[e*2],inpoed[e*2+1] };
@@ -160,7 +160,7 @@ struct AMRError_common {
   
     // generate a linear scalar field with a slope in only y direction
     tk::Fields uy( npoin, 1 );
-    for (std::size_t p=0; p<npoin; ++p) uy(p,0,0) = coord[1][p];
+    for (std::size_t p=0; p<npoin; ++p) uy(p,0) = coord[1][p];
     // test jump error indicator on all edges
     for (std::size_t e=0; e<inpoed.size()/2; ++e) {
       edge_t edge{ inpoed[e*2],inpoed[e*2+1] };
@@ -171,7 +171,7 @@ struct AMRError_common {
   
     // generate a linear scalar field with a slope in only z direction
     tk::Fields uz( npoin, 1 );
-    for (std::size_t p=0; p<npoin; ++p) uz(p,0,0) = coord[2][p];
+    for (std::size_t p=0; p<npoin; ++p) uz(p,0) = coord[2][p];
     // test jump error indicator on all edges
     for (std::size_t e=0; e<inpoed.size()/2; ++e) {
       edge_t edge{ inpoed[e*2],inpoed[e*2+1] };
@@ -183,9 +183,9 @@ struct AMRError_common {
     // generate linear vector field with different slopes for different components
     tk::Fields u3( npoin, 3 );
     for (std::size_t p=0; p<npoin; ++p) {
-       u3(p,0,0) = 2.0*coord[0][p];
-       u3(p,1,0) = 1.5*coord[1][p];
-       u3(p,2,0) = -0.5*coord[2][p];
+       u3(p,0) = 2.0*coord[0][p];
+       u3(p,1) = 1.5*coord[1][p];
+       u3(p,2) = -0.5*coord[2][p];
     }
     // test jump error indicator on all edges
     for (std::size_t e=0; e<inpoed.size()/2; ++e) {
@@ -203,7 +203,7 @@ struct AMRError_common {
 
     // generate a quadratic scalar field with a slope in only z direction
     tk::Fields u2z( npoin, 1 );
-    for (std::size_t p=0; p<npoin; ++p) u2z(p,0,0) = coord[2][p]*coord[2][p];
+    for (std::size_t p=0; p<npoin; ++p) u2z(p,0) = coord[2][p]*coord[2][p];
     // test jump error indicator on all edges
     for (std::size_t e=0; e<inpoed.size()/2; ++e) {
       edge_t edge{ inpoed[e*2],inpoed[e*2+1] };

@@ -1005,7 +1005,7 @@ RieCG::rhs()
   // Combine own and communicated contributions to gradients
   for (const auto& [g,r] : m_gradc) {
     auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c,0) += r[c];
+    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c) += r[c];
   }
   tk::destroy(m_gradc);
 
@@ -1013,7 +1013,7 @@ RieCG::rhs()
   const auto& vol = d->Vol();
   for (std::size_t p=0; p<m_grad.nunk(); ++p)
     for (std::size_t c=0; c<m_grad.nprop(); ++c)
-      m_grad(p,c,0) /= vol[p];
+      m_grad(p,c) /= vol[p];
 
   // Compute own portion of right-hand side for all equations
   auto prev_rkcoef = m_stage == 0 ? 0.0 : rkcoef[m_stage-1];
@@ -1081,7 +1081,7 @@ RieCG::solve()
   // Combine own and communicated contributions to rhs
   for (const auto& [g,r] : m_rhsc) {
     auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c,0) += r[c];
+    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c) += r[c];
   }
   tk::destroy(m_rhsc);
 
@@ -1094,7 +1094,7 @@ RieCG::solve()
   for (std::size_t i=0; i<m_u.nunk(); ++i) {
     if (steady) dt = m_dtp[i];
     for (std::size_t c=0; c<m_u.nprop(); ++c) {
-      m_u(i,c,0) = m_un(i,c,0) - rkcoef[m_stage] * dt * m_rhs(i,c,0) / vol[i];
+      m_u(i,c) = m_un(i,c) - rkcoef[m_stage] * dt * m_rhs(i,c) / vol[i];
     }
   }
 
@@ -1241,7 +1241,7 @@ RieCG::resizePostAMR(
       Assert(n.first < m_u.nunk(), "Added node index out of bounds post-AMR");
       Assert(n.second[0] < m_u.nunk() && n.second[1] < m_u.nunk(),
         "Indices of parent-edge nodes out of bounds post-AMR");
-      m_u(n.first,c,0) = (m_u(n.second[0],c,0) + m_u(n.second[1],c,0))/2.0;
+      m_u(n.first,c) = (m_u(n.second[0],c) + m_u(n.second[1],c))/2.0;
     }
 
   // Update physical-boundary node-, face-, and element lists
@@ -1272,11 +1272,11 @@ RieCG::writeFields( CkCallback cb )
     {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
 
   using tk::operator/=;
-  auto r = m_u.extract( 0, 0 );
-  auto u = m_u.extract( 1, 0 );  u /= r;
-  auto v = m_u.extract( 2, 0 );  v /= r;
-  auto w = m_u.extract( 3, 0 );  w /= r;
-  auto e = m_u.extract( 4, 0 );  e /= r;
+  auto r = m_u.extract(0);
+  auto u = m_u.extract(1);  u /= r;
+  auto v = m_u.extract(2);  v /= r;
+  auto w = m_u.extract(3);  w /= r;
+  auto e = m_u.extract(4);  e /= r;
   std::vector< tk::real > pr( m_u.nunk() );
   for (std::size_t i=0; i<pr.size(); ++i) {
     auto ei = e[i] - 0.5*(u[i]*u[i] + v[i]*v[i] + w[i]*w[i]);
@@ -1289,7 +1289,7 @@ RieCG::writeFields( CkCallback cb )
 
   for (std::size_t c=0; c<ncomp-5; ++c) {
     nodefieldnames.push_back( "c" + std::to_string(c) );
-    nodefields.push_back( m_u.extract( 5+c, 0 ) );
+    nodefields.push_back( m_u.extract(5+c) );
   }
 
   // query function to evaluate analytic solution (if defined)
@@ -1308,19 +1308,19 @@ RieCG::writeFields( CkCallback cb )
       s[2] /= s[0];
       s[3] /= s[0];
       s[4] /= s[0];
-      for (std::size_t c=0; c<s.size(); ++c) an(i,c,0) = s[c];
+      for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
       s[4] -= 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
       ap[i] = eos::pressure( s[0]*s[4] );
     }
     for (std::size_t c=0; c<5; ++c) {
       nodefieldnames.push_back( nodefieldnames[c] + "_analytic" );
-      nodefields.push_back( an.extract( c, 0 ) );
+      nodefields.push_back( an.extract(c) );
     }
     nodefieldnames.push_back( nodefieldnames[5] + "_analytic" );
     nodefields.push_back( std::move(ap) );
     for (std::size_t c=0; c<ncomp-5; ++c) {
       nodefieldnames.push_back( nodefieldnames[6+c] + "_analytic" );
-      nodefields.push_back( an.extract( 5+c, 0 ) );
+      nodefields.push_back( an.extract(5+c) );
     }
   }
 
@@ -1446,9 +1446,9 @@ RieCG::integrals()
       const auto& ndA = sint.second;
       for (std::size_t i=0; i<nodes.size(); ++i) {
         auto p = nodes[i];
-        mfr += ndA[i*3+0] * m_u(p,1,0)
-             + ndA[i*3+1] * m_u(p,2,0)
-             + ndA[i*3+2] * m_u(p,3,0);
+        mfr += ndA[i*3+0] * m_u(p,1)
+             + ndA[i*3+1] * m_u(p,2)
+             + ndA[i*3+2] * m_u(p,3);
       }
     }
     auto stream = serialize( d->MeshId(), ints );

@@ -91,16 +91,16 @@ rhs( const std::vector< std::size_t >& inpoel,
 
     tk::real p[4];
     for (std::size_t a=0; a<4; ++a) {
-      auto  r = U(N[a],0,0);
-      auto ru = U(N[a],1,0);
-      auto rv = U(N[a],2,0);
-      auto rw = U(N[a],3,0);
-      p[a] = eos::pressure( U(N[a],4,0) - 0.5*(ru*ru + rv*rv + rw*rw)/r );
+      auto  r = U(N[a],0);
+      auto ru = U(N[a],1);
+      auto rv = U(N[a],2);
+      auto rw = U(N[a],3);
+      p[a] = eos::pressure( U(N[a],4) - 0.5*(ru*ru + rv*rv + rw*rw)/r );
     }
 
     tk::real ue[ncomp];
     for (std::size_t c=0; c<ncomp; ++c) {
-      ue[c] = (U(N[0],c,0) + U(N[1],c,0) + U(N[2],c,0) + U(N[3],c,0))/4.0;
+      ue[c] = (U(N[0],c) + U(N[1],c) + U(N[2],c) + U(N[3],c))/4.0;
     }
 
     if (steady) dt = (dtp[N[0]] + dtp[N[1]] + dtp[N[2]] + dtp[N[3]])/4.0;
@@ -109,15 +109,15 @@ rhs( const std::vector< std::size_t >& inpoel,
     for (std::size_t j=0; j<3; ++j) {
       for (std::size_t a=0; a<4; ++a) {
         auto cg = coef * grad[a][j];
-        auto uj = U(N[a],j+1,0) / U(N[a],0,0);
-        ue[0] -= cg * U(N[a],j+1,0);
-        ue[1] -= cg * U(N[a],1,0) * uj;
-        ue[2] -= cg * U(N[a],2,0) * uj;
-        ue[3] -= cg * U(N[a],3,0) * uj;
+        auto uj = U(N[a],j+1) / U(N[a],0);
+        ue[0] -= cg * U(N[a],j+1);
+        ue[1] -= cg * U(N[a],1) * uj;
+        ue[2] -= cg * U(N[a],2) * uj;
+        ue[3] -= cg * U(N[a],3) * uj;
         ue[j+1] -= cg * p[a];
-        ue[4] -= cg * (U(N[a],4,0) + p[a]) * uj;
+        ue[4] -= cg * (U(N[a],4) + p[a]) * uj;
         for (std::size_t c=5; c<ncomp; ++c) {
-          ue[c] -= cg * U(N[a],c,0) * uj;
+          ue[c] -= cg * U(N[a],c) * uj;
         }
       }
     }
@@ -146,14 +146,14 @@ rhs( const std::vector< std::size_t >& inpoel,
       auto uj = ue[j+1] / ue[0];
       for (std::size_t a=0; a<4; ++a) {
         auto cg = coef * grad[a][j];
-        R(N[a],0,0) += cg * ue[j+1];
-        R(N[a],1,0) += cg * ue[1] * uj;
-        R(N[a],2,0) += cg * ue[2] * uj;
-        R(N[a],3,0) += cg * ue[3] * uj;
-        R(N[a],j+1,0) += cg * pr;
-        R(N[a],4,0) += cg * (ue[4] + pr) * uj;
+        R(N[a],0) += cg * ue[j+1];
+        R(N[a],1) += cg * ue[1] * uj;
+        R(N[a],2) += cg * ue[2] * uj;
+        R(N[a],3) += cg * ue[3] * uj;
+        R(N[a],j+1) += cg * pr;
+        R(N[a],4) += cg * (ue[4] + pr) * uj;
         for (std::size_t c=5; c<ncomp; ++c) {
-          R(N[a],c,0) += cg * ue[c] * uj;
+          R(N[a],c) += cg * ue[c] * uj;
         }
       }
     }
@@ -166,7 +166,7 @@ rhs( const std::vector< std::size_t >& inpoel,
       coef = J/24.0;
       for (std::size_t a=0; a<4; ++a) {
         for (std::size_t c=0; c<ncomp; ++c) {
-          R(N[a],c,0) += coef * se[c];
+          R(N[a],c) += coef * se[c];
         }
       }
     }

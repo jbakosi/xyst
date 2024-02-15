@@ -59,7 +59,7 @@ dirbc( tk::Fields& U,
     problems::box( p, u, boxnodes );    // overwrite with box value
     for (std::size_t c=0; c<ncomp; ++c) {
       if (dirbcmasks[i*nmask+1+c]) {
-        U(p,c,0) = u[c];
+        U(p,c) = u[c];
       }
     }
   }
@@ -85,10 +85,10 @@ symbc( tk::Fields& U,
     auto nx = symbcnorms[i*3+0];
     auto ny = symbcnorms[i*3+1];
     auto nz = symbcnorms[i*3+2];
-    auto rvn = U(p,1,0)*nx + U(p,2,0)*ny + U(p,3,0)*nz;
-    U(p,1,0) -= rvn * nx;
-    U(p,2,0) -= rvn * ny;
-    U(p,3,0) -= rvn * nz;
+    auto rvn = U(p,1)*nx + U(p,2)*ny + U(p,3)*nz;
+    U(p,1) -= rvn * nx;
+    U(p,2) -= rvn * ny;
+    U(p,3) -= rvn * nz;
   }
 }
 
@@ -126,11 +126,11 @@ farbc( tk::Fields& U,
     auto nx = farbcnorms[i*3+0];
     auto ny = farbcnorms[i*3+1];
     auto nz = farbcnorms[i*3+2];
-    auto& r  = U(p,0,0);
-    auto& ru = U(p,1,0);
-    auto& rv = U(p,2,0);
-    auto& rw = U(p,3,0);
-    auto& re = U(p,4,0);
+    auto& r  = U(p,0);
+    auto& ru = U(p,1);
+    auto& rv = U(p,2);
+    auto& rw = U(p,3);
+    auto& re = U(p,4);
     //auto vn = (ru*nx + rv*ny + rw*nz)/r;
     auto vn = fu*nx + fv*ny + fw*nz;
     //auto a = eos::soundspeed( r,
@@ -176,9 +176,9 @@ prebc( tk::Fields& U,
 
   for (std::size_t i=0; i<prebcnodes.size(); ++i) {
     auto p = prebcnodes[i];
-    U(p,0,0) = prebcvals[i*2+0];
-    U(p,4,0) = eos::totalenergy( U(p,0,0), U(p,1,0)/U(p,0,0),
-                 U(p,2,0)/U(p,0,0), U(p,3,0)/U(p,0,0), prebcvals[i*2+1] );
+    U(p,0) = prebcvals[i*2+0];
+    U(p,4) = eos::totalenergy( U(p,0), U(p,1)/U(p,0), U(p,2)/U(p,0),
+                               U(p,3)/U(p,0), prebcvals[i*2+1] );
   }
 }
 

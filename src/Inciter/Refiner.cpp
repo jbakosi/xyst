@@ -924,7 +924,7 @@ Refiner::writeMesh( const std::string& basefilename,
 
   // Extract all scalar components from solution for output to file
   //for (std::size_t i=0; i<ncomp; ++i)
-  nodefields.push_back( u.extract( 5, 0 ) );
+  nodefields.push_back( u.extract( 5 ) );
 
   // Output mesh
   m_meshwriter[ CkNodeFirst( CkMyNode() ) ].

@@ -9,6 +9,7 @@ This page contains links to useful information regarding Xyst.
 - @ref howto_clang
 - @ref howto_intel
 - @ref howto_notest
+- @ref howto_valgrind
 - @ref howto_make
 - @ref howto_mpi
 - @ref howto_smp

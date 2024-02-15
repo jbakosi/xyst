@@ -1,0 +1,56 @@
+/*!
+  \page      howto_valgrind How to run the regression tests with valgrind
+
+This page explains how to run the regression tests with
+[valgrind](https://valgrind.org) to enable memory access error checking.
+
+@section howto_valgrind_build Configure the build system to run tests with valgrind
+
+To clone, configure the build system to run the regression tests with
+valgrind, build, and execute the tests do
+
+@code
+git clone https://codeberg.org/xyst/xyst.git && cd xyst
+mkdir build && cd build
+cmake -DENABLE_VALGRIND=true ../src
+make && ctest -j4 --output-on-failure
+@endcode
+
+All regression test executables will be prefixed by valgrind's memory checker
+which can detect memory access problems, uninitialized values, memory leakds,
+bad heap management (double frees and mismatched frees), or overlapping source
+and destination memory blocks.
+
+Some false positives are listed in `tests/regression/valgrind.sup`. This file
+can be updated by temporarily changing the `VALGRIND_CMD` cmake command in
+`tests/regression/CMakeLists.txt` to instruct valgrind to generate and output
+suppression information to a log file, from which the suppression blocks can be
+appended to `tests/regression/valgrind.sup`.
+
+@code{.patch}
+diff --git a/tests/regression/CMakeLists.txt b/tests/regression/CMakeLists.txt
+index 43e8118..e8eafb4 100644
+--- a/tests/regression/CMakeLists.txt
++++ b/tests/regression/CMakeLists.txt
+@@ -26,8 +26,8 @@ if (ENABLE_VALGRIND)
+   find_program(VALGRIND valgrind)
+   if (VALGRIND)
+     set(sup "${PROJECT_SOURCE_DIR}/../tests/regression/valgrind.sup")
+-    set(VALGRIND_CMD "${VALGRIND} --tool=memcheck --suppressions=${sup}")
+-    #set(VALGRIND_CMD "${VALGRIND} --tool=memcheck --suppressions=${sup} --gen-suppressions=all --log-file=${sup}.log")
++    #set(VALGRIND_CMD "${VALGRIND} --tool=memcheck --suppressions=${sup}")
++    set(VALGRIND_CMD "${VALGRIND} --tool=memcheck --suppressions=${sup} --gen-suppressions=all --log-file=${sup}.log")
+     message(STATUS "Will run all regression tests prefixed by '${VALGRIND_CMD}'")
+   else()
+     message(WARNING "Valgrind was enabled but NOT found")
+@endcode
+
+Now run the test that triggered a new valgrind problem
+@code
+ctest -R <sometest> -V
+@endcode
+
+After updating the suppression file ``tests/regression/valgrind.sup`, do not
+forget to _not_ commit the above change to `tests/regression/CMakeLists.txt`.
+
+*/

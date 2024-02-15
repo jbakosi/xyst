@@ -27,3 +27,14 @@ add_regression_test(compflow_euler_sedov_zalcg_u0.8_migr
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS zalcg migration)
+
+add_regression_test(compflow_euler_sedov_zalcg_dea_u0.8_migr
+                    ${INCITER_EXECUTABLE}
+                    NUMPES 4 PPN 1
+                    INPUTFILES sedov_dea.q sedov_coarse.exo
+                    ARGS -c sedov_dea.q -i sedov_coarse.exo -u 0.8
+                         +balancer RecBipartLB +LBDebug 1 -l 5
+                    TEXT_BASELINE diag_dea.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag_dea.ndiff.cfg
+                    LABELS zalcg migration)

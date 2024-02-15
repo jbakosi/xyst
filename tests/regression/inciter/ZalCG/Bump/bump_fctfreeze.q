@@ -9,6 +9,7 @@ cfl = 0.7
 solver = "zalcg"
 stab2 = true
 stab2coef = 0.05
+fctfreeze = 3.8e-3
 
 steady = true
 residual = 1.0e-9
@@ -30,7 +31,7 @@ mat = { spec_heat_ratio = 1.4 }
 bc_sym = {
   sideset = { 3 }
 }
-         
+
 bc_far = {
   density = ic.density,
   pressure = ic.pressure,

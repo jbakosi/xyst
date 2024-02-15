@@ -15,6 +15,18 @@ add_regression_test(compflow_euler_bump_zalcg ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS zalcg)
 
+# Parallel
+
+add_regression_test(compflow_euler_bump_zalcg_fctfreeze
+                    ${INCITER_EXECUTABLE}
+                    NUMPES 4
+                    INPUTFILES bump_fctfreeze.q bump.exo
+                    ARGS -c bump_fctfreeze.q -i bump.exo
+                    TEXT_BASELINE diag_fctfreeze.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS zalcg)
+
 # Parallel + virtualization + migration
 
 add_regression_test(compflow_euler_bump_zalcg_u0.8_migr

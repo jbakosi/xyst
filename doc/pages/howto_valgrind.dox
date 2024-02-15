@@ -9,7 +9,7 @@ This page explains how to run the regression tests with
 To clone, configure the build system to run the regression tests with
 valgrind, build, and execute the tests do
 
-@code
+@code{.bash}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
 cmake -DENABLE_VALGRIND=true ../src
@@ -21,11 +21,23 @@ which can detect memory access problems, uninitialized values, memory leaks,
 bad heap management (double frees and mismatched frees), or overlapping source
 and destination memory blocks.
 
-Some false positives are listed in `tests/regression/valgrind.sup`. This file
-can be updated by temporarily changing the `VALGRIND_CMD` cmake command in
-`tests/regression/CMakeLists.txt` to instruct valgrind to generate and output
-suppression information to a log file, from which the suppression blocks can be
-appended to `tests/regression/valgrind.sup`.
+@section howto_valgrind_sup How to update the valgrind suppression file
+
+Some false positives are listed in `tests/regression/valgrind.sup`. If this
+file needs to be updated, it can be done by temporarily changing `VALGRIND_CMD`
+in `tests/regression/CMakeLists.txt` to instruct valgrind to generate and
+output suppression information to a log file. The procedure to update the
+valgrind suppression file is described below.
+
+Start by running the single test that failes
+
+@code{.bash}
+ctest -R <test-triggering-new-valgrind-errors> -V
+@endcode
+
+Upon examining the valgrind output if the decision is made to suppress this new
+error from future valgrind checks, change the valgrind command in cmake as
+below:
 
 @code{.patch}
 diff --git a/tests/regression/CMakeLists.txt b/tests/regression/CMakeLists.txt
@@ -45,12 +57,20 @@ index 43e8118..e8eafb4 100644
      message(WARNING "Valgrind was enabled but NOT found")
 @endcode
 
-Now run the test that triggered a new valgrind problem
-@code
-ctest -R <sometest> -V
+Now rebuild (which should trigger a cmake update) and run the test again that
+triggered a new valgrind problem to save the valgrind suppression output into a
+log file:
+
+@code{.bash}
+make
+ctest -R <test-triggering-new-valgrind-errors> -V
 @endcode
 
-After updating the suppression file ``tests/regression/valgrind.sup`, do not
-forget to _not_ commit the above change to `tests/regression/CMakeLists.txt`.
+Now the suppression blocks based on the newly written
+`tests/regression/valgrind.sup.log` can be appended to
+`tests/regression/valgrind.sup`.
+
+After updating the suppression file `tests/regression/valgrind.sup`, do not
+forget to _not_ commit the above patch to `tests/regression/CMakeLists.txt`.
 
 */

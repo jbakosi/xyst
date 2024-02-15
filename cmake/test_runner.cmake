@@ -175,7 +175,7 @@ else() # Test command ran successfully, attempt to do diffs
       endif()
 
       set(text_diff_command ${TEXT_DIFF_PROG} ${TEXT_DIFF_PROG_ARGS}
-                            -d -b -t ${TEST_NAME}
+                            -b -t ${TEST_NAME}
                             ${baseline} ${result} ${conf})
       string(REPLACE ";" " " text_diff_command_string "${text_diff_command}")
       message("\nRunning text diff command: '${text_diff_command_string}'\n")

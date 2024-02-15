@@ -36,8 +36,7 @@ string(REPLACE " " ";" POSTFIX_RUNNER_ARGS "${POSTFIX_RUNNER_ARGS}")
 message("Test runner configuration:")
 message("  TEST_NAME (name of test)                                    : ${TEST_NAME}")
 message("  WORKDIR (test run directory)                                : ${WORKDIR}")
-message("  USE_VALGRIND (true if we use valgrind)                      : ${USE_VALGRIND}")
-message("  VALGRIND (valgrind executable)                              : ${VALGRIND}")
+message("  VALGRIND_CMD                                                : ${VALGRIND_CMD}")
 message("  SERIAL (run in serial, i.e., no runner)                     : ${SERIAL}")
 message("  RUNNER (used to run parallel and serial jobs inside cmake)  : ${RUNNER}")
 message("  RUNNER_NCPUS_ARG (used to specify the number of CPUs)       : ${RUNNER_NCPUS_ARG}")
@@ -80,10 +79,6 @@ if (PPN)
   set(PPN "+ppn;${PPN}")
 endif()
 
-if (USE_VALGRIND)
-  set(valgrind_memcheck "valgrind --tool=memcheck")
-endif()
-
 # Configure test run command
 if (SMP)
 
@@ -96,13 +91,13 @@ if (SMP)
   endif()
 
   set(test_command ${RUNNER} ${RUNNER_NCPUS_ARG} ${NPE} ${RUNNER_ARGS}
-                   ${valgrind_memcheck}
+                   ${VALGRIND_CMD}
                    ${TEST_EXECUTABLE} ${TEST_EXECUTABLE_ARGS} ${PPN}
                    ${POSTFIX_RUNNER_ARGS})
 else()
 
   set(test_command ${RUNNER} ${RUNNER_NCPUS_ARG} ${NUMPES} ${RUNNER_ARGS}
-                   ${valgrind_memcheck}
+                   ${VALGRIND_CMD}
                    ${TEST_EXECUTABLE} ${TEST_EXECUTABLE_ARGS}
                    ${POSTFIX_RUNNER_ARGS})
 

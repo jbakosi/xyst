@@ -391,8 +391,7 @@ function(ADD_REGRESSION_TEST test_name executable)
            COMMAND ${CMAKE_COMMAND}
            -DTEST_NAME=${test_name}
            -DSERIAL=${SERIAL}
-           -DUSE_VALGRIND=${USE_VALGRIND}
-           -DVALGRIND=${VALGRIND}
+           -DVALGRIND_CMD=${VALGRIND_CMD}
            -DWORKDIR=${workdir}
            -DRUNNER=${RUNNER}
            -DRUNNER_NCPUS_ARG=${RUNNER_NCPUS_ARG}

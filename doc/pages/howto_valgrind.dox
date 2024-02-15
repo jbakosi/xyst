@@ -17,7 +17,7 @@ make && ctest -j4 --output-on-failure
 @endcode
 
 All regression test executables will be prefixed by valgrind's memory checker
-which can detect memory access problems, uninitialized values, memory leakds,
+which can detect memory access problems, uninitialized values, memory leaks,
 bad heap management (double frees and mismatched frees), or overlapping source
 and destination memory blocks.
 

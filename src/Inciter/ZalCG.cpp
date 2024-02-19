@@ -1191,7 +1191,7 @@ ZalCG::comrhs(
   const std::unordered_map< std::size_t, std::vector< tk::real > >& inrhs )
 // *****************************************************************************
 //  Receive contributions to right-hand side vector on chare-boundaries
-//! \param[in] inrhs Partial contributions of RHS to chare-boundary nodes. Key: 
+//! \param[in] inrhs Partial contributions of RHS to chare-boundary nodes. Key:
 //!   global mesh node IDs, value: contributions for all scalar components.
 // *****************************************************************************
 {

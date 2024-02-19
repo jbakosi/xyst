@@ -116,14 +116,14 @@ wing.
 @m_div{m-col-m-10 m-center-m}
 <img src="images/onera_mesh.png"/>
 <img src="images/onera_mesh_bottom.png"/>
-<img src="images/onera_pressure.png"/>
-<img src="images/onera_pressure_bottom.png"/>
+<img src="images/onera_riecg_pressure.png"/>
+<img src="images/onera_riecg_pressure_bottom.png"/>
 @m_enddiv
 
 The figure below shows the convergence of the density residual for the coarse
 mesh computation.
 @m_div{m-col-m-10 m-center-m}
-<img src="images/onera_res.png"/>
+<img src="images/onera_riecg_res.png"/>
 @m_enddiv
 
 Gnuplot commands to reproduce the above plot:
@@ -146,12 +146,12 @@ following figures for both meshes. Here the \f$\color[HTML]{dcdcdc}\infty\f$
 subscript denotes the far-field conditions, u is the length of the velocity
 vector, and c is the half-wing span.
 @m_div{m-col-m-10 m-center-m}
-<img src="images/o20.png"/>
-<img src="images/o44.png"/>
-<img src="images/o65.png"/>
-<img src="images/o80.png"/>
-<img src="images/o90.png"/>
-<img src="images/o95.png"/>
+<img src="images/o20_riecg.png"/>
+<img src="images/o44_riecg.png"/>
+<img src="images/o65_riecg.png"/>
+<img src="images/o80_riecg.png"/>
+<img src="images/o90_riecg.png"/>
+<img src="images/o95_riecg.png"/>
 @m_enddiv
 
 Gnuplot commands to reproduce the above plot:

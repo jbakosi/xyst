@@ -1,0 +1,170 @@
+/*!
+  \page      zalcg_example_onera ZalCG: ONERA wing
+
+This example uses @ref inciter_zalcg in @ref inciter_main to demonstrate and
+validate the solver in a 3D complex-geometry case by comparing the numerical
+results to experimental data.
+
+We computed the popular and well-documented aerodynamic flow over the ONERA M6
+wing, see e.g., [1]. The available experimental data of the pressure
+distribution along the wing allows validation of the numerical method. The
+problem is configured with a Mach number of 0.84 and an angle of attack of 3.06
+degrees, which yields a transonic flow. Since the solution converges to steady
+state, the most efficient ways to compute this problem are to use implicit time
+marching or local time stepping [2] of which @ref inciter_zalcg implements the
+latter allowing taking larger time steps for larger cells.
+
+@section zalcg_example_onera_setup Problem setup
+
+We used a computational mesh containing 710,971 tetrahedra and 131,068 points.
+The initial conditions prescribed the Mach number of 0.84 and the velocity with
+an angle of attack of 3.06 degrees. At the outer surface of the domain,
+characteristic far-field boundary conditions are applied, while along the wing
+surface symmetry (free-slip) conditions are set.
+
+@note Contact us using the link at the bottom of the page for the mesh.
+
+@section zalcg_example_onera_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [2bc2a0a](https://codeberg.org/xyst/xyst/commit/2bc2a0abe4c86fd943ef00d1e26c668025f65dae) and the control file below.
+
+@section zalcg_example_onera_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Onera M6 wing"
+
+ttyi = 100
+cfl = 0.7
+
+solver = "zalcg"
+fctsys = { 1, 2, 5 }
+fctclip = true
+fctfreeze = 1.0e-5
+
+steady = true
+residual = 1.0e-8
+rescomp = 1
+
+part = "multijagged"
+
+ic = {
+  density = 1.225,   -- density of air at STP, kg/m3
+  pressure = 1.0e+5, -- N/m^2
+  -- sound speed: sqrt(1.4*1.0e+5/1.225) = 338.06 m/s
+  -- free stream Mach number: M = 0.84
+  -- angle of attack: 3.06 degrees
+  -- u = M * a * cos(3.06*pi/180) = 283.57
+  -- v = M * a * sin(3.06*pi/180) = 15.159
+  velocity = { 283.57, 15.159, 0.0 }
+}
+
+mat = { spec_heat_ratio = 1.4 }
+
+bc_sym = {
+  sideset = { 3 }
+}
+
+bc_far = {
+  pressure = 1.0e+5,
+  density = 1.225,
+  velocity = { 283.57, 15.159, 0.0 },
+  sideset = { 4 }
+}
+
+fieldout = {
+  iter = 1000,
+  sideset = { 3 },
+}
+
+diag = {
+  iter = 1,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section zalcg_example_onera_run Run using the coarse mesh on 32 CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -v -i onera_710K.exo -c onera.q
+@endcode
+
+@section zalcg_example_onera_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.32.0
+@endcode
+
+Results only on the wing surface can be visualized by first stitching the
+partitioned surface output files into a single surface output file followed by
+invoking paraview on the stitched surface exo file:
+@code{.bash}
+Main/meshconv -i out-surf.3.e-s.0.32.% -o out-surf.3.exo
+paraview out-surf.3.exo
+@endcode
+
+The surface mesh is shown in the figure below together with the
+converged computed pressure contours on the upper and lower surfaces of the
+wing.
+@m_div{m-col-m-10 m-center-m}
+<img src="images/onera_mesh.png"/>
+<img src="images/onera_mesh_bottom.png"/>
+<img src="images/onera_zalcg_pressure.png"/>
+<img src="images/onera_zalcg_pressure_bottom.png"/>
+@m_enddiv
+
+The figure below shows the convergence of the L2-norm of the density residual.
+@m_div{m-col-m-10 m-center-m}
+<img src="images/onera_zalcg_res.png"/>
+@m_enddiv
+
+The computed pressure coefficient
+\f[
+C_p = \frac{p-p_\infty}{\rho_\infty u_\infty^2/2}
+\f]
+distribution is compared to experimental data [3] at various semi-spans in the
+following figures. Here the \f$\color[HTML]{dcdcdc}\infty\f$ subscript denotes
+the far-field conditions, u is the length of the velocity vector, and c is the
+half-wing span.
+@m_div{m-col-m-10 m-center-m}
+<img src="images/o20_zalcg.png"/>
+<img src="images/o44_zalcg.png"/>
+<img src="images/o65_zalcg.png"/>
+<img src="images/o80_zalcg.png"/>
+<img src="images/o90_zalcg.png"/>
+<img src="images/o95_zalcg.png"/>
+@m_enddiv
+
+Gnuplot commands to reproduce the above plot:
+@code{.bash}
+set grid
+set output "o20.ps"; set title "Surface pressure coefficient at 20% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe20.data" pt 5 t "experiment", "710K/o20.txt" u (($1-0.115)/0.62):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 7 lc black t "computation"
+set output "o44.ps"; set title "Surface pressure coefficient at 44% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe44.data" pt 5 t "experiment", "710K/o44.txt" u (($1-0.25)/0.56):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p lc black pt 7 t "computation"
+set output "o65.ps"; set title "Surface pressure coefficient at 65% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe65.data" pt 5 t "experiment", "710K/o65.txt" u (($1-0.373)/0.49):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p lc black pt 7 t "computation"
+set output "o80.ps"; set title "Surface pressure coefficient at 80% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe80.data" pt 5 t "experiment", "710K/o80.txt" u (($1-0.46)/0.45):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p lc black pt 7 t "computation"
+set output "o90.ps"; set title "Surface pressure coefficient at 90% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe90.data" pt 5 t "experiment", "710K/o90.txt" u (($1-0.517)/0.42):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p lc black pt 7 t "computation"
+set output "o95.ps"; set title "Surface pressure coefficient at 95% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe95.data" pt 5 t "experiment", "710K/o95.txt" u (($1-0.546)/0.405):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p lc black pt 7 t "computation"
+@endcode
+
+@note For the experimental data and the paraview session file, extracting the pressure along the wing span, yielding the files o??.txt above, contact us using the link at the bottom of the page.
+
+@section zalcg_example_onera_references References
+
+@m_div{m-text m-noindent}
+[1] H. Luo, J.D. Baum, R. Lohner, [A Fast, Matrix-Free Implicit Method for Compressible Flows on Unstructured Grids](https://doi.org/10.1006/jcph.1998.6076), J. Comput. Phys. 146,2, 1998.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[2] R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[3] V. Schmitt, F. Charpin, _Pressure Distributions on the ONERA-M6-Wing at Transonic Mach Numbers, Experimental Data Base for Computer Program Assessment_, Report of the Fluid Dynamics Panel Working Group 04, AGARD AR-138, 1979.
+@m_enddiv
+
+*/

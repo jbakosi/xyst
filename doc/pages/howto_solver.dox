@@ -1,0 +1,6 @@
+/*!
+  \page      howto_solver How to add a new solver
+
+@ref inciter_main contains multiple solvers. See also @ref examples. To add a new solver inspect code revision [855b62c](https://codeberg.org/xyst/xyst/commit/855b62c15bbd4de54b76ee02b370946338e0b79e).
+
+*/

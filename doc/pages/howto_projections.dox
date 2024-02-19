@@ -12,7 +12,7 @@ To enable performance analysis of Xyst with Charm++ do
 @code{.bash}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
-cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -GNinja -DCHARM_OPTS="-DTRACING=true -DTRACING_COMMTHREAD=true" -Wno-dev -DRUNNER_ARGS="--bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity -DEXTRA_LINK_ARGS="-tracemode projections" ../../src
+cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -GNinja -DCHARM_OPTS="-DTRACING=true -DTRACING_COMMTHREAD=true" -Wno-dev -DRUNNER_ARGS="--bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity -DEXTRA_LINK_ARGS="-tracemode projections" ../src
 ninja
 @endcode
 

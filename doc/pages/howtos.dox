@@ -14,6 +14,7 @@ This page contains links to useful information regarding Xyst.
 - @ref howto_mpi
 - @ref howto_smp
 - @ref howto_rndq
+- @ref howto_projections
 - @ref howto_runnerargs
 - @ref howto_iofiles
 - @ref howto_restart

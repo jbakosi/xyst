@@ -25,14 +25,12 @@ hides latencies by enabling overlapping of computation and communication.
 
 Inciter contains multiple solvers. The numerical methods belong to the family
 of continuous Galerkin finite element methods storing solution values at nodes
-of the computational mesh. See the links below and @ref papers for more details
-on the solvers.
+of the computational mesh. See the links below for more details.
 
 @section inciter_solvers Solvers
-- inciter::RieCG: @ref inciter_riecg "method", @ref riecg_performance "performance"
-- inciter::KozCG: @ref inciter_kozcg "method"
-- inciter::ZalCG: @ref inciter_zalcg "method", @ref zalcg_performance "performance"
-- @ref examples "Examples": @ref riecg_examples, @ref kozcg_examples, @ref zalcg_examples
+- <b>RieCG:</b> @ref inciter_riecg "method", @ref riecg_examples "examples", @ref riecg_performance "performance"
+- <b>KozCG:</b> @ref inciter_kozcg "method", @ref kozcg_examples "examples"
+- <b>ZalCG:</b> @ref inciter_zalcg "method", @ref zalcg_examples "examples", @ref zalcg_performance "performance"
 
 @section inciter_pages Related pages
 - @ref howtos "Howto pages"

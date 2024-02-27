@@ -29,10 +29,9 @@ of the computational mesh. See the links below and @ref papers for more details
 on the solvers.
 
 @section inciter_pages Related pages
-- @ref inciter_riecg "RieCG hydrodynamics"
-- @ref inciter_kozcg "KozCG hydrodynamics"
-- @ref inciter_zalcg "ZalCG hydrodynamics"
-- @ref riecg_performance "RieCG performance"
+- inciter::RieCG: @ref inciter_riecg "method", @ref riecg_performance "performance"
+- inciter::KozCG: @ref inciter_kozcg "method"
+- inciter::ZalCG: @ref inciter_zalcg "method", @ref zalcg_performance "performance"
 - @ref examples "Examples"
 - @ref howtos "Howto pages"
 - @ref papers "Publications"

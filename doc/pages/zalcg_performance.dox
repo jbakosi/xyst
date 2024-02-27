@@ -1,0 +1,54 @@
+/*!
+  \page      zalcg_performance ZalCG computational performance
+
+This page discusses the computational performance of the @ref inciter_zalcg
+"ZalCG hydrodynamics solver". The timings demonstrate that there is no
+significant scalability bottleneck in computational performance.
+
+@section zalcg_strong_scaling Strong scaling of computation
+
+Using increasing number of compute cores with the same problem measures _strong
+scaling_, characteristic of the algorithm and its parallel implementation.
+Strong scalability helps answer questions, such as _How much faster one can
+obtain a given result (at a given level of numerical error) if larger
+computational resources were available_. To measure strong scaling we ran the
+@ref riecg_example_taylor_green "Taylor-Green problem" using a 794M-cell and a
+144M-cell mesh on varying number of CPUs for a few time steps and measured the
+average wall-clock time it takes to advance a single time step. The figure
+below depicts timings measured for both meshes on the
+[LUMI](https://www.lumi-supercomputer.eu/lumi_supercomputer) computer.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/xyst_zalcg_strong.png"/>
+@m_enddiv
+
+The figure shows that the @ref inciter_zalcg solver, while not ideal for all
+runs, scales well into the range of O(10^4) CPU cores. In particular, the
+figure shows that strong scaling is ideal at and below 1024 CPUs using the
+smaller work-load of 144M cells and for the larger mesh at and below 8912 CPUs.
+The departure from ideal is indicated by nonzero angles between the ideal and
+the blue lines. The data also shows that though non-ideal above these points,
+parallelism is still effective in reducing CPU time with increasing compute
+resources for both problem sizes. Even at the largest runs time-to-solution
+still largely decreases with increasing resources.
+
+As usual with strong scaling, as more processors are used with the same-size
+problem, communication will eventually overwhelm useful computation and the
+simulation does not get any faster with more resources. The above figure shows
+that this point has not yet been reached at approximately 32K CPUs for neither
+of these two mesh sizes on this machine. The point of diminishing returns is
+determined by the scalability of the algorithm, its implementation, the problem
+size, the efficiency of the underlying runtime system, the hardware (e.g., the
+network interconnect), and their configuration.
+
+@note One practical result from this figure is that as the number of
+computational elements (and points) per CPU core decreases with more resources
+available for a fixed-size problem, this solver implementation (on this
+machine) is scalable at least as low as 1K mesh points per CPU core. This can
+be used to estimate effective compute resources based on problem size.
+
+Comparing the same data on @ref riecg_performance "RieCG" shows that the @ref
+inciter_zalcg solver is roughly 2x faster for the same problem size using the
+same resources.
+
+*/

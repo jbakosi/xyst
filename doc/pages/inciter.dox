@@ -28,11 +28,13 @@ of continuous Galerkin finite element methods storing solution values at nodes
 of the computational mesh. See the links below and @ref papers for more details
 on the solvers.
 
-@section inciter_pages Related pages
+@section inciter_solvers Solvers
 - inciter::RieCG: @ref inciter_riecg "method", @ref riecg_performance "performance"
 - inciter::KozCG: @ref inciter_kozcg "method"
 - inciter::ZalCG: @ref inciter_zalcg "method", @ref zalcg_performance "performance"
-- @ref examples "Examples"
+- @ref examples "Examples": @ref riecg_examples, @ref kozcg_examples, @ref zalcg_examples
+
+@section inciter_pages Related pages
 - @ref howtos "Howto pages"
 - @ref papers "Publications"
 - @ref inciter_design "Software design"

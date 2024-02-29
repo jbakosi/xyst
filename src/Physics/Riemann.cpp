@@ -485,6 +485,171 @@ rusanov( const tk::UnsMesh::Coords& coord,
   #endif
 }
 
+static void
+hllc( const tk::UnsMesh::Coords& coord,
+      const tk::Fields& G,
+      const tk::real dsupint[],
+      std::size_t p,
+      std::size_t q,
+      const tk::real L[],
+      const tk::real R[],
+      tk::real f[],
+      std::size_t symL,
+      std::size_t symR )
+// *****************************************************************************
+//! Compute advection fluxes on a single edge with Harten-Lax-vanLeer-Contact
+//! \param[in] coord Mesh node coordinates
+//! \param[in] G Nodal gradients
+//! \param[in] dsupint Domain superedge integral for this edge
+//! \param[in] p Left node index of edge
+//! \param[in] q Right node index of edge
+//! \param[in,out] L Left physics state variables
+//! \param[in,out] R Rigth physics state variables
+//! \param[in,out] f Flux computed
+//! \param[in] symL Non-zero if left edge end-point is on a symmetry boundary
+//! \param[in] symR Non-zero if right edge end-point is on a symmetry boundary
+// *****************************************************************************
+{
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
+  auto ncomp = G.nprop() / 3;
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+
+  // will work on copies of physics variables
+  tk::real l[ncomp], r[ncomp];
+  memcpy( l, L, sizeof l );
+  memcpy( r, R, sizeof r );
+
+  // MUSCL reconstruction in edge-end points for flow variables
+  muscl( p, q, coord, G, l[0], l[1], l[2], l[3], l[4],
+                         r[0], r[1], r[2], r[3], r[4] );
+
+  // pressure
+  auto pL = eos::pressure( l[0]*l[4] );
+  auto pR = eos::pressure( r[0]*r[4] );
+
+  // dualface-normal velocities
+  auto nx = -dsupint[0];
+  auto ny = -dsupint[1];
+  auto nz = -dsupint[2];
+  auto len = tk::length( nx, ny, nz );
+  if (len < eps) {
+    for (std::size_t c=0; c<ncomp; ++c) f[c] = 0.0;
+    return;
+  }
+  nx /= len;
+  ny /= len;
+  nz /= len;
+  auto qL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz);
+  auto qR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz);
+
+  // back to conserved variables
+  l[4] = (l[4] + 0.5*(l[1]*l[1] + l[2]*l[2] + l[3]*l[3])) * l[0];
+  l[1] *= l[0];
+  l[2] *= l[0];
+  l[3] *= l[0];
+  r[4] = (r[4] + 0.5*(r[1]*r[1] + r[2]*r[2] + r[3]*r[3])) * r[0];
+  r[1] *= r[0];
+  r[2] *= r[0];
+  r[3] *= r[0];
+
+  // sound speed
+  auto cL = eos::soundspeed(l[0],pL);
+  auto cR = eos::soundspeed(r[0],pR);
+
+  // left and right wave speeds
+  auto sL = fmin( qL - cL, qR - cR );
+  auto sR = fmax( qL + cL, qR + cR );
+
+  // contact wave speed and pressure
+  auto tL = sL - qL;
+  auto tR = sR - qR;
+  auto sM = (r[0]*qR*tR - l[0]*qL*tL + pL - pR) / (r[0]*tR - l[0]*tL);
+  auto pS = pL - l[0]*tL*(qL - sM);
+
+  // intermediate left-, and right-state conserved unknowns
+  tk::real uL[ncomp], uR[ncomp];
+  auto s = sL - sM;
+  uL[0] = tL*l[0]/s;
+  uL[1] = (tL*l[1] + (pS-pL)*nx)/s;
+  uL[2] = (tL*l[2] + (pS-pL)*ny)/s;
+  uL[3] = (tL*l[3] + (pS-pL)*nz)/s;
+  uL[4] = (tL*l[4] - pL*qL + pS*sM)/s;
+  s = sR - sM;
+  uR[0] = tR*r[0]/s;
+  uR[1] = (tR*r[1] + (pS-pR)*nx)/s;
+  uR[2] = (tR*r[2] + (pS-pR)*ny)/s;
+  uR[3] = (tR*r[3] + (pS-pR)*nz)/s;
+  uR[4] = (tR*r[4] - pR*qR + pS*sM)/s;
+
+  auto L2 = -2.0*len;
+  nx *= L2;
+  ny *= L2;
+  nz *= L2;
+
+  // flow fluxes
+  if (sL > 0.0) {
+    qL *= L2;
+    f[0] = l[0]*qL;
+    f[1] = l[1]*qL + pL*nx;
+    f[2] = l[2]*qL + pL*ny;
+    f[3] = l[3]*qL + pL*nz;
+    f[4] = (l[4] + pL)*qL;
+  }
+  else if (sL <= 0.0 && sM > 0.0) {
+    qL *= L2;
+    sL *= L2;
+    f[0] = l[0]*qL + sL*(uL[0] - l[0]);
+    f[1] = l[1]*qL + pL*nx + sL*(uL[1] - l[1]);
+    f[2] = l[2]*qL + pL*ny + sL*(uL[2] - l[2]);
+    f[3] = l[3]*qL + pL*nz + sL*(uL[3] - l[3]);
+    f[4] = (l[4] + pL)*qL + sL*(uL[4] - l[4]);
+  }
+  else if (sM <= 0.0 && sR >= 0.0) {
+    qR *= L2;
+    sR *= L2;
+    f[0] = r[0]*qR + sR*(uR[0] - r[0]);
+    f[1] = r[1]*qR + pR*nx + sR*(uR[1] - r[1]);
+    f[2] = r[2]*qR + pR*ny + sR*(uR[2] - r[2]);
+    f[3] = r[3]*qR + pR*nz + sR*(uR[3] - r[3]);
+    f[4] = (r[4] + pR)*qR + sR*(uR[4] - r[4]);
+  }
+  else {
+    qR *= L2;
+    f[0] = r[0]*qR;
+    f[1] = r[1]*qR + pR*nx;
+    f[2] = r[2]*qR + pR*ny;
+    f[3] = r[3]*qR + pR*nz;
+    f[4] = (r[4] + pR)*qR;
+  }
+
+  if (ncomp == 5) return;
+
+  // MUSCL reconstruction in edge-end points for scalars
+  //muscl( p, q, coord, G, l, r );
+
+//  // scalar dissipation
+//  auto sw = std::max( std::abs(qL), std::abs(qR) );
+//
+//  // scalar fluxes
+//  for (std::size_t c=5; c<ncomp; ++c) {
+//    f[c] = l[c]*qL + r[c]*qR + sw*(r[c] - l[c]);
+//  }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
+}
+
 static
 std::function< void( const tk::UnsMesh::Coords&,
                      const tk::Fields&,
@@ -506,6 +671,8 @@ FLUX()
 
   if (flux == "rusanov")
     return rusanov;
+  else if (flux == "hllc")
+    return hllc;
   else
     Throw( "Flux not configured" );
 }

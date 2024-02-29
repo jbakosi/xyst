@@ -57,6 +57,7 @@ DEFTAG( deadif );
 DEFTAG( deafreq );
 DEFTAG( deasys );
 DEFTAG( deatime );
+DEFTAG( flux );
 DEFTAG( steady );
 DEFTAG( residual );
 DEFTAG( rescomp );
@@ -167,6 +168,7 @@ using ConfigMembers = brigand::list<
   , tag::deafreq, uint64_t
   , tag::deasys, std::vector< uint64_t >
   , tag::deatime, double
+  , tag::flux, std::string
   , tag::steady, bool
   , tag::residual, double
   , tag::rescomp, uint64_t

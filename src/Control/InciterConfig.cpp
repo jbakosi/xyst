@@ -928,6 +928,7 @@ Config::control()
     get< tag::dt >() = real( L, "dt", 0.0, true );
     get< tag::t0 >() = real( L, "t0", 0.0, true );
     get< tag::reorder >() = boolean( L, "reorder", false, true );
+    get< tag::flux >() = string( L, "flux", "rusanov", true );
     get< tag::steady >() = boolean( L, "steady", false, true );
     get< tag::residual >() = real( L, "residual", 0.0, true );
     get< tag::rescomp >() = unsigint( L, "rescomp", 1, true );

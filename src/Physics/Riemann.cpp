@@ -226,105 +226,6 @@ primitive( std::size_t ncomp, std::size_t i, const tk::Fields& U, tk::real u[] )
   for (std::size_t c=5; c<ncomp; ++c) u[c] = U(i,c);
 }
 
-static void
-advedge( const tk::UnsMesh::Coords& coord,
-         const tk::Fields& G,
-         const tk::real dsupint[],
-         std::size_t p,
-         std::size_t q,
-         const tk::real L[],
-         const tk::real R[],
-         tk::real f[],
-         std::size_t symL = 0,
-         std::size_t symR = 0 )
-// *****************************************************************************
-//! Compute advection fluxes on a single edge
-//! \param[in] coord Mesh node coordinates
-//! \param[in] G Nodal gradients
-//! \param[in] dsupint Domain superedge integral for this edge
-//! \param[in] p Left node index of edge
-//! \param[in] q Right node index of edge
-//! \param[in,out] L Left physics state variables
-//! \param[in,out] R Rigth physics state variables
-//! \param[in,out] f Flux computed
-//! \param[in] symL Non-zero if left edge end-point is on a symmetry boundary
-//! \param[in] symR Non-zero if right edge end-point is on a symmetry boundary
-// *****************************************************************************
-{
-  #if defined(__clang__)
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wvla"
-    #pragma clang diagnostic ignored "-Wvla-extension"
-  #elif defined(STRICT_GNUC)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wvla"
-  #endif
-
-  auto ncomp = G.nprop() / 3;
-
-  // will work on copies of physics variables
-  tk::real l[ncomp], r[ncomp];
-  memcpy( l, L, sizeof l );
-  memcpy( r, R, sizeof r );
-
-  // MUSCL reconstruction in edge-end points for flow variables
-  muscl( p, q, coord, G, l[0], l[1], l[2], l[3], l[4],
-                         r[0], r[1], r[2], r[3], r[4] );
-
-  // pressure
-  auto pL = eos::pressure( l[0]*l[4] );
-  auto pR = eos::pressure( r[0]*r[4] );
-
-  // dualface-normal velocities
-  auto nx = dsupint[0];
-  auto ny = dsupint[1];
-  auto nz = dsupint[2];
-  auto vnL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz);
-  auto vnR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz);
-
-  // back to conserved variables
-  l[4] = (l[4] + 0.5*(l[1]*l[1] + l[2]*l[2] + l[3]*l[3])) * l[0];
-  l[1] *= l[0];
-  l[2] *= l[0];
-  l[3] *= l[0];
-  r[4] = (r[4] + 0.5*(r[1]*r[1] + r[2]*r[2] + r[3]*r[3])) * r[0];
-  r[1] *= r[0];
-  r[2] *= r[0];
-  r[3] *= r[0];
-
-  // dissipation
-  auto len = tk::length( nx, ny, nz );
-  auto sl = std::abs(vnL) + eos::soundspeed(l[0],pL)*len;
-  auto sr = std::abs(vnR) + eos::soundspeed(r[0],pR)*len;
-  auto fw = std::max( sl, sr );
-
-  // flow fluxes
-  f[0] = l[0]*vnL + r[0]*vnR + fw*(r[0] - l[0]);
-  f[1] = l[1]*vnL + r[1]*vnR + (pL + pR)*nx + fw*(r[1] - l[1]);
-  f[2] = l[2]*vnL + r[2]*vnR + (pL + pR)*ny + fw*(r[2] - l[2]);
-  f[3] = l[3]*vnL + r[3]*vnR + (pL + pR)*nz + fw*(r[3] - l[3]);
-  f[4] = (l[4] + pL)*vnL + (r[4] + pR)*vnR + fw*(r[4] - l[4]);
-
-  if (ncomp == 5) return;
-
-  // MUSCL reconstruction in edge-end points for scalars
-  muscl( p, q, coord, G, l, r );
-
-  // scalar dissipation
-  auto sw = std::max( std::abs(vnL), std::abs(vnR) );
-
-  // scalar fluxes
-  for (std::size_t c=5; c<ncomp; ++c) {
-    f[c] = l[c]*vnL + r[c]*vnR + sw*(r[c] - l[c]);
-  }
-
-  #if defined(__clang__)
-    #pragma clang diagnostic pop
-  #elif defined(STRICT_GNUC)
-    #pragma GCC diagnostic pop
-  #endif
-}
-
 void
 grad( const std::vector< std::size_t >& bpoin,
       const std::vector< tk::real >& bpint,
@@ -486,6 +387,130 @@ grad( const std::vector< std::size_t >& bpoin,
 }
 
 static void
+rusanov( const tk::UnsMesh::Coords& coord,
+         const tk::Fields& G,
+         const tk::real dsupint[],
+         std::size_t p,
+         std::size_t q,
+         const tk::real L[],
+         const tk::real R[],
+         tk::real f[],
+         std::size_t symL,
+         std::size_t symR )
+// *****************************************************************************
+//! Compute advection fluxes on a single edge with Rusanov's flux
+//! \param[in] coord Mesh node coordinates
+//! \param[in] G Nodal gradients
+//! \param[in] dsupint Domain superedge integral for this edge
+//! \param[in] p Left node index of edge
+//! \param[in] q Right node index of edge
+//! \param[in,out] L Left physics state variables
+//! \param[in,out] R Rigth physics state variables
+//! \param[in,out] f Flux computed
+//! \param[in] symL Non-zero if left edge end-point is on a symmetry boundary
+//! \param[in] symR Non-zero if right edge end-point is on a symmetry boundary
+// *****************************************************************************
+{
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
+  auto ncomp = G.nprop() / 3;
+
+  // will work on copies of physics variables
+  tk::real l[ncomp], r[ncomp];
+  memcpy( l, L, sizeof l );
+  memcpy( r, R, sizeof r );
+
+  // MUSCL reconstruction in edge-end points for flow variables
+  muscl( p, q, coord, G, l[0], l[1], l[2], l[3], l[4],
+                         r[0], r[1], r[2], r[3], r[4] );
+
+  // pressure
+  auto pL = eos::pressure( l[0]*l[4] );
+  auto pR = eos::pressure( r[0]*r[4] );
+
+  // dualface-normal velocities
+  auto nx = dsupint[0];
+  auto ny = dsupint[1];
+  auto nz = dsupint[2];
+  auto vnL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz);
+  auto vnR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz);
+
+  // back to conserved variables
+  l[4] = (l[4] + 0.5*(l[1]*l[1] + l[2]*l[2] + l[3]*l[3])) * l[0];
+  l[1] *= l[0];
+  l[2] *= l[0];
+  l[3] *= l[0];
+  r[4] = (r[4] + 0.5*(r[1]*r[1] + r[2]*r[2] + r[3]*r[3])) * r[0];
+  r[1] *= r[0];
+  r[2] *= r[0];
+  r[3] *= r[0];
+
+  // dissipation
+  auto len = tk::length( nx, ny, nz );
+  auto sl = std::abs(vnL) + eos::soundspeed(l[0],pL)*len;
+  auto sr = std::abs(vnR) + eos::soundspeed(r[0],pR)*len;
+  auto fw = std::max( sl, sr );
+
+  // flow fluxes
+  f[0] = l[0]*vnL + r[0]*vnR + fw*(r[0] - l[0]);
+  f[1] = l[1]*vnL + r[1]*vnR + (pL + pR)*nx + fw*(r[1] - l[1]);
+  f[2] = l[2]*vnL + r[2]*vnR + (pL + pR)*ny + fw*(r[2] - l[2]);
+  f[3] = l[3]*vnL + r[3]*vnR + (pL + pR)*nz + fw*(r[3] - l[3]);
+  f[4] = (l[4] + pL)*vnL + (r[4] + pR)*vnR + fw*(r[4] - l[4]);
+
+  if (ncomp == 5) return;
+
+  // MUSCL reconstruction in edge-end points for scalars
+  muscl( p, q, coord, G, l, r );
+
+  // scalar dissipation
+  auto sw = std::max( std::abs(vnL), std::abs(vnR) );
+
+  // scalar fluxes
+  for (std::size_t c=5; c<ncomp; ++c) {
+    f[c] = l[c]*vnL + r[c]*vnR + sw*(r[c] - l[c]);
+  }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
+}
+
+static
+std::function< void( const tk::UnsMesh::Coords&,
+                     const tk::Fields&,
+                     const tk::real[],
+                     std::size_t,
+                     std::size_t,
+                     const tk::real[],
+                     const tk::real[],
+                     tk::real[],
+                     std::size_t,
+                     std::size_t ) >
+FLUX()
+// *****************************************************************************
+//! Configure flux function to use
+//! \return Function to call to compute flux between two edge-end points
+// *****************************************************************************
+{
+  const auto& flux = g_cfg.get< tag::flux >();
+
+  if (flux == "rusanov")
+    return rusanov;
+  else
+    Throw( "Flux not configured" );
+}
+
+static void
 adv( const tk::UnsMesh::Coords& coord,
      const std::vector< std::size_t >& bpoin,
      const std::vector< tk::real >& bpint,
@@ -516,6 +541,9 @@ adv( const tk::UnsMesh::Coords& coord,
   // number of transported scalars
   auto ncomp = U.nprop();
 
+  // configure flux function
+  auto advedge = FLUX();
+
   #if defined(__clang__)
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wvla"
@@ -539,12 +567,12 @@ adv( const tk::UnsMesh::Coords& coord,
     // edge fluxes
     tk::real f[6][ncomp];
     const auto d = dsupint[0].data();
-    advedge( coord, G, d+(e*6+0)*3, N[0], N[1], u[0], u[1], f[0] );
-    advedge( coord, G, d+(e*6+1)*3, N[1], N[2], u[1], u[2], f[1] );
-    advedge( coord, G, d+(e*6+2)*3, N[2], N[0], u[2], u[0], f[2] );
-    advedge( coord, G, d+(e*6+3)*3, N[0], N[3], u[0], u[3], f[3] );
-    advedge( coord, G, d+(e*6+4)*3, N[1], N[3], u[1], u[3], f[4] );
-    advedge( coord, G, d+(e*6+5)*3, N[2], N[3], u[2], u[3], f[5] );
+    advedge( coord, G, d+(e*6+0)*3, N[0], N[1], u[0], u[1], f[0], 0, 0 );
+    advedge( coord, G, d+(e*6+1)*3, N[1], N[2], u[1], u[2], f[1], 0, 0 );
+    advedge( coord, G, d+(e*6+2)*3, N[2], N[0], u[2], u[0], f[2], 0, 0 );
+    advedge( coord, G, d+(e*6+3)*3, N[0], N[3], u[0], u[3], f[3], 0, 0 );
+    advedge( coord, G, d+(e*6+4)*3, N[1], N[3], u[1], u[3], f[4], 0, 0 );
+    advedge( coord, G, d+(e*6+5)*3, N[2], N[3], u[2], u[3], f[5], 0, 0 );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c] - f[3][c];
@@ -565,9 +593,9 @@ adv( const tk::UnsMesh::Coords& coord,
     // edge fluxes
     tk::real f[3][ncomp];
     const auto d = dsupint[1].data();
-    advedge( coord, G, d+(e*3+0)*3, N[0], N[1], u[0], u[1], f[0] );
-    advedge( coord, G, d+(e*3+1)*3, N[1], N[2], u[1], u[2], f[1] );
-    advedge( coord, G, d+(e*3+2)*3, N[2], N[0], u[2], u[0], f[2] );
+    advedge( coord, G, d+(e*3+0)*3, N[0], N[1], u[0], u[1], f[0], 0, 0 );
+    advedge( coord, G, d+(e*3+1)*3, N[1], N[2], u[1], u[2], f[1], 0, 0 );
+    advedge( coord, G, d+(e*3+2)*3, N[2], N[0], u[2], u[0], f[2], 0, 0 );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
@@ -585,7 +613,7 @@ adv( const tk::UnsMesh::Coords& coord,
     // edge fluxes
     tk::real f[ncomp];
     const auto d = dsupint[2].data();
-    advedge( coord, G, d+e*3, N[0], N[1], u[0], u[1], f );
+    advedge( coord, G, d+e*3, N[0], N[1], u[0], u[1], f, 0, 0 );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) -= f[c];

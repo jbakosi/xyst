@@ -35,4 +35,11 @@ unpredictable heterogeneous dynamic high-performance-computing loads](https://do
   @m_enddiv
 
   This paper describes the @ref inciter_amr algorithm being implemented in @ref inciter_main.
+
+- @m_div{m-text m-strong}
+  R. Lohner, K. Morgan, J. Peraire, M. Vahdati, **[Finite element flux-corrected transport (FEM-FCT) for the Euler and Navier-Stokes equations](http://dx.doi.org/10.1002/fld.1650071007)**, International Journal for Numerical Methods in Fluids, Vol. 7, Num. 10: 1093-1109, 1987.
+  @m_enddiv
+
+  This paper describes the flux-corrected transport algorithm implemented in the @ref inciter_kozcg and @ref inciter_zalcg solvers.
+
 */

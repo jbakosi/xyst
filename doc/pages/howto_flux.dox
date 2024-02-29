@@ -1,0 +1,6 @@
+/*!
+  \page      howto_flux How to add a new flux function to RieCG
+
+@ref inciter_riecg can be used with multiple Riemann solver flux functions for the advection term. On how to add a new flux inspect code revision [256df01](https://codeberg.org/xyst/xyst/commit/256df019a3d69c57b9d103782a2a6cfd511d569f).
+
+*/

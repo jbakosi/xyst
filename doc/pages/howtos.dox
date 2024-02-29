@@ -19,6 +19,7 @@ This page contains links to useful information regarding Xyst.
 - @ref howto_iofiles
 - @ref howto_restart
 - @ref howto_solver
+- @ref howto_flux
 - @ref riecg_example_onera_fieldvis "How to stitch partitioned surface output to a single file"
 
 */

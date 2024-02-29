@@ -15,6 +15,18 @@ add_regression_test(slotcyl_riecg ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
+add_regression_test(slotcyl_riecg_hllc ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES slot_cyl_hllc.q unitsquare_01_3.6k.exo
+                    ARGS -c slot_cyl_hllc.q -i unitsquare_01_3.6k.exo
+                    BIN_BASELINE slot_cyl.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    TEXT_BASELINE diag.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS riecg)
+
 # Parallel + virtualization
 
 add_regression_test(slotcyl_riecg_u0.5 ${INCITER_EXECUTABLE}

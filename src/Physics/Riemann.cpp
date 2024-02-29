@@ -633,15 +633,20 @@ hllc( const tk::UnsMesh::Coords& coord,
   if (ncomp == 5) return;
 
   // MUSCL reconstruction in edge-end points for scalars
-  //muscl( p, q, coord, G, l, r );
+  muscl( p, q, coord, G, l, r );
 
-//  // scalar dissipation
-//  auto sw = std::max( std::abs(qL), std::abs(qR) );
-//
-//  // scalar fluxes
-//  for (std::size_t c=5; c<ncomp; ++c) {
-//    f[c] = l[c]*qL + r[c]*qR + sw*(r[c] - l[c]);
-//  }
+  // scalar dissipation
+  nx = dsupint[0];
+  ny = dsupint[1];
+  nz = dsupint[2];
+  auto vnL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz)/l[0];
+  auto vnR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz)/r[0];
+  auto sw = std::max( std::abs(vnL), std::abs(vnR) );
+
+  // scalar fluxes
+  for (std::size_t c=5; c<ncomp; ++c) {
+    f[c] = l[c]*vnL + r[c]*vnR + sw*(r[c] - l[c]);
+  }
 
   #if defined(__clang__)
     #pragma clang diagnostic pop

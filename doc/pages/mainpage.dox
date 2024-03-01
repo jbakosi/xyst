@@ -27,16 +27,14 @@ failure, and supports power-, and energy-aware computation.
 Xyst consists of the following tools:
 
 @ref inciter_main --- __Navier-Stokes solver for engineering flows__ \n
-Implements multiple finite-element flow solvers for complex engineering
-geometries.
+Implements multiple flow solvers for complex engineering geometries.
 
 @ref meshconv_main --- __Tetrahedron-mesh converter__ \n
-Can convert large tetrahedron meshes between various formats.
+Converts large tetrahedron meshes between various formats.
 
 @ref unittest_main --- __Test suite for synchronous and asynchronous
 functions__ \n
-Capable of executing serial as well as synchronous and asynchronous parallel
-functions.
+Tests serial, and synchronous and asynchronous concurrent functions.
 
 @section mainpage_build Build
 

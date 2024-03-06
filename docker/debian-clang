@@ -29,7 +29,7 @@
 #
 ################################################################################
 
-FROM debian:bookworm
+FROM debian:stable
 
 # Install system-wide prerequisites
 RUN apt-get update -y && apt-get install -y git cmake g++ clang ninja-build bzip2 zlib1g-dev libnetcdf-dev

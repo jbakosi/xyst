@@ -15,6 +15,7 @@
 
 #include <numeric>
 
+#include "PUPUtil.hpp"
 #include "Partitioner.hpp"
 #include "DerivedData.hpp"
 #include "Reorder.hpp"
@@ -22,11 +23,17 @@
 #include "UnsMesh.hpp"
 #include "ContainerUtil.hpp"
 #include "Callback.hpp"
-#include "ZoltanInterOp.hpp"
+#include "ZoltanGeom.hpp"
+#include "ZoltanGraph.hpp"
 #include "InciterConfig.hpp"
+#include "GraphReducer.hpp"
+#include "PartsReducer.hpp"
+#include "Around.hpp"
 
 namespace inciter {
 
+static CkReduction::reducerType GraphMerger;
+static CkReduction::reducerType PartsMerger;
 extern ctr::Config g_cfg;
 
 } // inciter::
@@ -62,18 +69,8 @@ Partitioner::Partitioner(
   m_riecg( riecg ),
   m_zalcg( zalcg ),
   m_kozcg( kozcg ),
-  m_ginpoel(),
-  m_coord(),
-  m_inpoel(),
-  m_lid(),
   m_ndist( 0 ),
   m_nchare( 0 ),
-  m_nface(),
-  m_chinpoel(),
-  m_chcoordmap(),
-  m_chbface(),
-  m_chtriinpoel(),
-  m_chbnode(),
   m_bface( bface ),
   m_bnode( bnode )
 // *****************************************************************************
@@ -108,40 +105,88 @@ Partitioner::Partitioner(
   // sets to this compute node only and to compute-node-local face ids
   m_triinpoel = mr.triinpoel( m_bface, faces, m_ginpoel, triinpoel );
 
-  // Reduce boundary node lists (global ids) for side sets to this compute node
-  // only
-  ownBndNodes( m_lid, m_bnode );
+  // Keep those nodes for side sets that reside on this compute node only
+  std::map< int, std::vector< std::size_t > > own_bnode;
+  for (const auto& [ setid, nodes ] : m_bnode) {
+    auto& b = own_bnode[ setid ];
+    for (auto n : nodes) {
+      auto i = m_lid.find( n );
+      if (i != end(m_lid)) b.push_back( n );
+    }
+    if (b.empty()) own_bnode.erase( setid );
+  }
+  m_bnode = std::move(own_bnode);
 
-  // Sum number of cells across distributed mesh
-  std::vector< std::size_t > meshdata{ meshid, m_ginpoel.size()/4 };
-  contribute( meshdata, CkReduction::sum_ulong, m_cbp.get< tag::load >() );
+  // Compute unqiue mesh graph if needed
+  if ( g_cfg.get< tag::part >() == "phg" ) {
+    // Generate global node ids
+    const auto& [ inpoel, gid, lid ] = tk::global2local( m_ginpoel );
+    // Generate points surrounding points of this sub-graph with local node ids
+    const auto psup = tk::genPsup( m_inpoel, 4, tk::genEsup(m_inpoel,4) );
+    // Put sub-graph into a map for aggregation
+    for (std::size_t p=0; p<gid.size(); ++p) {
+      auto& m = m_graph[ gid[p] ];
+      m.push_back( static_cast< std::size_t >( CkMyNode() ) );
+      for (auto i : tk::Around(psup,p)) m.push_back( gid[i] );
+    }
+  }
+
+  // Aggregate graph across to all Partitioners
+  auto stream = tk::serialize( m_graph );
+  contribute( stream.first, stream.second.get(), GraphMerger,
+              CkCallback( CkIndex_Partitioner::graph(nullptr), thisProxy ) );
 }
 
 void
-Partitioner::ownBndNodes(
-  const std::unordered_map< std::size_t, std::size_t >& lid,
-  std::map< int, std::vector< std::size_t > >& bnode )
+Partitioner::registerReducers()
 // *****************************************************************************
-// Keep only those nodes for side sets that reside on this compute node
-//! \param[in] lid Global->local node IDs of elements of this compute node's
-//!   mesh chunk
-//! \param[in,out] bnode Global ids of nodes for side sets for whole mesh
-//! \details This function overwrites the input boundary node lists map with the
-//!    nodes that reside on the caller compute node.
+//  Configure Charm++ reduction types
+//!  \details Since this is a [initnode] routine, see the .ci file, the
+//!   Charm++ runtime system executes the routine exactly once on every
+//!   logical node early on in the Charm++ init sequence. Must be static as
+//!   it is called without an object. See also: Section "Initializations at
+//!   Program Startup" at in the Charm++ manual
+//!   http://charm.cs.illinois.edu/manuals/html/charm++/manual.html.
 // *****************************************************************************
 {
-  std::map< int, std::vector< std::size_t > > bnode_own;
+  GraphMerger = CkReduction::addReducer( tk::mergeGraph );
+  PartsMerger = CkReduction::addReducer( tk::mergeParts );
+}
 
-  for (const auto& [ setid, nodes ] : bnode) {
-    auto& b = bnode_own[ setid ];
-    for (auto n : nodes) {
-      auto i = lid.find( n );
-      if (i != end(lid)) b.push_back( n );
+void
+Partitioner::graph( CkReductionMsg* msg )
+// *****************************************************************************
+// Reduction target yielding the aggregated mesh graph on each Partitioner
+//! \param[in] msg Serialized aggregated mesh graph
+// *****************************************************************************
+{
+  if (msg) {
+    // Deserialize aggregated mesh graph
+    PUP::fromMem creator( msg->getData() );
+    std::unordered_map< std::size_t, std::vector< std::size_t > > graph;
+    creator | graph;
+    delete msg;
+
+    // Keep owned node graph only
+    for (auto& [g,n] : m_graph) {
+      auto own = graph.find( g );
+      if (own == end(graph)) continue;
+      n.clear();
+      if (own->second[0] == static_cast< std::size_t >( CkMyNode() )) {
+        n.insert( end(n), own->second.begin()+1, own->second.end() );
+      }
+      tk::unique( n );
     }
-    if (b.empty()) bnode_own.erase( setid );
+
+    // Remove connectivity of those nodes not owned
+    graph.clear();
+    for (auto&& [g,n] : m_graph) if (!n.empty()) graph[g] = std::move(n);
+    m_graph = std::move( graph );
   }
 
-  bnode = std::move(bnode_own);
+  // Sum number of cells across distributed mesh
+  std::vector< std::size_t > meshdata{ m_meshid, m_ginpoel.size()/4 };
+  contribute( meshdata, CkReduction::sum_ulong, m_cbp.get< tag::load >() );
 }
 
 void
@@ -158,10 +203,64 @@ Partitioner::partition( int nchare )
                                   "number of compute nodes" );
 
   m_nchare = nchare;
-  const auto che = partMesh( g_cfg.get< tag::part >(),
-                             g_cfg.get< tag::zoltan_params >(),
-                             m_inpoel, m_ginpoel, m_coord, nchare );
+  const auto& alg = g_cfg.get< tag::part >();
+  const auto& params = g_cfg.get< tag::zoltan_params >();
 
+  if ( alg == "phg" ) {
+
+    // Partition mesh with graph partitioner
+    auto chp = graphPartMesh( m_ginpoel, m_graph, params, nchare );
+
+    // Aggregate partition assginments
+    auto stream = tk::serialize( chp );
+    contribute( stream.first, stream.second.get(), PartsMerger,
+                CkCallback( CkIndex_Partitioner::parts(nullptr), thisProxy ) );
+
+  } else {
+
+    // Partition mesh with coordinate-based partitioner
+    auto che = geomPartMesh( alg.c_str(), params, m_inpoel, m_coord, nchare );
+
+    // Distribute partition assignments
+    partitioned( std::move(che) );
+
+  }
+}
+
+void
+Partitioner::parts( CkReductionMsg* msg )
+// *****************************************************************************
+// Reduction target to aggregate mesh partition assignments
+//! \param[in] msg Serialized aggregated mesh nodes partition assignments
+// *****************************************************************************
+{
+  // Deserialize mesh partition assignments
+  PUP::fromMem creator( msg->getData() );
+  std::unordered_map< std::size_t, std::size_t > parts;
+  creator | parts;
+  delete msg;
+
+  // Assign mesh elements based on node assignments
+  using std::min;
+  std::vector< std::size_t > che( m_ginpoel.size()/4 );
+  for (std::size_t e=0; e<m_ginpoel.size()/4; ++e) {
+    const auto g = m_ginpoel.data() + e*4;
+    std::size_t chp[4] = { tk::cref_find( parts, g[0] ),
+                           tk::cref_find( parts, g[1] ),
+                           tk::cref_find( parts, g[2] ),
+                           tk::cref_find( parts, g[3] ) };
+    che[e] = min( chp[0], min( chp[1], min( chp[2], chp[3] ) ) );
+  }
+
+  partitioned( std::move(che) );
+}
+
+void
+Partitioner::partitioned( std::vector< std::size_t >&& che )
+// *****************************************************************************
+// Continue after partitioning finished
+// *****************************************************************************
+{
   if ( g_cfg.get< tag::feedback >() ) m_host.pepartitioned();
 
   contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,

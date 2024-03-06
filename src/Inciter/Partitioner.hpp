@@ -78,6 +78,15 @@ class Partitioner : public CBase_Partitioner {
       #pragma clang diagnostic pop
     #endif
 
+    //! Configure Charm++ reduction types
+    static void registerReducers();
+
+    //! Reduction target to aggregate mesh graphs
+    void graph( CkReductionMsg* msg );
+
+    //! Reduction target to aggregate mesh partition assginments
+    void parts( CkReductionMsg* msg );
+
     //! Partition the computational mesh into a number of chares
     void partition( int nchare );
 
@@ -116,6 +125,7 @@ class Partitioner : public CBase_Partitioner {
       p | m_riecg;
       p | m_zalcg;
       p | m_ginpoel;
+      p | m_graph;
       p | m_coord;
       p | m_inpoel;
       p | m_lid;
@@ -167,6 +177,8 @@ class Partitioner : public CBase_Partitioner {
     CProxy_KozCG m_kozcg;
     //! Element connectivity of this compute node's mesh chunk (global ids)
     std::vector< std::size_t > m_ginpoel;
+    //! Aggregated mesh graph of owned nodes if graph-based partitioner is used
+    std::unordered_map< std::size_t, std::vector< std::size_t > > m_graph;
     //! Coordinates of mesh nodes of this compute node's mesh chunk
     tk::UnsMesh::Coords m_coord;
     //! \brief Element connectivity with local node IDs of this compute node's
@@ -229,10 +241,8 @@ class Partitioner : public CBase_Partitioner {
     //! Return nodegroup id for chare id
     int node( int id ) const;
 
-    //! Keep only those nodes for side sets that reside on this compute node
-    void ownBndNodes(
-      const std::unordered_map< std::size_t, std::size_t >& lid,
-      std::map< int, std::vector< std::size_t > >& bnode );
+    //! Continue after partitioning finished
+    void partitioned( std::vector< std::size_t >&& che );
 };
 
 } // inciter::

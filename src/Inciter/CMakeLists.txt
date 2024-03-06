@@ -13,6 +13,8 @@ add_library(Inciter
             ZalCG.cpp
             KozCG.cpp
             DiagReducer.cpp
+            GraphReducer.cpp
+            PartsReducer.cpp
             NodeDiagnostics.cpp
             IntegralReducer.cpp)
 

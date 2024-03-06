@@ -27,7 +27,7 @@
   #pragma GCC diagnostic pop
 #endif
 
-#include "ZoltanInterOp.hpp"
+#include "ZoltanGraph.hpp"
 #include "ContainerUtil.hpp"
 #include "DerivedData.hpp"
 #include "Reorder.hpp"
@@ -37,7 +37,7 @@ namespace inciter {
 //! Zoltan mesh data structure
 struct MESH_DATA {
   int numMyVertices;            //!< number of vertices that I own initially
-  ZOLTAN_ID_TYPE* vtxGID;       //!< globa ID of these vertices
+  ZOLTAN_ID_TYPE* vtxGID;       //!< global ID of these vertices
   int numMyHEdges;              //!< number of my hyperedges
   int numAllNbors;              //!< number of vertices in my hyperedges
   ZOLTAN_ID_TYPE *edgeGID;      //!< global ID of each of my hyperedges
@@ -100,20 +100,21 @@ get_hypergraph( void* data, int /* sizeGID */, int num_edges, int num_nonzeros,
   for (int i=0; i<num_nonzeros; ++i) vtxGID[i] = hg->nborGID[i];
 }
 
-static std::size_t
-createHyperGraph( const std::vector< std::size_t >& inpoel,
-                  const std::vector< std::size_t >& gid,
+static void
+createHyperGraph( const std::vector< std::size_t >& gid,
+                  const std::unordered_map< std::size_t,
+                                            std::vector< std::size_t > >& graph,
                   MESH_DATA& hg )
 // *****************************************************************************
 //  Create hypergraph data structure for Zoltan
-//! \param[in] inpoel Mesh node connectivity with local ids
 //! \param[in] gid Global node ids
+//! \param[in] graph Aggregated mesh graph point connectivity
 //! \param[inout] hg Hypergraph data structure to fill
 //! \return Number of hyperedges in graph (number of nodes in our mesh chunk)
 // *****************************************************************************
 {
   // Get number of points from graph
-  const auto npoin = gid.size();
+  const auto npoin = graph.size();
 
   // Create hypergraph data structure based on mesh graph
   hg.numMyVertices = static_cast< int >( npoin );
@@ -124,80 +125,58 @@ createHyperGraph( const std::vector< std::size_t >& inpoel,
                  malloc(sizeof(ZOLTAN_ID_TYPE) * npoin) );
   hg.nborIndex = static_cast< int* >( malloc(sizeof(int) * (npoin+1)) );
 
-  // Assign global point ids
-  for (std::size_t i=0; i<npoin; ++i)
-    hg.vtxGID[i] = static_cast< ZOLTAN_ID_TYPE >( gid[i] );
+  // generate linked vectors for points surrounding points and their indices
+  std::pair< std::vector< std::size_t >, std::vector< std::size_t > > psup;
+  auto& psup1 = psup.first;
+  auto& psup2 = psup.second;
+  psup1.resize( 1, 0 );
+  psup2.resize( 1, 0 );
 
-  // Generate points surrounding points of graph storing local node ids
-  const auto psup = tk::genPsup( inpoel, 4, tk::genEsup(inpoel,4) );
+  std::vector< std::size_t > gp;
+  for (std::size_t p=0; p<gid.size(); ++p) {
+    auto i = graph.find( gid[p] );
+    if (i == end(graph)) continue;
+    gp.push_back( gid[p] );
+    const auto& n = i->second;
+    psup2.push_back( psup2.back() + n.size() );
+    psup1.insert( end(psup1), begin(n), end(n) );
+  }
 
-  // Allocate data to store the hypergraph ids. The total number of vertices or
-  // neighbors in all the hyperedges of the hypergraph, nhedge = all points
-  // surrounding points + number of points, since psup does not store the
-  // connection to the own point. In other words, here we need the number of
-  // edges in the graph, independent of direction.
-  auto nhedge = psup.first.size() - 1 + npoin;
-  hg.numAllNbors = static_cast< int >( nhedge );
+  Assert( gp.size() == graph.size(), "Size mismatch" );
+
+  // Compute sum of number of vertices of hyperedges and allocate memory
+  auto nedge = psup.first.size() - 1 + npoin;
+  hg.numAllNbors = static_cast< int >( nedge );
   hg.nborGID = static_cast< ZOLTAN_ID_PTR >(
-                 malloc(sizeof(ZOLTAN_ID_TYPE) * nhedge) );
+                 malloc(sizeof(ZOLTAN_ID_TYPE) * nedge) );
 
-  // Fill up hypergraph edge ids and their indices
-  hg.nborIndex[0] = 0;
-  for (std::size_t p=0; p<npoin; ++p) {
-    hg.edgeGID[p] = static_cast< ZOLTAN_ID_TYPE >( gid[p] );
-    hg.nborGID[ hg.nborIndex[p] ] = static_cast< ZOLTAN_ID_TYPE >( gid[p] );
-    int j = 0;
-    for (auto i=psup.second[p]+1; i<=psup.second[p+1]; ++i, ++j) {
-      hg.nborGID[ hg.nborIndex[p] + 1 + j ] =
-        static_cast< ZOLTAN_ID_TYPE >( gid[psup.first[i]] );
-    }
-    hg.nborIndex[p+1] = hg.nborIndex[p] + j;
-  }
-
-  return npoin;
+   // Fill up hypergraph edge ids and their indices
+   hg.nborIndex[0] = 0;
+   for (std::size_t p=0; p<npoin; ++p) {
+     auto g = static_cast< ZOLTAN_ID_TYPE >( gp[p] );
+     hg.vtxGID[p] = hg.edgeGID[p] = hg.nborGID[ hg.nborIndex[p] ] = g;
+     int j = 1;
+     for (auto i=psup2[p]+1; i<=psup2[p+1]; ++i, ++j) {
+       hg.nborGID[ hg.nborIndex[p] + j ] =
+         static_cast< ZOLTAN_ID_TYPE >( psup1[i] );
+     }
+     hg.nborIndex[p+1] = hg.nborIndex[p] + j;
+   }
 }
 
-static std::vector< std::size_t >
-chElem( const std::vector< std::size_t >& chp,
-        const std::vector< std::size_t >& inpoel )
-// *****************************************************************************
-//! Construct array of chare ownership IDs mapping mesh elements to chares
-//! \param[in] chp Chares of points: array of chare ownership IDs mapping graph
-//!   points to Charm++ chares. Size: number of points in chunk of mesh graph.
-//! \param[in] inpoel Mesh tetrahedron element connectivity with local IDs
-//! \return Vector of chare IDs mapped to mesh elements
-//! \details This function constructs the vector che, 'chares of elements'. This
-//!   is the equivalent of chp, 'chares of points', but stores the chare ids of
-//!   mesh elements. The element ownership is computed based on the point
-//!   ownership. If all points of an element are owned by a chare, then that
-//!   chare owns the element. If not all points of an element are owned by the
-//!   a chare, than the chare with lower chare id gets to own the element.
-//! \note This function operates on all MPI ranks, working on different chunks
-//!   of the mesh.
-//! \author J. Bakosi
-// ******************************************************************************
-{
-  std::vector< std::size_t > che( inpoel.size()/4 );
-
-  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    const auto i = inpoel.data() + e*4;
-    che[e] = std::min( chp[i[3]],
-               std::min( chp[i[2]], std::min( chp[i[0]], chp[i[1]] ) ) );
-  }
-
-  return che;
-}
-
-std::vector< std::size_t >
+std::unordered_map< std::size_t, std::size_t >
 graphPartMesh( const std::vector< std::size_t >& ginpoel,
+               const std::unordered_map< std::size_t,
+                                std::vector< std::size_t > >& graph,
                const std::vector< std::string >& zoltan_params,
                int npart )
 // *****************************************************************************
 //  Partition mesh using Zoltan with a geometric partitioner
 //! \param[in] ginpoel Mesh connectivity with global ids
+//! \param[in] graph Mesh graph point connectivity
 //! \param[in] zoltan_params Extra parameters pass to zoltan
 //! \param[in] npart Number of desired partitions
-//! \return Array of chare ownership IDs mapping elements to chares
+//! \return Array of chare ownership IDs mapping points owned to chares
 //! \details This function uses Zoltan to partition the mesh in parallel.
 //!   It assumes that the mesh is distributed among all the MPI ranks.
 // *****************************************************************************
@@ -215,17 +194,14 @@ graphPartMesh( const std::vector< std::size_t >& ginpoel,
 
   Zoltan_Set_Param( zz, "DEBUG_LEVEL", "0" );
   Zoltan_Set_Param( zz, "PHG_OUTPUT_LEVEL", "0" );
-  Zoltan_Set_Param( zz, "CHECK_HYPERGRAPH", "0" );
   Zoltan_Set_Param( zz, "LB_METHOD", "HYPERGRAPH" );
   Zoltan_Set_Param( zz, "HYPERGRAPH_PACKAGE", "PHG" );
   Zoltan_Set_Param( zz, "LB_APPROACH", "PARTITION" );
-  Zoltan_Set_Param( zz, "PHG_MULTILEVEL", "0" );
-  Zoltan_Set_Param( zz, "PHG_CUT_OBJECTIVE", "CONNECTIVITY" );
   Zoltan_Set_Param( zz, "NUM_GID_ENTRIES", "1" );
   Zoltan_Set_Param( zz, "NUM_LID_ENTRIES", "1" );
   Zoltan_Set_Param( zz, "OBJ_WEIGHT_DIM", "0" );
+  Zoltan_Set_Param( zz, "EDGE_WEIGHT_DIM", "0" );
   Zoltan_Set_Param( zz, "RETURN_LISTS", "PART" );
-  Zoltan_Set_Param( zz, "RCB_OUTPUT_LEVEL", "0" );
   Zoltan_Set_Param( zz, "NUM_GLOBAL_PARTS", std::to_string(npart).c_str() );
 
   for (std::size_t i=0; i<zoltan_params.size()/2; ++i) {
@@ -237,13 +213,14 @@ graphPartMesh( const std::vector< std::size_t >& ginpoel,
   const auto& [ inpoel, gid, lid ] = tk::global2local( ginpoel );
 
   MESH_DATA myMesh;
-  auto npoin = createHyperGraph( inpoel, gid, myMesh );
+  createHyperGraph( gid, graph, myMesh );
 
   // Set Zoltan query functions
   Zoltan_Set_Num_Obj_Fn( zz, get_number_of_objects, &myMesh );
   Zoltan_Set_Obj_List_Fn( zz, get_object_list, &myMesh );
   Zoltan_Set_HG_Size_CS_Fn( zz, get_hypergraph_size, &myMesh );
   Zoltan_Set_HG_CS_Fn( zz, get_hypergraph, &myMesh );
+  //Zoltan_Set_HG_Size_CS_Fn( zz, get_hypergraph_size, &myMesh );
 
   Zoltan_LB_Partition(zz, /* input (all remaining fields are output) */
         &changes,        /* 1 if partitioning was changed, 0 otherwise */
@@ -260,7 +237,7 @@ graphPartMesh( const std::vector< std::size_t >& ginpoel,
         &exportProcs,    /* Process to which I send each of the vertices */
         &exportToPart);  /* Partition to which each vertex will belong */
 
-  Assert( numExport == static_cast< int >( npoin ), "Size mismatch" );
+  Assert( numExport == static_cast< int >( graph.size() ), "Size mismatch" );
 
   if (myMesh.numMyVertices > 0) free( myMesh.vtxGID );
   if (myMesh.numMyHEdges > 0) free( myMesh.edgeGID );
@@ -270,23 +247,20 @@ graphPartMesh( const std::vector< std::size_t >& ginpoel,
   // Copy over array of chare IDs corresponding to the ownership of vertices in
   // our chunk of the mesh, i.e., the coloring or chare ids for the mesh nodes
   // we operate on.
-  std::vector< std::size_t > chp( npoin );
-  for (std::size_t p=0; p<static_cast<std::size_t>(numExport); ++p )
-    chp[ exportLocalGids[p] ] = static_cast< std::size_t >( exportToPart[p] );
+  std::unordered_map< std::size_t, std::size_t > chp;
+  for (std::size_t p=0; p<static_cast<std::size_t>(numExport); ++p ) {
+    chp[ exportGlobalGids[p] ] = static_cast< std::size_t >( exportToPart[p] );
+  }
 
-  /******************************************************************
-  ** Free the arrays allocated by Zoltan_LB_Partition, and free
-  ** the storage allocated for the Zoltan structure.
-  ******************************************************************/
-
+  // Free the arrays allocated by Zoltan_LB_Partition
   Zoltan_LB_Free_Part( &importGlobalGids, &importLocalGids,
                        &importProcs, &importToPart );
   Zoltan_LB_Free_Part( &exportGlobalGids, &exportLocalGids,
                        &exportProcs, &exportToPart );
-
+  // Fee the storage allocated for the Zoltan structure
   Zoltan_Destroy( &zz );
 
-  return chElem( chp, inpoel );
+  return chp;
 }
 
 } // inciter::

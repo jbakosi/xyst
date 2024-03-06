@@ -210,43 +210,6 @@ if(NOT CHARM_FOUND)
   find_package(Charm REQUIRED)
 endif()
 
-if(ZOLTAN2_INSTALL_DIR)
-  set(Zoltan2_DIR "${ZOLTAN2_INSTALL_DIR}/lib/cmake/Zoltan2")
-else()
-  set(Zoltan2_DIR "${CMAKE_BINARY_DIR}/zoltan2/install/lib/cmake/Zoltan2")
-endif()
-if(EXISTS "${Zoltan2_DIR}")
-  find_package(Zoltan2)
-endif()
-if(NOT Zoltan2_FOUND)
-  build_external_project(zoltan2 "
-    cmake_minimum_required(VERSION 3.0)
-    project(zoltan2 CXX)
-    include(ExternalProject)
-    ExternalProject_add(zoltan2
-      PREFIX zoltan2
-      GIT_REPOSITORY https://github.com/trilinos/Trilinos.git
-      #GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/Trilinos
-      GIT_TAG trilinos-release-12-12-1
-      CMAKE_ARGS -D Trilinos_ENABLE_ALL_PACKAGES:BOOL=OFF
-                 -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF
-                 -D TPL_ENABLE_MPI:BOOL=ON
-                 -D Trilinos_ENABLE_Zoltan2:BOOL=ON
-                 -D Trilinos_ENABLE_Fortran=OFF
-                 -D Trilinos_ENABLE_DEBUG=OFF
-                 -D Trilinos_SET_INSTALL_RPATH=TRUE
-                 -D CMAKE_BUILD_TYPE:STRING=Release
-                 -D CMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/zoltan2/install
-      CMAKE_GENERATOR \"Unix Makefiles\"
-      BUILD_COMMAND make -j${PROCESSOR_COUNT}
-      LOG_DOWNLOAD 1
-      LOG_CONFIGURE 1
-      LOG_BUILD 1
-      LOG_INSTALL 1)
-  ")
-  find_package(Zoltan2 REQUIRED)
-endif()
-
 if(AMPI)
   set(COMPILER ${AMPI_CXX_COMPILER})
 endif()

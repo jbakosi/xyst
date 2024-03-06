@@ -42,6 +42,9 @@ module partitioner {
         const std::map< int, std::vector< std::size_t > >& belem,
         const std::map< int, std::vector< std::size_t > >& faces,
         const std::map< int, std::vector< std::size_t > >& bnode );
+      initnode void registerReducers();
+      entry [reductiontarget] void graph( CkReductionMsg* msg );
+      entry [reductiontarget] void parts( CkReductionMsg* msg );
       entry [exclusive] void partition( int nchare );
       entry [exclusive] void addMesh(
         int fromnode,

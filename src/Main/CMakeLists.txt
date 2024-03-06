@@ -134,7 +134,6 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       Statistics
                       zoltan1
                       exodus
-                      ${Zoltan2_LIBRARIES}
                       ${MPI_C_LIBRARIES}
                       ${NETCDF_LIBRARIES})
 

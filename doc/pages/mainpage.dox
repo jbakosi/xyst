@@ -34,7 +34,7 @@ Converts large tetrahedron meshes between various formats.
 
 @ref unittest_main --- __Test suite for synchronous and asynchronous
 functions__ \n
-Tests serial, and synchronous and asynchronous concurrent functions.
+Tests serial and (a)synchronous concurrent functions.
 
 @section mainpage_build Build
 

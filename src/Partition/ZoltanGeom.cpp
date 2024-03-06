@@ -10,6 +10,8 @@
 */
 // *****************************************************************************
 
+#include <numeric>
+
 #include "Compiler.hpp"
 
 #if defined(__clang__)
@@ -36,7 +38,7 @@
   #pragma GCC diagnostic pop
 #endif
 
-#include "ZoltanInterOp.hpp"
+#include "ZoltanGeom.hpp"
 #include "ContainerUtil.hpp"
 
 namespace inciter {

@@ -3,10 +3,8 @@ project(Partition CXX)
 include(charm)
 
 add_library(Partition
-            ZoltanInterOp.cpp
             ZoltanGeom.cpp
-            ZoltanGraph.cpp
-            Zoltan2Geom.cpp)
+            ZoltanGraph.cpp)
 
 target_include_directories(Partition PUBLIC
                       ${PROJECT_SOURCE_DIR}/..
@@ -17,7 +15,6 @@ target_include_directories(Partition PUBLIC
                       ${PROJECT_SOURCE_DIR}/../zoltan/src/all
                       ${PROJECT_BINARY_DIR}/../Main
                       ${CHARM_INCLUDE_DIRS}
-                      ${Zoltan2_INCLUDE_DIRS}
                       ${MPI_C_INCLUDE_DIRS})
 
 set_target_properties(Partition PROPERTIES
@@ -26,5 +23,4 @@ set_target_properties(Partition PROPERTIES
 INSTALL(TARGETS Partition
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development
-)
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development)

@@ -19,7 +19,7 @@ deactivate = {
   freq = 5
 }
 
-part = "multijagged"
+part = "phg"
 
 problem = {
   name = "sedov",

@@ -10,7 +10,11 @@ cfl = 0.5
 solver = "zalcg"
 fctsys = { 1, 2, 3, 4, 5 }
 
-part = "multijagged"
+part = "phg"
+zoltan_params = {
+   "DEBUG_LEVEL", "2"
+ , "CHECK_HYPERGRAPH", "1"
+}
 
 problem = {
   name = "sedov",

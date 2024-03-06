@@ -465,6 +465,18 @@ rusanov( const tk::UnsMesh::Coords& coord,
   f[3] = l[3]*vnL + r[3]*vnR + (pL + pR)*nz + fw*(r[3] - l[3]);
   f[4] = (l[4] + pL)*vnL + (r[4] + pR)*vnR + fw*(r[4] - l[4]);
 
+  // artificial viscosity
+  const auto stab2 = g_cfg.get< tag::stab2 >();
+  if (stab2) {
+    auto stab2coef = g_cfg.get< tag::stab2coef >();
+    auto fws = stab2coef * fw;
+    f[0] -= fws*(l[0] - r[0]);
+    f[1] -= fws*(l[1] - r[1]);
+    f[2] -= fws*(l[2] - r[2]);
+    f[3] -= fws*(l[3] - r[3]);
+    f[4] -= fws*(l[4] - r[4]);
+  }
+
   if (ncomp == 5) return;
 
   // MUSCL reconstruction in edge-end points for scalars

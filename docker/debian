@@ -24,24 +24,15 @@
 #   docker push jbakosi/xyst-gnu
 #
 #   Test in non-SMP or SMP mode, after uncommenting Clone, Build, and Test:
-#   docker build -f debian -t xyst-gnu --build-arg CHARM_INSTALL_DIR=/charm-non-smp --build-arg ZOLTAN2_INSTALL_DIR=/zoltan2 .
-#   docker build -f debian -t xyst-gnu --build-arg CHARM_INSTALL_DIR=/charm-smp --build-arg ZOLTAN2_INSTALL_DIR=/zoltan2 .
+#   docker build -f debian -t xyst-gnu --build-arg CHARM_INSTALL_DIR=/charm-non-smp .
+#   docker build -f debian -t xyst-gnu --build-arg CHARM_INSTALL_DIR=/charm-smp .
 #
 ################################################################################
 
-FROM debian:bookworm
+FROM debian:stable
 
 # Install system-wide prerequisites
-RUN apt-get update -y && apt-get install -y git cmake g++ gfortran ninja-build bzip2 zlib1g-dev libnetcdf-mpi-dev libblas-dev liblapack-dev
-
-# Install OpenMPI
-ADD https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.4.tar.bz2 /openmpi/
-RUN cd /openmpi/ && tar xjf openmpi-4.1.4.tar.bz2 && cd openmpi-4.1.4 && ./configure --prefix=/opt/openmpi && make -sj$(grep -c processor /proc/cpuinfo) install
-ENV CC /opt/openmpi/bin/mpicc
-ENV CXX /opt/openmpi/bin/mpicxx
-ENV PATH /opt/openmpi/bin:$PATH
-ENV LD_LIBRARY_PATH /opt/openmpi/lib:$LD_LIBRARY_PATH
-RUN rm -rf /openmpi
+RUN apt-get update -y && apt-get install -y git cmake g++ gfortran ninja-build bzip2 zlib1g-dev libnetcdf-mpi-dev
 
 # Install Charm++ in both non-SMP and SMP mode
 RUN git clone https://github.com/UIUC-PPL/charm && cd charm && git checkout v7.0.0-rc2
@@ -49,17 +40,11 @@ RUN cd charm && mkdir nonsmp && cd nonsmp && cmake -DSMP=off -DTARGET=charm -DNE
 RUN cd charm && mkdir smp && cd smp && cmake -DSMP=on -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
 RUN rm -rf charm
 
-# Install Zoltan2
-RUN git clone https://github.com/trilinos/Trilinos.git && cd Trilinos && git checkout trilinos-release-12-12-1
-RUN cd Trilinos && mkdir build && cd build && cmake -D Trilinos_ENABLE_ALL_PACKAGES:BOOL=OFF -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF -D TPL_ENABLE_MPI:BOOL=ON -D Trilinos_ENABLE_Zoltan2:BOOL=ON -D Trilinos_ENABLE_Fortran=OFF -D Trilinos_ENABLE_DEBUG=OFF -D Trilinos_SET_INSTALL_RPATH=TRUE -D CMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/zoltan2 .. && make -sj$(grep -c processor /proc/cpuinfo) install
-RUN rm -rf Trilinos
-
 # # Clone
 # ARG COMMIT
 # RUN git clone https://codeberg.org/xyst/xyst.git && cd xyst && git checkout $COMMIT && git log -1 HEAD
 # # Build
 # ARG CHARM_INSTALL_DIR
-# ARG ZOLTAN2_INSTALL_DIR
-# RUN cd xyst && mkdir -p build && cd build && cmake -GNinja -DCHARM_INSTALL_DIR=${CHARM_INSTALL_DIR} -DZOLTAN2_INSTALL_DIR=${ZOLTAN2_INSTALL_DIR} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
+# RUN cd xyst && mkdir -p build && cd build && cmake -GNinja -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCHARM_INSTALL_DIR=${CHARM_INSTALL_DIR} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
 # # Test
 # RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q && ctest -j$(grep -c processor /proc/cpuinfo) --output-on-failure

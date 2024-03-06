@@ -895,8 +895,8 @@ ZalCG::chbnded()
     std::unordered_map< tk::UnsMesh::Edge, tk::real,
                         tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > edges;
     for (auto g : nodes) {
-      auto p = tk::cref_find(lid,g);
-      for (auto e : tk::Around(esup,p)) {
+      auto i = tk::cref_find(lid,g);
+      for (auto e : tk::Around(esup,i)) {
         const auto N = inpoel.data() + e*4;
         for (const auto& [p,q] : tk::lpoed) {
           tk::UnsMesh::Edge ged{ gid[N[p]], gid[N[q]] };
@@ -2220,8 +2220,8 @@ ZalCG::writeFields( CkCallback cb )
     hull.resize( m_u.nunk(), 0.0 );
     for (const auto& [ch,edges] : m_chbndedge) {
       if (m_inactive.count(ch)) {
-        for (const auto& [e,sint] : edges) {
-          hull[e[0]] = hull[e[1]] = 1.0;
+        for (const auto& [ed,sint] : edges) {
+          hull[ed[0]] = hull[ed[1]] = 1.0;
         }
       }
     }

@@ -23,9 +23,11 @@
 #   docker-squash --cleanup xyst-gnu -t jbakosi/xyst-gnu
 #   docker push jbakosi/xyst-gnu
 #
-#   Test in non-SMP or SMP mode, after uncommenting Clone, Build, and Test:
-#   docker build -f debian -t xyst-gnu --build-arg CHARM_INSTALL_DIR=/charm-non-smp .
-#   docker build -f debian -t xyst-gnu --build-arg CHARM_INSTALL_DIR=/charm-smp .
+#   Test in non-SMP mode, after uncommenting Clone, Build, and Test:
+#   docker build -f debian -t xyst-gnu .
+#
+# \note No SMP build because that requires own openmpi to avoid openmpi runtime
+#   errors in smp mode, see debian-clang for SMP mode.
 #
 ################################################################################
 
@@ -37,14 +39,12 @@ RUN apt-get update -y && apt-get install -y git cmake g++ gfortran ninja-build b
 # Install Charm++ in both non-SMP and SMP mode
 RUN git clone https://github.com/UIUC-PPL/charm && cd charm && git checkout v7.0.0-rc2
 RUN cd charm && mkdir nonsmp && cd nonsmp && cmake -DSMP=off -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-non-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
-RUN cd charm && mkdir smp && cd smp && cmake -DSMP=on -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
 RUN rm -rf charm
 
 # # Clone
 # ARG COMMIT
 # RUN git clone https://codeberg.org/xyst/xyst.git && cd xyst && git checkout $COMMIT && git log -1 HEAD
 # # Build
-# ARG CHARM_INSTALL_DIR
-# RUN cd xyst && mkdir -p build && cd build && cmake -GNinja -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCHARM_INSTALL_DIR=${CHARM_INSTALL_DIR} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
+# RUN cd xyst && mkdir -p build && cd build && cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -GNinja -DCHARM_INSTALL_DIR=/charm-non-smp -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
 # # Test
 # RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q && ctest -j$(grep -c processor /proc/cpuinfo) --output-on-failure

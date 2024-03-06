@@ -32,8 +32,7 @@ Implements multiple flow solvers for complex engineering geometries.
 @ref meshconv_main --- __Tetrahedron-mesh converter__ \n
 Converts large tetrahedron meshes between various formats.
 
-@ref unittest_main --- __Test suite for synchronous and asynchronous
-functions__ \n
+@ref unittest_main --- __Test suite for (a)synchronous functions__ \n
 Tests serial and (a)synchronous concurrent functions.
 
 @section mainpage_build Build

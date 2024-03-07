@@ -15,6 +15,19 @@ add_regression_test(compflow_euler_vorticalflow_riecg ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
+add_regression_test(compflow_euler_vorticalflow_riecg_stab2
+                    ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES vortical_flow_stab2.q unitcube_1k.exo
+                    ARGS -c vortical_flow_stab2.q -i unitcube_1k.exo
+                    BIN_BASELINE vortical_flow_stab2.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    TEXT_BASELINE diag_stab2.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS riecg)
+
 add_regression_test(compflow_euler_vorticalflow_riecg_steady
                     ${INCITER_EXECUTABLE}
                     NUMPES 1
@@ -106,6 +119,36 @@ add_regression_test(compflow_euler_vorticalflow_riecg_hllc_u0.5
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
+
+add_regression_test(compflow_euler_vorticalflow_riecg_hllc_stab2_u0.5
+                    ${INCITER_EXECUTABLE}
+                    NUMPES 4
+                    INPUTFILES vortical_flow_hllc_stab2.q unitcube_1k.exo
+                    ARGS -f -c vortical_flow_hllc_stab2.q -i unitcube_1k.exo
+                         -u 0.5
+                    BIN_BASELINE vortical_flow_hllc_stab2_pe4_u0.5.std.exo.0
+                                 vortical_flow_hllc_stab2_pe4_u0.5.std.exo.1
+                                 vortical_flow_hllc_stab2_pe4_u0.5.std.exo.2
+                                 vortical_flow_hllc_stab2_pe4_u0.5.std.exo.3
+                                 vortical_flow_hllc_stab2_pe4_u0.5.std.exo.4
+                                 vortical_flow_hllc_stab2_pe4_u0.5.std.exo.5
+                                 vortical_flow_hllc_stab2_pe4_u0.5.std.exo.6
+                                 vortical_flow_hllc_stab2_pe4_u0.5.std.exo.7
+                    BIN_RESULT out.e-s.0.8.0
+                               out.e-s.0.8.1
+                               out.e-s.0.8.2
+                               out.e-s.0.8.3
+                               out.e-s.0.8.4
+                               out.e-s.0.8.5
+                               out.e-s.0.8.6
+                               out.e-s.0.8.7
+                    BIN_DIFF_PROG_ARGS -m
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    TEXT_BASELINE diag_hllc_stab2.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS riecg)
+
 
 add_regression_test(compflow_euler_vorticalflow_riecg_reord_u0.5
                     ${INCITER_EXECUTABLE}

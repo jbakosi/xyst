@@ -85,7 +85,7 @@ diag = {
 }
 @endcode
 
-@section zalcg_example_onera_run Run using the coarse mesh on 32 CPUs
+@section zalcg_example_onera_run Run on 32 CPUs
 
 @code{.bash}
 ./charmrun +p32 Main/inciter -v -i onera_710K.exo -c onera.q

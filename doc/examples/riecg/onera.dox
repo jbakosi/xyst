@@ -87,7 +87,7 @@ diag = {
 }
 @endcode
 
-@section riecg_example_onera_run Run using the coarse mesh on 26 CPUs
+@section riecg_example_onera_run Run using the coarse mesh on 30 CPUs
 
 @code{.bash}
 ./charmrun +p30 Main/inciter -v -i onera_710K.exo -c onera.q
@@ -120,8 +120,7 @@ wing.
 <img src="images/onera_riecg_pressure_bottom.png"/>
 @m_enddiv
 
-The figure below shows the convergence of the density residual for the coarse
-mesh computation.
+The figure below shows the convergence of the density residual for both meshes.
 @m_div{m-col-m-10 m-center-m}
 <img src="images/onera_riecg_res.png"/>
 @m_enddiv

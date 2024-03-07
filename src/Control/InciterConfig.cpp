@@ -937,7 +937,6 @@ Config::control()
     get< tag::solver >() = string( L, "solver", "riecg", true );
     get< tag::stab2 >() = boolean( L, "stab2", false, true );
     get< tag::stab2coef >() = real( L, "stab2coef", 0.2, true );
-    get< tag::stab4 >() = boolean( L, "stab4", false, true );
     get< tag::fct >() = boolean( L, "fct", true, true );
     get< tag::fctdif >() = real( L, "fctdif", 1.0, true );
     get< tag::fctclip >() = boolean( L, "fctclip", false, true );

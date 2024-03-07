@@ -251,7 +251,6 @@ void Timer_object::test< 7 >() {
 //! Test querying a timer from a std::map
 template<> template<>
 void Timer_object::test< 8 >() {
-  double prec = 1.0e-2; // only for this single test (to pass on Mac OS)
   set_test_name( "query timer from map" );
 
   std::map< std::string, tk::Timer > timer;
@@ -259,7 +258,7 @@ void Timer_object::test< 8 >() {
   usleep( 1000000 );    // in micro-seconds, sleep for 1.0 second
   const auto t = tk::ref_find( timer, "some timer" );
 
-  ensure_equals( "timer different", t.dsec(), 1.0, prec );
+  ensure_equals( "timer different", t.dsec(), 1.0, 0.1 );
 }
 
 //! Test that querying timer from a map throws with garbage key

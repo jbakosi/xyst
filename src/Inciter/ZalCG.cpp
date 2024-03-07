@@ -48,8 +48,6 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
               const std::map< int, std::vector< std::size_t > >& bnode,
               const std::vector< std::size_t >& triinpoel ) :
   m_disc( disc ),
-  m_ngrad( 0 ),
-  m_nstab( 0 ),
   m_nrhs( 0 ),
   m_nnorm( 0 ),
   m_naec( 0 ),
@@ -68,8 +66,6 @@ ZalCG::ZalCG( const CProxy_Discretization& disc,
   m_q( m_u.nunk(), m_u.nprop()*2 ),
   m_a( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
-  m_grad( g_cfg.get< tag::stab4 >() ? m_u.nunk() : 0, 3 + m_u.nprop() ),
-  m_stab( m_grad.nunk(), 1UL ),
   m_vol( Disc()->Vol() ),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
@@ -1013,8 +1009,6 @@ ZalCG::dt()
   }
 
   // Actiavate SDAG waits for next time step
-  thisProxy[ thisIndex ].wait4grad();
-  thisProxy[ thisIndex ].wait4stab();
   thisProxy[ thisIndex ].wait4rhs();
   thisProxy[ thisIndex ].wait4aec();
   thisProxy[ thisIndex ].wait4alw();
@@ -1038,118 +1032,7 @@ ZalCG::advance( tk::real newdt )
   // Set new time step size
   Disc()->setdt( newdt );
 
-  if (m_deactivated) solve(); else compute();
-}
-
-void
-ZalCG::compute()
-// *****************************************************************************
-// Compute next time step
-// *****************************************************************************
-{
-  if (g_cfg.get< tag::stab4 >()) grad(); else rhs();
-}
-
-void
-ZalCG::grad()
-// *****************************************************************************
-// Compute gradients for next time step
-// *****************************************************************************
-{
-  auto d = Disc();
-  const auto& lid = d->Lid();
-
-  zalesak::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge,
-                 m_bsupint, m_u, m_grad );
-
-  // Send gradient contributions to neighbor chares
-  if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){
-    comgrad_complete();
-  } else {
-    for (const auto& [c,n] : d->NodeCommMap()) {
-      if (m_inactive.count(c)) continue;
-      std::unordered_map< std::size_t, std::vector< tk::real > > exp;
-      for (auto g : n) exp[g] = m_grad[ tk::cref_find(lid,g) ];
-      thisProxy[c].comgrad( exp );
-    }
-  }
-  owngrad_complete();
-}
-
-void
-ZalCG::comgrad(
-  const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
-// *****************************************************************************
-//  Receive contributions to node gradients on chare-boundaries
-//! \param[in] ingrad Partial contributions to chare-boundary nodes. Key:
-//!   global mesh node IDs, value: contributions for all scalar components.
-// *****************************************************************************
-{
-  using tk::operator+=;
-  for (const auto& [g,r] : ingrad) m_gradc[g] += r;
-
-  // When we have heard from all chares we communicate with, this chare is done
-  if (++m_ngrad + m_inactive.size() == Disc()->NodeCommMap().size()) {
-    m_ngrad = 0;
-    comgrad_complete();
-  }
-}
-
-void
-ZalCG::stab()
-// *****************************************************************************
-// Compute stabilization coefficients for next time step
-// *****************************************************************************
-{
-  auto d = Disc();
-  const auto& lid = d->Lid();
-
-  // Combine own and communicated contributions to gradients
-  for (const auto& [g,r] : m_gradc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c) += r[c];
-  }
-  tk::destroy(m_gradc);
-
-  // divide weak result in gradients by nodal volume
-  for (std::size_t p=0; p<m_grad.nunk(); ++p)
-    for (std::size_t c=0; c<m_grad.nprop(); ++c)
-      m_grad(p,c) /= m_vol[p];
-
-  zalesak::stab( m_dsupedge, d->Coord(), m_u, m_grad, m_stab );
-
-  // Send stabilization coefficient contributions to neighbor chares
-  if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){
-    comstab_complete();
-  } else {
-    for (const auto& [c,n] : d->NodeCommMap()) {
-      if (m_inactive.count(c)) continue;
-      std::unordered_map< std::size_t, tk::real > exp;
-      for (auto g : n) exp[g] = m_stab(tk::cref_find(lid,g),0);
-      thisProxy[c].comstab( exp );
-    }
-  }
-  ownstab_complete();
-}
-
-void
-ZalCG::comstab( const std::unordered_map< std::size_t, tk::real >& instab )
-// *****************************************************************************
-//  Receive contributions to stabilization coefficients on chare-boundaries
-//! \param[in] instab Partial contributions to chare-boundary nodes. Key:
-//!   global mesh node IDs, value: contributions for all scalar components.
-// *****************************************************************************
-{
-  for (const auto& [g,r] : instab) {
-    auto& s = m_stabc[g];
-    s = std::max( s, r );
-  }
-
-  // When we have heard from all chares we communicate with, this chare is done
-  if (++m_nstab + m_inactive.size() == Disc()->NodeCommMap().size()) {
-    m_nstab = 0;
-    comstab_complete();
-  }
+  if (m_deactivated) solve(); else rhs();
 }
 
 void
@@ -1161,16 +1044,9 @@ ZalCG::rhs()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-  // Combine own and communicated contributions to stabilization coefficients
-  for (const auto& [g,r] : m_stabc) {
-    auto i = tk::cref_find( lid, g );
-    m_stab(i,0) = std::max( m_stab(i,0), r );
-  }
-  tk::destroy(m_stabc);
-
   // Compute own portion of right-hand side for all equations
   zalesak::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym,
-                d->T(), d->Dt(), m_tp, m_dtp, m_u, m_stab, m_grad, m_rhs );
+                d->T(), d->Dt(), m_tp, m_dtp, m_u, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty() or m_inactive.size() == d->NodeCommMap().size()){

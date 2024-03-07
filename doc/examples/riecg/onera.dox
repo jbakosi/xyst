@@ -31,7 +31,7 @@ surface symmetry (free-slip) conditions are set.
 
 @section riecg_example_onera_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [6532cbd](https://codeberg.org/xyst/xyst/commit/6532cbd9742e68a919c617044ab5523b9a00f3f4) and the control file below.
+To reproduce the results below, use code revision [fcb19a6](https://codeberg.org/xyst/xyst/commit/fcb19a6d27ebd23625fc4cffa625d94dda707e44) and the control file below.
 
 @section riecg_example_onera_control Control file
 
@@ -40,16 +40,16 @@ To reproduce the results below, use code revision [6532cbd](https://codeberg.org
 
 print "Onera M6 wing"
 
-ttyi = 10
+ttyi = 100
 cfl = 0.5
 
 solver = "riecg"
+
 steady = true
-residual = 1.0e-12
+residual = 1.0e-14
 rescomp = 1
 
-part = "rcb"    -- 710K 26PEs
--- part = "multijagged"  -- 2.8M 60PEs
+part = "phg"
 
 ic = {
   density = 1.225,   -- density of air at STP, kg/m3
@@ -90,7 +90,7 @@ diag = {
 @section riecg_example_onera_run Run using the coarse mesh on 26 CPUs
 
 @code{.bash}
-./charmrun +p26 Main/inciter -v -i onera_710K.exo -c onera.q
+./charmrun +p30 Main/inciter -v -i onera_710K.exo -c onera.q
 @endcode
 
 @section riecg_example_onera_fieldvis Visualization
@@ -99,14 +99,14 @@ diag = {
 of the numerically computed 3D fields as
 
 @code{.bash}
-paraview out.e-s.0.26.0
+paraview out.e-s.0.30.0
 @endcode
 
 Results only on the wing surface can be visualized by first stitching the
 partitioned surface output files into a single surface output file followed by
 invoking paraview on the stitched surface exo file:
 @code{.bash}
-Main/meshconv -i out-surf.3.e-s.0.26.% -o out-surf.3.exo
+Main/meshconv -i out-surf.3.e-s.0.30.% -o out-surf.3.exo
 paraview out-surf.3.exo
 @endcode
 
@@ -134,7 +134,7 @@ set xlabel "time steps"
 set ylabel "log(res)"
 set logscale y
 set grid
-plot [] [:1.0e-2] "710K_tol=1.0e-12/diag" u 1:9 w l lw 2, "2.8M_tol=1.0e-12/diag" u 1:9 w l lw 2
+plot [] [:1.0e-2] "710K/diag" u 1:9 w l lw 2, "2.8M/diag" u 1:9 w l lw 2
 @endcode
 
 The computed pressure coefficient
@@ -157,12 +157,13 @@ vector, and c is the half-wing span.
 Gnuplot commands to reproduce the above plot:
 @code{.bash}
 set grid
-set title "Surface pressure coefficient at 20% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe20.data" lw 2.0 t "experiment", "710K/o20.txt" u (($1-0.115)/0.62):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (coarse mesh)", "2.8M/o20.txt" u (($1-0.115)/0.62):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (fine mesh)"
-set title "Surface pressure coefficient at 44% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe44.data" lw 2.0 t "experiment", "710K/o44.txt" u (($1-0.25)/0.56):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (coarse mesh)", "2.8M/o44.txt" u (($1-0.25)/0.56):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (fine mesh)"
-set title "Surface pressure coefficient at 65% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe65.data" lw 2.0 t "experiment", "710K/o65.txt" u (($1-0.373)/0.49):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (coarse mesh)", "2.8M/o65.txt" u (($1-0.373)/0.49):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (fine mesh)"
-set title "Surface pressure coefficient at 80% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe80.data" lw 2.0 t "experiment", "710K/o80.txt" u (($1-0.46)/0.45):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (coarse mesh)", "2.8M/o80.txt" u (($1-0.46)/0.45):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (fine mesh)"
-set title "Surface pressure coefficient at 90% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe90.data" lw 2.0 t "experiment", "710K/o90.txt" u (($1-0.517)/0.42):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (coarse mesh)", "2.8M/o90.txt" u (($1-0.517)/0.42):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (fine mesh)"
-set title "Surface pressure coefficient at 95% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe95.data" lw 2.0 t "experiment", "710K/o95.txt" u (($1-0.546)/0.405):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (coarse mesh)", "2.8M/o95.txt" u (($1-0.546)/0.405):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p ps 0.5 pt 7 t "computation (fine mesh)"
+# coarse and fine mesh, exp with err +/- 0.02
+set output "o20.png"; set title "Surface pressure coefficient at 20% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe20.data" u 1:2:(0.02) lw 2.0 w yerrorbars t "experiment", "710K/o20.txt" u (($1-0.115)/0.62):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 6 t "computation (coarse mesh)", "2.8M/o20.txt" u (($1-0.115)/0.62):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 4 t "computation (fine mesh)"
+set output "o44.png"; set title "Surface pressure coefficient at 44% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe44.data" u 1:2:(0.02) lw 2.0 w yerrorbars t "experiment", "710K/o44.txt" u (($1-0.25)/0.56):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 6 t "computation (coarse mesh)", "2.8M/o44.txt" u (($1-0.25)/0.56):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 4 t "computation (fine mesh)"
+set output "o65.png"; set title "Surface pressure coefficient at 65% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe65.data" u 1:2:(0.02) lw 2.0 w yerrorbars t "experiment", "710K/o65.txt" u (($1-0.373)/0.49):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 6 t "computation (coarse mesh)", "2.8M/o65.txt" u (($1-0.373)/0.49):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 4 t "computation (fine mesh)"
+set output "o80.png"; set title "Surface pressure coefficient at 80% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe80.data" u 1:2:(0.02) lw 2.0 w yerrorbars t "experiment", "710K/o80.txt" u (($1-0.46)/0.45):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 6 t "computation (coarse mesh)", "2.8M/o80.txt" u (($1-0.46)/0.45):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 4 t "computation (fine mesh)"
+set output "o90.png"; set title "Surface pressure coefficient at 90% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe90.data" u 1:2:(0.02) lw 2.0 w yerrorbars t "experiment", "710K/o90.txt" u (($1-0.517)/0.42):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 6 t "computation (coarse mesh)", "2.8M/o90.txt" u (($1-0.517)/0.42):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 4 t "computation (fine mesh)"
+set output "o95.png"; set title "Surface pressure coefficient at 95% semispan"; set xlabel "x/c"; set ylabel "-C_p"; plot [] [:1.5] "expe95.data" u 1:2:(0.02) lw 2.0 w yerrorbars t "experiment", "710K/o95.txt" u (($1-0.546)/0.405):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 6 t "computation (coarse mesh)", "2.8M/o95.txt" u (($1-0.546)/0.405):(-($6-1.0e+5)/0.5/1.225/(283.57**2.0+15.159**2.0)) w p pt 4 t "computation (fine mesh)"
 @endcode
 
 @note For the experimental data and the paraview session file, extracting the pressure along the wing span, yielding the files o??.txt above, contact us using the link at the bottom of the page.

@@ -642,6 +642,20 @@ hllc( const tk::UnsMesh::Coords& coord,
     f[4] = (r[4] + pR)*qR;
   }
 
+  // artificial viscosity
+  const auto stab2 = g_cfg.get< tag::stab2 >();
+  if (stab2) {
+    auto sl = std::abs(qL) + eos::soundspeed(l[0],pL);
+    auto sr = std::abs(qR) + eos::soundspeed(r[0],pR);
+    auto stab2coef = g_cfg.get< tag::stab2coef >();
+    auto fws = stab2coef * std::max(sl,sr) * len;
+    f[0] -= fws*(l[0] - r[0]);
+    f[1] -= fws*(l[1] - r[1]);
+    f[2] -= fws*(l[2] - r[2]);
+    f[3] -= fws*(l[3] - r[3]);
+    f[4] -= fws*(l[4] - r[4]);
+  }
+
   if (ncomp == 5) return;
 
   // MUSCL reconstruction in edge-end points for scalars

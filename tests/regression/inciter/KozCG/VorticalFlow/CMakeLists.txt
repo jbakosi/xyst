@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(compflow_euler_vorticalflow_kozcg ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_vorticalflow ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES vortical_flow.q unitcube_1k.exo
                     ARGS -c vortical_flow.q -i unitcube_1k.exo
@@ -17,7 +17,7 @@ add_regression_test(compflow_euler_vorticalflow_kozcg ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization
 
-add_regression_test(compflow_euler_vorticalflow_kozcg_u0.5 ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_vorticalflow_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES vortical_flow.q unitcube_1k.exo
                     ARGS -f -c vortical_flow.q -i unitcube_1k.exo -u 0.5
@@ -46,7 +46,7 @@ add_regression_test(compflow_euler_vorticalflow_kozcg_u0.5 ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization + migration
 
-add_regression_test(compflow_euler_vorticalflow_kozcg_u0.9_migr
+add_regression_test(kozcg_vorticalflow_u0.9_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES vortical_flow.q unitcube_1k.exo

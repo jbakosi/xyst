@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(compflow_euler_taylor_green_kozcg ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_taylor_green ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES taylor_green.q unitcube_1k.exo
                     ARGS -c taylor_green.q -i unitcube_1k.exo
@@ -17,7 +17,7 @@ add_regression_test(compflow_euler_taylor_green_kozcg ${INCITER_EXECUTABLE}
 
 # Parallel + no virtualization
 
-add_regression_test(compflow_euler_taylor_green_kozcg ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_taylor_green ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES taylor_green.q unitcube_1k.exo
                     ARGS -c taylor_green.q -i unitcube_1k.exo
@@ -38,7 +38,7 @@ add_regression_test(compflow_euler_taylor_green_kozcg ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization
 
-add_regression_test(compflow_euler_taylor_green_kozcg_u0.5 ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_taylor_green_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 2
                     INPUTFILES taylor_green.q unitcube_1k.exo
                     ARGS -c taylor_green.q -i unitcube_1k.exo -u 0.5

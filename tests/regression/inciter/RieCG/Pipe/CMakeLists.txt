@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(compflow_euler_pipe ${INCITER_EXECUTABLE}
+add_regression_test(riecg_pipe ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES pipe.q rectangle_01_1.5k.exo
                     ARGS -c pipe.q -i rectangle_01_1.5k.exo
@@ -20,7 +20,7 @@ add_regression_test(compflow_euler_pipe ${INCITER_EXECUTABLE}
 
 # Parallel
 
-add_regression_test(compflow_euler_pipe ${INCITER_EXECUTABLE}
+add_regression_test(riecg_pipe ${INCITER_EXECUTABLE}
                     NUMPES 2 PPN 1
                     INPUTFILES pipe.q rectangle_01_1.5k.exo
                     ARGS -c pipe.q -i rectangle_01_1.5k.exo
@@ -37,7 +37,7 @@ add_regression_test(compflow_euler_pipe ${INCITER_EXECUTABLE}
                                         int.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_pipe_int_timeint ${INCITER_EXECUTABLE}
+add_regression_test(riecg_pipe_int_timeint ${INCITER_EXECUTABLE}
                     NUMPES 2
                     INPUTFILES pipe_int_timeint.q rectangle_01_1.5k.exo
                     ARGS -c pipe_int_timeint.q -i rectangle_01_1.5k.exo
@@ -49,7 +49,7 @@ add_regression_test(compflow_euler_pipe_int_timeint ${INCITER_EXECUTABLE}
                                         int.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_pipe_int_timerange ${INCITER_EXECUTABLE}
+add_regression_test(riecg_pipe_int_timerange ${INCITER_EXECUTABLE}
                     NUMPES 2
                     INPUTFILES pipe_int_timerange.q rectangle_01_1.5k.exo
                     ARGS -c pipe_int_timerange.q -i rectangle_01_1.5k.exo
@@ -63,7 +63,7 @@ add_regression_test(compflow_euler_pipe_int_timerange ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization + migration
 
-add_regression_test(compflow_euler_pipe_u0.5_migr ${INCITER_EXECUTABLE}
+add_regression_test(riecg_pipe_u0.5_migr ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES pipe.q rectangle_01_1.5k.exo
                     ARGS -c pipe.q -i rectangle_01_1.5k.exo -u 0.5 -l 3

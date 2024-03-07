@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(compflow_euler_sedov_riecg ${INCITER_EXECUTABLE}
+add_regression_test(riecg_sedov ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES sedov.q sedov_coarse.exo
                     ARGS -c sedov.q -i sedov_coarse.exo
@@ -17,7 +17,7 @@ add_regression_test(compflow_euler_sedov_riecg ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization + migration
 
-add_regression_test(compflow_euler_sedov_riecg_u0.8_migr
+add_regression_test(riecg_sedov_u0.8_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES sedov.q sedov_coarse.exo

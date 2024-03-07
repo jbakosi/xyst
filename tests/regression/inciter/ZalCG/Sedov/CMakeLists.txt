@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(compflow_euler_sedov_zalcg ${INCITER_EXECUTABLE}
+add_regression_test(zalcg_sedov ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES sedov.q sedov_coarse.exo
                     ARGS -c sedov.q -i sedov_coarse.exo
@@ -17,7 +17,7 @@ add_regression_test(compflow_euler_sedov_zalcg ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization + migration
 
-add_regression_test(compflow_euler_sedov_zalcg_u0.8_migr
+add_regression_test(zalcg_sedov_u0.8_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES sedov.q sedov_coarse.exo
@@ -28,7 +28,7 @@ add_regression_test(compflow_euler_sedov_zalcg_u0.8_migr
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS zalcg migration)
 
-add_regression_test(compflow_euler_sedov_zalcg_dea_u0.8_migr
+add_regression_test(zalcg_sedov_dea_u0.8_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES sedov_dea.q sedov_coarse.exo

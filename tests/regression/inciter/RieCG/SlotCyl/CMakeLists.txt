@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(slotcyl_riecg ${INCITER_EXECUTABLE}
+add_regression_test(riecg_slotcyl ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES slot_cyl.q unitsquare_01_3.6k.exo
                     ARGS -c slot_cyl.q -i unitsquare_01_3.6k.exo
@@ -15,7 +15,7 @@ add_regression_test(slotcyl_riecg ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(slotcyl_riecg_hllc ${INCITER_EXECUTABLE}
+add_regression_test(riecg_slotcyl_hllc ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES slot_cyl_hllc.q unitsquare_01_3.6k.exo
                     ARGS -c slot_cyl_hllc.q -i unitsquare_01_3.6k.exo
@@ -29,7 +29,7 @@ add_regression_test(slotcyl_riecg_hllc ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization
 
-add_regression_test(slotcyl_riecg_u0.5 ${INCITER_EXECUTABLE}
+add_regression_test(riecg_slotcyl_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl.q unitsquare_01_3.6k.exo
                     ARGS -f -c slot_cyl.q -i unitsquare_01_3.6k.exo -u 0.5
@@ -58,7 +58,7 @@ add_regression_test(slotcyl_riecg_u0.5 ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization + migration
 
-add_regression_test(slotcyl_riecg_u0.9_migr
+add_regression_test(riecg_slotcyl_u0.9_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl.q unitsquare_01_3.6k.exo

@@ -230,7 +230,7 @@ if(exit_code EQUAL 0)
   set(GIT_HEAD_SHA1 ${output})
 endif()
 if(NOT ${GIT_HEAD_SHA1} STREQUAL "")
-  message(STATUS "Git sha1: ${GIT_HEAD_SHA1}")
+  message(STATUS "Git commit: ${GIT_HEAD_SHA1}")
 endif()
 
 option(BUILD_DOC "Build docmentation" OFF)

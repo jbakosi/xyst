@@ -22,7 +22,7 @@ function(add_async_test scheme virt npes ppn migr)
     set(migr_label "migration")
   endif()
   add_regression_test(
-    asynclogic_${scheme}_u${virt}${migr_append_name}
+    ${scheme}_asynclogic_u${virt}${migr_append_name}
     ${INCITER_EXECUTABLE}
     NUMPES ${npes} PPN ${ppn}
     INPUTFILES ${scheme}.q unitcube_1k.exo

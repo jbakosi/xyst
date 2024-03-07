@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(compflow_euler_bump_zalcg ${INCITER_EXECUTABLE}
+add_regression_test(zalcg_bump ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES bump.q bump.exo
                     ARGS -c bump.q -i bump.exo
@@ -17,7 +17,7 @@ add_regression_test(compflow_euler_bump_zalcg ${INCITER_EXECUTABLE}
 
 # Parallel
 
-add_regression_test(compflow_euler_bump_zalcg_fctfreeze
+add_regression_test(zalcg_bump_fctfreeze
                     ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES bump_fctfreeze.q bump.exo
@@ -29,7 +29,7 @@ add_regression_test(compflow_euler_bump_zalcg_fctfreeze
 
 # Parallel + virtualization + migration
 
-add_regression_test(compflow_euler_bump_zalcg_u0.8_migr
+add_regression_test(zalcg_bump_u0.8_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES bump.q bump.exo

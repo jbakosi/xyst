@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(slotcyl_kozcg ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_slotcyl ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES slot_cyl.q unitsquare_01_3.6k.exo
                     ARGS -c slot_cyl.q -i unitsquare_01_3.6k.exo
@@ -17,7 +17,7 @@ add_regression_test(slotcyl_kozcg ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization
 
-add_regression_test(slotcyl_kozcg_u0.5 ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_slotcyl_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl.q unitsquare_01_3.6k.exo
                     ARGS -f -c slot_cyl.q -i unitsquare_01_3.6k.exo -u 0.5
@@ -46,7 +46,7 @@ add_regression_test(slotcyl_kozcg_u0.5 ${INCITER_EXECUTABLE}
 
 # Parallel + virtualization + migration
 
-add_regression_test(slotcyl_kozcg_u0.9_migr
+add_regression_test(kozcg_slotcyl_u0.9_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES slot_cyl.q unitsquare_01_3.6k.exo

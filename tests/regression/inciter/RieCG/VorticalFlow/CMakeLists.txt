@@ -3,7 +3,7 @@
 
 # Serial
 
-add_regression_test(compflow_euler_vorticalflow_riecg ${INCITER_EXECUTABLE}
+add_regression_test(riecg_vorticalflow ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES vortical_flow.q unitcube_1k.exo
                     ARGS -c vortical_flow.q -i unitcube_1k.exo
@@ -15,7 +15,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_vorticalflow_riecg_stab2
+add_regression_test(riecg_vorticalflow_stab2
                     ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES vortical_flow_stab2.q unitcube_1k.exo
@@ -28,7 +28,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_stab2
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_vorticalflow_riecg_steady
+add_regression_test(riecg_vorticalflow_steady
                     ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES vortical_flow_steady.q unitcube_1k.exo
@@ -43,7 +43,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_steady
 
 # Parallel + no virtualization
 
-add_regression_test(compflow_euler_vorticalflow_riecg_steady
+add_regression_test(riecg_vorticalflow_steady
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES vortical_flow_steady.q unitcube_1k.exo
@@ -65,7 +65,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_steady
 
 # Parallel + virtualization
 
-add_regression_test(compflow_euler_vorticalflow_riecg_u0.5 ${INCITER_EXECUTABLE}
+add_regression_test(riecg_vorticalflow_u0.5 ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES vortical_flow.q unitcube_1k.exo
                     ARGS -f -c vortical_flow.q -i unitcube_1k.exo -u 0.5
@@ -92,7 +92,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_u0.5 ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_vorticalflow_riecg_hllc_u0.5
+add_regression_test(riecg_vorticalflow_hllc_u0.5
                     ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES vortical_flow_hllc.q unitcube_1k.exo
@@ -120,7 +120,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_hllc_u0.5
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS riecg)
 
-add_regression_test(compflow_euler_vorticalflow_riecg_hllc_stab2_u0.5
+add_regression_test(riecg_vorticalflow_hllc_stab2_u0.5
                     ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES vortical_flow_hllc_stab2.q unitcube_1k.exo
@@ -150,7 +150,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_hllc_stab2_u0.5
                     LABELS riecg)
 
 
-add_regression_test(compflow_euler_vorticalflow_riecg_reord_u0.5
+add_regression_test(riecg_vorticalflow_reord_u0.5
                     ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES vortical_flow_reord.q unitcube_1k.exo
@@ -181,7 +181,7 @@ add_regression_test(compflow_euler_vorticalflow_riecg_reord_u0.5
 
 # Parallel + virtualization + migration
 
-add_regression_test(compflow_euler_vorticalflow_riecg_u0.9_migr
+add_regression_test(riecg_vorticalflow_u0.9_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES vortical_flow.q unitcube_1k.exo

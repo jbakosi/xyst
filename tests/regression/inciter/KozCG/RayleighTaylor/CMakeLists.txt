@@ -3,7 +3,7 @@
 
 # Serial, stationary
 
-add_regression_test(compflow_euler_rayleigh_taylor_st_kozcg ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_rayleigh_taylor_st ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES rayleigh_taylor_st.q unitcube_1k.exo
                     ARGS -c rayleigh_taylor_st.q -i unitcube_1k.exo
@@ -17,7 +17,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_st_kozcg ${INCITER_EXECUTABLE
 
 # Parallel + no virtualization, stationary
 
-add_regression_test(compflow_euler_rayleigh_taylor_st_kozcg ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_rayleigh_taylor_st ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 1
                     INPUTFILES rayleigh_taylor_st.q unitcube_1k.exo
                     ARGS -c rayleigh_taylor_st.q -i unitcube_1k.exo
@@ -38,7 +38,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_st_kozcg ${INCITER_EXECUTABLE
 
 # Serial, non-stationary
 
-add_regression_test(compflow_euler_rayleigh_taylor_kozcg ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_rayleigh_taylor ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES rayleigh_taylor.q unitcube_1k.exo
                     ARGS -c rayleigh_taylor.q -i unitcube_1k.exo
@@ -52,7 +52,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_kozcg ${INCITER_EXECUTABLE}
 
 # Parallel + no virtualization, non-stationary
 
-add_regression_test(compflow_euler_rayleigh_taylor_kozcg ${INCITER_EXECUTABLE}
+add_regression_test(kozcg_rayleigh_taylor ${INCITER_EXECUTABLE}
                     NUMPES 4
                     INPUTFILES rayleigh_taylor.q unitcube_1k.exo
                     ARGS -c rayleigh_taylor.q -i unitcube_1k.exo
@@ -71,7 +71,7 @@ add_regression_test(compflow_euler_rayleigh_taylor_kozcg ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS kozcg)
 
-add_regression_test(compflow_euler_rayleigh_taylor_fieldrange_kozcg
+add_regression_test(kozcg_rayleigh_taylor_fieldrange
                     ${INCITER_EXECUTABLE}
                     NUMPES 4 PPN 2
                     INPUTFILES rayleigh_taylor_fieldrange.q unitcube_1k.exo

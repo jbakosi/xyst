@@ -42,6 +42,7 @@ Refiner::Refiner( std::size_t meshid,
                   const tk::CProxy_MeshWriter& meshwriter,
                   const CProxy_Discretization& discretization,
                   const CProxy_RieCG& riecg,
+                  const CProxy_LaxCG& laxcg,
                   const CProxy_ZalCG& zalcg,
                   const CProxy_KozCG& kozcg,
                   const tk::RefinerCallback& cbr,
@@ -59,6 +60,7 @@ Refiner::Refiner( std::size_t meshid,
   m_meshwriter( meshwriter ),
   m_disc( discretization ),
   m_riecg( riecg ),
+  m_laxcg( laxcg ),
   m_zalcg( zalcg ),
   m_kozcg( kozcg ),
   m_cbr( cbr ),
@@ -92,6 +94,7 @@ Refiner::Refiner( std::size_t meshid,
 //! \param[in] meshwriter Mesh writer proxy
 //! \param[in] discretization Discretization base proxy
 //! \param[in] riecg Discretization scheme proxy
+//! \param[in] laxcg Discretization scheme proxy
 //! \param[in] zalcg Discretization scheme proxy
 //! \param[in] kozcg Discretization scheme proxy
 //! \param[in] cbr Charm++ callbacks for Refiner
@@ -1023,23 +1026,29 @@ Refiner::next()
   } else if (m_mode == RefMode::DTREF) {
 
     // Send new mesh, solution, and communication data back to PDE worker
-    if (g_cfg.get< tag::solver >() == "riecg") {
+    const auto& solver = g_cfg.get< tag::solver >();
+    if (solver == "riecg") {
       m_riecg[ thisIndex ].ckLocal()->resizePostAMR( m_ginpoel,
         m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes,
         m_nodeCommMap, m_bface, m_bnode, m_triinpoel );
     }
-    else if (g_cfg.get< tag::solver >() == "zalcg") {
+    else if (solver == "laxcg") {
+      m_laxcg[ thisIndex ].ckLocal()->resizePostAMR( m_ginpoel,
+        m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes,
+        m_nodeCommMap, m_bface, m_bnode, m_triinpoel );
+    }
+    else if (solver == "zalcg") {
       m_zalcg[ thisIndex ].ckLocal()->resizePostAMR( m_ginpoel,
         m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes,
         m_nodeCommMap, m_bface, m_bnode, m_triinpoel );
     }
-    else if (g_cfg.get< tag::solver >() == "kozcg") {
+    else if (solver == "kozcg") {
       m_kozcg[ thisIndex ].ckLocal()->resizePostAMR( m_ginpoel,
         m_el, m_coord, m_addedNodes, m_addedTets, m_removedNodes,
         m_nodeCommMap, m_bface, m_bnode, m_triinpoel );
     }
     else {
-      Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+      Throw( "Unknown solver: " + solver );
     }
 
   } else Throw( "RefMode not implemented" );
@@ -1057,7 +1066,7 @@ Refiner::endt0ref()
 {
   // create sorter Charm++ chare array elements using dynamic insertion
   m_sorter[ thisIndex ].insert( m_meshid, m_host, m_meshwriter, m_cbs,
-    m_disc, m_riecg, m_zalcg, m_kozcg,
+    m_disc, m_riecg, m_laxcg, m_zalcg, m_kozcg,
     CkCallback(CkIndex_Refiner::reorder(), thisProxy[thisIndex]), m_ginpoel,
     m_coordmap, m_el, m_bface, m_triinpoel, m_bnode, m_nchare );
 
@@ -1189,14 +1198,21 @@ Refiner::solution( std::size_t npoin,
   } else if (m_mode == RefMode::DTREF) {
 
     // Query current solution
-    if (g_cfg.get< tag::solver >() == "riecg") {
+    const auto& solver = g_cfg.get< tag::solver >();
+    if (solver == "riecg") {
       u = m_riecg[ thisIndex ].ckLocal()->solution();
     }
-    else if (g_cfg.get< tag::solver >() == "zalcg") {
+    else if (solver == "laxcg") {
+      u = m_laxcg[ thisIndex ].ckLocal()->solution();
+    }
+    else if (solver == "zalcg") {
       u = m_zalcg[ thisIndex ].ckLocal()->solution();
     }
+    else if (solver == "kozcg") {
+      u = m_kozcg[ thisIndex ].ckLocal()->solution();
+    }
     else {
-      Throw( "Unknown solver: " + g_cfg.get< tag::solver >() );
+      Throw( "Unknown solver: " + solver );
     }
  
   } else Throw( "RefMode not implemented" );

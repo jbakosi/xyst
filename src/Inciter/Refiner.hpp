@@ -28,6 +28,7 @@
 #include "UnsMesh.hpp"
 #include "Base/Fields.hpp"
 #include "RieCG.hpp"
+#include "LaxCG.hpp"
 #include "ZalCG.hpp"
 #include "KozCG.hpp"
 
@@ -69,6 +70,7 @@ class Refiner : public CBase_Refiner {
                       const tk::CProxy_MeshWriter& meshwriter,
                       const CProxy_Discretization& discretization,
                       const CProxy_RieCG& riecg,
+                      const CProxy_LaxCG& laxcg,
                       const CProxy_ZalCG& zalcg,
                       const CProxy_KozCG& kozcg,
                       const tk::RefinerCallback& cbr,
@@ -156,6 +158,7 @@ class Refiner : public CBase_Refiner {
       p | m_meshwriter;
       p | m_disc;
       p | m_riecg;
+      p | m_laxcg;
       p | m_zalcg;
       p | m_kozcg;
       p | m_cbr;
@@ -223,6 +226,8 @@ class Refiner : public CBase_Refiner {
     CProxy_Discretization m_disc;
     //! Discretization scheme proxy
     CProxy_RieCG m_riecg;
+    //! Discretization scheme proxy
+    CProxy_LaxCG m_laxcg;
     //! Discretization scheme proxy
     CProxy_ZalCG m_zalcg;
     //! Discretization scheme proxy

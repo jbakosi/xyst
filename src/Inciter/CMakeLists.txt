@@ -10,6 +10,7 @@ add_library(Inciter
             Refiner.cpp
             Sorter.cpp
             RieCG.cpp
+            LaxCG.cpp
             ZalCG.cpp
             KozCG.cpp
             DiagReducer.cpp
@@ -62,6 +63,7 @@ addCharmModule( "discretization" "Inciter" )
 addCharmModule( "refiner" "Inciter" )
 addCharmModule( "sorter" "Inciter" )
 addCharmModule( "riecg" "Inciter" )
+addCharmModule( "laxcg" "Inciter" )
 addCharmModule( "zalcg" "Inciter" )
 addCharmModule( "kozcg" "Inciter" )
 

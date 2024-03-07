@@ -61,6 +61,7 @@ class Partitioner : public CBase_Partitioner {
                  const tk::CProxy_MeshWriter& meshwriter,
                  const CProxy_Discretization& discretization,
                  const CProxy_RieCG& riecg,
+                 const CProxy_LaxCG& laxcg,
                  const CProxy_ZalCG& zalcg,
                  const CProxy_KozCG& kozcg,
                  const std::map< int, std::vector< std::size_t > >& bface,
@@ -123,6 +124,7 @@ class Partitioner : public CBase_Partitioner {
       p | m_meshwriter;
       p | m_discretization;
       p | m_riecg;
+      p | m_laxcg;
       p | m_zalcg;
       p | m_ginpoel;
       p | m_graph;
@@ -171,6 +173,8 @@ class Partitioner : public CBase_Partitioner {
     CProxy_Discretization m_discretization;
     //! Discretization scheme proxy
     CProxy_RieCG m_riecg;
+    //! Discretization scheme proxy
+    CProxy_LaxCG m_laxcg;
     //! Discretization scheme proxy
     CProxy_ZalCG m_zalcg;
     //! Discretization scheme proxy

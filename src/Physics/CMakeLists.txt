@@ -6,6 +6,7 @@ add_library(Physics
             Box.cpp
             Problems.cpp
             Riemann.cpp
+            Lax.cpp
             Zalesak.cpp
             Kozak.cpp
 )

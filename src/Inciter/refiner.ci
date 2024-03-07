@@ -28,6 +28,7 @@ module refiner {
                      const tk::CProxy_MeshWriter& meshwriter,
                      const CProxy_Discretization& discretization,
                      const CProxy_RieCG& riecg,
+                     const CProxy_LaxCG& laxcg,
                      const CProxy_ZalCG& zalcg,
                      const CProxy_KozCG& kozcg,
                      const tk::RefinerCallback& cbr,

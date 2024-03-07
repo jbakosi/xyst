@@ -64,6 +64,7 @@ class Sorter : public CBase_Sorter {
                      const tk::SorterCallback& cbs,
                      const CProxy_Discretization& discretization,
                      const CProxy_RieCG& riecg,
+                     const CProxy_LaxCG& laxcg,
                      const CProxy_ZalCG& zalcg,
                      const CProxy_KozCG& kozcg,
                      CkCallback reorderRefiner,
@@ -142,6 +143,7 @@ class Sorter : public CBase_Sorter {
       p | m_cbs;
       p | m_discretization;
       p | m_riecg;
+      p | m_laxcg;
       p | m_kozcg;
       p | m_reorderRefiner;
       p | m_ginpoel;
@@ -184,6 +186,8 @@ class Sorter : public CBase_Sorter {
     CProxy_Discretization m_discretization;
     //! Discretization scheme proxy
     CProxy_RieCG m_riecg;
+    //! Discretization scheme proxy
+    CProxy_RieCG m_laxcg;
     //! Discretization scheme proxy
     CProxy_ZalCG m_zalcg;
     //! Discretization scheme proxy

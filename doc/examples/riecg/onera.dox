@@ -44,6 +44,8 @@ ttyi = 100
 cfl = 0.5
 
 solver = "riecg"
+-- stab2 = true  -- 2.8M
+-- stab2coef = 0.2
 
 steady = true
 residual = 1.0e-14
@@ -93,6 +95,24 @@ diag = {
 ./charmrun +p30 Main/inciter -v -i onera_710K.exo -c onera.q
 @endcode
 
+@section riecg_example_onera_residual Convergence
+
+The figure below shows the convergence of the density residual for both meshes.
+@m_div{m-col-m-10 m-center-m}
+<img src="images/onera_riecg_res.png"/>
+@m_enddiv
+
+Gnuplot commands to reproduce the above plot:
+@code{.bash}
+set terminal png size 800,600 enhanced font "Helvetica,16"
+set output "onera_res.png"
+set xlabel "time steps"
+set ylabel "log(res)"
+set logscale y
+set grid
+plot [] [:1.0e-2] "710K/diag" u 1:9 w l lw 2, "2.8M/diag" u 1:9 w l lw 2
+@endcode
+
 @section riecg_example_onera_fieldvis Visualization
 
 [ParaView](https://www.paraview.org) can be used for interactive visualization
@@ -110,7 +130,7 @@ Main/meshconv -i out-surf.3.e-s.0.30.% -o out-surf.3.exo
 paraview out-surf.3.exo
 @endcode
 
-The coarser surface mesh is shown in the figure below together with the
+The fine surface mesh is shown in the figures below together with the
 converged computed pressure contours on the upper and lower surfaces of the
 wing.
 @m_div{m-col-m-10 m-center-m}
@@ -119,22 +139,6 @@ wing.
 <img src="images/onera_riecg_pressure.png"/>
 <img src="images/onera_riecg_pressure_bottom.png"/>
 @m_enddiv
-
-The figure below shows the convergence of the density residual for both meshes.
-@m_div{m-col-m-10 m-center-m}
-<img src="images/onera_riecg_res.png"/>
-@m_enddiv
-
-Gnuplot commands to reproduce the above plot:
-@code{.bash}
-set terminal png size 800,600 enhanced font "Helvetica,16"
-set output "onera_res.png"
-set xlabel "time steps"
-set ylabel "log(res)"
-set logscale y
-set grid
-plot [] [:1.0e-2] "710K/diag" u 1:9 w l lw 2, "2.8M/diag" u 1:9 w l lw 2
-@endcode
 
 The computed pressure coefficient
 \f[

@@ -106,7 +106,7 @@ where \f$\color[HTML]{dcdcdc}{l_j}\f$ denotes the edge difference vector
 l^{vw}_j=x^v_j - x^w_j
 \f]
 The above flux prescribes a Lax-Wendroff (or Taylor-Galerkin) scheme for the
-edge-based formulation Monotonicity is ensured by flux-corrected transport
+edge-based formulation. Monotonicity is ensured by flux-corrected transport
 (FCT).
 
 @section zalcg_fct Flux-corrected transport

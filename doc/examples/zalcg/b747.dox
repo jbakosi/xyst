@@ -28,7 +28,7 @@ Surface mesh for computing the flow around a Boeing 747, nelem=4.7M, npoin=850K.
 
 @section zalcg_example_b747_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [b0d1e20](https://codeberg.org/xyst/xyst/commit/b0d1e208f897d251283e5f7999907c21d42d6fe2) and the control file below.
+To reproduce the results below, use code revision [f5fb9d0](https://codeberg.org/xyst/xyst/commit/f5fb9d0798deb38341c28dbab0a57b5602c0ab54) and the control file below.
 
 @section zalcg_example_b747_control Control file
 
@@ -37,18 +37,21 @@ To reproduce the results below, use code revision [b0d1e20](https://codeberg.org
 
 print "Boeing 747"
 
-ttyi = 100
-cfl = 0.6
+ttyi = 10
+cfl = 0.5
 
 solver = "zalcg"
+fctsys = { 1, 2, 3, 4, 5 }
+fctclip = true
+fctfreeze = 1.2e-5
 stab2 = true
-stab2coef = 0.5
-fct = false
+stab2coef = 0.1
+
 steady = true
-residual = 1.0e-8
+residual = 1.0e-10
 rescomp = 1
 
-part = "multijagged"
+part = "phg"
 
 mat = { spec_heat_ratio = 1.4 }
 
@@ -80,12 +83,12 @@ bc_far = {
 }
 
 fieldout = {
-  iter = 1000,
+  iter = 10000,
   sideset = { 1 },
 }
 
 diag = {
-  iter = 1,
+  iter = 10,
   format = "scientific",
   precision = 12
 }

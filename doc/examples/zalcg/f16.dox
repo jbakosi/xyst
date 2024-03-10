@@ -28,7 +28,7 @@ Surface mesh for computing the flow around the F-16, nelem=6M, npoin=1M.
 
 @section zalcg_example_f16_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [ef921cd](https://codeberg.org/xyst/xyst/commit/ef921cdda09e14f2e2f2ace35535cd69542bb674) and the control file below.
+To reproduce the results below, use code revision [feda946](https://codeberg.org/xyst/xyst/commit/feda94665e9b116844ad0e18dc42b73d33d338f8) and the control file below.
 
 @section zalcg_example_f16_control Control file
 
@@ -37,18 +37,19 @@ To reproduce the results below, use code revision [ef921cd](https://codeberg.org
 
 print "F16 in steady transconic flow"
 
-ttyi = 10
+ttyi = 100
 cfl = 0.3
 
 solver = "zalcg"
 fct = false
 stab2 = true
-stab2coef = 0.3
+stab2coef = 0.2
+
+nstep = 2000
 steady = true
-residual = 8.0e-7
 rescomp = 1
 
-part = "rib"
+part = "phg"
 
 mat = { spec_heat_ratio = 1.4 }
 
@@ -69,7 +70,7 @@ ic = {
 }
 
 bc_sym = {
-  sideset = { 1, 2, 7 }
+  sideset = { 1 }
 }
 
 bc_far = {
@@ -81,11 +82,11 @@ bc_far = {
 
 fieldout = {
   iter = 1000,
-  sideset = { 1, 2, 7 },
+  sideset = { 1 }
 }
 
 diag = {
-  iter = 1,
+  iter = 10,
   format = "scientific",
   precision = 12
 }

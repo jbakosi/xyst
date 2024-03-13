@@ -219,6 +219,9 @@ endif()
 message(STATUS "C++ compiler: " ${COMPILER})
 
 find_package(NetCDF REQUIRED)
+if (FIND_HDF5)
+  find_package(HDF5 COMPONENTS HL REQUIRED)
+endif()
 
 add_subdirectory(exodus)
 add_subdirectory(zoltan)

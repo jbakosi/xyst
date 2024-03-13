@@ -111,5 +111,6 @@ endif()
 target_link_libraries(exodiff PUBLIC exodus
                                      suplib_c
                                      suplib_cpp
-                                     ${NETCDF_LIBRARIES})
+                                     ${NETCDF_LIBRARIES}
+                                     ${HDF5_LIBRARIES})
 set(EXODIFF_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/exodiff PARENT_SCOPE)

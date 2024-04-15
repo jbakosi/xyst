@@ -10,7 +10,10 @@
 // TODO: make this have a base class to support multiple generator schemes
 // using the policy design pattern
 
-#if defined(STRICT_GNUC)
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wunused-but-set-variable"
+#elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
@@ -1320,7 +1323,9 @@ namespace AMR {
     };
 }
 
-#if defined(STRICT_GNUC)
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
 

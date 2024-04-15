@@ -5,6 +5,7 @@ FILE(GLOB exodus_src src/ex_*.c)
 add_library(exodus ${exodus_src})
 set_property(TARGET exodus PROPERTY C_STANDARD 99)
 target_include_directories(exodus PUBLIC include
+                                         ${MPI_CXX_INCLUDE_DIRS}
                                          ${NETCDF_INCLUDE_DIRS})
 
 set(suplib_cpp_src
@@ -112,5 +113,6 @@ target_link_libraries(exodiff PUBLIC exodus
                                      suplib_c
                                      suplib_cpp
                                      ${NETCDF_LIBRARIES}
-                                     ${HDF5_LIBRARIES})
+                                     ${HDF5_LIBRARIES}
+                                     ${MPI_CXX_LIBRARIES})
 set(EXODIFF_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/exodiff PARENT_SCOPE)

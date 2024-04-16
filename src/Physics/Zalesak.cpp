@@ -115,7 +115,6 @@ advedge( const tk::real supint[],
   ue[2] = 0.5*(rvL + rvR - dt*(rvL*dnL - rvR*dnR + dp*dy));
   ue[3] = 0.5*(rwL + rwR - dt*(rwL*dnL - rwR*dnR + dp*dz));
   ue[4] = 0.5*(reL + reR - dt*((reL+pL)*dnL - (reR+pR)*dnR));
-
   // scalar
   for (std::size_t c=5; c<ncomp; ++c) {
     ue[c] = 0.5*(U(p,c) + U(q,c) - dt*(U(p,c)*dnL - U(q,c)*dnR));
@@ -127,6 +126,7 @@ advedge( const tk::real supint[],
     auto coef = dt/4.0;
     auto sL = src( x[p], y[p], z[p], t );
     auto sR = src( x[q], y[q], z[q], t );
+    // flow + scalar
     for (std::size_t c=0; c<ncomp; ++c) {
       ue[c] += coef*(sL[c] + sR[c]);
     }
@@ -148,7 +148,6 @@ advedge( const tk::real supint[],
   f[2] = 2.0*(rvh*vn + ph*ny);
   f[3] = 2.0*(rwh*vn + ph*nz);
   f[4] = 2.0*(reh + ph)*vn;
-
   // scalar
   for (std::size_t c=5; c<ncomp; ++c) {
     f[c] = 2.0*ue[c]*vn;
@@ -161,6 +160,7 @@ advedge( const tk::real supint[],
     auto ye = (y[p] + y[q])/2.0;
     auto ze = (z[p] + z[q])/2.0;
     auto se = src( xe, ye, ze, t+dt/2.0 );
+    // flow + scalar
     for (std::size_t c=0; c<ncomp; ++c) {
       f[ncomp+c] = coef*se[c];
     }
@@ -181,11 +181,13 @@ advedge( const tk::real supint[],
   auto sr = std::abs(vnR) + cR*len;
   auto fw = stab2coef * std::max( sl, sr );
 
+  // flow
   f[0] -= fw*(rL - rR);
   f[1] -= fw*(ruL - ruR);
   f[2] -= fw*(rvL - rvR);
   f[3] -= fw*(rwL - rwR);
   f[4] -= fw*(reL - reR);
+  // scalar
   for (std::size_t c=5; c<ncomp; ++c) {
     f[c] -= fw*(U(p,c) - U(q,c));
   }
@@ -368,30 +370,36 @@ advbnd( const std::vector< std::size_t >& triinpoel,
 
     p = eos::pressure( reA - 0.5*(ruA*ruA + rvA*rvA + rwA*rwA)/rA );
     vn = sym[0] ? 0.0 : (nx*ruA + ny*rvA + nz*rwA)/rA;
+    // flow
     f[0][0] = rA*vn;
     f[1][0] = ruA*vn + p*nx;
     f[2][0] = rvA*vn + p*ny;
     f[3][0] = rwA*vn + p*nz;
     f[4][0] = (reA + p)*vn;
-    for (std::size_t c=5; c<ncomp; ++c) f[c][0] = U(N[0],0)*vn;
+    // scalar
+    for (std::size_t c=5; c<ncomp; ++c) f[c][0] = U(N[0],c)*vn;
 
     p = eos::pressure( reB - 0.5*(ruB*ruB + rvB*rvB + rwB*rwB)/rB );
     vn = sym[1] ? 0.0 : (nx*ruB + ny*rvB + nz*rwB)/rB;
+    // flow
     f[0][1] = rB*vn;
     f[1][1] = ruB*vn + p*nx;
     f[2][1] = rvB*vn + p*ny;
     f[3][1] = rwB*vn + p*nz;
     f[4][1] = (reB + p)*vn;
-    for (std::size_t c=5; c<ncomp; ++c) f[c][1] = U(N[1],0)*vn;
+    // scalar
+    for (std::size_t c=5; c<ncomp; ++c) f[c][1] = U(N[1],c)*vn;
 
     p = eos::pressure( reC - 0.5*(ruC*ruC + rvC*rvC + rwC*rwC)/rC );
     vn = sym[2] ? 0.0 : (nx*ruC + ny*rvC + nz*rwC)/rC;
+    // flow
     f[0][2] = rC*vn;
     f[1][2] = ruC*vn + p*nx;
     f[2][2] = rvC*vn + p*ny;
     f[3][2] = rwC*vn + p*nz;
     f[4][2] = (reC + p)*vn;
-    for (std::size_t c=5; c<ncomp; ++c) f[c][2] = U(N[2],0)*vn;
+    // scalar
+    for (std::size_t c=5; c<ncomp; ++c) f[c][2] = U(N[2],c)*vn;
 
     for (std::size_t c=0; c<ncomp; ++c) {
       auto fab = (f[c][0] + f[c][1])/4.0;

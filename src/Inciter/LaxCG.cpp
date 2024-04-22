@@ -1264,11 +1264,13 @@ LaxCG::writeFields( CkCallback cb )
 
   auto d = Disc();
   auto ncomp = m_u.nprop();
+  auto steady = g_cfg.get< tag::steady >();
 
   // Field output
 
   std::vector< std::string > nodefieldnames
-    {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
+    {"density", "velocityx", "velocityy", "velocityz", "energy", "pressure"};
+  if (steady) nodefieldnames.push_back( "mach" );
 
   using tk::operator/=;
   auto r = m_u.extract(0);
@@ -1276,15 +1278,18 @@ LaxCG::writeFields( CkCallback cb )
   auto v = m_u.extract(2);  v /= r;
   auto w = m_u.extract(3);  w /= r;
   auto e = m_u.extract(4);  e /= r;
-  std::vector< tk::real > pr( m_u.nunk() );
+  std::vector< tk::real > pr( m_u.nunk() ), ma;
+  if (steady) ma.resize( m_u.nunk() );
   for (std::size_t i=0; i<pr.size(); ++i) {
-    auto ei = e[i] - 0.5*(u[i]*u[i] + v[i]*v[i] + w[i]*w[i]);
-    pr[i] = eos::pressure( r[i]*ei );
+    auto vv = u[i]*u[i] + v[i]*v[i] + w[i]*w[i];
+    pr[i] = eos::pressure( r[i]*(e[i] - 0.5*vv) );
+    if (steady) ma[i] = std::sqrt(vv) / eos::soundspeed( r[i], pr[i] );
   }
 
   std::vector< std::vector< tk::real > > nodefields{
     std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
     std::move(pr) };
+  if (steady) nodefields.push_back( std::move(ma) );
 
   for (std::size_t c=0; c<ncomp-5; ++c) {
     nodefieldnames.push_back( "c" + std::to_string(c) );
@@ -1334,15 +1339,17 @@ LaxCG::writeFields( CkCallback cb )
 
   if (!f.empty()) {
     nodesurfnames.push_back( "density" );
-    nodesurfnames.push_back( "xvelocity" );
-    nodesurfnames.push_back( "yvelocity" );
-    nodesurfnames.push_back( "zvelocity" );
+    nodesurfnames.push_back( "velocityx" );
+    nodesurfnames.push_back( "velocityy" );
+    nodesurfnames.push_back( "velocityz" );
     nodesurfnames.push_back( "energy" );
     nodesurfnames.push_back( "pressure" );
 
     for (std::size_t c=0; c<ncomp-5; ++c) {
       nodesurfnames.push_back( "c" + std::to_string(c) );
     }
+
+    if (steady) nodesurfnames.push_back( "mach" );
 
     auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
     std::set< int > outsets( begin(f), end(f) );
@@ -1351,7 +1358,9 @@ LaxCG::writeFields( CkCallback cb )
       if (b == end(bnode)) continue;
       const auto& nodes = b->second;
       auto i = nodesurfs.size();
-      nodesurfs.insert( end(nodesurfs), ncomp + 1,
+      auto ns = ncomp + 1;
+      if (steady) ++ns;
+      nodesurfs.insert( end(nodesurfs), ns,
                         std::vector< tk::real >( nodes.size() ) );
       std::size_t j = 0;
       for (auto n : nodes) {
@@ -1367,6 +1376,9 @@ LaxCG::writeFields( CkCallback cb )
         auto sp = eos::pressure( s[0]*ei );
         nodesurfs[i+(p++)][j] = sp;
         for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+(p++)+c][j] = s[5+c];
+        if (steady) {
+          nodesurfs[i+(p++)][j] = std::sqrt(vv) / eos::soundspeed( s[0], sp );
+        }
         ++j;
       }
     }

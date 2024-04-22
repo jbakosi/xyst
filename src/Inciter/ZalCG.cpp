@@ -2016,12 +2016,13 @@ ZalCG::writeFields( CkCallback cb )
 
   auto d = Disc();
   auto ncomp = m_u.nprop();
+  auto steady = g_cfg.get< tag::steady >();
 
   // Field output
 
   std::vector< std::string > nodefieldnames
     {"density", "velocityx", "velocityy", "velocityz", "energy", "pressure"};
-  if (g_cfg.get< tag::steady >()) nodefieldnames.push_back( "mach" );
+  if (steady) nodefieldnames.push_back( "mach" );
 
   using tk::operator/=;
   auto r = m_u.extract(0);
@@ -2030,19 +2031,17 @@ ZalCG::writeFields( CkCallback cb )
   auto w = m_u.extract(3);  w /= r;
   auto e = m_u.extract(4);  e /= r;
   std::vector< tk::real > pr( m_u.nunk() ), ma;
-  if (g_cfg.get< tag::steady >()) ma.resize( m_u.nunk() );
+  if (steady) ma.resize( m_u.nunk() );
   for (std::size_t i=0; i<pr.size(); ++i) {
     auto vv = u[i]*u[i] + v[i]*v[i] + w[i]*w[i];
     pr[i] = eos::pressure( r[i]*(e[i] - 0.5*vv) );
-    if (g_cfg.get< tag::steady >()) {
-      ma[i] = std::sqrt(vv) / eos::soundspeed( r[i], pr[i] );
-    }
+    if (steady) ma[i] = std::sqrt(vv) / eos::soundspeed( r[i], pr[i] );
   }
 
   std::vector< std::vector< tk::real > > nodefields{
     std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
     std::move(pr) };
-  if (g_cfg.get< tag::steady >()) nodefields.push_back( std::move(ma) );
+  if (steady) nodefields.push_back( std::move(ma) );
 
   for (std::size_t c=0; c<ncomp-5; ++c) {
     nodefieldnames.push_back( "c" + std::to_string(c) );
@@ -2135,9 +2134,7 @@ ZalCG::writeFields( CkCallback cb )
       nodesurfnames.push_back( "deactivated" );
     }
 
-    if (g_cfg.get< tag::steady >()) {
-      nodesurfnames.push_back( "mach" );
-    }
+    if (steady) nodesurfnames.push_back( "mach" );
 
     auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
     std::set< int > outsets( begin(f), end(f) );
@@ -2148,7 +2145,7 @@ ZalCG::writeFields( CkCallback cb )
       auto i = nodesurfs.size();
       auto ns = ncomp + 1;
       if (g_cfg.get< tag::deactivate >()) ns += 3;
-      if (g_cfg.get< tag::steady >()) ++ns;
+      if (steady) ++ns;
       nodesurfs.insert( end(nodesurfs), ns,
                         std::vector< tk::real >( nodes.size() ) );
       std::size_t j = 0;
@@ -2170,7 +2167,7 @@ ZalCG::writeFields( CkCallback cb )
           nodesurfs[i+(p++)][j] = hull[n];
           nodesurfs[i+(p++)][j] = dea[n];
         }
-        if (g_cfg.get< tag::steady >()) {
+        if (steady) {
           nodesurfs[i+(p++)][j] = std::sqrt(vv) / eos::soundspeed( s[0], sp );
         }
         ++j;

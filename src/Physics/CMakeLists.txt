@@ -5,9 +5,9 @@ add_library(Physics
             Box.cpp
             Problems.cpp
             Riemann.cpp
-            Lax.cpp
-            Zalesak.cpp
             Kozak.cpp
+            Zalesak.cpp
+            Lax.cpp
 )
 
 target_include_directories(Physics PUBLIC

@@ -27,7 +27,6 @@
 #include "Reorder.hpp"
 #include "Around.hpp"
 #include "Lax.hpp"
-#include "Dt.hpp"
 #include "Problems.hpp"
 #include "EOS.hpp"
 #include "BC.hpp"
@@ -913,11 +912,25 @@ LaxCG::dt()
 
   } else {
 
+    const auto& vol = d->Vol();
+    auto cfl = g_cfg.get< tag::cfl >();
+
     if (g_cfg.get< tag::steady >()) {
-      physics::dt( d->Vol(), m_u, m_dtp );
+
+      // dtp[] ...
       mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
+
     } else {
-      mindt = physics::dt( d->Vol(), m_u );
+
+      for (std::size_t i=0; i<m_u.nunk(); ++i) {
+        auto [vpri,cpri] =
+          lax::eigen( m_u(i,0), m_u(i,1), m_u(i,2), m_u(i,3), m_u(i,4) );
+        auto L = std::cbrt( vol[i] );
+        auto euler_dt = L / std::max( vpri+cpri, 1.0e-8 );
+        mindt = std::min( mindt, euler_dt );
+      }
+      mindt *= cfl;
+
     }
 
   }

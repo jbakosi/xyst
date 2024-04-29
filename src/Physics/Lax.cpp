@@ -386,115 +386,43 @@ grad( const std::vector< std::size_t >& bpoin,
   #endif
 }
 
-static void
-rusanov( const tk::UnsMesh::Coords& coord,
-         const tk::Fields& G,
-         const tk::real dsupint[],
-         std::size_t p,
-         std::size_t q,
-         const tk::real L[],
-         const tk::real R[],
-         tk::real f[],
-         std::size_t symL,
-         std::size_t symR )
+std::tuple< tk::real, tk::real >
+eigen( tk::real r, tk::real ru, tk::real rv, tk::real rw, tk::real rE )
 // *****************************************************************************
-//! Compute advection fluxes on a single edge with Rusanov's flux
-//! \param[in] coord Mesh node coordinates
-//! \param[in] G Nodal gradients
-//! \param[in] dsupint Domain superedge integral for this edge
-//! \param[in] p Left node index of edge
-//! \param[in] q Right node index of edge
-//! \param[in,out] L Left physics state variables
-//! \param[in,out] R Rigth physics state variables
-//! \param[in,out] f Flux computed
-//! \param[in] symL Non-zero if left edge end-point is on a symmetry boundary
-//! \param[in] symR Non-zero if right edge end-point is on a symmetry boundary
+//  Compute eigenvalues of the preconditioned system
+//! \param[in] r Density
+//! \param[in] ru X-momentum
+//! \param[in] rv Y-momentum
+//! \param[in] rw Z-momentum
+//! \param[in] rE Specific total energy
+//! \return v', c'
 // *****************************************************************************
 {
-  #if defined(__clang__)
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wvla"
-    #pragma clang diagnostic ignored "-Wvla-extension"
-  #elif defined(STRICT_GNUC)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wvla"
-  #endif
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
+  auto cv = g_cfg.get< tag::mat_spec_heat_const_vol >();
+  auto K = g_cfg.get< tag::turkel >();
+  auto vinf = g_cfg.get< tag::velinf >();
+  auto rgas = 287.0;
+  auto cp = g*rgas/(g-1.0);
 
-  auto ncomp = G.nprop() / 3;
+  auto u = ru/r;
+  auto v = rv/r;
+  auto w = rw/r;
+  auto k = u*u + v*v + w*w;
+  auto e = rE/r - k/2.0;
+  auto vel = std::sqrt( k );
+  auto p = eos::pressure( r*e );
+  auto rp = r/p;
+  auto T = e/cv;
+  auto rt = -r/T;
+  auto beta = rp + rt/r/cp;
+  auto vr = std::min( eos::soundspeed(r,p), std::max(vel,K*vinf) );
+  auto vr2 = vr*vr;
+  auto alpha = 0.5*(1.0 - beta*vr2);
+  auto vpri = vel*(1.0 - alpha);
+  auto cpri = std::sqrt( alpha*alpha*k + vr2 );
 
-  // will work on copies of physics variables
-  tk::real l[ncomp], r[ncomp];
-  memcpy( l, L, sizeof l );
-  memcpy( r, R, sizeof r );
-
-  // MUSCL reconstruction in edge-end points for flow variables
-  muscl( p, q, coord, G, l[0], l[1], l[2], l[3], l[4],
-                         r[0], r[1], r[2], r[3], r[4] );
-
-  // pressure
-  auto pL = eos::pressure( l[0]*l[4] );
-  auto pR = eos::pressure( r[0]*r[4] );
-
-  // dualface-normal velocities
-  auto nx = dsupint[0];
-  auto ny = dsupint[1];
-  auto nz = dsupint[2];
-  auto vnL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz);
-  auto vnR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz);
-
-  // back to conserved variables
-  l[4] = (l[4] + 0.5*(l[1]*l[1] + l[2]*l[2] + l[3]*l[3])) * l[0];
-  l[1] *= l[0];
-  l[2] *= l[0];
-  l[3] *= l[0];
-  r[4] = (r[4] + 0.5*(r[1]*r[1] + r[2]*r[2] + r[3]*r[3])) * r[0];
-  r[1] *= r[0];
-  r[2] *= r[0];
-  r[3] *= r[0];
-
-  // dissipation
-  auto len = tk::length( nx, ny, nz );
-  auto sl = std::abs(vnL) + eos::soundspeed(l[0],pL)*len;
-  auto sr = std::abs(vnR) + eos::soundspeed(r[0],pR)*len;
-  auto fw = std::max( sl, sr );
-
-  // flow fluxes
-  f[0] = l[0]*vnL + r[0]*vnR + fw*(r[0] - l[0]);
-  f[1] = l[1]*vnL + r[1]*vnR + (pL + pR)*nx + fw*(r[1] - l[1]);
-  f[2] = l[2]*vnL + r[2]*vnR + (pL + pR)*ny + fw*(r[2] - l[2]);
-  f[3] = l[3]*vnL + r[3]*vnR + (pL + pR)*nz + fw*(r[3] - l[3]);
-  f[4] = (l[4] + pL)*vnL + (r[4] + pR)*vnR + fw*(r[4] - l[4]);
-
-  // artificial viscosity
-  const auto stab2 = g_cfg.get< tag::stab2 >();
-  if (stab2) {
-    auto stab2coef = g_cfg.get< tag::stab2coef >();
-    auto fws = stab2coef * fw;
-    f[0] -= fws*(l[0] - r[0]);
-    f[1] -= fws*(l[1] - r[1]);
-    f[2] -= fws*(l[2] - r[2]);
-    f[3] -= fws*(l[3] - r[3]);
-    f[4] -= fws*(l[4] - r[4]);
-  }
-
-  if (ncomp == 5) return;
-
-  // MUSCL reconstruction in edge-end points for scalars
-  muscl( p, q, coord, G, l, r );
-
-  // scalar dissipation
-  auto sw = std::max( std::abs(vnL), std::abs(vnR) );
-
-  // scalar fluxes
-  for (std::size_t c=5; c<ncomp; ++c) {
-    f[c] = l[c]*vnL + r[c]*vnR + sw*(r[c] - l[c]);
-  }
-
-  #if defined(__clang__)
-    #pragma clang diagnostic pop
-  #elif defined(STRICT_GNUC)
-    #pragma GCC diagnostic pop
-  #endif
+  return { vpri, cpri };
 }
 
 static void
@@ -667,6 +595,117 @@ hllc( const tk::UnsMesh::Coords& coord,
   nz = dsupint[2];
   auto vnL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz)/l[0];
   auto vnR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz)/r[0];
+  auto sw = std::max( std::abs(vnL), std::abs(vnR) );
+
+  // scalar fluxes
+  for (std::size_t c=5; c<ncomp; ++c) {
+    f[c] = l[c]*vnL + r[c]*vnR + sw*(r[c] - l[c]);
+  }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
+}
+
+static void
+rusanov( const tk::UnsMesh::Coords& coord,
+         const tk::Fields& G,
+         const tk::real dsupint[],
+         std::size_t p,
+         std::size_t q,
+         const tk::real L[],
+         const tk::real R[],
+         tk::real f[],
+         std::size_t symL,
+         std::size_t symR )
+// *****************************************************************************
+//! Compute advection fluxes on a single edge with Rusanov's flux
+//! \param[in] coord Mesh node coordinates
+//! \param[in] G Nodal gradients
+//! \param[in] dsupint Domain superedge integral for this edge
+//! \param[in] p Left node index of edge
+//! \param[in] q Right node index of edge
+//! \param[in,out] L Left physics state variables
+//! \param[in,out] R Rigth physics state variables
+//! \param[in,out] f Flux computed
+//! \param[in] symL Non-zero if left edge end-point is on a symmetry boundary
+//! \param[in] symR Non-zero if right edge end-point is on a symmetry boundary
+// *****************************************************************************
+{
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
+  auto ncomp = G.nprop() / 3;
+
+  // will work on copies of physics variables
+  tk::real l[ncomp], r[ncomp];
+  memcpy( l, L, sizeof l );
+  memcpy( r, R, sizeof r );
+
+  // MUSCL reconstruction in edge-end points for flow variables
+  muscl( p, q, coord, G, l[0], l[1], l[2], l[3], l[4],
+                         r[0], r[1], r[2], r[3], r[4] );
+
+  // pressure
+  auto pL = eos::pressure( l[0]*l[4] );
+  auto pR = eos::pressure( r[0]*r[4] );
+
+  // dualface-normal velocities
+  auto nx = dsupint[0];
+  auto ny = dsupint[1];
+  auto nz = dsupint[2];
+  auto vnL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz);
+  auto vnR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz);
+
+  // back to conserved variables
+  l[4] = (l[4] + 0.5*(l[1]*l[1] + l[2]*l[2] + l[3]*l[3])) * l[0];
+  l[1] *= l[0];
+  l[2] *= l[0];
+  l[3] *= l[0];
+  r[4] = (r[4] + 0.5*(r[1]*r[1] + r[2]*r[2] + r[3]*r[3])) * r[0];
+  r[1] *= r[0];
+  r[2] *= r[0];
+  r[3] *= r[0];
+
+  // dissipation
+  auto len = tk::length( nx, ny, nz );
+  auto sl = std::abs(vnL) + eos::soundspeed(l[0],pL)*len;
+  auto sr = std::abs(vnR) + eos::soundspeed(r[0],pR)*len;
+  auto fw = std::max( sl, sr );
+
+  // flow fluxes
+  f[0] = l[0]*vnL + r[0]*vnR + fw*(r[0] - l[0]);
+  f[1] = l[1]*vnL + r[1]*vnR + (pL + pR)*nx + fw*(r[1] - l[1]);
+  f[2] = l[2]*vnL + r[2]*vnR + (pL + pR)*ny + fw*(r[2] - l[2]);
+  f[3] = l[3]*vnL + r[3]*vnR + (pL + pR)*nz + fw*(r[3] - l[3]);
+  f[4] = (l[4] + pL)*vnL + (r[4] + pR)*vnR + fw*(r[4] - l[4]);
+
+  // artificial viscosity
+  const auto stab2 = g_cfg.get< tag::stab2 >();
+  if (stab2) {
+    auto stab2coef = g_cfg.get< tag::stab2coef >();
+    auto fws = stab2coef * fw;
+    f[0] -= fws*(l[0] - r[0]);
+    f[1] -= fws*(l[1] - r[1]);
+    f[2] -= fws*(l[2] - r[2]);
+    f[3] -= fws*(l[3] - r[3]);
+    f[4] -= fws*(l[4] - r[4]);
+  }
+
+  if (ncomp == 5) return;
+
+  // MUSCL reconstruction in edge-end points for scalars
+  muscl( p, q, coord, G, l, r );
+
+  // scalar dissipation
   auto sw = std::max( std::abs(vnL), std::abs(vnR) );
 
   // scalar fluxes

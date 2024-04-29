@@ -39,6 +39,8 @@ DEFTAG( term );
 DEFTAG( cfl );
 DEFTAG( t0 );
 DEFTAG( dt );
+DEFTAG( turkel );
+DEFTAG( velinf );
 DEFTAG( reorder );
 DEFTAG( part );
 DEFTAG( zoltan_params );
@@ -149,6 +151,8 @@ using ConfigMembers = brigand::list<
   , tag::cfl, double
   , tag::t0, double
   , tag::dt, double
+  , tag::turkel, double
+  , tag::velinf, double
   , tag::reorder, bool
   , tag::part, std::string
   , tag::zoltan_params, std::vector< std::string >

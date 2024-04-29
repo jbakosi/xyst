@@ -27,7 +27,6 @@
 #include "Reorder.hpp"
 #include "Around.hpp"
 #include "Riemann.hpp"
-#include "Dt.hpp"
 #include "Problems.hpp"
 #include "EOS.hpp"
 #include "BC.hpp"
@@ -913,11 +912,40 @@ RieCG::dt()
 
   } else {
 
+    const auto& vol = d->Vol();
+    auto cfl = g_cfg.get< tag::cfl >();
+
     if (g_cfg.get< tag::steady >()) {
-      physics::dt( d->Vol(), m_u, m_dtp );
+
+      for (std::size_t p=0; p<m_u.nunk(); ++p) {
+        auto r = m_u(p,0);
+        auto u = m_u(p,1)/r;
+        auto v = m_u(p,2)/r;
+        auto w = m_u(p,3)/r;
+        auto pr = eos::pressure( m_u(p,4) - 0.5*r*(u*u + v*v + w*w) );
+        auto c = eos::soundspeed( r, std::max(pr,0.0) );
+        auto L = std::cbrt( vol[p] );
+        auto vel = std::sqrt( u*u + v*v + w*w );
+        m_dtp[p] = L / std::max( vel+c, 1.0e-8 ) * cfl;
+      }
       mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
+
     } else {
-      mindt = physics::dt( d->Vol(), m_u );
+
+      for (std::size_t p=0; p<m_u.nunk(); ++p) {
+        auto r = m_u(p,0);
+        auto u = m_u(p,1)/r;
+        auto v = m_u(p,2)/r;
+        auto w = m_u(p,3)/r;
+        auto pr = eos::pressure( m_u(p,4) - 0.5*r*(u*u + v*v + w*w) );
+        auto c = eos::soundspeed( r, std::max(pr,0.0) );
+        auto L = std::cbrt( vol[p] );
+        auto vel = std::sqrt( u*u + v*v + w*w );
+        auto euler_dt = L / std::max( vel+c, 1.0e-8 );
+        mindt = std::min( mindt, euler_dt );
+      }
+      mindt *= cfl;
+
     }
 
   }

@@ -2,7 +2,6 @@ project(Physics CXX)
 
 add_library(Physics
             BC.cpp
-            Dt.cpp
             Box.cpp
             Problems.cpp
             Riemann.cpp

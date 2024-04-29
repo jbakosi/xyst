@@ -15,6 +15,10 @@
 
 namespace lax {
 
+// Compute eigenvalues of the preconditioned system
+std::tuple< tk::real, tk::real >
+eigen( tk::real r, tk::real ru, tk::real rv, tk::real rw, tk::real rE );
+
 //! Compute nodal gradients of primitive variables in all points
 void
 grad( const std::vector< std::size_t >& bpoin,

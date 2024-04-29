@@ -64,86 +64,82 @@ NodeDiagnostics::compute( Discretization& d,
 //! \see inciter::mergeDiag(), src/Inciter/Diagnostics.hpp
 // *****************************************************************************
 {
-  // Optionally collect diagnostics and send for aggregation across all workers
-
   using namespace diagnostics;
 
-  if ( !((d.It()+1) % diag_iter) ) {     // if remainder, don't dump
+  // Only compute diagnostics if needed in this time step
+  if ( (d.It()+1) % diag_iter ) return false;
 
-    auto ncomp = u.nprop();
+  auto ncomp = u.nprop();
 
-    // Diagnostics vector (of vectors) during aggregation. See
-    // Inciter/Diagnostics.h.
-    std::vector< std::vector< tk::real > >
-      diag( NUMDIAG, std::vector< tk::real >( ncomp, 0.0 ) );
+  // Diagnostics vector (of vectors) during aggregation. See
+  // Inciter/Diagnostics.h.
+  std::vector< std::vector< tk::real > >
+    diag( NUMDIAG, std::vector< tk::real >( ncomp, 0.0 ) );
 
-    const auto& v = d.V();  // nodal volumes without contributions from others
+  const auto& v = d.V();  // nodal volumes without contributions from others
 
-    // query function to evaluate analytic solution (if defined)
-    auto sol = problems::SOL();
+  // query function to evaluate analytic solution (if defined)
+  auto sol = problems::SOL();
 
-    // Evaluate analytic solution (if defined)
-    auto an = u;
-    if (sol) {
-      const auto& coord = d.Coord();
-      const auto& x = coord[0];
-      const auto& y = coord[1];
-      const auto& z = coord[2];
-      for (std::size_t i=0; i<u.nunk(); ++i) {
-        auto s = sol( x[i], y[i], z[i], d.T()+d.Dt() );
-        s[1] /= s[0];
-        s[2] /= s[0];
-        s[3] /= s[0];
-        s[4] = s[4] / s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
-        for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
-      }
-    }
-
-    // Put in norms sweeping our mesh chunk
+  // Evaluate analytic solution (if defined)
+  auto an = u;
+  if (sol) {
+    const auto& coord = d.Coord();
+    const auto& x = coord[0];
+    const auto& y = coord[1];
+    const auto& z = coord[2];
     for (std::size_t i=0; i<u.nunk(); ++i) {
-      // Compute sum for L2 norm of the numerical solution
-      for (std::size_t c=0; c<ncomp; ++c)
-        diag[L2SOL][c] += u(i,c) * u(i,c) * v[i];
-      // Compute sum for L2 norm of the residual
-      for (std::size_t c=0; c<ncomp; ++c)
-        diag[L2RES][c] += (u(i,c)-un(i,c)) * (u(i,c)-un(i,c)) * v[i];
-      // Compute sum for the total energy over the entire domain (first entry)
-      diag[TOTALSOL][0] += u(i,4) * v[i];
-      // Compute sum for L2 norm of the numerical-analytic solution
-      if (sol) {
-        auto nu = u[i];
-        nu[1] /= nu[0];
-        nu[2] /= nu[0];
-        nu[3] /= nu[0];
-        nu[4] = nu[4] / nu[0] - 0.5*(nu[1]*nu[1] + nu[2]*nu[2] + nu[3]*nu[3]);
-        for (std::size_t c=0; c<5; ++c) {
-          auto du = nu[c] - an(i,c);
-          diag[L2ERR][c] += du * du * v[i];
-          diag[L1ERR][c] += std::abs( du ) * v[i];
-        }
-        for (std::size_t c=5; c<ncomp; ++c) {
-          auto du = u(i,c) - an(i,c);
-          diag[L2ERR][c] += du * du * v[i];
-          diag[L1ERR][c] += std::abs( du ) * v[i];
-        }
-      }
+      auto s = sol( x[i], y[i], z[i], d.T()+d.Dt() );
+      s[1] /= s[0];
+      s[2] /= s[0];
+      s[3] /= s[0];
+      s[4] = s[4] / s[0] - 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
+      for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
     }
-
-    // Append diagnostics vector with metadata on the current time step
-    // ITER:: Current iteration count (only the first entry is used)
-    // TIME: Current physical time (only the first entry is used)
-    // DT: Current physical time step size (only the first entry is used)
-    diag[ITER][0] = static_cast< tk::real >( d.It()+1 );
-    diag[TIME][0] = d.T() + d.Dt();
-    diag[DT][0] = d.Dt();
-
-    // Contribute to diagnostics
-    auto stream = serialize( d.MeshId(), diag );
-    d.contribute( stream.first, stream.second.get(), DiagMerger,
-      CkCallback(CkIndex_Transporter::diagnostics(nullptr), d.Tr()) );
-
-    return true;        // diagnostics have been computed
   }
 
-  return false;         // diagnostics have not been computed
+  // Put in norms sweeping our mesh chunk
+  for (std::size_t i=0; i<u.nunk(); ++i) {
+    // Compute sum for L2 norm of the numerical solution
+    for (std::size_t c=0; c<ncomp; ++c)
+      diag[L2SOL][c] += u(i,c) * u(i,c) * v[i];
+    // Compute sum for L2 norm of the residual
+    for (std::size_t c=0; c<ncomp; ++c)
+      diag[L2RES][c] += (u(i,c)-un(i,c)) * (u(i,c)-un(i,c)) * v[i];
+    // Compute sum for the total energy over the entire domain (first entry)
+    diag[TOTALSOL][0] += u(i,4) * v[i];
+    // Compute sum for L2 norm of the numerical-analytic solution
+    if (sol) {
+      auto nu = u[i];
+      nu[1] /= nu[0];
+      nu[2] /= nu[0];
+      nu[3] /= nu[0];
+      nu[4] = nu[4] / nu[0] - 0.5*(nu[1]*nu[1] + nu[2]*nu[2] + nu[3]*nu[3]);
+      for (std::size_t c=0; c<5; ++c) {
+        auto du = nu[c] - an(i,c);
+        diag[L2ERR][c] += du * du * v[i];
+        diag[L1ERR][c] += std::abs( du ) * v[i];
+      }
+      for (std::size_t c=5; c<ncomp; ++c) {
+        auto du = u(i,c) - an(i,c);
+        diag[L2ERR][c] += du * du * v[i];
+        diag[L1ERR][c] += std::abs( du ) * v[i];
+      }
+    }
+  }
+
+  // Append diagnostics vector with metadata on the current time step
+  // ITER:: Current iteration count (only the first entry is used)
+  // TIME: Current physical time (only the first entry is used)
+  // DT: Current physical time step size (only the first entry is used)
+  diag[ITER][0] = static_cast< tk::real >( d.It()+1 );
+  diag[TIME][0] = d.T() + d.Dt();
+  diag[DT][0] = d.Dt();
+
+  // Contribute to diagnostics
+  auto stream = serialize( d.MeshId(), diag );
+  d.contribute( stream.first, stream.second.get(), DiagMerger,
+    CkCallback(CkIndex_Transporter::diagnostics(nullptr), d.Tr()) );
+
+  return true;        // diagnostics have been computed
 }

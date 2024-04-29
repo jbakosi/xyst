@@ -25,35 +25,34 @@ using inciter::g_cfg;
 
 //! Compute pressure
 //! \param[in] re Specific internal energy times density
-//! \return Pressure computed from the ideal gas equation of state
+//! \return Pressure from the ideal gas equation of state
 inline double
 pressure( double re ) {
   auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
   return re * (g-1.0);
 }
 
-//! Calculate speed of sound from the material density and material pressure
-//! \param[in] rho Material density
-//! \param[in] pr Material pressure
-//! \return Material speed of sound using the stiffened-gas EOS
+//! Compute speed of sound from density and pressure
+//! \param[in] r Density
+//! \param[in] p Pressure
+//! \return Speed of sound from the ideal gas equation of state
 inline double
-soundspeed( double rho, double pr ) {
+soundspeed( double r, double p ) {
   auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
-  return std::sqrt( g * pr / rho );
+  return std::sqrt( g * p / r );
 }
 
-//! \brief Calculate material specific total energy from the material density,
-//!   momentum and material pressure
-//! \param[in] rho Material density
+//! Compute specific total energy from density, momentum, and pressure
+//! \param[in] r Density
 //! \param[in] u X-velocity
 //! \param[in] v Y-velocity
 //! \param[in] w Z-velocity
-//! \param[in] pr Material pressure
-//! \return Material specific total energy using the stiffened-gas EOS
+//! \param[in] p Pressure
+//! \return Specific total energy from the ideal gas equation of state
 inline double
-totalenergy( double rho, double u, double v, double w, double pr ) {
+totalenergy( double r, double u, double v, double w, double p ) {
   auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
-  return pr / (g-1.0) + 0.5 * rho * (u*u + v*v + w*w);
+  return p / (g-1.0) + 0.5 * r * (u*u + v*v + w*w);
 }
 
 } // eos::

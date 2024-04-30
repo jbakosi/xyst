@@ -187,7 +187,7 @@ class Sorter : public CBase_Sorter {
     //! Discretization scheme proxy
     CProxy_RieCG m_riecg;
     //! Discretization scheme proxy
-    CProxy_RieCG m_laxcg;
+    CProxy_LaxCG m_laxcg;
     //! Discretization scheme proxy
     CProxy_ZalCG m_zalcg;
     //! Discretization scheme proxy

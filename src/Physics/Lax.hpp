@@ -21,12 +21,10 @@ eigen( tk::real r, tk::real ru, tk::real rv, tk::real rw, tk::real rE );
 
 //! Compute nodal gradients of primitive variables in all points
 void
-grad( const std::vector< std::size_t >& bpoin,
-      const std::vector< tk::real >& bpint,
-      const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
       const std::array< std::vector< tk::real >, 3 >& dsupint,
-      const std::array< std::vector< std::size_t >, 2 >& bsupedge,
-      const std::array< std::vector< tk::real >, 2 >& bsupint,
+      const std::array< std::vector< tk::real >, 3 >& coord,
+      const std::vector< std::size_t >& triinpoel,
       const tk::Fields& U,
       tk::Fields& G );
 
@@ -34,12 +32,9 @@ grad( const std::vector< std::size_t >& bpoin,
 void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
-     const std::array< std::vector< std::size_t >, 2 >& bsupedge,
-     const std::array< std::vector< tk::real >, 2 >& bsupint,
-     const std::vector< std::size_t >& bpoin,
-     const std::vector< tk::real >& bpint,
-     const std::vector< std::uint8_t >& bpsym,
      const std::array< std::vector< tk::real >, 3 >& coord,
+     const std::vector< std::size_t >& triinpoel,
+     const std::vector< std::uint8_t >& besym,
      const tk::Fields& G,
      const tk::Fields& U,
      const std::vector< tk::real >& v,

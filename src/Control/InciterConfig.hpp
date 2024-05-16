@@ -112,6 +112,7 @@ DEFTAG( bc_pre_density );
 DEFTAG( bc_pre_pressure );
 DEFTAG( mat_spec_heat_ratio );
 DEFTAG( mat_spec_heat_const_vol );
+DEFTAG( mat_spec_gas_const );
 DEFTAG( mat_heat_conductivity );
 DEFTAG( href_t0 );
 DEFTAG( href_dt );
@@ -233,6 +234,7 @@ using ConfigMembers = brigand::list<
   , tag::bc_pre_pressure, std::vector< double >
   , tag::mat_spec_heat_ratio, double
   , tag::mat_spec_heat_const_vol, double
+  , tag::mat_spec_gas_const, double
   , tag::mat_heat_conductivity, double
   , tag::href_t0, bool
   , tag::href_dt, bool

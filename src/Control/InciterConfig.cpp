@@ -803,6 +803,7 @@ mat( lua_State* L, Config& cfg )
 
   cfg.get< tag::mat_spec_heat_ratio >() = real( L, "spec_heat_ratio" );
   cfg.get< tag::mat_spec_heat_const_vol >() = real( L, "spec_heat_const_vol" );
+  cfg.get< tag::mat_spec_gas_const >() = real(L, "spec_gas_const", 287.052874);
   cfg.get< tag::mat_heat_conductivity >() = real( L, "heat_conductivity" );
 
   lua_pop( L, 1 );

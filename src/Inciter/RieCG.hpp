@@ -162,15 +162,10 @@ class RieCG : public CBase_RieCG {
       p | m_bnorm;
       p | m_bnormc;
       p | m_bndpoinint;
-      p | m_bndedgeint;
       p | m_domedgeint;
-      p | m_bpoin;
-      p | m_bpint;
-      p | m_bsupedge;
-      p | m_bsupint;
       p | m_dsupedge;
       p | m_dsupint;
-      p | m_bpsym;
+      p | m_besym;
       p | m_dirbcmasks;
       p | m_prebcnodes;
       p | m_prebcvals;
@@ -242,28 +237,15 @@ class RieCG : public CBase_RieCG {
     //! \details Key: global node id of boundary point, value: boundary point
     //!   integral contributions.
     std::unordered_map< std::size_t, std::array<tk::real,3> > m_bndpoinint;
-    //! Boundary edge integrals
-    //! \details Key: boundary edge-end points with global node ids, value:
-    //!   boundary edge integral contributions.
-    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
-                        tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_bndedgeint;
     //! Domain edge integrals
     std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
       tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_domedgeint;
-    //! Streamable boundary point local ids
-    std::vector< std::size_t > m_bpoin;
-    //! Streamable boundary point integrals
-    std::vector< tk::real > m_bpint;
-    //! Superedge (face, edge) end points with local ids for boundary edges
-    std::array< std::vector< std::size_t >, 2 > m_bsupedge;
-    //! Superedge (tet, face, edge) boundary edge integrals
-    std::array< std::vector< tk::real >, 2 > m_bsupint;
     //! Superedge (tet, face, edge) end points with local ids for domain edges
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals
     std::array< std::vector< tk::real >, 3 > m_dsupint;
-    //! Streamable boundary point symmetry BC flags
-    std::vector< std::uint8_t > m_bpsym;
+    //! Streamable boundary element symmetry BC flags
+    std::vector< std::uint8_t > m_besym;
     //! Gradients in mesh nodes
     tk::Fields m_grad;
     //! Gradients receive buffer
@@ -321,9 +303,6 @@ class RieCG : public CBase_RieCG {
 
     //! Convert integrals into streamable data structures
     void streamable();
-
-    //! Generate superedge-groups for boundary-edge loops
-    void bndsuped();
 
     //! Generate superedge-groups for domain-edge loops
     void domsuped();

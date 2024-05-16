@@ -94,7 +94,7 @@ add_regression_test(riecg_vorticalflow_u0.5 ${INCITER_EXECUTABLE}
 
 add_regression_test(riecg_vorticalflow_hllc_u0.5
                     ${INCITER_EXECUTABLE}
-                    NUMPES 4
+                    NUMPES 4 PPN 1
                     INPUTFILES vortical_flow_hllc.q unitcube_1k.exo
                     ARGS -f -c vortical_flow_hllc.q -i unitcube_1k.exo -u 0.5
                     BIN_BASELINE vortical_flow_hllc_pe4_u0.5.std.exo.0

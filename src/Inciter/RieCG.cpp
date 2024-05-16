@@ -301,7 +301,6 @@ RieCG::bndint()
 
   tk::destroy( m_bnorm );
   tk::destroy( m_bndpoinint );
-  tk::destroy( m_bndedgeint );
 
   for (const auto& [ setid, faceids ] : m_bface) { // for all side sets
     for (auto f : faceids) { // for all side set triangles
@@ -320,7 +319,6 @@ RieCG::bndint()
         (z[N[0]] + z[N[1]] + z[N[2]]) / 3.0 };
       for (const auto& [i,j] : tk::lpoet) {
         auto p = N[i];
-        auto q = N[j];
         tk::real r = invdistsq( centroid, p );
         auto& v = m_bnorm[setid];      // associate side set id
         auto& bpn = v[gid[p]];         // associate global node id of bnd pnt
@@ -332,16 +330,6 @@ RieCG::bndint()
         b[0] += n[0] * A2 / 6.0;        // bnd-point integral
         b[1] += n[1] * A2 / 6.0;
         b[2] += n[2] * A2 / 6.0;
-        tk::UnsMesh::Edge ed{ gid[p], gid[q] };
-        tk::real sig = 1.0;
-        if (ed[0] > ed[1]) {
-          std::swap( ed[0], ed[1] );
-          sig = -1.0;
-        }
-        auto& e = m_bndedgeint[ ed ];
-        e[0] += sig * n[0] * A2 / 24.0; // bnd-edge integral
-        e[1] += sig * n[1] * A2 / 24.0;
-        e[2] += sig * n[2] * A2 / 24.0;
       }
     }
   }
@@ -541,20 +529,11 @@ RieCG::streamable()
 // Convert integrals into streamable data structures
 // *****************************************************************************
 {
-  const auto& lid = Disc()->Lid();
-
-  // Convert boundary point integrals into streamable data structures
-  m_bpoin.resize( m_bndpoinint.size() );
-  m_bpsym.resize( m_bndpoinint.size() );
-  m_bpint.resize( m_bndpoinint.size() * 3 );
+  // Generate boundary element symmetry BC flags
+  m_besym.resize( m_triinpoel.size() );
   std::size_t i = 0;
-  for (const auto& [g,b] : m_bndpoinint) {
-    m_bpoin[i] = tk::cref_find( lid, g );
-    m_bpsym[i] = static_cast< std::uint8_t >(m_symbcnodeset.count(m_bpoin[i]));
-    m_bpint[i*3+0] = b[0];
-    m_bpint[i*3+1] = b[1];
-    m_bpint[i*3+2] = b[2];
-    ++i;
+  for (auto p : m_triinpoel) {
+    m_besym[i++] = static_cast< std::uint8_t >(m_symbcnodeset.count(p));
   }
 
   // Query surface integral output nodes
@@ -592,10 +571,6 @@ RieCG::streamable()
     }
   }
   tk::destroy( m_bndpoinint );
-
-  // Generate boundary superedges
-  bndsuped();
-  tk::destroy( m_bndedgeint );
 
   // Generate domain superedges
   domsuped();
@@ -639,91 +614,6 @@ RieCG::streamable()
   }
   tk::destroy( m_farbcnodeset );
   tk::destroy( m_bnorm );
-}
-
-void
-RieCG::bndsuped()
-// *****************************************************************************
-// Generate superedge-groups for boundary-edge loops
-//! \see See Lohner, Sec. 15.1.6.2, An Introduction to Applied CFD Techniques,
-//!      Wiley, 2008.
-// *****************************************************************************
-{
-  #ifndef NDEBUG
-  auto nbedge = m_bndedgeint.size();
-  #endif
-
-  const auto& lid = Disc()->Lid();
-  const auto& gid = Disc()->Gid();
-
-  tk::destroy( m_bsupedge[0] );
-  tk::destroy( m_bsupedge[1] );
-
-  tk::destroy( m_bsupint[0] );
-  tk::destroy( m_bsupint[1] );
-
-  for (const auto& [setid, tri] : m_bface) {
-    for (auto e : tri) {
-      std::size_t N[3] = { m_triinpoel[e*3+0], m_triinpoel[e*3+1],
-                           m_triinpoel[e*3+2] };
-      int f = 0;
-      tk::real sig[3];
-      decltype(m_bndedgeint)::const_iterator b[3];
-      for (const auto& [p,q] : tk::lpoet) {
-        tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-        sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
-        b[f] = m_bndedgeint.find( ed );
-        if (b[f] == end(m_bndedgeint)) break; else ++f;
-      }
-      if (f == 3) {
-        m_bsupedge[0].push_back( N[0] );
-        m_bsupedge[0].push_back( N[1] );
-        m_bsupedge[0].push_back( N[2] );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[0]) );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[1]) );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[2]) );
-        for (int ed=0; ed<3; ++ed) {
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[0] );
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[1] );
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[2] );
-          m_bndedgeint.erase( b[ed] );
-        }
-      }
-    }
-  }
-
-  m_bsupedge[1].resize( m_bndedgeint.size()*4 );
-  m_bsupint[1].resize( m_bndedgeint.size()*3 );
-  std::size_t k = 0;
-  for (const auto& [ed,b] : m_bndedgeint) {
-    auto p = tk::cref_find( lid, ed[0] );
-    auto q = tk::cref_find( lid, ed[1] );
-    auto e = m_bsupedge[1].data() + k*4;
-    e[0] = p;
-    e[1] = q;
-    e[2] = m_symbcnodeset.count(p);
-    e[3] = m_symbcnodeset.count(q);
-    auto i = m_bsupint[1].data() + k*3;
-    i[0] = b[0];
-    i[1] = b[1];
-    i[2] = b[2];
-    ++k;
-  }
-
-  //std::cout << std::setprecision(2)
-  //          << "superedges: ntri:" << m_bsupedge[0].size()/6
-  //          << "(nedge:" << m_bsupedge[0].size()/3 << ","
-  //          << 100.0 * static_cast< tk::real >( m_bsupedge[0].size()/3 ) /
-  //                     static_cast< tk::real >( nbedge )
-  //          << "%) + nedge:"
-  //          << m_bsupedge[1].size()/4 << "("
-  //          << 100.0 * static_cast< tk::real >( m_bsupedge[1].size()/4 ) /
-  //                     static_cast< tk::real >( nbedge )
-  //          << "%) = " << m_bsupedge[0].size()/2 + m_bsupedge[1].size()/4
-  //          << " of "<< nbedge << " total boundary edges\n";
-
-  Assert( m_bsupedge[0].size()/2 + m_bsupedge[1].size()/4 == nbedge,
-          "Not all boundary edges accounted for in superedge groups" );
 }
 
 void
@@ -980,8 +870,7 @@ RieCG::grad()
 {
   auto d = Disc();
 
-  riemann::grad( m_bpoin, m_bpint, m_dsupedge, m_dsupint, m_bsupedge,
-                 m_bsupint, m_u, m_grad );
+  riemann::grad( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_grad );
 
   // Send gradient contributions to neighbor chares
   if (d->NodeCommMap().empty()) {
@@ -1050,9 +939,8 @@ RieCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
   }
 
-  riemann::rhs( m_dsupedge, m_dsupint, m_bsupedge, m_bsupint,
-    m_bpoin, m_bpint, m_bpsym, d->Coord(), m_grad, m_u, d->V(), d->T(),
-    m_tp, m_rhs );
+  riemann::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym, m_grad,
+                m_u, d->V(), d->T(), m_tp, m_rhs );
 
   if (steady) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= prev_rkcoef * m_dtp[p];

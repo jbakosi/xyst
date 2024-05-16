@@ -227,22 +227,18 @@ primitive( std::size_t ncomp, std::size_t i, const tk::Fields& U, tk::real u[] )
 }
 
 void
-grad( const std::vector< std::size_t >& bpoin,
-      const std::vector< tk::real >& bpint,
-      const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
       const std::array< std::vector< tk::real >, 3 >& dsupint,
-      const std::array< std::vector< std::size_t >, 2 >& bsupedge,
-      const std::array< std::vector< tk::real >, 2 >& bsupint,
+      const std::array< std::vector< tk::real >, 3 >& coord,
+      const std::vector< std::size_t >& triinpoel,
       const tk::Fields& U,
       tk::Fields& G )
 // *****************************************************************************
 //  Compute nodal gradients of primitive variables in all points
-//! \param[in] bpoin Streamable boundary point local ids
-//! \param[in] bpint Streamable boundary point integrals
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
-//! \param[in] bsupedge Boundary superedges
-//! \param[in] bsupint Boundary superedge integrals
+//! \param[in] coord Mesh node coordinates
+//! \param[in] triinpoel Boundary face connectivity
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] G Nodal gradients
 //! \return Gradients of primitive variables in all mesh points
@@ -329,52 +325,36 @@ grad( const std::vector< std::size_t >& bpoin,
     }
   }
 
-  // boundary integrals
+  // boundary integral
 
-  // boundary point contributions
-  for (std::size_t b=0; b<bpoin.size(); ++b) {
-    auto p = bpoin[b];
-    tk::real u[ncomp];
-    primitive( ncomp, p, U, u );
-    for (std::size_t c=0; c<ncomp; ++c) {
-      G(p,c*3+0) += bpint[b*3+0] * u[c];
-      G(p,c*3+1) += bpint[b*3+1] * u[c];
-      G(p,c*3+2) += bpint[b*3+2] * u[c];
-    }
-  }
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
 
-  // boundary edge contributions: triangle superedges
-  for (std::size_t e=0; e<bsupedge[0].size()/6; ++e) {
-    const auto N = bsupedge[0].data() + e*6;
+  for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
+    const auto N = triinpoel.data() + e*3;
     tk::real u[3][ncomp];
     primitive( ncomp, N[0], U, u[0] );
     primitive( ncomp, N[1], U, u[1] );
     primitive( ncomp, N[2], U, u[2] );
+    const std::array< tk::real, 3 >
+      ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
+      ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
+    auto n = tk::cross( ba, ca );
+    n[0] /= 12.0;
+    n[1] /= 12.0;
+    n[2] /= 12.0;
     for (std::size_t c=0; c<ncomp; ++c) {
+      auto uab = (u[0][c] + u[1][c])/4.0;
+      auto ubc = (u[1][c] + u[2][c])/4.0;
+      auto uca = (u[2][c] + u[0][c])/4.0;
+      tk::real g[] = { uab + uca + u[0][c],
+                       uab + ubc + u[1][c],
+                       ubc + uca + u[2][c] };
       for (std::size_t j=0; j<3; ++j) {
-        tk::real f[3];
-        const auto b = bsupint[0].data();
-        f[0] = b[(e*3+0)*3+j] * (u[1][c] + u[0][c]);
-        f[1] = b[(e*3+1)*3+j] * (u[2][c] + u[1][c]);
-        f[2] = b[(e*3+2)*3+j] * (u[0][c] + u[2][c]);
-        G(N[0],c*3+j) = G(N[0],c*3+j) - f[0] + f[2];
-        G(N[1],c*3+j) = G(N[1],c*3+j) + f[0] - f[1];
-        G(N[2],c*3+j) = G(N[2],c*3+j) + f[1] - f[2];
-      }
-    }
-  }
-
-  // boundary edge contributions: edges
-  for (std::size_t e=0; e<bsupedge[1].size()/4; ++e) {
-    const auto N = bsupedge[1].data() + e*4;
-    tk::real u[2][ncomp];
-    primitive( ncomp, N[0], U, u[0] );
-    primitive( ncomp, N[1], U, u[1] );
-    for (std::size_t c=0; c<ncomp; ++c) {
-      for (std::size_t j=0; j<3; ++j) {
-        tk::real f = bsupint[1][e*3+j] * (u[1][c] + u[0][c]);
-        G(N[0],c*3+j) -= f;
-        G(N[1],c*3+j) += f;
+        G(N[0],c*3+j) += g[j] * n[j];
+        G(N[1],c*3+j) += g[j] * n[j];
+        G(N[2],c*3+j) += g[j] * n[j];
       }
     }
   }
@@ -532,7 +512,6 @@ hllc( const tk::UnsMesh::Coords& coord,
   #endif
 
   auto ncomp = G.nprop() / 3;
-  auto eps = std::numeric_limits< tk::real >::epsilon();
 
   // will work on copies of physics variables
   tk::real l[ncomp], r[ncomp];
@@ -543,24 +522,20 @@ hllc( const tk::UnsMesh::Coords& coord,
   muscl( p, q, coord, G, l[0], l[1], l[2], l[3], l[4],
                          r[0], r[1], r[2], r[3], r[4] );
 
-  // pressure
-  auto pL = eos::pressure( l[0]*l[4] );
-  auto pR = eos::pressure( r[0]*r[4] );
-
   // dualface-normal velocities
   auto nx = -dsupint[0];
   auto ny = -dsupint[1];
   auto nz = -dsupint[2];
   auto len = tk::length( nx, ny, nz );
-  if (len < eps) {
-    for (std::size_t c=0; c<ncomp; ++c) f[c] = 0.0;
-    return;
-  }
   nx /= len;
   ny /= len;
   nz /= len;
   auto qL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz);
   auto qR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz);
+
+  // pressure
+  auto pL = eos::pressure( l[0]*l[4] );
+  auto pR = eos::pressure( r[0]*r[4] );
 
   // back to conserved variables
   l[4] = (l[4] + 0.5*(l[1]*l[1] + l[2]*l[2] + l[3]*l[3])) * l[0];
@@ -608,52 +583,52 @@ hllc( const tk::UnsMesh::Coords& coord,
 
   // flow fluxes
   if (sL > 0.0) {
-    qL *= L2;
-    f[0] = l[0]*qL;
-    f[1] = l[1]*qL + pL*nx;
-    f[2] = l[2]*qL + pL*ny;
-    f[3] = l[3]*qL + pL*nz;
-    f[4] = (l[4] + pL)*qL;
+    auto qL2 = qL * L2;
+    f[0] = l[0]*qL2;
+    f[1] = l[1]*qL2 + pL*nx;
+    f[2] = l[2]*qL2 + pL*ny;
+    f[3] = l[3]*qL2 + pL*nz;
+    f[4] = (l[4] + pL)*qL2;
   }
   else if (sL <= 0.0 && sM > 0.0) {
-    qL *= L2;
-    sL *= L2;
-    f[0] = l[0]*qL + sL*(uL[0] - l[0]);
-    f[1] = l[1]*qL + pL*nx + sL*(uL[1] - l[1]);
-    f[2] = l[2]*qL + pL*ny + sL*(uL[2] - l[2]);
-    f[3] = l[3]*qL + pL*nz + sL*(uL[3] - l[3]);
-    f[4] = (l[4] + pL)*qL + sL*(uL[4] - l[4]);
+    auto qL2 = qL * L2;
+    auto sL2 = sL * L2;
+    f[0] = l[0]*qL2 + sL2*(uL[0] - l[0]);
+    f[1] = l[1]*qL2 + pL*nx + sL2*(uL[1] - l[1]);
+    f[2] = l[2]*qL2 + pL*ny + sL2*(uL[2] - l[2]);
+    f[3] = l[3]*qL2 + pL*nz + sL2*(uL[3] - l[3]);
+    f[4] = (l[4] + pL)*qL2 + sL2*(uL[4] - l[4]);
   }
   else if (sM <= 0.0 && sR >= 0.0) {
-    qR *= L2;
-    sR *= L2;
-    f[0] = r[0]*qR + sR*(uR[0] - r[0]);
-    f[1] = r[1]*qR + pR*nx + sR*(uR[1] - r[1]);
-    f[2] = r[2]*qR + pR*ny + sR*(uR[2] - r[2]);
-    f[3] = r[3]*qR + pR*nz + sR*(uR[3] - r[3]);
-    f[4] = (r[4] + pR)*qR + sR*(uR[4] - r[4]);
+    auto qR2 = qR * L2;
+    auto sR2 = sR * L2;
+    f[0] = r[0]*qR2 + sR2*(uR[0] - r[0]);
+    f[1] = r[1]*qR2 + pR*nx + sR2*(uR[1] - r[1]);
+    f[2] = r[2]*qR2 + pR*ny + sR2*(uR[2] - r[2]);
+    f[3] = r[3]*qR2 + pR*nz + sR2*(uR[3] - r[3]);
+    f[4] = (r[4] + pR)*qR2 + sR2*(uR[4] - r[4]);
   }
   else {
-    qR *= L2;
-    f[0] = r[0]*qR;
-    f[1] = r[1]*qR + pR*nx;
-    f[2] = r[2]*qR + pR*ny;
-    f[3] = r[3]*qR + pR*nz;
-    f[4] = (r[4] + pR)*qR;
+    auto qR2 = qR * L2;
+    f[0] = r[0]*qR2;
+    f[1] = r[1]*qR2 + pR*nx;
+    f[2] = r[2]*qR2 + pR*ny;
+    f[3] = r[3]*qR2 + pR*nz;
+    f[4] = (r[4] + pR)*qR2;
   }
 
   // artificial viscosity
   const auto stab2 = g_cfg.get< tag::stab2 >();
   if (stab2) {
-    auto sl = std::abs(qL) + eos::soundspeed(l[0],pL);
-    auto sr = std::abs(qR) + eos::soundspeed(r[0],pR);
     auto stab2coef = g_cfg.get< tag::stab2coef >();
+    auto sl = std::abs(qL) + cL;
+    auto sr = std::abs(qR) + cR;
     auto fws = stab2coef * std::max(sl,sr) * len;
-    f[0] -= fws*(l[0] - r[0]);
-    f[1] -= fws*(l[1] - r[1]);
-    f[2] -= fws*(l[2] - r[2]);
-    f[3] -= fws*(l[3] - r[3]);
-    f[4] -= fws*(l[4] - r[4]);
+    f[0] -= fws * (l[0] - r[0]);
+    f[1] -= fws * (l[1] - r[1]);
+    f[2] -= fws * (l[2] - r[2]);
+    f[3] -= fws * (l[3] - r[3]);
+    f[4] -= fws * (l[4] - r[4]);
   }
 
   if (ncomp == 5) return;
@@ -661,17 +636,10 @@ hllc( const tk::UnsMesh::Coords& coord,
   // MUSCL reconstruction in edge-end points for scalars
   muscl( p, q, coord, G, l, r );
 
-  // scalar dissipation
-  nx = dsupint[0];
-  ny = dsupint[1];
-  nz = dsupint[2];
-  auto vnL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz)/l[0];
-  auto vnR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz)/r[0];
-  auto sw = std::max( std::abs(vnL), std::abs(vnR) );
-
-  // scalar fluxes
+  // scalar
+  auto sw = std::max( std::abs(qL), std::abs(qR) ) * len;
   for (std::size_t c=5; c<ncomp; ++c) {
-    f[c] = l[c]*vnL + r[c]*vnR + sw*(r[c] - l[c]);
+    f[c] = (l[c]*qL + r[c]*qR)*len + sw*(r[c] - l[c]);
   }
 
   #if defined(__clang__)
@@ -709,28 +677,18 @@ FLUX()
 }
 
 static void
-adv( const tk::UnsMesh::Coords& coord,
-     const std::vector< std::size_t >& bpoin,
-     const std::vector< tk::real >& bpint,
-     const std::vector< std::uint8_t >& bpsym,
-     const std::array< std::vector< std::size_t >, 3 >& dsupedge,
-     const std::array< std::vector< tk::real >, 3 >& dsupint,
-     const std::array< std::vector< std::size_t >, 2 >& bsupedge,
-     const std::array< std::vector< tk::real >, 2 >& bsupint,
-     const tk::Fields& G,
-     const tk::Fields& U,
-     // cppcheck-suppress constParameter
-     tk::Fields& R )
+advdom( const tk::UnsMesh::Coords& coord,
+        const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+        const std::array< std::vector< tk::real >, 3 >& dsupint,
+        const tk::Fields& G,
+        const tk::Fields& U,
+        // cppcheck-suppress constParameter
+        tk::Fields& R )
 // *****************************************************************************
-//! Compute integrals for advection
+//! Compute domain integral for advection
 //! \param[in] coord Mesh node coordinates
-//! \param[in] bpoin Boundary point local ids
-//! \param[in] bpint Boundary point integrals
-//! \param[in] bpsym Boundary point symmetry BC flags
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
-//! \param[in] bsupedge Boundary superedges
-//! \param[in] bsupint Boundary superedge integrals
 //! \param[in] G Nodal gradients
 //! \param[in] U Solution vector at recent time step
 //! \param[in,out] R Right-hand side vector computed
@@ -740,7 +698,7 @@ adv( const tk::UnsMesh::Coords& coord,
   auto ncomp = U.nprop();
 
   // configure flux function
-  auto advedge = FLUX();
+  auto flux = FLUX();
 
   #if defined(__clang__)
     #pragma clang diagnostic push
@@ -750,8 +708,6 @@ adv( const tk::UnsMesh::Coords& coord,
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wvla"
   #endif
-
-  // domain integral
 
   // domain edge contributions: tetrahedron superedges
   for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
@@ -765,12 +721,12 @@ adv( const tk::UnsMesh::Coords& coord,
     // edge fluxes
     tk::real f[6][ncomp];
     const auto d = dsupint[0].data();
-    advedge( coord, G, d+(e*6+0)*3, N[0], N[1], u[0], u[1], f[0], 0, 0 );
-    advedge( coord, G, d+(e*6+1)*3, N[1], N[2], u[1], u[2], f[1], 0, 0 );
-    advedge( coord, G, d+(e*6+2)*3, N[2], N[0], u[2], u[0], f[2], 0, 0 );
-    advedge( coord, G, d+(e*6+3)*3, N[0], N[3], u[0], u[3], f[3], 0, 0 );
-    advedge( coord, G, d+(e*6+4)*3, N[1], N[3], u[1], u[3], f[4], 0, 0 );
-    advedge( coord, G, d+(e*6+5)*3, N[2], N[3], u[2], u[3], f[5], 0, 0 );
+    flux( coord, G, d+(e*6+0)*3, N[0], N[1], u[0], u[1], f[0], 0, 0 );
+    flux( coord, G, d+(e*6+1)*3, N[1], N[2], u[1], u[2], f[1], 0, 0 );
+    flux( coord, G, d+(e*6+2)*3, N[2], N[0], u[2], u[0], f[2], 0, 0 );
+    flux( coord, G, d+(e*6+3)*3, N[0], N[3], u[0], u[3], f[3], 0, 0 );
+    flux( coord, G, d+(e*6+4)*3, N[1], N[3], u[1], u[3], f[4], 0, 0 );
+    flux( coord, G, d+(e*6+5)*3, N[2], N[3], u[2], u[3], f[5], 0, 0 );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c] - f[3][c];
@@ -791,9 +747,9 @@ adv( const tk::UnsMesh::Coords& coord,
     // edge fluxes
     tk::real f[3][ncomp];
     const auto d = dsupint[1].data();
-    advedge( coord, G, d+(e*3+0)*3, N[0], N[1], u[0], u[1], f[0], 0, 0 );
-    advedge( coord, G, d+(e*3+1)*3, N[1], N[2], u[1], u[2], f[1], 0, 0 );
-    advedge( coord, G, d+(e*3+2)*3, N[2], N[0], u[2], u[0], f[2], 0, 0 );
+    flux( coord, G, d+(e*3+0)*3, N[0], N[1], u[0], u[1], f[0], 0, 0 );
+    flux( coord, G, d+(e*3+1)*3, N[1], N[2], u[1], u[2], f[1], 0, 0 );
+    flux( coord, G, d+(e*3+2)*3, N[2], N[0], u[2], u[0], f[2], 0, 0 );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
@@ -811,7 +767,7 @@ adv( const tk::UnsMesh::Coords& coord,
     // edge fluxes
     tk::real f[ncomp];
     const auto d = dsupint[2].data();
-    advedge( coord, G, d+e*3, N[0], N[1], u[0], u[1], f, 0, 0 );
+    flux( coord, G, d+e*3, N[0], N[1], u[0], u[1], f, 0, 0 );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) -= f[c];
@@ -819,66 +775,115 @@ adv( const tk::UnsMesh::Coords& coord,
     }
   }
 
-  // boundary integrals
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
+}
 
-  // boundary point contributions
-  for (std::size_t b=0; b<bpoin.size(); ++b) {
-    auto p = bpoin[b];
-    tk::real u[ncomp];
-    primitive( ncomp, p, U, u );
-    auto pr = eos::pressure( u[0]*u[4] );
-    // boundary-normal velocity
-    auto nx = bpint[b*3+0];
-    auto ny = bpint[b*3+1];
-    auto nz = bpint[b*3+2];
-    auto vn = bpsym[b] ? 0.0 : (nx*u[1] + ny*u[2] + nz*u[3]);
-    // flow fluxes
-    R(p,0) += U(p,0)*vn;
-    R(p,1) += U(p,1)*vn + pr*nx;
-    R(p,2) += U(p,2)*vn + pr*ny;
-    R(p,3) += U(p,3)*vn + pr*nz;
-    R(p,4) += (U(p,4) + pr)*vn;
-    // scalar fluxes
-    for (std::size_t c=5; c<U.nprop(); ++c) {
-      R(p,c) += U(p,c)*vn;
-    }
-  }
+static void
+advbnd( const std::vector< std::size_t >& triinpoel,
+        const std::array< std::vector< tk::real >, 3 >& coord,
+        const std::vector< std::uint8_t >& besym,
+        const tk::Fields& U,
+        tk::Fields& R )
+// *****************************************************************************
+//! Compute boundary integral for advection
+//! \param[in] triinpoel Boundary face connectivity
+//! \param[in] coord Mesh node coordinates
+//! \param[in] besym Boundary element symmetry BC flags
+//! \param[in] U Solution vector at recent time step
+//! \param[in,out] R Right-hand side vector
+// *****************************************************************************
+{
+  auto ncomp = U.nprop();
 
-  // boundary edge contributions: triangle superedges
-  for (std::size_t e=0; e<bsupedge[0].size()/6; ++e) {
-    const auto N = bsupedge[0].data() + e*6;
-    tk::real u[3][ncomp];
-    primitive( ncomp, N[0], U, u[0] );
-    primitive( ncomp, N[1], U, u[1] );
-    primitive( ncomp, N[2], U, u[2] );
-    // edge fluxes
-    tk::real f[3][ncomp];
-    const auto b = bsupint[0].data();
-    advedge( coord, G, b+(e*3+0)*3, N[0], N[1], u[0], u[1], f[0], N[3], N[4] );
-    advedge( coord, G, b+(e*3+1)*3, N[1], N[2], u[1], u[2], f[1], N[4], N[5] );
-    advedge( coord, G, b+(e*3+2)*3, N[2], N[0], u[2], u[0], f[2], N[5], N[3] );
-    // edge flux contributions
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
+  for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
+    const auto N = triinpoel.data() + e*3;
+
+    auto rA  = U(N[0],0);
+    auto ruA = U(N[0],1);
+    auto rvA = U(N[0],2);
+    auto rwA = U(N[0],3);
+    auto reA = U(N[0],4);
+
+    auto rB  = U(N[1],0);
+    auto ruB = U(N[1],1);
+    auto rvB = U(N[1],2);
+    auto rwB = U(N[1],3);
+    auto reB = U(N[1],4);
+
+    auto rC  = U(N[2],0);
+    auto ruC = U(N[2],1);
+    auto rvC = U(N[2],2);
+    auto rwC = U(N[2],3);
+    auto reC = U(N[2],4);
+
+    const std::array< tk::real, 3 >
+      ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
+      ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
+    auto [nx,ny,nz] = tk::cross( ba, ca );
+    nx /= 12.0;
+    ny /= 12.0;
+    nz /= 12.0;
+
+    tk::real p, vn, f[ncomp][3];
+    const auto sym = besym.data() + e*3;
+
+    p = eos::pressure( reA - 0.5*(ruA*ruA + rvA*rvA + rwA*rwA)/rA );
+    vn = sym[0] ? 0.0 : (nx*ruA + ny*rvA + nz*rwA)/rA;
+    // flow
+    f[0][0] = rA*vn;
+    f[1][0] = ruA*vn + p*nx;
+    f[2][0] = rvA*vn + p*ny;
+    f[3][0] = rwA*vn + p*nz;
+    f[4][0] = (reA + p)*vn;
+    // scalar
+    for (std::size_t c=5; c<ncomp; ++c) f[c][0] = U(N[0],c)*vn;
+
+    p = eos::pressure( reB - 0.5*(ruB*ruB + rvB*rvB + rwB*rwB)/rB );
+    vn = sym[1] ? 0.0 : (nx*ruB + ny*rvB + nz*rwB)/rB;
+    // flow
+    f[0][1] = rB*vn;
+    f[1][1] = ruB*vn + p*nx;
+    f[2][1] = rvB*vn + p*ny;
+    f[3][1] = rwB*vn + p*nz;
+    f[4][1] = (reB + p)*vn;
+    // scalar
+    for (std::size_t c=5; c<ncomp; ++c) f[c][1] = U(N[1],c)*vn;
+
+    p = eos::pressure( reC - 0.5*(ruC*ruC + rvC*rvC + rwC*rwC)/rC );
+    vn = sym[2] ? 0.0 : (nx*ruC + ny*rvC + nz*rwC)/rC;
+    // flow
+    f[0][2] = rC*vn;
+    f[1][2] = ruC*vn + p*nx;
+    f[2][2] = rvC*vn + p*ny;
+    f[3][2] = rwC*vn + p*nz;
+    f[4][2] = (reC + p)*vn;
+    // scalar
+    for (std::size_t c=5; c<ncomp; ++c) f[c][2] = U(N[2],c)*vn;
+
     for (std::size_t c=0; c<ncomp; ++c) {
-      R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
-      R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c];
-      R(N[2],c) = R(N[2],c) + f[1][c] - f[2][c];
-    }
-  }
-
-  // boundary edge contributions: edges
-  for (std::size_t e=0; e<bsupedge[1].size()/4; ++e) {
-    const auto N = bsupedge[1].data() + e*4;
-    tk::real u[2][ncomp];
-    primitive( ncomp, N[0], U, u[0] );
-    primitive( ncomp, N[1], U, u[1] );
-    // edge fluxes
-    tk::real f[ncomp];
-    const auto b = bsupint[1].data();
-    advedge( coord, G, b+e*3, N[0], N[1], u[0], u[1], f, N[2], N[3] );
-    // edge flux contributions
-    for (std::size_t c=0; c<ncomp; ++c) {
-      R(N[0],c) -= f[c];
-      R(N[1],c) += f[c];
+      auto fab = (f[c][0] + f[c][1])/4.0;
+      auto fbc = (f[c][1] + f[c][2])/4.0;
+      auto fca = (f[c][2] + f[c][0])/4.0;
+      R(N[0],c) += fab + fca + f[c][0];
+      R(N[1],c) += fab + fbc + f[c][1];
+      R(N[2],c) += fbc + fca + f[c][2];
     }
   }
 
@@ -921,12 +926,9 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
-     const std::array< std::vector< std::size_t >, 2 >& bsupedge,
-     const std::array< std::vector< tk::real >, 2 >& bsupint,
-     const std::vector< std::size_t >& bpoin,
-     const std::vector< tk::real >& bpint,
-     const std::vector< std::uint8_t >& bpsym,
      const std::array< std::vector< tk::real >, 3 >& coord,
+     const std::vector< std::size_t >& triinpoel,
+     const std::vector< std::uint8_t >& besym,
      const tk::Fields& G,
      const tk::Fields& U,
      const std::vector< tk::real >& v,
@@ -937,12 +939,9 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //  Compute right hand side
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
-//! \param[in] bsupedge Boundary superedges
-//! \param[in] bsupint Boundary superedge integrals
-//! \param[in] bpoin Boundary point local ids
-//! \param[in] bpint Boundary point integrals
-//! \param[in] bpsym Boundary point symmetry BC flags
 //! \param[in] coord Mesh node coordinates
+//! \param[in] triinpoel Boundary face connectivity
+//! \param[in] besym Boundary element symmetry BC flags
 //! \param[in] G Gradients in mesh nodes
 //! \param[in] U Unknowns/solution vector in mesh nodes
 //! \param[in] v Nodal mesh volumes without contributions from other chares
@@ -957,14 +956,9 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
           "Number of unknowns and/or number of components in right-hand "
           "side vector incorrect" );
 
-  // zero right hand side for all components
   R.fill( 0.0 );
-
-  // advection
-  adv( coord, bpoin, bpint, bpsym, dsupedge, dsupint, bsupedge, bsupint,
-       G, U, R );
-
-  // source
+  advdom( coord, dsupedge, dsupint, G, U, R );
+  advbnd( triinpoel, coord, besym, U, R );
   src( coord, v, t, tp, R );
 }
 

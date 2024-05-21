@@ -6,7 +6,12 @@
              2019-2021 Triad National Security, LLC.,
              2022-2024 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     Riemann, MUSCL, limiting for edge-based continuous Galerkin
+  \brief     LaxCG: Time-derivative preconditioning for all Ma
+  \see       Luo, Baum, Lohner, "Extension of Harten-Lax-van Leer Scheme for
+             Flows at All Speeds", AIAA Journal, Vol. 43, No. 6, 2005
+  \see       Weiss & Smith, "Preconditioning Applied to Variable and Constant
+             Density Time-Accurate Flows on Unstructured Meshes", AIAA Journal,
+             Vol. 33, No. 11, 1995, pp. 2050-2057.
 */
 // *****************************************************************************
 #pragma once
@@ -15,9 +20,9 @@
 
 namespace lax {
 
-// Compute eigenvalues of the preconditioned system
-std::tuple< tk::real, tk::real >
-eigen( tk::real r, tk::real ru, tk::real rv, tk::real rw, tk::real rE );
+//! Compute reference velocitity of the preconditioned system
+tk::real
+refvel( tk::real r, tk::real p, tk::real v );
 
 //! Compute nodal gradients of primitive variables in all points
 void

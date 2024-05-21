@@ -359,16 +359,20 @@ string( lua_State* L,
 }
 
 static std::vector< double >
-vector( lua_State* L, const char* name, bool global = false )
+vector( lua_State* L,
+        const char* name,
+        double def = largereal,
+        bool global = false )
 // *****************************************************************************
 // Parse vector table from global scope or table
 //! \param[in] L Lua state
 //! \param[in] name Label to parse
+//! \param[in] def Default if does not exist
 //! \param[in] global True to parse from global scope, false from table on stack
 //! \return Vector components parsed
 // *****************************************************************************
 {
-  std::vector< double > v( 3, largereal );
+  std::vector< double > v( 3, def );
 
   if (global) {
     lua_getglobal( L, name );
@@ -928,7 +932,7 @@ Config::control()
     get< tag::cfl >() = real( L, "cfl", 0.0, true );
     get< tag::dt >() = real( L, "dt", 0.0, true );
     get< tag::turkel >() = real( L, "turkel", 0.5, true );
-    get< tag::velinf >() = real( L, "velinf", 1.0, true );
+    get< tag::velinf >() = vector( L, "velinf", 1.0, true );
     get< tag::t0 >() = real( L, "t0", 0.0, true );
     get< tag::reorder >() = boolean( L, "reorder", false, true );
     get< tag::flux >() = string( L, "flux", "rusanov", true );

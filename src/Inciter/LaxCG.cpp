@@ -7,6 +7,11 @@
              2022-2024 J. Bakosi
              All rights reserved. See the LICENSE file for details.
   \brief     LaxCG: Time-derivative preconditioning for all Ma
+  \see       Luo, Baum, Lohner, "Extension of Harten-Lax-van Leer Scheme for
+             Flows at All Speeds", AIAA Journal, Vol. 43, No. 6, 2005
+  \see       Weiss & Smith, "Preconditioning Applied to Variable and Constant
+             Density Time-Accurate Flows on Unstructured Meshes", AIAA Journal,
+             Vol. 33, No. 11, 1995, pp. 2050-2057.
 */
 // *****************************************************************************
 
@@ -122,15 +127,12 @@ LaxCG::primitive( tk::Fields& U )
     auto u = U(i,1)/r;
     auto v = U(i,2)/r;
     auto w = U(i,3)/r;
-    auto E = U(i,4)/r;
-    auto e = E - (u*u + v*v + w*w)/2.0;
-    auto p = eos::pressure( r*e );
-    auto T = p/r/rgas;
+    auto p = eos::pressure( U(i,4) - 0.5*r*(u*u + v*v + w*w) );
     U(i,0) = p;
     U(i,1) = u;
     U(i,2) = v;
     U(i,3) = w;
-    U(i,4) = T;
+    U(i,4) = p/r/rgas;
   }
 }
 
@@ -153,13 +155,107 @@ LaxCG::conservative( tk::Fields& U )
     auto w = U(i,3);
     auto T = U(i,4);
     auto r = p/T/rgas;
-    auto E = p/r/(g-1.0) + (u*u + v*v + w*w)/2.0;
     U(i,0) = r;
     U(i,1) = r*u;
     U(i,2) = r*v;
     U(i,3) = r*w;
-    U(i,4) = r*E;
+    U(i,4) = p/(g-1.0) + 0.5*r*(u*u + v*v + w*w);
   }
+}
+
+std::array< tk::real, 5*5 >
+LaxCG::precond( const tk::Fields& U, std::size_t i )
+// *****************************************************************************
+//  Compute the inverse of the time-derivative preconditioning matrix
+//! \param[in] U Unknown/solution vector to use
+//! \param[in] i Mesh point index
+//! \return Preconditioning matrix inverse
+//! \see Nishikawa, Weiss-Smith Local-Preconditioning Matrix is a Diagonal
+//!      Matrix in the Symmetric Form of the Euler Equations, 2021.
+// *****************************************************************************
+{
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
+  auto rgas = g_cfg.get< tag::mat_spec_gas_const >();
+
+  auto p = U(i,0);
+  auto u = U(i,1);
+  auto v = U(i,2);
+  auto w = U(i,3);
+  auto T = U(i,4);
+  auto r = p/T/rgas;
+  auto cp = g*rgas/(g-1.0);
+  auto k = u*u + v*v + w*w;
+  auto vr = lax::refvel( r, p, std::sqrt(k) );
+  auto vr2 = vr*vr;
+  auto rt = -r/T;
+  auto H = cp*T + k/2.0;
+  auto theta = 1.0/vr2 - rt/r/cp;
+  auto coef = r*cp*theta + rt;
+
+  return {
+     (rt*(H - k) + r*cp)/coef,
+     rt*u/coef,
+     rt*v/coef,
+     rt*w/coef,
+    -rt/coef,
+
+     -u/r,
+    1.0/r,
+    0.0,
+    0.0,
+    0.0,
+
+     -v/r,
+    0.0,
+    1.0/r,
+    0.0,
+    0.0,
+
+     -w/r,
+    0.0,
+    0.0,
+    1.0/r,
+    0.0,
+
+    -(theta*(H - k) - 1.0)/coef,
+    -theta*u/coef,
+    -theta*v/coef,
+    -theta*w/coef,
+     theta/coef
+  };
+}
+
+tk::real
+LaxCG::charvel( std::size_t i )
+// *****************************************************************************
+//  Compute characteristic velocity of the preconditioned system at a point
+//! \param[in] i Mesh point index
+//! \return Maximum eigenvalue: abs(v') + c'
+// *****************************************************************************
+{
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
+  auto rgas = g_cfg.get< tag::mat_spec_gas_const >();
+  auto cp = g*rgas/(g-1.0);
+
+  auto r = m_u(i,0);
+  auto u = m_u(i,1) / r;
+  auto v = m_u(i,2) / r;
+  auto w = m_u(i,3) / r;
+  auto k = u*u + v*v + w*w;
+  auto e = m_u(i,4)/r - k/2.0;
+  auto p = eos::pressure( r*e );
+  auto T = p/r/rgas;
+  auto rp = r/p;
+  auto rt = -r/T;
+  auto vel = std::sqrt( k );
+  auto vr = lax::refvel( r, p, vel );
+  auto vr2 = vr*vr;
+  auto beta = rp + rt/r/cp;
+  auto alpha = 0.5*(1.0 - beta*vr2);
+  auto vpri = vel*(1.0 - alpha);
+  auto cpri = std::sqrt( alpha*alpha*k + vr2 );
+
+  return std::abs(vpri) + cpri;
 }
 
 void
@@ -863,16 +959,19 @@ LaxCG::dt()
 
     if (g_cfg.get< tag::steady >()) {
 
-      // dtp[] ...
+      for (std::size_t i=0; i<m_u.nunk(); ++i) {
+        auto v = charvel( i );
+        auto L = std::cbrt( vol[i] );
+        m_dtp[i] = L / std::max( v, 1.0e-8 ) * cfl;
+      }
       mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
 
     } else {
 
       for (std::size_t i=0; i<m_u.nunk(); ++i) {
-        auto [vpri,cpri] =
-          lax::eigen( m_u(i,0), m_u(i,1), m_u(i,2), m_u(i,3), m_u(i,4) );
+        auto v = charvel( i );
         auto L = std::cbrt( vol[i] );
-        auto euler_dt = L / std::max( vpri+cpri, 1.0e-8 );
+        auto euler_dt = L / std::max( v, 1.0e-8 );
         mindt = std::min( mindt, euler_dt );
       }
       mindt *= cfl;
@@ -1051,11 +1150,21 @@ LaxCG::solve()
   // Advance solution
   auto dt = d->Dt();
   const auto& vol = d->Vol();
+  auto ncomp = m_u.nprop();
   for (std::size_t i=0; i<m_u.nunk(); ++i) {
     if (steady) dt = m_dtp[i];
-    for (std::size_t c=0; c<m_u.nprop(); ++c) {
-      m_u(i,c) = m_un(i,c) - rkcoef[m_stage] * dt * m_rhs(i,c) / vol[i];
+    auto R = -rkcoef[m_stage] * dt / vol[i];
+    // flow
+    auto P = precond( m_u, i );
+    tk::real r[] = { R*m_rhs(i,0), R*m_rhs(i,1),  R*m_rhs(i,2),
+                     R*m_rhs(i,3), R*m_rhs(i,4) };
+    auto p = P.data();
+    for (std::size_t c=0; c<5; ++c, p+=5) {
+      m_u(i,c) = m_un(i,c)
+               + p[0]*r[0] + p[1]*r[1] + p[2]*r[2] + p[3]*r[3] + p[4]*r[4];
     }
+    // scalar
+    for (std::size_t c=5; c<ncomp; ++c) m_u(i,c) = m_un(i,c) + R*m_rhs(i,c);
   }
 
   // Convert unknowns: p,u,v,w,T -> r,ru,rv,rw,rE

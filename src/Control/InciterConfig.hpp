@@ -153,7 +153,7 @@ using ConfigMembers = brigand::list<
   , tag::t0, double
   , tag::dt, double
   , tag::turkel, double
-  , tag::velinf, double
+  , tag::velinf, std::vector< double >
   , tag::reorder, bool
   , tag::part, std::string
   , tag::zoltan_params, std::vector< std::string >

@@ -7,6 +7,11 @@
              2022-2024 J. Bakosi
              All rights reserved. See the LICENSE file for details.
   \brief     LaxCG: Time-derivative preconditinoing for all Ma
+  \see       Luo, Baum, Lohner, "Extension of Harten-Lax-van Leer Scheme for
+             Flows at All Speeds", AIAA Journal, Vol. 43, No. 6, 2005
+  \see       Weiss & Smith, "Preconditioning Applied to Variable and Constant
+             Density Time-Accurate Flows on Unstructured Meshes", AIAA Journal,
+             Vol. 33, No. 11, 1995, pp. 2050-2057.
 */
 // *****************************************************************************
 
@@ -288,6 +293,12 @@ class LaxCG : public CBase_LaxCG {
 
     //! Convert from primitive to conservative variables
     void conservative( tk::Fields& U );
+
+    //! Compute the inverse time-derivative preconditioning matrix
+    std::array< tk::real, 5*5 > precond( const tk::Fields& U, std::size_t i );
+
+    // Compute characteristic velocity of the preconditioned system at a point
+    tk::real charvel( std::size_t i );
 
     //! Prepare boundary condition data structures
     void setupBC();

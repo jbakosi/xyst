@@ -7,6 +7,11 @@
              2022-2024 J. Bakosi
              All rights reserved. See the LICENSE file for details.
   \brief     LaxCG: Time-derivative preconditioning for all Ma
+  \see       Luo, Baum, Lohner, "Extension of Harten-Lax-van Leer Scheme for
+             Flows at All Speeds", AIAA Journal, Vol. 43, No. 6, 2005
+  \see       Weiss & Smith, "Preconditioning Applied to Variable and Constant
+             Density Time-Accurate Flows on Unstructured Meshes", AIAA Journal,
+             Vol. 33, No. 11, 1995, pp. 2050-2057.
 */
 // *****************************************************************************
 
@@ -208,24 +213,6 @@ muscl( std::size_t p, std::size_t q, const tk::UnsMesh::Coords& coord,
   #endif
 }
 
-static void
-primitive( std::size_t ncomp, std::size_t i, const tk::Fields& U, tk::real u[] )
-// *****************************************************************************
-//! Compute primitive flow variables from conserved ones
-//! \param[in] ncomp Number of scalar components: 5 + scalars
-//! \param[in] i Index to read conserved variables from
-//! \param[in] U Solution vector to read conserved variables from
-//! \param[in,out] u Computed primitive variables
-// *****************************************************************************
-{
-  u[0] = U(i,0);
-  u[1] = U(i,1) / u[0];
-  u[2] = U(i,2) / u[0];
-  u[3] = U(i,3) / u[0];
-  u[4] = U(i,4) / u[0] - 0.5*(u[1]*u[1] + u[2]*u[2] + u[3]*u[3]);
-  for (std::size_t c=5; c<ncomp; ++c) u[c] = U(i,c);
-}
-
 void
 grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
       const std::array< std::vector< tk::real >, 3 >& dsupint,
@@ -354,41 +341,48 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   #endif
 }
 
-std::tuple< tk::real, tk::real >
-eigen( tk::real r, tk::real ru, tk::real rv, tk::real rw, tk::real rE )
+tk::real
+refvel( tk::real r, tk::real p, tk::real v )
 // *****************************************************************************
-//  Compute eigenvalues of the preconditioned system
+//  Compute reference velocitity of the preconditioned system
 //! \param[in] r Density
-//! \param[in] ru X-momentum
-//! \param[in] rv Y-momentum
-//! \param[in] rw Z-momentum
-//! \param[in] rE Specific total energy
+//! \param[in] p Pressure
+//! \param[in] v Velocity magnitude
+//! \return Reference velocity
+// *****************************************************************************
+{
+  auto K = g_cfg.get< tag::turkel >();
+  auto velinf = g_cfg.get< tag::velinf >();
+  auto vinf = tk::length( velinf[0], velinf[1], velinf[2] );
+
+  return std::min( eos::soundspeed( r, p ), std::max( v, K*vinf ) );
+  //return eos::soundspeed( r, p );
+}
+
+static std::tuple< tk::real, tk::real >
+sigvel( tk::real p, tk::real T, tk::real v, tk::real vn )
+// *****************************************************************************
+//  Compute signal velocitities of the preconditioned system
+//! \param[in] p Pressure
+//! \param[in] T Temperature
+//! \param[in] v Velocity magnitude
+//! \param[in] vn Face-normal velocity
 //! \return v', c'
 // *****************************************************************************
 {
   auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
-  auto cv = g_cfg.get< tag::mat_spec_heat_const_vol >();
-  auto K = g_cfg.get< tag::turkel >();
-  auto vinf = g_cfg.get< tag::velinf >();
-  auto rgas = 287.0;
+  auto rgas = g_cfg.get< tag::mat_spec_gas_const >();
   auto cp = g*rgas/(g-1.0);
 
-  auto u = ru/r;
-  auto v = rv/r;
-  auto w = rw/r;
-  auto k = u*u + v*v + w*w;
-  auto e = rE/r - k/2.0;
-  auto vel = std::sqrt( k );
-  auto p = eos::pressure( r*e );
+  auto r = p/T/rgas;
   auto rp = r/p;
-  auto T = e/cv;
   auto rt = -r/T;
-  auto beta = rp + rt/r/cp;
-  auto vr = std::min( eos::soundspeed(r,p), std::max(vel,K*vinf) );
+  auto vr = refvel( r, p, v );
   auto vr2 = vr*vr;
+  auto beta = rp + rt/r/cp;
   auto alpha = 0.5*(1.0 - beta*vr2);
-  auto vpri = vel*(1.0 - alpha);
-  auto cpri = std::sqrt( alpha*alpha*k + vr2 );
+  auto vpri = vn*(1.0 - alpha);
+  auto cpri = std::sqrt( alpha*alpha*vn*vn + vr2 );
 
   return { vpri, cpri };
 }
@@ -416,6 +410,12 @@ hllc( const tk::UnsMesh::Coords& coord,
 //! \param[in,out] f Flux computed
 //! \param[in] symL Non-zero if left edge end-point is on a symmetry boundary
 //! \param[in] symR Non-zero if right edge end-point is on a symmetry boundary
+//! \see Toro, Riemann Solver and Numerical Methods for Fluid Dynamics. 3rd
+//!      Edition, Springer, New York, 2009
+//! \see Davis, Simplified Second-Order Godunov-Type Methods, SIAM J. Sci. Stat.
+//!      Comput. 9:445-473, 1988
+//! \see Roe, Approximate Riemann Solvers, Parameter Vectors, and Difference
+//!      Schemes, J. Comput Phys., 43:357-372, 1981
 // *****************************************************************************
 {
   #if defined(__clang__)
@@ -438,10 +438,6 @@ hllc( const tk::UnsMesh::Coords& coord,
   muscl( p, q, coord, G, l[0], l[1], l[2], l[3], l[4],
                          r[0], r[1], r[2], r[3], r[4] );
 
-  // pressure
-  auto pL = eos::pressure( l[0]*l[4] );
-  auto pR = eos::pressure( r[0]*r[4] );
-
   // dualface-normal velocities
   auto nx = -dsupint[0];
   auto ny = -dsupint[1];
@@ -453,23 +449,65 @@ hllc( const tk::UnsMesh::Coords& coord,
   auto qL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz);
   auto qR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz);
 
-  // back to conserved variables
-  l[4] = (l[4] + 0.5*(l[1]*l[1] + l[2]*l[2] + l[3]*l[3])) * l[0];
+  // pressure
+  auto pL = l[0];
+  auto pR = r[0];
+
+  // preconditioned signal velocities
+  auto [vpL, cpL] = sigvel( l[0], l[4], tk::length(l[1],l[2],l[3]), qL );
+  auto [vpR, cpR] = sigvel( r[0], r[4], tk::length(r[1],r[2],r[3]), qR );
+
+  // convert to conserved variables
+  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
+  auto rgas = g_cfg.get< tag::mat_spec_gas_const >();
+  l[0] = pL/l[4]/rgas;
   l[1] *= l[0];
   l[2] *= l[0];
   l[3] *= l[0];
-  r[4] = (r[4] + 0.5*(r[1]*r[1] + r[2]*r[2] + r[3]*r[3])) * r[0];
+  l[4] = pL/(g-1.0) + 0.5*(l[1]*l[1] + l[2]*l[2] + l[3]*l[3])/l[0];
+  r[0] = pR/r[4]/rgas;
   r[1] *= r[0];
   r[2] *= r[0];
   r[3] *= r[0];
+  r[4] = pR/(g-1.0) + 0.5*(r[1]*r[1] + r[2]*r[2] + r[3]*r[3])/r[0];
 
-  // sound speed
-  auto cL = eos::soundspeed(l[0],pL);
-  auto cR = eos::soundspeed(r[0],pR);
+  // preconditioned left and right wave speeds
 
-  // left and right wave speeds
-  auto sL = fmin( qL - cL, qR - cR );
-  auto sR = fmax( qL + cL, qR + cR );
+  // blows with vr = c
+  //auto sL = std::min( vpL - cpL, vpR - cpR );
+  //auto sR = std::max( vpL + cpL, vpR + cpR );
+
+  // converges with vr = c, blows with vr
+  //auto sL = vpL - cpL;
+  //auto sR = vpR + cpR;
+
+  // converges with vr = c, blows with vr
+  using std::abs;
+  using std::max;
+  auto sp = max(abs(vpL-cpL),max(abs(vpR-cpR),max(abs(vpL+cpL),abs(vpR+cpR))));
+  auto sL = -sp;
+  auto sR = +sp;
+
+  //using std::sqrt;
+  //auto hl = (l[4]/l[0] + pL) / l[0];
+  //auto hr = (r[4]/r[0] + pR) / r[0];
+  //auto srl = sqrt( l[0] );
+  //auto srr = sqrt( r[0] );
+  //auto hh = (srl*hl + srr*hr) / (srl + srr);
+  //auto uh = (srl*vpL + srr*vpR) / (srl + srr);
+  //auto ch = sqrt( (g-1.0)*(hh - 0.5*(uh*uh)) );
+  //// converges with vr = c, blows with vr
+  ////auto sL = std::min( vpL - cpL, uh - ch );
+  ////auto sR = std::max( vpR + cpR, uh + ch );
+  //// converges with vr = c, blows with vr
+  //auto sL = uh - ch;
+  //auto sR = uh + ch;
+
+  // no preconditioning, blows with vr = c
+  //auto cL = eos::soundspeed(l[0],pL);
+  //auto cR = eos::soundspeed(r[0],pR);
+  //auto sL = fmin( qL - cL, qR - cR );
+  //auto sR = fmax( qL + cL, qR + cR );
 
   // contact wave speed and pressure
   auto tL = sL - qL;
@@ -499,71 +537,64 @@ hllc( const tk::UnsMesh::Coords& coord,
 
   // flow fluxes
   if (sL > 0.0) {
-    qL *= L2;
-    f[0] = l[0]*qL;
-    f[1] = l[1]*qL + pL*nx;
-    f[2] = l[2]*qL + pL*ny;
-    f[3] = l[3]*qL + pL*nz;
-    f[4] = (l[4] + pL)*qL;
+    auto qL2 = qL * L2;
+    f[0] = l[0]*qL2;
+    f[1] = l[1]*qL2 + pL*nx;
+    f[2] = l[2]*qL2 + pL*ny;
+    f[3] = l[3]*qL2 + pL*nz;
+    f[4] = (l[4] + pL)*qL2;
   }
   else if (sL <= 0.0 && sM > 0.0) {
-    qL *= L2;
-    sL *= L2;
-    f[0] = l[0]*qL + sL*(uL[0] - l[0]);
-    f[1] = l[1]*qL + pL*nx + sL*(uL[1] - l[1]);
-    f[2] = l[2]*qL + pL*ny + sL*(uL[2] - l[2]);
-    f[3] = l[3]*qL + pL*nz + sL*(uL[3] - l[3]);
-    f[4] = (l[4] + pL)*qL + sL*(uL[4] - l[4]);
+    auto qL2 = qL * L2;
+    auto sL2 = sL * L2;
+    f[0] = l[0]*qL2 + sL2*(uL[0] - l[0]);
+    f[1] = l[1]*qL2 + pL*nx + sL2*(uL[1] - l[1]);
+    f[2] = l[2]*qL2 + pL*ny + sL2*(uL[2] - l[2]);
+    f[3] = l[3]*qL2 + pL*nz + sL2*(uL[3] - l[3]);
+    f[4] = (l[4] + pL)*qL2 + sL2*(uL[4] - l[4]);
   }
   else if (sM <= 0.0 && sR >= 0.0) {
-    qR *= L2;
-    sR *= L2;
-    f[0] = r[0]*qR + sR*(uR[0] - r[0]);
-    f[1] = r[1]*qR + pR*nx + sR*(uR[1] - r[1]);
-    f[2] = r[2]*qR + pR*ny + sR*(uR[2] - r[2]);
-    f[3] = r[3]*qR + pR*nz + sR*(uR[3] - r[3]);
-    f[4] = (r[4] + pR)*qR + sR*(uR[4] - r[4]);
+    auto qR2 = qR * L2;
+    auto sR2 = sR * L2;
+    f[0] = r[0]*qR2 + sR2*(uR[0] - r[0]);
+    f[1] = r[1]*qR2 + pR*nx + sR2*(uR[1] - r[1]);
+    f[2] = r[2]*qR2 + pR*ny + sR2*(uR[2] - r[2]);
+    f[3] = r[3]*qR2 + pR*nz + sR2*(uR[3] - r[3]);
+    f[4] = (r[4] + pR)*qR2 + sR2*(uR[4] - r[4]);
   }
   else {
-    qR *= L2;
-    f[0] = r[0]*qR;
-    f[1] = r[1]*qR + pR*nx;
-    f[2] = r[2]*qR + pR*ny;
-    f[3] = r[3]*qR + pR*nz;
-    f[4] = (r[4] + pR)*qR;
+    auto qR2 = qR * L2;
+    f[0] = r[0]*qR2;
+    f[1] = r[1]*qR2 + pR*nx;
+    f[2] = r[2]*qR2 + pR*ny;
+    f[3] = r[3]*qR2 + pR*nz;
+    f[4] = (r[4] + pR)*qR2;
   }
 
   // artificial viscosity
-  const auto stab2 = g_cfg.get< tag::stab2 >();
-  if (stab2) {
-    auto sl = std::abs(qL) + eos::soundspeed(l[0],pL);
-    auto sr = std::abs(qR) + eos::soundspeed(r[0],pR);
-    auto stab2coef = g_cfg.get< tag::stab2coef >();
-    auto fws = stab2coef * std::max(sl,sr) * len;
-    f[0] -= fws*(l[0] - r[0]);
-    f[1] -= fws*(l[1] - r[1]);
-    f[2] -= fws*(l[2] - r[2]);
-    f[3] -= fws*(l[3] - r[3]);
-    f[4] -= fws*(l[4] - r[4]);
-  }
+  //const auto stab2 = g_cfg.get< tag::stab2 >();
+  //if (stab2) {
+  //  auto stab2coef = g_cfg.get< tag::stab2coef >();
+  //  auto sl = std::abs(vpL) + cpL;
+  //  auto sr = std::abs(vpR) + cpR;
+  //  auto fws = stab2coef * std::max(sl,sr) * len;
+  //  f[0] -= fws*(l[0] - r[0]);
+  //  f[1] -= fws*(l[1] - r[1]);
+  //  f[2] -= fws*(l[2] - r[2]);
+  //  f[3] -= fws*(l[3] - r[3]);
+  //  f[4] -= fws*(l[4] - r[4]);
+  //}
 
   if (ncomp == 5) return;
 
   // MUSCL reconstruction in edge-end points for scalars
   muscl( p, q, coord, G, l, r );
 
-  // scalar dissipation
-  nx = dsupint[0];
-  ny = dsupint[1];
-  nz = dsupint[2];
-  auto vnL = symL ? 0.0 : (l[1]*nx + l[2]*ny + l[3]*nz)/l[0];
-  auto vnR = symR ? 0.0 : (r[1]*nx + r[2]*ny + r[3]*nz)/r[0];
-  auto sw = std::max( std::abs(vnL), std::abs(vnR) );
-
   // scalar fluxes
-  for (std::size_t c=5; c<ncomp; ++c) {
-    f[c] = l[c]*vnL + r[c]*vnR + sw*(r[c] - l[c]);
-  }
+  //auto sw = std::max( std::abs(vpL), std::abs(vpR) ) * len;
+  //for (std::size_t c=5; c<ncomp; ++c) {
+  //  f[c] = (l[c]*qL + r[c]*qR)*len + sw*(r[c] - l[c]);
+  //}
 
   #if defined(__clang__)
     #pragma clang diagnostic pop
@@ -837,7 +868,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] coord Mesh node coordinates
-//! \param[in] triinpoel Boundary face connectivity//
+//! \param[in] triinpoel Boundary face connectivity
 //! \param[in] besym Boundary element symmetry BC flags
 //! \param[in] coord Mesh node coordinates
 //! \param[in] G Gradients in mesh nodes

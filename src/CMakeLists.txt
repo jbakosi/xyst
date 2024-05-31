@@ -191,7 +191,7 @@ if(NOT CHARM_FOUND)
     include(ExternalProject)
     ExternalProject_add(charm
       PREFIX charm
-      GIT_REPOSITORY https://github.com/UIUC-PPL/charm
+      GIT_REPOSITORY https://github.com/charmplusplus/charm
       #GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../external/charm
       GIT_TAG v7.0.0-rc2
       PATCH_COMMAND patch -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch

@@ -1,0 +1,232 @@
+namespace inciter {
+/*!
+  \page      inciter_laxcg LaxCG
+
+@tableofcontents{xml}
+
+This page describes the numerical method in `LaxCG` a high level, for more
+details, see @ref papers.
+
+@note In LaxCG, _Lax_ stands for [Lax Péter](https://en.wikipedia.org/wiki/Peter_Lax) and _CG_ for continuous Galerkin.
+
+The numerical method in LaxCG is an edge-based finite element method for unstructured meshes, composed of tetrahedral cells, intended for the mathematical modelling of flows at all Mach numbers. The implementation borrows elements of @ref inciter_riecg, which is most efficient at high Mach numbers, and applies a preconditioning technique to enable computation of flows at all Mach numbers. The preconditioner is detailed by [Luo, Baum, and Lohner, Extension of Harten-Lax-van Leer Scheme for Flows at All Speeds, AIAA Journal, 2005](https://doi.org/10.2514/1.7567). The implementation uses the asynchronous-by-default, distributed-memory, task-parallel programming paradigm using the Charm++ runtime system. The [super-edge](https://doi.org/10.1016/0045-7825(94)90133-3)-based implementation of the finite element operators help reduce indirect addressing and increases performance.
+
+@section laxcg_euler The equations of compressible flow
+
+The equations solved are the 3D unsteady Euler equations, governing inviscid
+compressible flow,
+
+\f[ \begin{split}
+  \frac{\partial U}{\partial t} + \frac{\partial F_j}{\partial x_j} = 0,\qquad
+  U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \end{Bmatrix}, \enskip F_j =
+  \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p)
+  \end{Bmatrix}
+\end{split} \f]
+where the summation convention on repeated indices has been applied,
+\f$\color[HTML]{dcdcdc}\rho\f$ is the density, \f$\color[HTML]{dcdcdc}u_i\f$ is
+the velocity vector, _p_ is the pressure. and the specific total energy, _E_,
+is related to the internal energy, _e_, as
+\f[
+E = e + u_iu_i/2
+\f]
+The system is closed with the ideal gas law equation
+of state
+\f[
+  p = \rho e (\gamma - 1)
+\f]
+where \f$\color[HTML]{dcdcdc}\gamma\f$ is the ratio of specific heats. Although
+the ideal gas law is used most frequently, any arbitrary (i.e. analytic or
+tabulated) equation of state can be used to relate density and internal energy
+to pressure.
+
+@section laxcg_precon Time-derivative preconditioning for all Mach numbers
+
+Because of the large ratio of acoustic and convective timescales density-based
+solvers, such as @ref inciter_riecg, are not efficient, frequently fail to
+converge, or may converge to the wrong solution in low-Mach-number or
+constant-density flows at low-speed flow regimes. One way to remedy this
+stiffness and associated convergence problems is to apply a preconditioner to
+the governing equations. The idea is to write the system as
+\f[
+  \frac{\partial U}{\partial t} =
+  \frac{\partial U}{\partial Q} \frac{\partial Q}{\partial t} =
+  \Gamma \frac{\partial Q}{\partial t} =
+ -\frac{\partial F_j}{\partial x_j}
+\f]
+which is solved for the _Q_ vector of primitive variables of pressure,
+velocity, and temperature, _T_,
+\f[
+Q=\begin{Bmatrix} p \\ u_1 \\ u_2 \\ u_3 \\ T \end{Bmatrix}
+\f]
+The preconditioner is given by
+\f[
+\Gamma = \begin{pmatrix}
+  \Theta       & 0        & 0        & 0        & \rho_T              \\
+  \Theta u_1   & \rho     & 0        & 0        & \rho_T u_1          \\
+  \Theta u_2   & 0        & \rho     & 0        & \rho_T u_2          \\
+  \Theta u_3   & 0        & 0        & \rho     & \rho_T u_3          \\
+  \Theta H - 1 & \rho u_1 & \rho u_2 & \rho u_3 & \rho_T H + \rho C_p \\
+\end{pmatrix}
+\f]
+where the total enthalpy, _H_, is given in terms of the total energy as
+\f[
+H = E + p/\rho = h + u_iu_i/2, \qquad h = C_p T
+\f]
+and
+\f[
+\Theta = \frac{1}{V_r^2} - \frac{\rho_T}{\rho C_p}, \qquad
+\rho_T = \left.\frac{\partial \rho}{\partial T}\right|_p, \qquad
+\rho_p = \left.\frac{\partial \rho}{\partial p}\right|_T
+\f]
+where the reference velocity is specified as
+\f[
+V_r = \mathrm{min}\big[ c, \mathrm{max}\left( \sqrt{u_iu_i}, K |v_\infty|
+\right) \big]
+\f]
+where _c_ is the local speed of sound, \f$\color[HTML]{dcdcdc}v_\infty\f$ is a
+fixed reference velocity, and _K_ is a constant.
+
+@section laxcg_method The numerical method
+
+In LaxCG the preconditioned system
+\f[
+  \frac{\partial Q}{\partial t} = -\Gamma^{-1}\frac{\partial F_j}{\partial x_j}
+\f]
+is discretized with an edge-based finite-element method for linear tetrahedra.
+The unknown solution quantities are the primitive variables _Q_ and are located
+at the nodes of the mesh. The solution at any point within the computational
+domain is represented as
+\f[ \begin{split}
+  Q(\vec{x}) = \sum_{v \in \Omega_h} N^v(\vec{x}) Q^v
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}\Omega_h\f$ is the tetrahedron containing the
+point \f$\color[HTML]{dcdcdc}\vec{x}\f$, \f$\color[HTML]{dcdcdc}Q^v\f$ is the
+solution of primitive variables at vertex \f$\color[HTML]{dcdcdc}v\f$, and
+\f$\color[HTML]{dcdcdc}N^v(\vec{x})\f$ is a linear basis function associated
+with vertex \f$\color[HTML]{dcdcdc}v\f$ and element
+\f$\color[HTML]{dcdcdc}\Omega_h\f$. Applying a Galerkin, lumped-mass
+approximation to the preconditioned system gives the following semi-discrete
+form of the governing equations for a vertex _v_:
+\f[ \begin{split}
+  \frac{\text{d}Q^v}{\text{d}t} = - \frac{1}{V^v} \left(\Gamma^v\right)^{-1}
+  \sum_j \left[  \sum_{ vw\in v} D^{vw}_j F^{vw}_j +  \sum_{vw\in v} B^{vw}_j
+  \left( F^v_j + F^w_j\right) + B^v_j F^v_j \right]
+\end{split} \f]
+where _vw_ represents all edges connected to _v_, \f$\color[HTML]{dcdcdc}V^v\f$
+is the volume surrounding _v_, \f$\color[HTML]{dcdcdc}F^{vw}_j\f$
+is the numerical flux between _v_ and _w_. The first term on the
+right-hand-side above is evaluated for all vertices within the domain. The last
+two terms are only evaluated for vertices _v_ and surrounding edges
+_vw_ that lie on the domain boundary. \f$\color[HTML]{dcdcdc}F^v_j\f$ denotes
+the boundary flux. The term
+\f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is effectively the area-weighted normal to
+the dual face separating \f$\color[HTML]{dcdcdc}v\f$ and
+\f$\color[HTML]{dcdcdc}w\f$. It is calculated as
+\f[ \begin{split}
+  D^{vw}_j = \frac{1}{2} \sum_{\Omega_h \in vw} \int_{\Omega_h} \left( N^v
+  \frac{\partial N^w}{\partial x_j} - N^w \frac{\partial N^v}{\partial x_j}
+  \right) \, \text{d} \Omega
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}\Omega_h \in vw\f$ represents all elements
+attached to edge _vw_. This numerical scheme is guaranteed to be conservative
+since \f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is antisymmetric. The boundary terms
+\f$\color[HTML]{dcdcdc}B^{vw}_j\f$ and \f$\color[HTML]{dcdcdc}B^v_j\f$ are
+defined as
+\f[ \begin{split}
+  B^{vw}_j &= \frac{1}{2} \sum_{\Gamma_h \in vw} \int_{\Gamma_h} N^v N^w n_j
+  \, \text{d} \Gamma \\
+  B^v_j &= \sum_{\Gamma_h \in v} \int_{\Gamma_h} N^v N^v n_j  \, \text{d}
+  \Gamma
+\end{split} \f]
+where **n** is the outward pointing surface normal.
+
+Note that the above algorithm can be viewed as either an edge-based finite
+element method on tetrahedron meshes or a node-centered finite volume method
+(on the dual mesh, consisting of arbitrary polyhedra). For the derivation of
+the above and other details, see @ref papers.
+
+@section laxcg_flux Numerical flux
+
+The numerical flux \f$\color[HTML]{dcdcdc}F^{vw}_j\f$ is evaluated at the
+midpoint between \f$\color[HTML]{dcdcdc}v\f$ and \f$\color[HTML]{dcdcdc}w\f$.
+One option is to use Rusanov's flux which approximates the flux between
+_v_ and _w_ as
+\f[ \begin{split}
+  D^{vw}_j F^{vw}_j = D^{vw}_j \left( F^v_j + F^w_j \right) + \left| D^{vw}_j
+  \right| \lambda \left( U^w - U^v \right)
+\end{split} \f]
+where the wave speed of the preconditioned system for edge _vw_ is computed as
+\f[
+  \lambda = \mathrm{max}\left( S^v, S^w \right)
+\f]
+from the wave speeds at node _v_ (and analogously at node _w_) as
+\f[ \begin{split}
+  S^v &= |u'| + c' \\
+  u' &= u_n(1-\alpha) \\
+  u_n &= u_kn_k \\
+  c' &= \sqrt{\alpha^2u_n^2 + V_r^2} \\
+  \alpha &= (1-\beta V_r^2)/2 \\
+  \beta &= \rho_p + \rho_T/\rho/C_p
+\end{split} \f]
+with all quantities evaluated in vertex _v_.
+
+Another option is to use the Harten-Lax-van Leer-Contact (HLLC) flux using the modified signal velocities, described by [Luo, Baum, and Lohner, Extension of Harten-Lax-van Leer Scheme for Flows at All Speeds, AIAA Journal, 2005](https://doi.org/10.2514/1.7567), which in LaxCG is implemented as given in [Waltz, et al, A three-dimensional finite element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured grids, Computers & Fluids, 92: 172-187, 2014](http://dx.doi.org/10.1002/fld.674).
+
+@section laxcg_reconstruction Solution reconstruction
+
+The inputs to the flux function above are approximated using a piecewise
+limited solution reconstruction of the variables, _q_, denoting the scalar
+components of the primitive variables, _Q_. The reconstruction is performed
+component-wise for each edge \f$\color[HTML]{dcdcdc}vw\f$ as follows:
+\f[ \begin{split}
+  \hat{q}^v &= q^v + \frac{1}{4} \left[ (1-k) \phi(r^v) \delta_1 +
+    (1+k)\phi\left(\frac{1}{r^v}\right)\delta_2 \right]\\
+  \hat{q}^w &= q^w - \frac{1}{4} \left[ (1-k) \phi(r^w) \delta_3 +
+    (1+k)\phi\left(\frac{1}{r^w}\right)\delta_2 \right]
+ \end{split} \f]
+with
+\f[ \begin{split}
+  \delta_1 &= 2x_i^{vw} \frac{\partial q^v}{\partial x_i} - \delta_2 \\
+  \delta_2 &= q^w - q^v \\
+  \delta_3 &= 2x_i^{vw} \frac{\partial q^w}{\partial x_i} - \delta_2 \\
+  x_i^{vw} &= x_i^w - x_i^v \\
+  r^v &= \delta_2/\delta_1 \\
+  r^w &= \delta_2/\delta_3
+\end{split} \f]
+This scheme corresponds to a piecewise linear reconstruction for _k = -1_ and a
+piecewise parabolic reconstruction for _k = 1/3_. The function
+\f$\color[HTML]{dcdcdc}\phi\f$ can be any total variation diminishing limiter
+function, e.g., that of van Leer. The gradients of the primitive variables are
+computed in all mesh points based on the edge-based formulation as
+\f[
+V^v\left(\frac{\partial q}{\partial x_j}\right)^v = \sum_{vw \in v}
+D_j^{vw}\left(q^w+q^v\right) + \sum_{vw \in v}
+B_j^{vw}\left(q^w+q^v\right) + B_j^vq^v
+\f]
+where _q_ are scalar components of the primitive variables, _Q_.  The above
+summations are over all edges \f$\color[HTML]{dcdcdc}vw \in \Omega_h\f$ that
+contribute to point v.
+
+@section laxcg_time Time integration
+
+The solution is advanced using a multi-stage explicit scheme of the form:
+\f[ \begin{split}
+  U^{v,k} = U^{v,0} + \alpha^k \Delta t r^{v,k-1}
+\end{split} \f]
+where _r_ is the right hand side of the discretized governing equations, _k_ is
+the current stage, m_ is the total number of stages,
+\f$\color[HTML]{dcdcdc}\Delta t\f$ is the time step, and
+\f[ \begin{split}
+  \alpha^k = \frac{1} {1+m-k}
+\end{split} \f]
+The explicit Euler time marching scheme is obtained for _m = 1_ and the
+classical 2nd-order Runge-Kutta method is obtained with _m = 2_.  The time step
+size is adaptive and obtained by finding the minimum value for all mesh points
+at every time step as
+\f[ \begin{split}
+\Delta t = \text{C} \min_{\forall v} \frac{(V^v)^{1/3}}{\lambda^{v}}
+\end{split} \f]
+where \f$\color[HTML]{dcdcdc}\text{C} \leq 1\f$ is the Courant number.
+
+*/
+} // inciter::

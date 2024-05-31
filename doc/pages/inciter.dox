@@ -31,6 +31,7 @@ of the computational mesh. See the links below for more details.
 - <b>RieCG:</b> @ref inciter_riecg "method", @ref riecg_examples "examples", @ref riecg_performance "performance"
 - <b>KozCG:</b> @ref inciter_kozcg "method", @ref kozcg_examples "examples"
 - <b>ZalCG:</b> @ref inciter_zalcg "method", @ref zalcg_examples "examples", @ref zalcg_performance "performance"
+- <b>LaxCG:</b> @ref inciter_laxcg "method"
 
 @section inciter_pages Related pages
 - @ref howtos "Howto pages"

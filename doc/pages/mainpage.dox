@@ -39,13 +39,13 @@ Tests serial and (a)synchronous concurrent functions.
 
 Install prerequisites: _Debian-based linux_
 
-@code
+@code{.sh}
 apt install git cmake g++ ninja-build libopenmpi-dev libnetcdf-mpi-dev
 @endcode
 
 Clone, build, test
 
-@code
+@code{.sh}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build && cmake -GNinja ../src && ninja && cd -
 cd build && ./charmrun +p4 Main/unittest && ctest -j4 && cd -

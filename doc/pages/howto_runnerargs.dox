@@ -20,7 +20,7 @@ To configure how ctest executes regression tests, the following cmake variables 
 
 Example:
 
-@code
+@code{.sh}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
 cmake -GNinja -DSMP=on -DRUNNER_ARGS="--bind-to none -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src
@@ -32,7 +32,7 @@ The above example configures Charm++ to be built in SMP mode with some extra
 arguments preceding and following the test executable commands. As a result, an
 example test command becomes
 
-@code
+@code{.sh}
 ctest -R inciter:compflow_euler_pipe_u0.5_migr_pe4_ppn4 -V
 ...
 230: Running test command: '/<absolute_path>/xyst/build/charm/install/bin/charmrun +p 4 --bind-to none -oversubscribe /<absolute_path>/xyst/build/Main/inciter -c pipe.q -i rectangle_01_1.5k.exo -u 0.5 -l 3 +balancer RecBipartLB +LBDebug 1 -q +ppn 4 +setcpuaffinity'
@@ -41,7 +41,7 @@ ctest -R inciter:compflow_euler_pipe_u0.5_migr_pe4_ppn4 -V
 
 Another example that uses the [slurm](https://slurm.schedmd.com) scheduler:
 
-@code
+@code{.sh}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
 cmake -GNinja -DRUNNER=srun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS=--exact ../../src

@@ -6,9 +6,15 @@ This page explains how to build the documentation in Xyst, also rendered at
 
 @section howto_doc_build How to build the documentation
 
+Install prerequisites: _Debian-based linux_
+
+@code{.sh}
+apt install cmake g++ gfortran ninja-build bzip2 zlib1g-dev libnetcdf-mpi-dev libopenmpi-dev doxygen python3-pygments python3-jinja2 texlive-latex-base texlive-latex-extra texlive-fonts-extra
+@endcode
+
 To clone and build the documentation do
 
-@code
+@code{.sh}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
 cmake -DBUILD_DOC=on ../src

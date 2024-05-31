@@ -9,7 +9,7 @@ By default cmake will pick up the Unix shell environment variables CC and CXX.
 However, the C and C++ compilers can also be explicitly specified on the cmake
 command line. To clone and build Xyst using MPI compiler wrappers do
 
-@code
+@code{.sh}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
 cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx ../src

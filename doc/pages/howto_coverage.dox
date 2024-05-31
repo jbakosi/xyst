@@ -10,7 +10,7 @@ rendered at [https://xyst.cc/coverage.html](https://xyst.cc/coverage.html).
 
 To clone and build the test code coverage and static analysis pages do
 
-@code
+@code{.sh}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
 cmake -DBUILD_DOC=on -DCOVERAGE=on ../src

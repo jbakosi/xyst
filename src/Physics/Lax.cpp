@@ -400,7 +400,6 @@ rusanov( const tk::UnsMesh::Coords& coord,
 //! Compute advection fluxes on a single edge with Rusanov's flux
 //! \param[in] coord Mesh node coordinates
 //! \param[in] G Nodal gradients
-//! \param[in] rv Reference velocity for each mesh node
 //! \param[in] dsupint Domain superedge integral for this edge
 //! \param[in] p Left node index of edge
 //! \param[in] q Right node index of edge
@@ -1016,7 +1015,6 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] coord Mesh node coordinates
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] besym Boundary element symmetry BC flags
-//! \param[in] coord Mesh node coordinates
 //! \param[in] G Gradients in mesh nodes
 //! \param[in] U Solution vector of primitive variables at recent time step
 //! \param[in] v Nodal mesh volumes without contributions from other chares

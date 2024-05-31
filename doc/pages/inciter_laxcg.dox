@@ -7,7 +7,7 @@ namespace inciter {
 This page describes the numerical method in `LaxCG` a high level, for more
 details, see @ref papers.
 
-@note In LaxCG, _Lax_ stands for [Lax Péter](https://en.wikipedia.org/wiki/Peter_Lax) and _CG_ for continuous Galerkin.
+@note In LaxCG, _Lax_ stands for [Péter Lax](https://en.wikipedia.org/wiki/Peter_Lax) and _CG_ for continuous Galerkin.
 
 The numerical method in LaxCG is an edge-based finite element method for unstructured meshes, composed of tetrahedral cells, intended for the mathematical modelling of flows at all Mach numbers. The implementation borrows elements of @ref inciter_riecg, which is most efficient at high Mach numbers, and applies a preconditioning technique to enable computation of flows at all Mach numbers. The preconditioner is detailed by [Luo, Baum, and Lohner, Extension of Harten-Lax-van Leer Scheme for Flows at All Speeds, AIAA Journal, 2005](https://doi.org/10.2514/1.7567). The implementation uses the asynchronous-by-default, distributed-memory, task-parallel programming paradigm using the Charm++ runtime system. The [super-edge](https://doi.org/10.1016/0045-7825(94)90133-3)-based implementation of the finite element operators help reduce indirect addressing and increases performance.
 

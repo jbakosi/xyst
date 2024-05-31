@@ -9,7 +9,9 @@ This page explains how to build the documentation in Xyst, also rendered at
 Install prerequisites: _Debian-based linux_
 
 @code{.sh}
-apt install cmake g++ gfortran ninja-build bzip2 zlib1g-dev libnetcdf-mpi-dev libopenmpi-dev doxygen python3-pygments python3-jinja2 texlive-latex-base texlive-latex-extra texlive-fonts-extra
+apt install cmake g++ gfortran ninja-build bzip2 zlib1g-dev libnetcdf-mpi-dev libopenmpi-dev doxygen python3-pygments python3-jinja2 texlive-latex-base texlive-latex-extra texlive-fonts-extra lcov cppcheck
+wget https://github.com/RPGillespie6/fastcov/raw/master/fastcov.py -O /usr/local/bin/fastcov.py
+chmod a+rx /usr/local/bin/fastcov.py
 @endcode
 
 To clone and build the documentation do

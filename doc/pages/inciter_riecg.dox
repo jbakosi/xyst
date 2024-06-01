@@ -4,7 +4,7 @@ namespace inciter {
 
 @tableofcontents{xml}
 
-This page describes the numerical method in `RieCG` a high level, for more
+This page describes the numerical method in `RieCG` at a high level, for more
 details, see @ref papers.
 
 @note In RieCG, _Rie_ stands for [Bernhard Riemann](https://en.wikipedia.org/wiki/Bernhard_Riemann) and _CG_ for continuous Galerkin.

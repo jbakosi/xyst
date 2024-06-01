@@ -4,7 +4,7 @@ namespace inciter {
 
 @tableofcontents{xml}
 
-This page describes the numerical method in `LaxCG` a high level, for more
+This page describes the numerical method in `LaxCG` at a high level, for more
 details, see @ref papers.
 
 @note In LaxCG, _Lax_ stands for [Péter Lax](https://en.wikipedia.org/wiki/Peter_Lax) and _CG_ for continuous Galerkin.

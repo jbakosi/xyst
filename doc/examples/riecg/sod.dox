@@ -37,7 +37,7 @@ p(x_1) & = \left\{ \begin{array}{cc} 1.0 & x_1 < 0.5 \\ 0.1 & x_1 \ge 0.5
 \end{array} \right.
 \end{split}
 \f]
-where \f$\color[HTML]{dcdcdc}x_1\f$ is the distance along the length of the
+where \f$x_1\f$ is the distance along the length of the
 tube.  Dirichlet boundary conditions were applied on all flow variables
 sampling their initial values at the end-faces of the domain and symmetry
 (free-slip) conditions were set along the surface of the tube. The numerical
@@ -138,8 +138,8 @@ The L1 error is computed as
 \hat{U}^v - U^{v} \right|} {\sum_{v=1}^n V^v}
 \f]
 where n is the total number of points of the mesh,
-\f$\color[HTML]{dcdcdc}\hat{U}^v\f$ and \f$\color[HTML]{dcdcdc}U^v\f$ are the
-exact and computed solutions at mesh point v, and \f$\color[HTML]{dcdcdc}V^v\f$
+\f$\hat{U}^v\f$ and \f$U^v\f$ are the
+exact and computed solutions at mesh point v, and \f$V^v\f$
 denotes the volume associated to mesh point v. The order of convergence is
 estimated as
 \f[

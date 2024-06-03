@@ -26,7 +26,7 @@ p(x_i) & = \left\{ {\begin{array}{cl} 0.67 \times 10^{-4} & x_i \ne 0.0 \\
                                p_s    & x_i = 0.0 \\ \end{array} } \right.
 \end{split}
 \f]
-where \f$\color[HTML]{dcdcdc}e_s\f$ and \f$\color[HTML]{dcdcdc}p_s\f$ are
+where \f$e_s\f$ and \f$p_s\f$ are
 initial values of the internal energy and pressure respectively, that depend on
 the size of the control volume at the center of the sphere. As the mesh size is
 decreased, these values are increased to maintain a constant total energy
@@ -121,9 +121,9 @@ The L1 error is computed as
 \left| \left| \varepsilon \right| \right|_1 = \frac{\sum_{v=1}^n V^v \left|
 \hat{U}^v - U^{v} \right|} {\sum_{v=1}^n V^v}
 \f]
-where n is the number of points, \f$\color[HTML]{dcdcdc}\hat{U}^v\f$ and
-\f$\color[HTML]{dcdcdc}U^v\f$ are the exact and computed solutions at mesh
-point v, and \f$\color[HTML]{dcdcdc}V^v\f$ denotes the volume associated to
+where n is the number of points, \f$\hat{U}^v\f$ and
+\f$U^v\f$ are the exact and computed solutions at mesh
+point v, and \f$V^v\f$ denotes the volume associated to
 mesh point v. The L1 error is depicted below for all meshes as a function of
 the average edge length. As expected, the error around the shock dominates,
 where the numerical method is only first order accurate.

@@ -22,11 +22,9 @@ compressible flow,
   \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p)
   \end{Bmatrix}
 \end{split} \f]
-@m_class{m-success}
-where the summation convention on repeated indices has been applied,
-\f$\color[HTML]{dcdcdc}\rho\f$ is the density, **u** is the velocity vector,
-_p_ is the pressure. and the specific total energy, _E_, is related to the
-internal energy, _e_, as
+where the summation convention on repeated indices has been applied, \f$\rho\f$
+is the density, \f$u_i\f$ is the velocity vector, \f$p\f$ is the pressure. and the
+specific total energy, \f$E\f$, is related to the internal energy, \f$e\f$, as
 \f[
 E = e + u_iu_i/2
 \f]
@@ -35,7 +33,7 @@ of state
 \f[
   p = \rho e (\gamma - 1)
 \f]
-where \f$\color[HTML]{dcdcdc}\gamma\f$ is the ratio of specific heats. Although
+where \f$\gamma\f$ is the ratio of specific heats. Although
 the ideal gas law is used most frequently, any arbitrary (i.e. analytic or
 tabulated) equation of state can be used to relate density and internal energy
 to pressure.
@@ -84,7 +82,7 @@ where the reference velocity is specified as
 V_r = \mathrm{min}\big[ c, \mathrm{max}\left( \sqrt{u_iu_i}, K |v_\infty|
 \right) \big]
 \f]
-where _c_ is the local speed of sound, \f$\color[HTML]{dcdcdc}v_\infty\f$ is a
+where _c_ is the local speed of sound, \f$v_\infty\f$ is a
 fixed reference velocity, and _K_ is a constant.
 
 @section laxcg_method The numerical method
@@ -100,12 +98,12 @@ domain is represented as
 \f[ \begin{split}
   Q(\vec{x}) = \sum_{v \in \Omega_h} N^v(\vec{x}) Q^v
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}\Omega_h\f$ is the tetrahedron containing the
-point \f$\color[HTML]{dcdcdc}\vec{x}\f$, \f$\color[HTML]{dcdcdc}Q^v\f$ is the
-solution of primitive variables at vertex \f$\color[HTML]{dcdcdc}v\f$, and
-\f$\color[HTML]{dcdcdc}N^v(\vec{x})\f$ is a linear basis function associated
-with vertex \f$\color[HTML]{dcdcdc}v\f$ and element
-\f$\color[HTML]{dcdcdc}\Omega_h\f$. Applying a Galerkin, lumped-mass
+where \f$\Omega_h\f$ is the tetrahedron containing the
+point \f$\vec{x}\f$, \f$Q^v\f$ is the
+solution of primitive variables at vertex \f$v\f$, and
+\f$N^v(\vec{x})\f$ is a linear basis function associated
+with vertex \f$v\f$ and element
+\f$\Omega_h\f$. Applying a Galerkin, lumped-mass
 approximation to the preconditioned system gives the following semi-discrete
 form of the governing equations for a vertex _v_:
 \f[ \begin{split}
@@ -113,23 +111,23 @@ form of the governing equations for a vertex _v_:
   \sum_j \left[  \sum_{ vw\in v} D^{vw}_j F^{vw}_j +  \sum_{vw\in v} B^{vw}_j
   \left( F^v_j + F^w_j\right) + B^v_j F^v_j \right]
 \end{split} \f]
-where _vw_ represents all edges connected to _v_, \f$\color[HTML]{dcdcdc}V^v\f$
-is the volume surrounding _v_, \f$\color[HTML]{dcdcdc}F^{vw}_j\f$
+where _vw_ represents all edges connected to _v_, \f$V^v\f$
+is the volume surrounding _v_, \f$F^{vw}_j\f$
 is the numerical flux between _v_ and _w_. The first term on the
 right-hand-side above is evaluated for all vertices within the domain. The last
 two terms are evaluated only at the domain boundary.
-\f$\color[HTML]{dcdcdc}F^v_j\f$ denotes the boundary flux. The term
-\f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is effectively the area-weighted normal to
+\f$F^v_j\f$ denotes the boundary flux. The term
+\f$D^{vw}_j\f$ is effectively the area-weighted normal to
 the dual face separating _v_ and _w_ and calculated as
 \f[ \begin{split}
   D^{vw}_j = \frac{1}{2} \sum_{\Omega_h \in vw} \int_{\Omega_h} \left( N^v
   \frac{\partial N^w}{\partial x_j} - N^w \frac{\partial N^v}{\partial x_j}
   \right) \, \text{d} \Omega
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}\Omega_h \in vw\f$ represents all elements
+where \f$\Omega_h \in vw\f$ represents all elements
 attached to edge _vw_. This numerical scheme is guaranteed to be conservative
-since \f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is antisymmetric. The boundary terms
-\f$\color[HTML]{dcdcdc}B^{vw}_j\f$ and \f$\color[HTML]{dcdcdc}B^v_j\f$ are
+since \f$D^{vw}_j\f$ is antisymmetric. The boundary terms
+\f$B^{vw}_j\f$ and \f$B^v_j\f$ are
 defined as
 \f[ \begin{split}
   B^{vw}_j &= \frac{1}{2} \sum_{\Gamma_h \in vw} \int_{\Gamma_h} N^v N^w n_j
@@ -146,7 +144,7 @@ the above and other details, see @ref papers.
 
 @section laxcg_flux Numerical flux
 
-The numerical flux \f$\color[HTML]{dcdcdc}F^{vw}_j\f$ is evaluated at the
+The numerical flux \f$F^{vw}_j\f$ is evaluated at the
 midpoint between _v_ and _w_. One option is to use Rusanov's flux which
 approximates the flux between _v_ and _w_ as
 \f[ \begin{split}
@@ -175,7 +173,7 @@ Another option is to use the Harten-Lax-van Leer-Contact (HLLC) flux using the m
 The inputs to the flux function above are approximated using a piecewise
 limited solution reconstruction of the variables, _q_, denoting the scalar
 components of the primitive variables, _Q_. The reconstruction is performed
-component-wise for each edge \f$\color[HTML]{dcdcdc}vw\f$ as follows:
+component-wise for each edge \f$vw\f$ as follows:
 \f[ \begin{split}
   \hat{q}^v &= q^v + \frac{1}{4} \left[ (1-k) \phi(r^v) \delta_1 +
     (1+k)\phi\left(\frac{1}{r^v}\right)\delta_2 \right]\\
@@ -193,7 +191,7 @@ with
 \end{split} \f]
 This scheme corresponds to a piecewise linear reconstruction for _k = -1_ and a
 piecewise parabolic reconstruction for _k = 1/3_. The function
-\f$\color[HTML]{dcdcdc}\phi\f$ can be any total variation diminishing limiter
+\f$\phi\f$ can be any total variation diminishing limiter
 function, e.g., that of van Leer. The gradients of the primitive variables are
 computed in all mesh points based on the edge-based formulation as
 \f[
@@ -202,7 +200,7 @@ D_j^{vw}\left(q^w+q^v\right) + \sum_{vw \in v}
 B_j^{vw}\left(q^w+q^v\right) + B_j^vq^v
 \f]
 where _q_ are scalar components of the primitive variables, _Q_.  The above
-summations are over all edges \f$\color[HTML]{dcdcdc}vw \in \Omega_h\f$ that
+summations are over all edges \f$vw \in \Omega_h\f$ that
 contribute to point v.
 
 @section laxcg_time Time integration
@@ -213,7 +211,7 @@ The solution is advanced using a multi-stage explicit scheme of the form:
 \end{split} \f]
 where _r_ is the right hand side of the discretized governing equations, _k_ is
 the current stage, _m_ is the number of stages,
-\f$\color[HTML]{dcdcdc}\Delta t\f$ is the time step size, and
+\f$\Delta t\f$ is the time step size, and
 \f[ \begin{split}
   \alpha^k = \frac{1} {1+m-k}
 \end{split} \f]
@@ -224,7 +222,7 @@ at every time step as
 \f[ \begin{split}
 \Delta t = \text{C} \min_{\forall v} \frac{(V^v)^{1/3}}{\lambda^{v}}
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}\text{C} \leq 1\f$ is the Courant number.
+where \f$\text{C} \leq 1\f$ is the Courant number.
 
 */
 } // inciter::

@@ -26,7 +26,7 @@ p(x_i) & = \left\{ {\begin{array}{cl} 0.67 \times 10^{-4} & x_i \ne 0.0 \\
                                p_s    & x_i = 0.0 \\ \end{array} } \right.
 \end{split}
 \f]
-where \f$\color[HTML]{dcdcdc}e_s\f$ and \f$\color[HTML]{dcdcdc}p_s\f$ are
+where \f$e_s\f$ and \f$p_s\f$ are
 initial values of the internal energy and pressure respectively, that depend on
 the size of the control volume at the center of the sphere. As the mesh size is
 decreased, these values are increased to maintain a constant total energy

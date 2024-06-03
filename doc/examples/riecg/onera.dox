@@ -145,7 +145,7 @@ The computed pressure coefficient
 C_p = \frac{p-p_\infty}{\rho_\infty u_\infty^2/2}
 \f]
 distribution is compared to experimental data [3] at various semi-spans in the
-following figures for both meshes. Here the \f$\color[HTML]{dcdcdc}\infty\f$
+following figures for both meshes. Here the \f$\infty\f$
 subscript denotes the far-field conditions, u is the length of the velocity
 vector, and c is the half-wing span.
 @m_div{m-col-m-10 m-center-m}

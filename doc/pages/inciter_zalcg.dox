@@ -22,15 +22,15 @@ U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \end{Bmatrix}, \enskip F_j =
 \end{Bmatrix}
 \end{split} \f]
 where the summation convention on repeated indices has been applied, and
-\f$\color[HTML]{dcdcdc}\rho\f$ is the density, \f$\color[HTML]{dcdcdc}u_i\f$
-the velocity vector, \f$\color[HTML]{dcdcdc}E=u_iu_i/2+e\f$ is the specific
-total energy, \f$\color[HTML]{dcdcdc}e\f$ is the specific internal energy, and
-\f$\color[HTML]{dcdcdc}p\f$ is the pressure. The system is closed with the
+\f$\rho\f$ is the density, \f$u_i\f$
+the velocity vector, \f$E=u_iu_i/2+e\f$ is the specific
+total energy, \f$e\f$ is the specific internal energy, and
+\f$p\f$ is the pressure. The system is closed with the
 ideal gas law equation of state
 \f[ \begin{split}
 p = \rho e (\gamma - 1),
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}\gamma\f$ is the ratio of specific heats. The
+where \f$\gamma\f$ is the ratio of specific heats. The
 exact form of the equation of state is of secondary importance, any arbitrary
 (i.e. analytic or tabulated) equation of state can be used to relate density
 and internal energy to pressure.
@@ -39,47 +39,47 @@ and internal energy to pressure.
 
 The above system is solved using an edge-based finite-element method for linear
 tetrahedra. Using this particular approach, the unknown solution quantities are
-the conserved variables \f$\color[HTML]{dcdcdc}U\f$ and are located at the
+the conserved variables \f$U\f$ and are located at the
 nodes of the mesh. The solution at any point within the computational domain is
 represented as
 \f[ \begin{split}
   U(\vec{x}) = \sum_{v \in \Omega_h} N^v(\vec{x}) U^v
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}\Omega_h\f$ is the tetrahedron containing the
-point \f$\color[HTML]{dcdcdc}\vec{x}\f$, \f$\color[HTML]{dcdcdc}U^v\f$ is the
-solution at vertex \f$\color[HTML]{dcdcdc}v\f$, and
-\f$\color[HTML]{dcdcdc}N^v(\vec{x})\f$ is a linear basis function associated
-with vertex \f$\color[HTML]{dcdcdc}v\f$ and element
-\f$\color[HTML]{dcdcdc}\Omega_h\f$. Applying a Galerkin, lumped-mass
+where \f$\Omega_h\f$ is the tetrahedron containing the
+point \f$\vec{x}\f$, \f$U^v\f$ is the
+solution at vertex \f$v\f$, and
+\f$N^v(\vec{x})\f$ is a linear basis function associated
+with vertex \f$v\f$ and element
+\f$\Omega_h\f$. Applying a Galerkin, lumped-mass
 approximation to the Euler equations gives the following semi-discrete form of
 the governing equations for a vertex
-\f$\color[HTML]{dcdcdc}v\f$:
+\f$v\f$:
 \f[ \begin{split}
   V^v\frac{\text{d}U^v}{\text{d}t} = - \sum_{ vw\in v} D^{vw}_j F^{vw}_j -
   \sum_{vw\in v} B^{vw}_j \left( F^v_j + F^w_j\right) - B^v_j F^v_j
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}vw\f$ represent all edges connected to
-\f$\color[HTML]{dcdcdc}v\f$, \f$\color[HTML]{dcdcdc}V\f$ is the volume
-surrounding \f$\color[HTML]{dcdcdc}v\f$, \f$\color[HTML]{dcdcdc}F^{vw}_j\f$
-is the numerical flux between \f$\color[HTML]{dcdcdc}v\f$ and
-\f$\color[HTML]{dcdcdc}w\f$.  The first term on the right-hand-side above is
+where \f$vw\f$ represent all edges connected to
+\f$v\f$, \f$V\f$ is the volume
+surrounding \f$v\f$, \f$F^{vw}_j\f$
+is the numerical flux between \f$v\f$ and
+\f$w\f$.  The first term on the right-hand-side above is
 evaluated for all vertices within the domain. The last two terms are only
-evaluated for vertices \f$\color[HTML]{dcdcdc}v\f$ and surrounding edges
-\f$\color[HTML]{dcdcdc}vw\f$ that lie on the domain boundary.
-\f$\color[HTML]{dcdcdc}F^v_j\f$ denotes the boundary flux. The term
-\f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is effectively the area-weighted normal to
-the dual face separating \f$\color[HTML]{dcdcdc}v\f$ and
-\f$\color[HTML]{dcdcdc}w\f$. It is calculated as
+evaluated for vertices \f$v\f$ and surrounding edges
+\f$vw\f$ that lie on the domain boundary.
+\f$F^v_j\f$ denotes the boundary flux. The term
+\f$D^{vw}_j\f$ is effectively the area-weighted normal to
+the dual face separating \f$v\f$ and
+\f$w\f$. It is calculated as
 \f[ \begin{split}
   D^{vw}_j = \frac{1}{2} \sum_{\Omega_h \in vw} \int_{\Omega_h} \left( N^v
   \frac{\partial N^w}{\partial x_j} - N^w \frac{\partial N^v}{\partial x_j}
   \right) \, \text{d} \Omega
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}\Omega_h \in vw\f$ represents all elements
-attached to edge \f$\color[HTML]{dcdcdc}vw\f$. This numerical
+where \f$\Omega_h \in vw\f$ represents all elements
+attached to edge \f$vw\f$. This numerical
 scheme is guaranteed to be conservative since
-\f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is antisymmetric. The boundary terms
-\f$\color[HTML]{dcdcdc}B^{vw}_j\f$ and \f$\color[HTML]{dcdcdc}B^v_j\f$ are
+\f$D^{vw}_j\f$ is antisymmetric. The boundary terms
+\f$B^{vw}_j\f$ and \f$B^v_j\f$ are
 defined as
 \f[ \begin{split}
   B^{vw}_j &= \frac{1}{2} \sum_{\Gamma_h \in vw} \int_{\Gamma_h} N^v N^w n_j
@@ -92,8 +92,8 @@ For the derivation of the above and other details, see @ref papers.
 
 @section zalcg_flux Numerical flux
 
-The numerical flux \f$\color[HTML]{dcdcdc}F^{vw}_j\f$ between mesh points
-\f$\color[HTML]{dcdcdc}v\f$ and \f$\color[HTML]{dcdcdc}w\f$ is computed as
+The numerical flux \f$F^{vw}_j\f$ between mesh points
+\f$v\f$ and \f$w\f$ is computed as
 \f[ \begin{split}
   F^{vw}_j & = 2 F_j( U_{vw}^{n+1/2} ) \\
   U_{vw}^{n+1/2} & = \frac{1}{2}\left( U^v + U^w \right) -
@@ -101,7 +101,7 @@ The numerical flux \f$\color[HTML]{dcdcdc}F^{vw}_j\f$ between mesh points
   \left.\frac{\partial F_j}{\partial x_j}\right|^{vw} & =
     \frac{l^{vw}_j}{l_kl_k}( F^v_j - F^w_j )
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}{l_j}\f$ denotes the edge difference vector
+where \f${l_j}\f$ denotes the edge difference vector
 \f[
 l^{vw}_j=x^v_j - x^w_j
 \f]
@@ -122,8 +122,8 @@ the forward Euler method as
 \f[
 V \Delta U^h = \Delta t r(U^n)
 \f]
-where \f$\color[HTML]{dcdcdc}U^n\f$ is the solution at the previous time step \f$\color[HTML]{dcdcdc}n\f$ and the notation of
-the numerical solution represented at mesh node \f$\color[HTML]{dcdcdc}v\f$ is dropped for brevity. The
+where \f$U^n\f$ is the solution at the previous time step \f$n\f$ and the notation of
+the numerical solution represented at mesh node \f$v\f$ is dropped for brevity. The
 low-order scheme is constructed from the high-order scheme in by adding mass diffusion
 \f[
 V \Delta U^l = \Delta t r(U^n) - k(U^n)
@@ -134,14 +134,14 @@ k(U) & = \sum_{vw \in v} K^{vw} (U^v-U^w) \\
 K^{vw} & = c_\tau \sum_{\Omega_h \in vw} \int_{\Omega_h}N^vN^v -
 N^vN^w\mathrm{d}\Omega
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}c_\tau\f$ denotes a diffusion coefficient. The
+where \f$c_\tau\f$ denotes a diffusion coefficient. The
 steps to arrive at the diffusion term for edges are analogous to those of the
 Laplacian operator, invoking the symmetry property of the diffusion operator
 for linear tetrahedra as
 \f[
 K^{ik}\!=\!-\sum_{j\ne i}K^{jk}
 \f]
-In the FCT procedure \f$\color[HTML]{dcdcdc}c_\tau\!=\!1\f$ guarantees
+In the FCT procedure \f$c_\tau\!=\!1\f$ guarantees
 monotonic solutions. The above specifications lead to the following
 antidiffusive edge contributions (AEC)
 \f[
@@ -149,7 +149,7 @@ antidiffusive edge contributions (AEC)
 \f]
 which is then used to update the low order solution after performing the
 limiting procedure to arrive at the solution at the new time step
-\f$\color[HTML]{dcdcdc}n+1\f$
+\f$n+1\f$
 \f[
 \Delta U^{n+1} = U^l + \sum_{vw \in v} \lim[\mathrm{AEC}^{vw}]
 \f]
@@ -184,7 +184,7 @@ node,
 ({\mbox{\boldmath$U$}}^*_1,{\mbox{\boldmath$U$}}^*_2,\dots,{\mbox{\boldmath$U$}}^*_m).
 \end{split} \f]
 The limit coefficients will be computed (see below) based on
-\f$\color[HTML]{dcdcdc}P_i^{\pm}\f$ and the maximum and minimum increments and
+\f$P_i^{\pm}\f$ and the maximum and minimum increments and
 decrements the nodal solution values are allowed to achieve,
 \f[ \begin{split}
 Q_i^{\pm} = {\mbox{\boldmath$U$}}_i^{\tiny\begin{matrix} \max \\ \min
@@ -192,7 +192,7 @@ Q_i^{\pm} = {\mbox{\boldmath$U$}}_i^{\tiny\begin{matrix} \max \\ \min
 \end{split} \f]
 
 Defining the ratios of positive and negative edge contributions for each
-node \f$\color[HTML]{dcdcdc}i\f$ that ensure monotonicity as
+node \f$i\f$ that ensure monotonicity as
 \f[ \begin{split}
 R_i^{\pm} = \left\{\begin{matrix} \min(1,Q_i^{\pm}/P_i^{\pm}) & P_i^+ > 0 >
 P_i^- \\ 1 & \mathrm{otherwise} \end{matrix} \right.,

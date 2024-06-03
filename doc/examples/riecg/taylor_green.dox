@@ -150,9 +150,9 @@ The L1 error is computed as
 \left| \left| \varepsilon \right| \right|_1 = \frac{\sum_{v=1}^n V^v \left|
 \hat{U}^v - U^{v} \right|} {\sum_{v=1}^n V^v}
 \f]
-where n is the number of points, \f$\color[HTML]{dcdcdc}\hat{U}^v\f$ and
-\f$\color[HTML]{dcdcdc}U^v\f$ are the exact and computed solutions at mesh
-point v, and \f$\color[HTML]{dcdcdc}V^v\f$ denotes the volume associated to
+where n is the number of points, \f$\hat{U}^v\f$ and
+\f$U^v\f$ are the exact and computed solutions at mesh
+point v, and \f$V^v\f$ denotes the volume associated to
 mesh point v. The order of convergence is estimated as
 \f[
 p = \frac{ \log \left| \left| \varepsilon \right| \right|_1^{m+1} - \log \left|

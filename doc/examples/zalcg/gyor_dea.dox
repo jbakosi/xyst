@@ -33,16 +33,16 @@ pollutant concentration, as
   \end{Bmatrix}
 \end{split} \f]
 where the summation convention on repeated indices has been applied,
-\f$\color[HTML]{dcdcdc}\rho\f$ is the density, \f$\color[HTML]{dcdcdc}u_i\f$ is
-the velocity vector, \f$\color[HTML]{dcdcdc}E=u_iu_i/2+e\f$ is the specific
-total energy, \f$\color[HTML]{dcdcdc}e\f$ is the specific internal energy, and
-\f$\color[HTML]{dcdcdc}p\f$ is the pressure. \f$\color[HTML]{dcdcdc}S_\rho\f$,
-\f$\color[HTML]{dcdcdc}S_{u,i}\f$, \f$\color[HTML]{dcdcdc}S_E\f$. The system
+\f$\rho\f$ is the density, \f$u_i\f$ is
+the velocity vector, \f$E=u_iu_i/2+e\f$ is the specific
+total energy, \f$e\f$ is the specific internal energy, and
+\f$p\f$ is the pressure. \f$S_\rho\f$,
+\f$S_{u,i}\f$, \f$S_E\f$. The system
 is closed with the ideal gas law equation of state
 \f[ \begin{split}
   p = \rho e (\gamma - 1),
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}\gamma\f$ is the ratio of specific heats.
+where \f$\gamma\f$ is the ratio of specific heats.
 
 @note An Euler solver is obviously not the most physically realistic nor the
 most effective way to compute a nearly constant-density low-Mach-number usually
@@ -82,7 +82,7 @@ p(x_i) & = 1.0 \times 10^{5} \enskip \mathrm{Pa}
 and these conditions are also enforced as Dirichlet boundary conditions on the
 top and sides of the brick-shaped domain during time stepping.
 
-The scalar, \f$\color[HTML]{dcdcdc}c\f$, representing pollutant concentration
+The scalar, \f$c\f$, representing pollutant concentration
 is released from a point source at t=10s of the 140s total time simulated. The
 value of the scalar is normalized to the constant value of c=1.0 at the source.
 After verifying that the norms of the velocity component residuals decrease at

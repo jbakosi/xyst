@@ -22,19 +22,19 @@ the Euler equations, see also @ref inciter_riecg. as
   S = \begin{Bmatrix} S_\rho \\ S_{u,i} \\ S_E \\ S_c \end{Bmatrix},
 \end{split} \f]
 where the summation convention on repeated indices has been applied,
-\f$\color[HTML]{dcdcdc}\rho\f$ is the density, \f$\color[HTML]{dcdcdc}u_i\f$ is
-the velocity vector, \f$\color[HTML]{dcdcdc}E=u_iu_i/2+e\f$ is the specific
-total energy, \f$\color[HTML]{dcdcdc}e\f$ is the specific internal energy, and
-\f$\color[HTML]{dcdcdc}p\f$ is the pressure. \f$\color[HTML]{dcdcdc}S_\rho\f$,
-\f$\color[HTML]{dcdcdc}S_{u,i}\f$, \f$\color[HTML]{dcdcdc}S_E\f$, and
-\f$\color[HTML]{dcdcdc}S_c\f$ are source terms that arise from the application
+\f$\rho\f$ is the density, \f$u_i\f$ is
+the velocity vector, \f$E=u_iu_i/2+e\f$ is the specific
+total energy, \f$e\f$ is the specific internal energy, and
+\f$p\f$ is the pressure. \f$S_\rho\f$,
+\f$S_{u,i}\f$, \f$S_E\f$, and
+\f$S_c\f$ are source terms that arise from the application
 of the method of manufactured solutions, used for verification only; these
 source terms are zero when computing practical engineering problems. The system
 is closed with the ideal gas law equation of state
 \f[ \begin{split}
   p = \rho e (\gamma - 1),
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}\gamma\f$ is the ratio of specific heats.
+where \f$\gamma\f$ is the ratio of specific heats.
 
 @note While here we are only interested in the solution of the scalar field and
 that could also be done by prescribing an external velocity field and solving

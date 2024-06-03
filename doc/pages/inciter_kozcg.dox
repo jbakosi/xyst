@@ -23,11 +23,11 @@ U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \end{Bmatrix}, \enskip F_j =
 S = \begin{Bmatrix} S_\rho \\ S_{u,i} \\ S_E \end{Bmatrix},
 \end{split} \f]
 where the summation convention on repeated indices has been applied, and
-\f$\color[HTML]{dcdcdc}\rho\f$ is the density, \f$\color[HTML]{dcdcdc}u_i\f$
-the velocity vector, \f$\color[HTML]{dcdcdc}E=u_iu_i/2+e\f$ is the specific
-total energy, \f$\color[HTML]{dcdcdc}e\f$ is the specific internal energy, and
-\f$\color[HTML]{dcdcdc}p\f$ is the pressure.  \f$\color[HTML]{dcdcdc}S_\rho\f$,
-\f$\color[HTML]{dcdcdc}S_{u,i}\f$, and \f$\color[HTML]{dcdcdc}S_E\f$ are source
+\f$\rho\f$ is the density, \f$u_i\f$
+the velocity vector, \f$E=u_iu_i/2+e\f$ is the specific
+total energy, \f$e\f$ is the specific internal energy, and
+\f$p\f$ is the pressure.  \f$S_\rho\f$,
+\f$S_{u,i}\f$, and \f$S_E\f$ are source
 terms that arise from the application of the method of manufactured solutions,
 used for verification; these source terms are zero when computing practical
 engineering problems. The system is closed with the ideal gas law equation of
@@ -35,7 +35,7 @@ state
 \f[ \begin{split}
 p = \rho e (\gamma - 1),
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}\gamma\f$ is the ratio of specific heats. The
+where \f$\gamma\f$ is the ratio of specific heats. The
 exact form of the equation of state is of secondary importance, any arbitrary
 (i.e. analytic or tabulated) equation of state can be used to relate density
 and internal energy to pressure.
@@ -48,12 +48,12 @@ form of the governing equations above,
 F_j}{\partial x_j} - S\right)\mathrm{d}\Omega = 0, \quad v=1,2,\dots,n,
 \end{split} \f]
 which requires that the error in the numerical solution, sampled at
-\f$\color[HTML]{dcdcdc}n\f$ discrete points, \f$\color[HTML]{dcdcdc}v\f$, using
-the weighting functions \f$\color[HTML]{dcdcdc}N^v\f$, vanish on the whole
-domain, \f$\color[HTML]{dcdcdc}\Omega\f$, in an integral sense. Numerically
-approximating the solution as \f$\color[HTML]{dcdcdc}U \approx N^w
-\hat{U}_w\f$, where \f$\color[HTML]{dcdcdc}\hat{U}_w\f$ denotes the unknowns at
-the discrete node \f$\color[HTML]{dcdcdc}w\f$, leads to the Galerkin weak
+\f$n\f$ discrete points, \f$v\f$, using
+the weighting functions \f$N^v\f$, vanish on the whole
+domain, \f$\Omega\f$, in an integral sense. Numerically
+approximating the solution as \f$U \approx N^w
+\hat{U}_w\f$, where \f$\hat{U}_w\f$ denotes the unknowns at
+the discrete node \f$w\f$, leads to the Galerkin weak
 statement
 \f[ \begin{split}
 \int_{\Omega} N^v \bigg[N^w\frac{\partial\hat{U}_w}{\partial t} +
@@ -62,9 +62,9 @@ S(N^w\hat{U}_w)\bigg]\mathrm{d}\Omega = 0.
 \end{split} \f]
 Integrating the flux term by parts, neglecting the resulting boundary integral
 (assuming zero flux on the problem boundary), and applying
-\f$\color[HTML]{dcdcdc}F_j(N^w \hat{U}_w) \approx N^w F_j(\hat{U}_w)\f$ and
-\f$\color[HTML]{dcdcdc}S(N^w \hat{U}_w) \approx N^w S(\hat{U}_w)\f$, yields the
-final weak form for the whole domain, \f$\color[HTML]{dcdcdc}\Omega\f$,
+\f$F_j(N^w \hat{U}_w) \approx N^w F_j(\hat{U}_w)\f$ and
+\f$S(N^w \hat{U}_w) \approx N^w S(\hat{U}_w)\f$, yields the
+final weak form for the whole domain, \f$\Omega\f$,
 \f[ \begin{split}
 \int_{\Omega} N^v N^w \mathrm{d}\Omega \frac{\partial\hat{U}_w}{\partial t} -
 \int_{\Omega} N^w \mathrm{d}\Omega \frac{\partial N^v}{\partial x_j}
@@ -72,8 +72,8 @@ F_j(\hat{U}_w) - \int_{\Omega} N^v N^w \mathrm{d}\Omega \enskip S(\hat{U}_w) =
 0.
 \end{split} \f]
 All integrals above are evaluated by breaking up the domain,
-\f$\color[HTML]{dcdcdc}\Omega\f$, into sub-domains as a sum over integrals over
-discrete elements, \f$\color[HTML]{dcdcdc}\Omega_e\f$,
+\f$\Omega\f$, into sub-domains as a sum over integrals over
+discrete elements, \f$\Omega_e\f$,
 \f[ \begin{split}
 \sum_{\Omega_e \in v} \sum_{w \in \Omega_e} \int_{\Omega_e} N^v N^w
 \mathrm{d}\Omega_e \frac{\partial\hat{U}_w}{\partial t} & = \\ \sum_{\Omega_e
@@ -82,23 +82,23 @@ discrete elements, \f$\color[HTML]{dcdcdc}\Omega_e\f$,
 \sum_{w \in \Omega_e} \int_{\Omega} N^v N^w \mathrm{d}\Omega \enskip
 S(\hat{U}_w),
 \end{split} \f]
-where the inner summation is over points \f$\color[HTML]{dcdcdc}w\f$ forming
-\f$\color[HTML]{dcdcdc}\Omega_e\f$ (gather) and the outer summation is over
-tetrahedra \f$\color[HTML]{dcdcdc}\Omega_e\f$ connected to point
-\f$\color[HTML]{dcdcdc}v\f$ (scatter). The above equations result in the
+where the inner summation is over points \f$w\f$ forming
+\f$\Omega_e\f$ (gather) and the outer summation is over
+tetrahedra \f$\Omega_e\f$ connected to point
+\f$v\f$ (scatter). The above equations result in the
 following semi-discrete system of equations
 \f[ \begin{split}
 {\mbox{\boldmath$M$}}_c \mbox{\boldmath$\hat{U}$},_{t} =
 {\mbox{\boldmath$r$}}({\mbox{\boldmath$\hat{U}$}}),
 \end{split} \f]
 where the comma denotes a derivative. The size of the consistent mass matrix
-\f$\color[HTML]{dcdcdc}M_c\f$ is \f$\color[HTML]{dcdcdc}n \times n\f$, where
-\f$\color[HTML]{dcdcdc}n\f$ is the number of nodes of the computational mesh.
+\f$M_c\f$ is \f$n \times n\f$, where
+\f$n\f$ is the number of nodes of the computational mesh.
 According to the sum above, only those elements contribute to a given row
-\f$\color[HTML]{dcdcdc}v\f$ of
-\f$\color[HTML]{dcdcdc}{\mbox{\boldmath$M$}}_c\f$ which contain node
-\f$\color[HTML]{dcdcdc}v\f$ (scatter), thus
-\f$\color[HTML]{dcdcdc}{\mbox{\boldmath$M$}}_c\f$ is sparse.
+\f$v\f$ of
+\f${\mbox{\boldmath$M$}}_c\f$ which contain node
+\f$v\f$ (scatter), thus
+\f${\mbox{\boldmath$M$}}_c\f$ is sparse.
 
 @section kozcg_time Discretization in time
 
@@ -127,7 +127,7 @@ t}{2} \frac{1}{4} \sum_{w=1}^4 S(\hat{U}^n_w),\\
 N^v}{\partial x_j} F_j(U_e^{n+1/2}) \mathrm{d}\Omega_e + \Delta t
 \int_{\Omega_e} N^v S(U_e^{n+1/2}) \mathrm{d}\Omega_e \\
 \end{aligned}\end{split} \f]
-where \f$\color[HTML]{dcdcdc}U_e^{n+1/2}\f$ is the vector of element-centered
+where \f$U_e^{n+1/2}\f$ is the vector of element-centered
 solutions at the half step. Note that the first step discretizes the flux
 integral _before_ integration by parts, while the second one _after_
 integration by parts, hence the difference in sign.
@@ -148,8 +148,8 @@ written as
 \Delta{\mbox{\boldmath$U$}}^l) = {\mbox{\boldmath$U$}}^l +
 (\Delta{\mbox{\boldmath$U$}}^h - \Delta{\mbox{\boldmath$U$}}^l),
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}\Delta {\mbox{\boldmath$U$}}^h\f$ and
-\f$\color[HTML]{dcdcdc}\Delta {\mbox{\boldmath$U$}}^l\f$ denote the solution
+where \f$\Delta {\mbox{\boldmath$U$}}^h\f$ and
+\f$\Delta {\mbox{\boldmath$U$}}^l\f$ denote the solution
 increments of the high-, and low-order schemes, respectively. In the equations
 above it is the last term that is limited in a way to avoid spurious
 oscillations as
@@ -168,9 +168,9 @@ matrix and adding mass diffusion
 {\mbox{\boldmath$d$}} = {\mbox{\boldmath$r$}} - c_\tau({\mbox{\boldmath$M$}}_l -
 {\mbox{\boldmath$M$}}_c) {\mbox{\boldmath$U$}}
 \end{split} \f]
-where \f$\color[HTML]{dcdcdc}{\mbox{\boldmath$M$}}_l\f$ is the lumped mass
-matrix and \f$\color[HTML]{dcdcdc}c_\tau\f$ is a diffusion coefficient. Using
-\f$\color[HTML]{dcdcdc}c_\tau=1\f$ guarantees a monotone low order solution. If
+where \f${\mbox{\boldmath$M$}}_l\f$ is the lumped mass
+matrix and \f$c_\tau\f$ is a diffusion coefficient. Using
+\f$c_\tau=1\f$ guarantees a monotone low order solution. If
 we rewrite the above equation as
 \f[ \begin{split}
 {\mbox{\boldmath$M$}}_l\Delta {\mbox{\boldmath$U$}}^h = {\mbox{\boldmath$r$}} +
@@ -186,16 +186,16 @@ schemes can be recognized as
 \Delta{\mbox{\boldmath$U$}}^h),
 \end{split} \f]
 also called as the anti-diffusive element contributions (AEC). The AEC is then
-limited, \f$\color[HTML]{dcdcdc}C_e\cdot\mathrm{AEC}\f$, and applied to advance
+limited, \f$C_e\cdot\mathrm{AEC}\f$, and applied to advance
 the solution to the next time step using the equation above, where
-\f$\color[HTML]{dcdcdc}0 \le C_e \le 1\f$ is the limit coefficient for a given
-element \f$\color[HTML]{dcdcdc}e\f$.
+\f$0 \le C_e \le 1\f$ is the limit coefficient for a given
+element \f$e\f$.
 
 @section kozcg_limiting The limiting procedure
 
 The weak sum above shows that the left hand side is the consistent mass matrix.
-\f$\color[HTML]{dcdcdc}{\mbox{\boldmath$M$}}_c\f$ is lumped by summing the rows
-to the diagonals.  Inverting \f$\color[HTML]{dcdcdc}{\mbox{\boldmath$M$}}_c\f$
+\f${\mbox{\boldmath$M$}}_c\f$ is lumped by summing the rows
+to the diagonals.  Inverting \f${\mbox{\boldmath$M$}}_c\f$
 distributed across computers would be costly. Using a lumped (diagonal) matrix
 instead reduces computational cost and software complexity at the cost of some
 additional numerical error but does not reduce the order of accuracy of the
@@ -217,7 +217,7 @@ linear tetrahedra, this is given for each element by
 \frac{J_e}{120} \left\{ \begin{array}{cc} 3.0 & i = j \\ -1.0 & i \ne j
 \end{array} \right.
 \f]
-where \f$\color[HTML]{dcdcdc}J_e=\overrightarrow{BA} \cdot (\overrightarrow{CA}
+where \f$J_e=\overrightarrow{BA} \cdot (\overrightarrow{CA}
 \times \overrightarrow{DA})\f$ is the element Jacobian, computed from the
 triple product of the edge vectors of the tetrahedron given by vertices A,B,C,
 and D. The above equation is also used to compute the anti-diffusive element
@@ -249,7 +249,7 @@ each node,
 ({\mbox{\boldmath$U$}}^*_1,{\mbox{\boldmath$U$}}^*_2,\dots,{\mbox{\boldmath$U$}}^*_m).
 \end{split} \f]
 The limit coefficients will be computed (see below) based on
-\f$\color[HTML]{dcdcdc}P_i^{\pm}\f$ and the maximum and minimum increments and
+\f$P_i^{\pm}\f$ and the maximum and minimum increments and
 decrements the nodal solution values are allowed to achieve,
 \f[ \begin{split}
 Q_i^{\pm} = {\mbox{\boldmath$U$}}_i^{\tiny\begin{matrix} \max \\ \min
@@ -257,7 +257,7 @@ Q_i^{\pm} = {\mbox{\boldmath$U$}}_i^{\tiny\begin{matrix} \max \\ \min
 \end{split} \f]
 
 Defining the ratios of positive and negative element contributions for each
-node \f$\color[HTML]{dcdcdc}i\f$ that ensure monotonicity as
+node \f$i\f$ that ensure monotonicity as
 \f[ \begin{split}
 R_i^{\pm} = \left\{\begin{matrix} \min(1,Q_i^{\pm}/P_i^{\pm}) & P_i^+ > 0 >
 P_i^- \\ 1 & \mathrm{otherwise} \end{matrix} \right.,

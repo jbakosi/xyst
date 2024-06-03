@@ -52,7 +52,7 @@ endif()
 find_package(Doxygen 1.8.15 QUIET)
 find_package(LATEX QUIET)
 
-FIND_PROGRAM(MCSS_DOX2HTML5 NAMES dox2html5.py
+FIND_PROGRAM(MCSS_DOX2HTML5 NAMES doxygen.py
                             PATHS ${CMAKE_SOURCE_DIR}/../doc/mcss/doxygen)
 
 # Handle the QUIETLY and REQUIRED arguments and set MCSS_FOUND to TRUE if

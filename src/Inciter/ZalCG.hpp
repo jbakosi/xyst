@@ -191,8 +191,6 @@ class ZalCG : public CBase_ZalCG {
       p | m_domedgeint;
       p | m_bpoin;
       p | m_bpint;
-      p | m_bsupedge;
-      p | m_bsupint;
       p | m_dsupedge;
       p | m_dsupint;
       p | m_dsuplim;
@@ -302,10 +300,6 @@ class ZalCG : public CBase_ZalCG {
     std::vector< std::size_t > m_bpoin;
     //! Streamable boundary point integrals
     std::vector< tk::real > m_bpint;
-    //! Superedge (face, edge) end points with local ids for boundary edges
-    std::array< std::vector< std::size_t >, 2 > m_bsupedge;
-    //! Superedge (tet, face, edge) boundary edge integrals
-    std::array< std::vector< tk::real >, 2 > m_bsupint;
     //! Superedge (tet, face, edge) end points with local ids for domain edges
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals

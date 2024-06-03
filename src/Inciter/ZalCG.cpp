@@ -603,8 +603,6 @@ ZalCG::streamable()
   }
   tk::destroy( m_bndpoinint );
 
-  // Generate boundary superedges
-  bndsuped();
   // Generate edges along chare boundary
   chbnded();
   // Adjust node volumes along inactive neighbor chares
@@ -650,92 +648,6 @@ ZalCG::streamable()
   }
   tk::destroy( m_farbcnodeset );
   tk::destroy( m_bnorm );
-}
-
-void
-ZalCG::bndsuped()
-// *****************************************************************************
-// Generate superedge-groups for boundary-edge loops
-//! \see See Lohner, Sec. 15.1.6.2, An Introduction to Applied CFD Techniques,
-//!      Wiley, 2008.
-// *****************************************************************************
-{
-  #ifndef NDEBUG
-  auto nbedge = m_bndedgeint.size();
-  #endif
-
-  const auto& lid = Disc()->Lid();
-  const auto& gid = Disc()->Gid();
-
-  tk::destroy( m_bsupedge[0] );
-  tk::destroy( m_bsupedge[1] );
-
-  tk::destroy( m_bsupint[0] );
-  tk::destroy( m_bsupint[1] );
-
-  for (const auto& [setid, tri] : m_bface) {
-    for (auto e : tri) {
-      const auto N = m_triinpoel.data() + e*3;
-      int f = 0;
-      tk::real sig[3];
-      decltype(m_bndedgeint)::const_iterator b[3];
-      for (const auto& [p,q] : tk::lpoet) {
-        tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
-        sig[f] = ed[0] < ed[1] ? 1.0 : -1.0;
-        b[f] = m_bndedgeint.find( ed );
-        if (b[f] == end(m_bndedgeint)) break; else ++f;
-      }
-      if (f == 3) {
-        m_bsupedge[0].push_back( N[0] );
-        m_bsupedge[0].push_back( N[1] );
-        m_bsupedge[0].push_back( N[2] );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[0]) );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[1]) );
-        m_bsupedge[0].push_back( m_symbcnodeset.count(N[2]) );
-        for (int ed=0; ed<3; ++ed) {
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[0] );
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[1] );
-          m_bsupint[0].push_back( sig[ed] * b[ed]->second[2] );
-          m_bndedgeint.erase( b[ed] );
-        }
-      }
-    }
-  }
-
-  m_bsupedge[1].resize( m_bndedgeint.size()*4 );
-  m_bsupint[1].resize( m_bndedgeint.size()*3 );
-  std::size_t k = 0;
-  for (const auto& [ed,b] : m_bndedgeint) {
-    auto p = tk::cref_find( lid, ed[0] );
-    auto q = tk::cref_find( lid, ed[1] );
-    auto e = m_bsupedge[1].data() + k*4;
-    e[0] = p;
-    e[1] = q;
-    e[2] = m_symbcnodeset.count(p);
-    e[3] = m_symbcnodeset.count(q);
-    auto i = m_bsupint[1].data() + k*3;
-    i[0] = b[0];
-    i[1] = b[1];
-    i[2] = b[2];
-    ++k;
-  }
-
-  tk::destroy( m_bndedgeint );
-
-  //std::cout << std::setprecision(2)
-  //          << "superedges: ntri:" << m_bsupedge[0].size()/6
-  //          << "(nedge:" << m_bsupedge[0].size()/3 << ","
-  //          << 100.0 * static_cast< tk::real >( m_bsupedge[0].size()/3 ) /
-  //                     static_cast< tk::real >( nbedge )
-  //          << "%) + nedge:"
-  //          << m_bsupedge[1].size()/4 << "("
-  //          << 100.0 * static_cast< tk::real >( m_bsupedge[1].size()/4 ) /
-  //                     static_cast< tk::real >( nbedge )
-  //          << "%) = " << m_bsupedge[0].size()/2 + m_bsupedge[1].size()/4
-  //          << " of "<< nbedge << " total boundary edges\n";
-
-  Assert( m_bsupedge[0].size()/2 + m_bsupedge[1].size()/4 == nbedge,
-          "Not all boundary edges accounted for in superedge groups" );
 }
 
 void

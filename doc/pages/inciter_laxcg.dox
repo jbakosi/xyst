@@ -9,7 +9,7 @@ details, see @ref papers.
 
 @note In LaxCG, _Lax_ stands for [Péter Lax](https://en.wikipedia.org/wiki/Peter_Lax) and _CG_ for continuous Galerkin.
 
-The numerical method in LaxCG is an edge-based finite element method for unstructured meshes, composed of tetrahedral cells, intended for the mathematical modelling of flows at all Mach numbers. The implementation borrows elements of @ref inciter_riecg, which is most efficient at high Mach numbers, and applies a preconditioning technique to enable computation of flows at all Mach numbers. The preconditioner is detailed by [Luo, Baum, and Lohner, Extension of Harten-Lax-van Leer Scheme for Flows at All Speeds, AIAA Journal, 2005](https://doi.org/10.2514/1.7567). The implementation uses the asynchronous-by-default, distributed-memory, task-parallel programming paradigm using the Charm++ runtime system. The [super-edge](https://doi.org/10.1016/0045-7825(94)90133-3)-based implementation of the finite element operators help reduce indirect addressing and increases performance.
+The numerical method in LaxCG is an edge-based finite element method for unstructured meshes, composed of tetrahedral cells, intended for the mathematical modelling of flows at all Mach numbers. The implementation borrows elements of @ref inciter_riecg, which is not efficient at low Mach numbers, and thus LaxCG applies a preconditioning technique to enable computation of flows at all Mach numbers. The preconditioner is detailed by [Luo, Baum, and Lohner, Extension of Harten-Lax-van Leer Scheme for Flows at All Speeds, AIAA Journal, 2005](https://doi.org/10.2514/1.7567). The implementation uses the asynchronous-by-default, distributed-memory, task-parallel programming paradigm using the Charm++ runtime system. The [super-edge](https://doi.org/10.1016/0045-7825(94)90133-3)-based implementation of the finite element operators help reduce indirect addressing and increases performance.
 
 @section laxcg_euler The equations of compressible flow
 
@@ -22,10 +22,11 @@ compressible flow,
   \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p)
   \end{Bmatrix}
 \end{split} \f]
+@m_class{m-success}
 where the summation convention on repeated indices has been applied,
-\f$\color[HTML]{dcdcdc}\rho\f$ is the density, \f$\color[HTML]{dcdcdc}u_i\f$ is
-the velocity vector, _p_ is the pressure. and the specific total energy, _E_,
-is related to the internal energy, _e_, as
+\f$\color[HTML]{dcdcdc}\rho,u_i\f$ is the density, **u** is the velocity vector,
+_p_ is the pressure. and the specific total energy, _E_, is related to the
+internal energy, _e_, as
 \f[
 E = e + u_iu_i/2
 \f]
@@ -68,7 +69,7 @@ The preconditioner is given by
   \Theta H - 1 & \rho u_1 & \rho u_2 & \rho u_3 & \rho_T H + \rho C_p \\
 \end{pmatrix}
 \f]
-where the total enthalpy, _H_, is given in terms of the total energy as
+where the total enthalpy, _H_, is related to the total energy as
 \f[
 H = E + p/\rho = h + u_iu_i/2, \qquad h = C_p T
 \f]
@@ -116,12 +117,10 @@ where _vw_ represents all edges connected to _v_, \f$\color[HTML]{dcdcdc}V^v\f$
 is the volume surrounding _v_, \f$\color[HTML]{dcdcdc}F^{vw}_j\f$
 is the numerical flux between _v_ and _w_. The first term on the
 right-hand-side above is evaluated for all vertices within the domain. The last
-two terms are only evaluated for vertices _v_ and surrounding edges
-_vw_ that lie on the domain boundary. \f$\color[HTML]{dcdcdc}F^v_j\f$ denotes
-the boundary flux. The term
+two terms are evaluated only at the domain boundary.
+\f$\color[HTML]{dcdcdc}F^v_j\f$ denotes the boundary flux. The term
 \f$\color[HTML]{dcdcdc}D^{vw}_j\f$ is effectively the area-weighted normal to
-the dual face separating \f$\color[HTML]{dcdcdc}v\f$ and
-\f$\color[HTML]{dcdcdc}w\f$. It is calculated as
+the dual face separating _v_ and _w_ and calculated as
 \f[ \begin{split}
   D^{vw}_j = \frac{1}{2} \sum_{\Omega_h \in vw} \int_{\Omega_h} \left( N^v
   \frac{\partial N^w}{\partial x_j} - N^w \frac{\partial N^v}{\partial x_j}
@@ -138,7 +137,7 @@ defined as
   B^v_j &= \sum_{\Gamma_h \in v} \int_{\Gamma_h} N^v N^v n_j  \, \text{d}
   \Gamma
 \end{split} \f]
-where **n** is the outward pointing surface normal.
+where **n** is the outward-pointing surface normal.
 
 Note that the above algorithm can be viewed as either an edge-based finite
 element method on tetrahedron meshes or a node-centered finite volume method
@@ -148,12 +147,11 @@ the above and other details, see @ref papers.
 @section laxcg_flux Numerical flux
 
 The numerical flux \f$\color[HTML]{dcdcdc}F^{vw}_j\f$ is evaluated at the
-midpoint between \f$\color[HTML]{dcdcdc}v\f$ and \f$\color[HTML]{dcdcdc}w\f$.
-One option is to use Rusanov's flux which approximates the flux between
-_v_ and _w_ as
+midpoint between _v_ and _w_. One option is to use Rusanov's flux which
+approximates the flux between _v_ and _w_ as
 \f[ \begin{split}
-  D^{vw}_j F^{vw}_j = D^{vw}_j \left( F^v_j + F^w_j \right) + \left| D^{vw}_j
-  \right| \lambda \left( U^w - U^v \right)
+  D^{vw}_j F^{vw}_j = D^{vw}_j \left( F^v_j + F^w_j \right) + \lambda \left|
+  D^{vw}_j \right| \left( U^w - U^v \right)
 \end{split} \f]
 where the wave speed of the preconditioned system for edge _vw_ is computed as
 \f[
@@ -214,8 +212,8 @@ The solution is advanced using a multi-stage explicit scheme of the form:
   U^{v,k} = U^{v,0} + \alpha^k \Delta t r^{v,k-1}
 \end{split} \f]
 where _r_ is the right hand side of the discretized governing equations, _k_ is
-the current stage, m_ is the total number of stages,
-\f$\color[HTML]{dcdcdc}\Delta t\f$ is the time step, and
+the current stage, _m_ is the number of stages,
+\f$\color[HTML]{dcdcdc}\Delta t\f$ is the time step size, and
 \f[ \begin{split}
   \alpha^k = \frac{1} {1+m-k}
 \end{split} \f]

@@ -24,7 +24,7 @@ compressible flow,
 \end{split} \f]
 @m_class{m-success}
 where the summation convention on repeated indices has been applied,
-\f$\color[HTML]{dcdcdc}\rho,u_i\f$ is the density, **u** is the velocity vector,
+\f$\color[HTML]{dcdcdc}\rho\f$ is the density, **u** is the velocity vector,
 _p_ is the pressure. and the specific total energy, _E_, is related to the
 internal energy, _e_, as
 \f[

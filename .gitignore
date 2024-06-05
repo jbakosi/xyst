@@ -4,4 +4,4 @@
 /build
 */build
 */install
-doc/mcss/pelican-plugins/__pycache__
+doc/mcss/*/__pycache__

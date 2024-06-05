@@ -44,7 +44,7 @@ ENV LD_LIBRARY_PATH /opt/openmpi/lib:$LD_LIBRARY_PATH
 RUN rm -rf /openmpi
 
 # Install Charm++ in both non-SMP and SMP mode
-RUN git clone https://github.com/UIUC-PPL/charm && cd charm && git checkout v7.0.0-rc2
+RUN git clone https://github.com/charmplusplus/charm && cd charm && git checkout v7.0.0-rc2
 ADD charm-fortran.patch /charm
 RUN cd charm && patch -p1 -t -i charm-fortran.patch && rm charm-fortran.patch
 RUN cd charm && mkdir nonsmp && cd nonsmp && cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DSMP=off -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-non-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install

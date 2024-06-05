@@ -45,6 +45,13 @@ The pages below discuss example calculations using the @ref inciter_zalcg
   - \subpage zalcg_example_f16
   - \subpage zalcg_example_gyor_dea
 
+\section laxcg_examples LaxCG
+
+The pages below discuss example calculations using the @ref inciter_laxcg
+"LaxCG hydrodynamics" solver.
+
+  - \subpage laxcg_example_bump
+
 See @ref papers for more documentation and more examples.
 
 */

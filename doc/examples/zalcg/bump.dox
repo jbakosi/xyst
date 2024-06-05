@@ -21,7 +21,7 @@ outlet characteristic farfield boundary conditions are applied, while at the
 four sides symmetry (free-slip) boundary conditions are set.
 
 @m_div{m-col-m-12 m-center-m}
-<img src="images/bump_mesh_zalcg.png"/>
+<img src="images/bump_mesh.png"/>
 Surface mesh for computing the transconic channel flow with a circular bump,
 nelem=60K, npoin=12K.
 @m_enddiv

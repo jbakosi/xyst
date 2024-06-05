@@ -68,7 +68,7 @@ params.update({
     # be too little for <2.2.2, where it would mean you get just 194.28. We
     # need to detect the version somehow and then apply reasonable precision
     # based on that.
-    'dvisvgm_cmd': 'dvisvgm --no-fonts -Z 1.1',
+    'dvisvgm_cmd': 'dvisvgm --no-fonts -Z 1.15',
     })
 
 # Mapping from color codes to CSS classes. Keep in sync with m.plots.
@@ -178,7 +178,7 @@ def patch(formula, svg, depth, attribs):
     # add vertical align for inline formulas and add additional attribs like
     # CSS classes to the <svg> element
     if depth is None: style = ''
-    else: style = ' vertical-align: -{:.3f}em;'.format(depth*1.1)
+    else: style = ' vertical-align: -{:.3f}em;'.format(depth*1.15)
     def repl(match):
         return _patch_dst.format(
             width=_pt2em*float(match.group('width')),

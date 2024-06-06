@@ -109,7 +109,7 @@ the Mach number.
 
 The figures below depict the convergence history of the L2-norms of the
 residuals of the conserved quantities for the high-Ma case running @ref
-inciter_riecg and @ref inciter_laxcg, showing that booth solvers converge.
+inciter_riecg and @ref inciter_laxcg, showing that both solvers converge.
 @m_div{m-col-m-10 m-center-m}
 <img src="images/bump_res_Ma0.675_riecg.png"/>
 <img src="images/bump_res_Ma0.675_laxcg.png"/>

@@ -51,6 +51,7 @@ The pages below discuss example calculations using the @ref inciter_laxcg
 "LaxCG hydrodynamics" solver.
 
   - \subpage laxcg_example_bump
+  - \subpage laxcg_example_onera
 
 See @ref papers for more documentation and more examples.
 

@@ -1,0 +1,170 @@
+/*!
+  \page      laxcg_example_onera LaxCG: ONERA wing
+
+This example uses @ref inciter_laxcg in @ref inciter_main to compute a
+stationary flow field around a wing in transconic and  in low-Mach-number flows.
+
+@section laxcg_example_onera_configuration Problem configuration
+
+This is the popular and well-documented aerodynamic flow over the ONERA M6
+wing, see [1,3]. First, the problem is configured with the free-stream Mach
+number of 0.84 and an angle of attack of 3.06 degrees, which yields a transonic
+flow. Then the flow is computed at a speed of approximately 1 m/s which yields
+a near-incompressible (constant-density) flow. Both configurations are computed
+using @ref inciter_riecg and @ref inciter_laxcg. Since the solution converges
+to steady state, the most efficient ways to compute this problem are to use
+implicit time marching or local time stepping [2] of which the latter is
+implemented in both solvers allowing taking larger time steps for larger cells.
+
+@section laxcg_example_onera_setup Problem setup
+
+The computational mesh used consists of 710,971 tetrahedra connecting 131,068
+points, whose surface mesh is depicted below. The initial conditions prescribe
+the Mach numbers of 0.84 or 0.003 and the velocity with an angle of attack of
+3.06 degrees. At the outer surface of the domain, characteristic far-field
+boundary conditions are applied, while along the wing surface symmetry
+(free-slip) conditions are set.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/onera_mesh_top_710K.png"/>
+@m_enddiv
+
+@note For the mesh, contact us using the link at the bottom of the page.
+
+@section laxcg_example_onera_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [43ba64a](https://codeberg.org/xyst/xyst/commit/43ba64a054d3cf115c88c1627c72d21974662b27) and the control file below.
+
+@section laxcg_example_onera_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Onera M6 wing"
+
+--nstep = 10
+ttyi = 100
+cfl = 0.5
+
+--solver = "riecg"
+solver = "laxcg"
+flux = "hllc"
+
+steady = true
+residual = 1.0e-14
+rescomp = 1
+
+part = "phg"
+
+mat = {
+  spec_heat_ratio = 1.4
+}
+
+rho = 1.225   -- density of air at STP, kg/m3
+pre = 1.0e+5  -- free-stream pressure, N/m^2
+alpha = 3.06  -- angle of attack, degrees
+--mach = 0.84
+mach = 0.003
+c = math.sqrt(mat.spec_heat_ratio * pre / rho)
+print("Free-stream Mach number = ",mach)
+
+ic = {
+  density = rho,
+  pressure = pre,
+  velocity = { mach * c * math.cos( alpha*math.pi/180.0 ),
+               mach * c * math.sin( alpha*math.pi/180.0 ),
+               0.0 }
+}
+
+velinf = ic.velocity
+turkel = 3.0
+
+bc_sym = {
+  sideset = { 3 }
+}
+
+bc_far = {
+  pressure = ic.pressure,
+  density = ic.density,
+  velocity = ic.velocity,
+  sideset = { 4 }
+}
+
+fieldout = {
+  iter = 10000,
+  sideset = { 3 },
+}
+
+diag = {
+  iter = 10,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section laxcg_example_onera_run Run using the coarse mesh on 30 CPUs
+
+@code{.bash}
+./charmrun +p30 Main/inciter -v -i onera_710K.exo -c onera.q
+@endcode
+
+@section laxcg_example_onera_residual Convergence to steady state
+
+The figures below depict the convergence history of the L2-norms of the
+residuals of the conserved quantities for the high-Ma case running @ref
+inciter_riecg and @ref inciter_laxcg, showing that both solvers converge for
+the high-speed flow.
+@m_div{m-col-m-10 m-center-m}
+<img src="images/onera_res_Ma0.84_riecg.png"/>
+<img src="images/onera_res_Ma0.84_laxcg.png"/>
+@m_enddiv
+The next two figures show that computing the low-Ma case @ref inciter_riecg
+fails to converge, while the time-derivative preconditioning technique
+implemented in @ref inciter_laxcg successfully converges even in such nearly
+constant-density flow.
+@m_div{m-col-m-10 m-center-m}
+<img src="images/onera_res_Ma0.003_riecg.png"/>
+<img src="images/onera_res_Ma0.003_laxcg.png"/>
+@m_enddiv
+
+@section laxcg_example_onera_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.30.0
+@endcode
+
+Results only on the wing surface can be visualized by first stitching the
+partitioned surface output files into a single surface output file followed by
+invoking paraview on the stitched surface exo file:
+@code{.bash}
+Main/meshconv -i out-surf.3.e-s.0.30.% -o out-surf.3.exo
+paraview out-surf.3.exo
+@endcode
+
+The converged Mach number distribution with superimposed density contours on
+the wing surface and symmetry plane is depicted below, computed by the @ref
+inciter_laxcg solver for both Mach number configurations.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/onera_laxcg_mach_Ma0.84.png"/>
+<img src="images/onera_laxcg_mach_Ma0.003.png"/>
+@m_enddiv
+
+@section laxcg_example_onera_references References
+
+@m_div{m-text m-noindent}
+[1] H. Luo, J.D. Baum, R. Lohner, [A Fast, Matrix-Free Implicit Method for Compressible Flows on Unstructured Grids](https://doi.org/10.1006/jcph.1998.6076), J. Comput. Phys. 146,2, 1998.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[2] R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[3] V. Schmitt, F. Charpin, _Pressure Distributions on the ONERA-M6-Wing at Transonic Mach Numbers, Experimental Data Base for Computer Program Assessment_, Report of the Fluid Dynamics Panel Working Group 04, AGARD AR-138, 1979.
+@m_enddiv
+
+*/

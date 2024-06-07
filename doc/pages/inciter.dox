@@ -29,19 +29,19 @@ of the computational mesh. See the links below for more details.
 
 @section inciter_solvers Solvers
 - @m_class{no-background} <strong><tt>RieCG:</tt></strong>
-   @ref inciter_riecg "method",
-   @ref riecg_examples "examples",
-   @ref riecg_performance "performance"
+  @ref inciter_riecg "method",
+  @ref riecg_examples "examples",
+  @ref riecg_performance "performance"
 - @m_class{no-background} <strong><tt>KozCG:</tt></strong>
-   @ref inciter_kozcg "method",
-   @ref kozcg_examples "examples"
+  @ref inciter_kozcg "method",
+  @ref kozcg_examples "examples"
 - @m_class{no-background} <strong><tt>ZalCG:</tt></strong>
-   @ref inciter_zalcg "method",
-   @ref zalcg_examples "examples",
-   @ref zalcg_performance "performance"
+  @ref inciter_zalcg "method",
+  @ref zalcg_examples "examples",
+  @ref zalcg_performance "performance"
 - @m_class{no-background} <strong><tt>LaxCG:</tt></strong>
-   @ref inciter_laxcg "method",
-   @ref laxcg_examples "examples"
+  @ref inciter_laxcg "method",
+  @ref laxcg_examples "examples"
 
 @section inciter_pages Related pages
 - @ref howtos "Howto pages"

@@ -1,0 +1,144 @@
+/*!
+  \page      laxcg_example_sphere LaxCG: Inviscid flow past a sphere
+
+This example uses @ref inciter_laxcg in @ref inciter_main to compute the
+inviscid constant-density (incompressible) flow past a sphere.
+
+While the exact solution of this problem is well-known from potential flow
+theory, computing such low Mach-number flow serves as a challenging problem for
+density-based solvers. Since the analytic solution is known, it can also be
+used to verify the correctness of the software implementation.
+
+@section laxcg_example_sphere_configuration Problem configuration
+
+The problem is configured with the free-stream Mach number of 0.001 to
+represent near-incompressible flow. Since the numerical solution converges to
+steady state, the most efficient ways to compute this problem are to use
+implicit time marching or local time stepping [1] of which the latter is
+implemented in @ref inciter_laxcg allowing taking larger time steps for larger
+cells.
+
+@section laxcg_example_sphere_setup Problem setup
+
+Due spatial symmetry of the problem, only quarter of the sphere is represented.
+The computational mesh consists of 73,397 tetrahedra connecting 14,281 points,
+whose surface mesh is depicted below. The initial conditions prescribe the
+free-stream Mach number and the flow variables are non-dimensionalized and
+parameterized by this quantity to yield unit streamwise velocity in the X
+direction.  Symmetry (free-slip) conditions are applied on the sphere and the
+symmetry surfaces, while characteristic far-field boundary conditions are
+applied on the rest of the domain boundary.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sphere_mesh.png"/>
+@m_enddiv
+
+@note For the mesh, contact us using the link at the bottom of the page.
+
+@section laxcg_example_sphere_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [43ba64a](https://codeberg.org/xyst/xyst/commit/43ba64a054d3cf115c88c1627c72d21974662b27) and the control file below.
+
+@section laxcg_example_sphere_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Sphere"
+
+nstep = 12000
+ttyi = 1000
+cfl = 0.7
+
+solver = "laxcg"
+flux = "hllc"
+
+steady = true
+residual = 1.0e-14
+rescomp = 2
+
+part = "phg"
+
+mat = {
+  spec_heat_ratio = 1.4
+}
+
+-- free stream
+mach = 0.001
+print("Free-stream Mach number = ",mach)
+
+ic = {
+  density = 1.0,
+  pressure = 1.0 / mach / mach / mat.spec_heat_ratio,
+  velocity = { 1.0, 0.0, 0.0 }
+}
+
+velinf = ic.velocity
+
+bc_sym = {
+  sideset = { 1, 2, 3 }
+}
+
+bc_far = {
+  density = ic.density,
+  pressure = ic.pressure,
+  velocity = ic.velocity,
+  sideset = { 4, 5, 6, 7 }
+}
+
+fieldout = {
+  iter = 10000,
+  sideset = { 1, 2, 3 }
+}
+
+diag = {
+  iter = 10,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section laxcg_example_sphere_run Run using 32 CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -i sphere.exo -c sphere.q
+@endcode
+
+@section laxcg_example_sphere_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.32.0
+@endcode
+
+Results only on the symmetry surfaces can be visualized by first stitching the
+partitioned surface output files into single surface output files, then loading
+them all into paraview:
+@code{.bash}
+Main/meshconv -i out-surf.1.e-s.0.32.% -o out-surf.1.exo
+Main/meshconv -i out-surf.2.e-s.0.32.% -o out-surf.2.exo
+Main/meshconv -i out-surf.3.e-s.0.32.% -o out-surf.3.exo
+@endcode
+
+The velocity magnitude on the sphere and symmetry surfaces is depicted below,
+computed by the @ref inciter_laxcg solver.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/sphere_velocity.png"/>
+@m_enddiv
+
+The velocity magnitude extracted along the centerline and the sphere surface is depicted below computed by @ref inciter_laxcg. Also plotted is the analytic solution from potential flow theory and the solution produced by @ref inciter_riecg. As the figure shows the time-derivative preconditioning implemented in @ref inciter_laxcg produces a superior solution to @ref inciter_riecg without preconditioning.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/sphere_Ma0.001.png"/>
+@m_enddiv
+
+@section laxcg_example_sphere_references References
+
+@m_div{m-text m-noindent}
+[1] R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
+@m_enddiv
+
+*/

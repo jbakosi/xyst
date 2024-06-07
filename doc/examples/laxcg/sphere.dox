@@ -15,19 +15,18 @@ The problem is configured with the free-stream Mach number of 0.001 to
 represent near-incompressible flow. Since the numerical solution converges to
 steady state, the most efficient ways to compute this problem are to use
 implicit time marching or local time stepping [1] of which the latter is
-implemented in @ref inciter_laxcg allowing taking larger time steps for larger
-cells.
+implemented in @ref inciter_laxcg allowing larger time steps for larger cells.
 
 @section laxcg_example_sphere_setup Problem setup
 
-Due spatial symmetry of the problem, only quarter of the sphere is represented.
-The computational mesh consists of 73,397 tetrahedra connecting 14,281 points,
-whose surface mesh is depicted below. The initial conditions prescribe the
-free-stream Mach number and the flow variables are non-dimensionalized and
-parameterized by this quantity to yield unit streamwise velocity in the X
-direction.  Symmetry (free-slip) conditions are applied on the sphere and the
-symmetry surfaces, while characteristic far-field boundary conditions are
-applied on the rest of the domain boundary.
+Due to the spatial symmetry of the problem, only quarter of the sphere is
+represented.  The computational mesh consists of 73,397 tetrahedra connecting
+14,281 points, whose surface mesh is depicted below. The initial conditions
+prescribe the free-stream Mach number and the flow variables are
+non-dimensionalized and parameterized by this quantity to yield unit streamwise
+velocity in the X direction.  Symmetry (free-slip) conditions are applied on
+the sphere and the symmetry surfaces, while characteristic far-field boundary
+conditions are applied on the rest of the domain boundary.
 
 @m_div{m-col-m-10 m-center-m}
 <img src="images/sphere_mesh.png"/>

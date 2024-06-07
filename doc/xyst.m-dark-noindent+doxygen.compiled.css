@@ -2446,3 +2446,6 @@ a.m-doc-search-icon:focus svg, a.m-doc-search-icon:hover svg, a.m-doc-search-ico
 .m-doc-search input[type="search"]::-webkit-search-results-decoration {
   display: none;
 }
+.no-background code {
+  background-color: transparent;
+}

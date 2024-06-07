@@ -28,18 +28,18 @@ of continuous Galerkin finite element methods storing solution values at nodes
 of the computational mesh. See the links below for more details.
 
 @section inciter_solvers Solvers
-- <b>RieCG:</b>
+- @m_class{no-background} <strong><tt>RieCG:</tt></strong>
    @ref inciter_riecg "method",
    @ref riecg_examples "examples",
    @ref riecg_performance "performance"
-- <b>KozCG:</b>
+- @m_class{no-background} <strong><tt>KozCG:</tt></strong>
    @ref inciter_kozcg "method",
    @ref kozcg_examples "examples"
-- <b>ZalCG:</b>
+- @m_class{no-background} <strong><tt>ZalCG:</tt></strong>
    @ref inciter_zalcg "method",
    @ref zalcg_examples "examples",
    @ref zalcg_performance "performance"
-- <b>LaxCG:</b>
+- @m_class{no-background} <strong><tt>LaxCG:</tt></strong>
    @ref inciter_laxcg "method",
    @ref laxcg_examples "examples"
 

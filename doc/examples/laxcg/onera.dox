@@ -102,10 +102,10 @@ diag = {
 }
 @endcode
 
-@section laxcg_example_onera_run Run using the coarse mesh on 30 CPUs
+@section laxcg_example_onera_run Run using 30 CPUs
 
 @code{.bash}
-./charmrun +p30 Main/inciter -v -i onera_710K.exo -c onera.q
+./charmrun +p30 Main/inciter -i onera_710K.exo -c onera.q
 @endcode
 
 @section laxcg_example_onera_residual Convergence to steady state

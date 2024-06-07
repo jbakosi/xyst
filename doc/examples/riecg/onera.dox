@@ -92,7 +92,7 @@ diag = {
 @section riecg_example_onera_run Run using the coarse mesh on 30 CPUs
 
 @code{.bash}
-./charmrun +p30 Main/inciter -v -i onera_710K.exo -c onera.q
+./charmrun +p30 Main/inciter -i onera_710K.exo -c onera.q
 @endcode
 
 @section riecg_example_onera_residual Convergence

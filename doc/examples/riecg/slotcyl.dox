@@ -139,7 +139,7 @@ diag = {
 @section riecg_example_slotcyl_run Run using on 32 CPUs
 
 @code{.bash}
-./charmrun +p32 Main/inciter -v -i unitsquare_01_1.9M.exo -c slot_cyl.q
+./charmrun +p32 Main/inciter -i unitsquare_01_1.9M.exo -c slot_cyl.q
 @endcode
 
 @note For the mesh, contact us using the link at the bottom of the page.

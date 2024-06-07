@@ -147,11 +147,11 @@ fieldout = {
 
 @code{.bash}
 # no extra load: run without applying the patch above
-./charmrun +p32 Main/inciter -v -i sedov02.exo -c sedov.q -b -l 1000
+./charmrun +p32 Main/inciter -i sedov02.exo -c sedov.q -b -l 1000
 # extra load, no lb: apply the patch above, and run with
-./charmrun +p32 Main/inciter -v -i sedov02.exo -c sedov.q -b -l 1000
+./charmrun +p32 Main/inciter -i sedov02.exo -c sedov.q -b -l 1000
 # extra load, lb: apply the patch above, and run with
-./charmrun +p32 Main/inciter -v -i sedov02.exo -c sedov.q -b -u 0.995 -l 20 +balancer MetisLB +balancer GreedyRefineLB
+./charmrun +p32 Main/inciter -i sedov02.exo -c sedov.q -b -u 0.995 -l 20 +balancer MetisLB +balancer GreedyRefineLB
 @endcode
 
 In the last command line above, we apply overdecomposition with -u 0.995,
@@ -191,7 +191,7 @@ Charm++ in SMP mode, no code changes are required.
 
 @code{.bash}
 # extra load, lb: apply the patch above, and run with
-./charmrun +p $((31*$SLURM_NNODES)) Main/inciter -v -i sedov02.exo -c sedov.q +ppn 31 +pemap 1-31 +commap 0 -b -u 0.992 -l 20 +balancer DistributedLB
+./charmrun +p $((31*$SLURM_NNODES)) Main/inciter -i sedov02.exo -c sedov.q +ppn 31 +pemap 1-31 +commap 0 -b -u 0.992 -l 20 +balancer DistributedLB
 @endcode
 
 The above command line instructs the runtime system in SMP mode to execute on

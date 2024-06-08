@@ -458,16 +458,18 @@ rusanov( const tk::UnsMesh::Coords& coord,
   r[3] *= r[0];
   r[4] = pR/(g-1.0) + 0.5*(r[1]*r[1] + r[2]*r[2] + r[3]*r[3])/r[0];
 
-  // dissipation
-  auto sL = std::abs(vpL) + cpL;
-  auto sR = std::abs(vpR) + cpR;
-  auto fw = std::max( sL, sR ) * len;
-  //using std::abs;
-  //using std::max;
-  //auto sp = max(abs(vpL-cpL),max(abs(vpR-cpR),max(abs(vpL+cpL),abs(vpR+cpR))));
-  //auto sL = -sp;
-  //auto sR = +sp;
+  // dissipation: option 1
+  //auto sL = std::abs(vpL) + cpL;
+  //auto sR = std::abs(vpR) + cpR;
   //auto fw = std::max( sL, sR ) * len;
+
+  // dissipation: option 2
+  using std::abs;
+  using std::max;
+  auto sp = max(abs(vpL-cpL),max(abs(vpR-cpR),max(abs(vpL+cpL),abs(vpR+cpR))));
+  auto sL = -sp;
+  auto sR = +sp;
+  auto fw = std::max( sL, sR ) * len;
 
   // flow fluxes
   f[0] = l[0]*vnL + r[0]*vnR + fw*(r[0] - l[0]);
@@ -590,15 +592,15 @@ hllc( const tk::UnsMesh::Coords& coord,
 
   // preconditioned left and right wave speeds
 
-  // blows with vr = c
+  // option 1
   //auto sL = std::min( vpL - cpL, vpR - cpR );
   //auto sR = std::max( vpL + cpL, vpR + cpR );
 
-  // converges with vr = c, blows with vr
+  // option 2
   //auto sL = vpL - cpL;
   //auto sR = vpR + cpR;
 
-  // converges with vr = c, blows with vr
+  // option 3
   using std::abs;
   using std::max;
   auto sp = max(abs(vpL-cpL),max(abs(vpR-cpR),max(abs(vpL+cpL),abs(vpR+cpR))));
@@ -613,14 +615,14 @@ hllc( const tk::UnsMesh::Coords& coord,
   //auto hh = (srl*hl + srr*hr) / (srl + srr);
   //auto uh = (srl*vpL + srr*vpR) / (srl + srr);
   //auto ch = sqrt( (g-1.0)*(hh - 0.5*(uh*uh)) );
-  //// converges with vr = c, blows with vr
-  ////auto sL = std::min( vpL - cpL, uh - ch );
-  ////auto sR = std::max( vpR + cpR, uh + ch );
-  //// converges with vr = c, blows with vr
+  //// option 4
+  //auto sL = std::min( vpL - cpL, uh - ch );
+  //auto sR = std::max( vpR + cpR, uh + ch );
+  // option 5
   //auto sL = uh - ch;
   //auto sR = uh + ch;
 
-  // no preconditioning, blows with vr = c
+  // no preconditioning
   //auto cL = eos::soundspeed(l[0],pL);
   //auto cR = eos::soundspeed(r[0],pR);
   //auto sL = fmin( qL - cL, qR - cR );

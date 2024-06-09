@@ -138,6 +138,20 @@ Fraction of active partitions in wall-clock time computing the Sedov problem wit
 deactivation.
 @m_enddiv
 
+Another way to measure the effectiveness of the deactivation procedure is to
+plot wall-clock times with deactivation, overdecomposition, and load balancing
+relative to wall-clock times without deactivation, overdecomposition, or load
+balancing as a function of the physics time integrated. This is plotted below.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sedov_tt.png"/>
+@m_enddiv
+
+As long as this ratio stays below 1.0, the deactivation procedure outperforms
+the original calculations, as measured by wall-clock times. The figure show
+that the simulations deactivation consistently outperforms its counterpart
+without deactivation during the entire physics time, \f$t=1.0\f$, integrated.
+
 @section zalcg_example_sedov_dea_references References
 
 @m_div{m-text m-noindent}

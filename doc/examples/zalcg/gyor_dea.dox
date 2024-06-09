@@ -244,6 +244,29 @@ converging the flow field to a steady state, after which the scalar is released
 into a flow in which the hydrodynamics variables are no longer updated.
 @m_enddiv
 
+Another way to measure the effectiveness of the deactivation procedure is to
+plot wall-clock times with deactivation, overdecomposition, and load balancing
+relative to wall-clock times without deactivation, overdecomposition, or load
+balancing as a function of the physics time integrated. This is plotted below.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/gyor_tt.png"/>
+@m_enddiv
+
+When this ratio is below 1.0, the deactivation procedure outperforms the
+original calculations, as measured by wall-clock times. The figure shows that
+until the scalar is released, \f$t<10.0\mathrm{s}\f$, the simulation with
+deactivation is approximately 30\% slower than that with no deactivation. This
+is not due to the cost of the deactivation procedure or load balancing, since
+these parts of the algorithm are not yet invoked. The increased cost is due to
+the increased communication cost due to overdecomposition, i.e., using 284 mesh
+partitions instead of 128.  After the scalar is released, almost the entire
+domain is deactivated and the simulation speeds up significantly. As the figure
+shows, even though more and more partitions become active, the ratio of
+wall-clock times stays below unity, attesting to the effectiveness of the
+procedure.
+
+
 @section zalcg_example_gyor_dea_references References
 
 @m_div{m-text m-noindent}

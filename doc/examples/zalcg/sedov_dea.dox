@@ -149,7 +149,7 @@ balancing as a function of the physics time integrated. This is plotted below.
 
 As long as this ratio stays below 1.0, the deactivation procedure outperforms
 the original calculations, as measured by wall-clock times. The figure show
-that the simulations deactivation consistently outperforms its counterpart
+that the simulation with deactivation consistently outperforms its counterpart
 without deactivation during the entire physics time, \f$t=1.0\f$, integrated.
 
 @section zalcg_example_sedov_dea_references References

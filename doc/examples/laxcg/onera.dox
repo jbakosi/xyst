@@ -144,6 +144,8 @@ Main/meshconv -i out-surf.3.e-s.0.30.% -o out-surf.3.exo
 paraview out-surf.3.exo
 @endcode
 
+@section laxcg_example_onera_results Results
+
 The converged Mach number distribution with superimposed density contours on
 the wing surface and symmetry plane is depicted below, computed by the @ref
 inciter_laxcg solver for both Mach number configurations.
@@ -151,6 +153,29 @@ inciter_laxcg solver for both Mach number configurations.
 @m_div{m-col-m-12 m-center-m}
 <img src="images/onera_laxcg_mach_Ma0.84.png"/>
 <img src="images/onera_laxcg_mach_Ma0.003.png"/>
+@m_enddiv
+
+The numerical pressure coefficient
+\f[
+C_p = \frac{p-p_\infty}{\rho_\infty u_\infty^2/2}
+\f]
+distribution is compared to experimental data [3] at various semi-spans in the
+following figures computed by @ref inciter_laxcg at \f$Ma_\infty=0.84\f$ using
+two different meshes whose properties are given in the table below. Here the
+\f$\infty\f$ subscript denotes the far-field conditions, \f$u\f$ is the length
+of the velocity vector, and \f$c\f$ is the half-wing span.
+       Mesh     |  Points     | Tetrahedra
+       :------: | ----------: | -----------:
+        coarse  |    131,068  |     710,971
+          fine  |    514,350  |   2,860,298
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/o20_laxcg.png"/>
+<img src="images/o44_laxcg.png"/>
+<img src="images/o65_laxcg.png"/>
+<img src="images/o80_laxcg.png"/>
+<img src="images/o90_laxcg.png"/>
+<img src="images/o95_laxcg.png"/>
 @m_enddiv
 
 @section laxcg_example_onera_references References

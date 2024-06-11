@@ -12,7 +12,7 @@ There are two mandatory input arguments to the @ref inciter_main executable:
 The input mesh file must be in [ExodusII](https://github.com/sandialabs/seacas)
 format. @ref meshconv_main can be used to convert meshes from some other
 formats. The input control file uses the [Lua](https://www.lua.org) language.
-See @ref examples for details on running inciter.
+See @ref vnv for details on running inciter.
 
 @section howto_iofiles_output How to interpret Inciter's output files
 

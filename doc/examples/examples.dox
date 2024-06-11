@@ -1,7 +1,10 @@
 /*!
-  \page      examples Examples
+  \page      vnv V&V
 
-\section riecg_examples RieCG
+This page links to verification and validation (V&V) examples exercrising the
+solvers in @ref inciter_main.
+
+\section riecg_vnv RieCG V&V
 
 The pages below discuss example calculations using the @ref inciter_riecg
 "RieCG hydrodynamics" solver.
@@ -18,7 +21,7 @@ The pages below discuss example calculations using the @ref inciter_riecg
   - \subpage riecg_example_square_cavity
   - \subpage riecg_example_diesel
 
-\section kozcg_examples KozCG
+\section kozcg_vnv KozCG V&V
 
 The pages below discuss example calculations using the @ref inciter_kozcg
 "KozCG hydrodynamics" solver.
@@ -30,7 +33,7 @@ The pages below discuss example calculations using the @ref inciter_kozcg
   - \subpage kozcg_example_sod
   - \subpage kozcg_example_slotcyl
 
-\section zalcg_examples ZalCG
+\section zalcg_vnv ZalCG V&V
 
 The pages below discuss example calculations using the @ref inciter_zalcg
 "ZalCG hydrodynamics" solver.
@@ -45,7 +48,7 @@ The pages below discuss example calculations using the @ref inciter_zalcg
   - \subpage zalcg_example_f16
   - \subpage zalcg_example_gyor_dea
 
-\section laxcg_examples LaxCG
+\section laxcg_vnv LaxCG V&V
 
 The pages below discuss example calculations using the @ref inciter_laxcg
 "LaxCG hydrodynamics" solver.

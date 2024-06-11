@@ -1,6 +1,6 @@
 /*!
   \page      howto_solver How to add a new solver
 
-@ref inciter_main contains multiple solvers. See also @ref examples. To add a new solver inspect code revisions [855b62c](https://codeberg.org/xyst/xyst/commit/855b62c15bbd4de54b76ee02b370946338e0b79e) or [6fdde86](https://codeberg.org/xyst/xyst/commit/6fdde86e12fa2f3a6102e9f3c4d0adcc8d171af1).
+@ref inciter_main contains multiple solvers. See also @ref vnv. To add a new solver inspect code revisions [855b62c](https://codeberg.org/xyst/xyst/commit/855b62c15bbd4de54b76ee02b370946338e0b79e) or [6fdde86](https://codeberg.org/xyst/xyst/commit/6fdde86e12fa2f3a6102e9f3c4d0adcc8d171af1).
 
 */

@@ -6,7 +6,7 @@
 This page discusses some aspects of the computational performance of the @ref
 inciter_riecg "RieCG hydrodynamics solver". The timings demonstrate that there
 is no significant scalability bottleneck in either computational or I/O
-performance. For performance with load balancing see @ref examples.
+performance. For performance with load balancing see @ref vnv.
 
 @section riecg_strong_scaling Strong scaling of computation
 

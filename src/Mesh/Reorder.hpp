@@ -17,6 +17,7 @@
 #include <utility>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <map>
 #include <cstddef>
 #include <array>
@@ -82,6 +83,17 @@ positiveJacobians( const std::vector< std::size_t >& inpoel,
 std::map< int, std::vector< std::size_t > >
 bfacenodes( const std::map< int, std::vector< std::size_t > >& bface,
             const std::vector< std::size_t >& triinpoel );
+
+//! Count the number of contributions to a node
+tk::real
+count( const std::unordered_map< int, std::unordered_set< std::size_t > >& map,
+       std::size_t node );
+
+//! Decide if a node is not counted by a chare
+bool
+slave( const std::unordered_map< int, std::unordered_set< std::size_t > >& map,
+     std::size_t node,
+     int chare );
 
 } // ::tk
 

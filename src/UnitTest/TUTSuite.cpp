@@ -104,7 +104,11 @@ TUTSuite::spawngrp( const std::string& g )
   
   // Asynchronously fire up all tests in test group
   for (int t=1; t<=g_maxTestsInGroup; ++t) {
-    CProxy_TUTTest< CProxy_TUTSuite >::ckNew( thisProxy, g, t );
+    if (m_fromPE0.count(g)) {
+      CProxy_TUTTest< CProxy_TUTSuite >::ckNew( thisProxy, g, t, 0 );
+    } else {
+      CProxy_TUTTest< CProxy_TUTSuite >::ckNew( thisProxy, g, t );
+    }
   }
 }
 

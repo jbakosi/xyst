@@ -16,16 +16,18 @@ target_include_directories(UnitTest PUBLIC
                            ${PROJECT_SOURCE_DIR}/../UnitTest
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PROJECT_SOURCE_DIR}/../Mesh
-                           ${PROJECT_SOURCE_DIR}/../PDE
+                           ${PROJECT_SOURCE_DIR}/../LinearSolver
                            ${CHARM_INCLUDE_DIRS}
                            ${PROJECT_BINARY_DIR}/../Base
                            ${PROJECT_BINARY_DIR}/../Main
                            ${PROJECT_BINARY_DIR}/../IO
                            ${PROJECT_BINARY_DIR}/../Inciter
+                           ${PROJECT_BINARY_DIR}/../LinearSolver
                            ${PROJECT_BINARY_DIR}/../UnitTest)
 
 addCharmModule( "charmtimer" "UnitTest" )
 addCharmModule( "migrated" "UnitTest" )
+addCharmModule( "cgreceiver" "UnitTest" )
 addCharmModule( "quietcerr" "UnitTest" )
 addCharmModule( "tutsuite" "UnitTest" )
 addCharmModule( "tuttest" "UnitTest" )

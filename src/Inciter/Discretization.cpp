@@ -122,14 +122,7 @@ Discretization::Discretization(
 
   // Compute number of mesh points owned
   std::size_t npoin = m_gid.size();
-  for (auto g : m_gid) {
-    if (std::any_of( m_nodeCommMap.cbegin(), m_nodeCommMap.cend(),
-          [&](const auto& s) { return
-            s.second.find(g) != s.second.cend() && s.first > thisIndex; } ))
-    {
-      --npoin;
-    }
-  }
+  for (auto g : m_gid) if (tk::slave( m_nodeCommMap, g, thisIndex ) ) --npoin;
 
   // Tell the RTS that the Discretization chares have been created and compute
   // the total number of mesh points across the distributed mesh

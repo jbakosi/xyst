@@ -76,12 +76,16 @@ if (ENABLE_TESTS)
                  ../../tests/unit/Mesh/TestDerivedData.cpp
                  ../../tests/unit/Mesh/TestGradients.cpp
                  ../../tests/unit/Mesh/TestReorder.cpp
+                 ../../tests/unit/LinearSolver/TestCSR.cpp
+                 ../../tests/unit/LinearSolver/TestConjugateGradients.cpp
   )
 
   target_include_directories(${UNITTEST_EXECUTABLE} PUBLIC
                              ${PROJECT_SOURCE_DIR}/..
+                             ${PROJECT_SOURCE_DIR}/../LinearSolver
                              ${PROJECT_SOURCE_DIR}/../UnitTest
                              ${PROJECT_SOURCE_DIR}/../IO
+                             ${PROJECT_BINARY_DIR}/../LinearSolver
                              ${PROJECT_BINARY_DIR}/../UnitTest
                              ${PROJECT_BINARY_DIR}/../IO)
 
@@ -96,6 +100,7 @@ if (ENABLE_TESTS)
                         Mesh
                         NativeMeshIO
                         MeshDetect
+                        LinearSolver
                         ExodusIIMeshIO
                         exodus
                         ${MPI_C_LIBRARIES}

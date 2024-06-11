@@ -23,6 +23,8 @@ module tutsuite {
   // memory errors as chares are fired up from unit tests inside TUTSuite.
   extern module migrated;
   extern module charmtimer;
+  extern module conjugategradients;
+  extern module cgreceiver;
 
   namespace unittest {
 

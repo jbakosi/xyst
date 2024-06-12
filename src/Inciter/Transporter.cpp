@@ -257,6 +257,7 @@ Transporter::createPartitioner()
     CProxy_LaxCG laxcg;
     CProxy_ZalCG zalcg;
     CProxy_KozCG kozcg;
+    CProxy_ChoCG chocg;
     const auto& solver = g_cfg.get< tag::solver >();
     if (solver == "riecg") {
       m_riecg.push_back( CProxy_Refiner::ckNew(opt) );
@@ -273,6 +274,10 @@ Transporter::createPartitioner()
     else if (solver == "kozcg") {
       m_kozcg.push_back( CProxy_Refiner::ckNew(opt) );
       kozcg = m_kozcg.back();
+    }
+    else if (solver == "chocg") {
+      m_chocg.push_back( CProxy_Refiner::ckNew(opt) );
+      chocg = m_chocg.back();
     }
     else {
       Throw( "Unknown solver: " + solver );
@@ -292,7 +297,7 @@ Transporter::createPartitioner()
     m_partitioner.push_back(
       CProxy_Partitioner::ckNew( meshid, filename, cbp, cbr, cbs,
         thisProxy, m_refiner.back(), m_sorter.back(), m_meshwriter.back(),
-        m_discretization.back(), riecg, laxcg, zalcg, kozcg,
+        m_discretization.back(), riecg, laxcg, zalcg, kozcg, chocg,
         bface, faces, bnode ) );
 
     ++meshid;
@@ -633,6 +638,9 @@ Transporter::resized( std::size_t meshid )
   else if (solver == "kozcg") {
     m_kozcg[ meshid ].feop();
   }
+  else if (solver == "chocg") {
+    m_chocg[ meshid ].feop();
+  }
   else {
     Throw( "Unknown solver: " + solver  );
   }
@@ -721,6 +729,9 @@ Transporter::workinserted( std::size_t meshid )
   }
   else if (solver == "kozcg") {
     m_kozcg[ meshid ].doneInserting();
+  }
+  else if (solver == "chocg") {
+    m_chocg[ meshid ].doneInserting();
   }
   else {
     Throw( "Unknown solver: " + solver );
@@ -832,6 +843,9 @@ Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
     }
     else if (solver == "kozcg") {
       m_kozcg[ meshid ].resize_complete();
+    }
+    else if (solver == "chocg") {
+      m_chocg[ meshid ].resize_complete();
     }
     else {
       Throw( "Unknown solver: " + solver );
@@ -1033,6 +1047,9 @@ Transporter::boxvol( tk::real v, tk::real summeshid )
   else if (solver == "kozcg") {
     m_kozcg[ meshid ].setup( v );
   }
+  else if (solver == "chocg") {
+    m_chocg[ meshid ].setup( v );
+  }
   else {
     Throw( "Unknown solver: " + solver );
   }
@@ -1165,6 +1182,10 @@ Transporter::diagnostics( CkReductionMsg* msg )
     // cppcheck-suppress uninitvar
     m_kozcg[ meshid ].evalres( l2res );
   }
+  else if (solver == "chocg") {
+    // cppcheck-suppress uninitvar
+    m_chocg[ meshid ].evalres( l2res );
+  }
   else {
     Throw( "Unknown solver: " + solver );
   }
@@ -1235,6 +1256,10 @@ Transporter::integrals( CkReductionMsg* msg )
     // cppcheck-suppress uninitvar
     m_kozcg[ meshid ].step();
   }
+  else if (solver == "chocg") {
+    // cppcheck-suppress uninitvar
+    m_chocg[ meshid ].step();
+  }
   else
     Throw( "Unknown solver: " + solver );
 }
@@ -1271,6 +1296,11 @@ Transporter::resume()
     else if ( solver == "kozcg") {
       for (std::size_t i=0; i<m_nelem.size(); ++i) {
         m_kozcg[i].evalLB( g_nrestart );
+      }
+    }
+    else if ( solver == "chocg") {
+      for (std::size_t i=0; i<m_nelem.size(); ++i) {
+        m_chocg[i].evalLB( g_nrestart );
       }
     }
     else {

@@ -21,6 +21,7 @@ module sorter {
   extern module laxcg;
   extern module zalcg;
   extern module kozcg;
+  extern module chocg;
 
   namespace inciter {
 
@@ -34,6 +35,7 @@ module sorter {
                     const CProxy_LaxCG& laxcg,
                     const CProxy_ZalCG& zalcg,
                     const CProxy_KozCG& kozcg,
+                    const CProxy_ChoCG& chocg,
                     CkCallback reorderRefiner,
                     const std::vector< std::size_t >& ginpoel,
                     const tk::UnsMesh::CoordMap& coordmap,

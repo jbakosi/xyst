@@ -64,6 +64,7 @@ class Partitioner : public CBase_Partitioner {
                  const CProxy_LaxCG& laxcg,
                  const CProxy_ZalCG& zalcg,
                  const CProxy_KozCG& kozcg,
+                 const CProxy_ChoCG& chocg,
                  const std::map< int, std::vector< std::size_t > >& bface,
                  const std::map< int, std::vector< std::size_t > >& faces,
                  const std::map< int, std::vector< std::size_t > >& bnode );
@@ -126,6 +127,8 @@ class Partitioner : public CBase_Partitioner {
       p | m_riecg;
       p | m_laxcg;
       p | m_zalcg;
+      p | m_kozcg;
+      p | m_chocg;
       p | m_ginpoel;
       p | m_graph;
       p | m_coord;
@@ -179,6 +182,8 @@ class Partitioner : public CBase_Partitioner {
     CProxy_ZalCG m_zalcg;
     //! Discretization scheme proxy
     CProxy_KozCG m_kozcg;
+    //! Discretization scheme proxy
+    CProxy_ChoCG m_chocg;
     //! Element connectivity of this compute node's mesh chunk (global ids)
     std::vector< std::size_t > m_ginpoel;
     //! Aggregated mesh graph of owned nodes if graph-based partitioner is used

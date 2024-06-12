@@ -8,6 +8,7 @@ add_library(Physics
             Kozak.cpp
             Zalesak.cpp
             Lax.cpp
+            Chorin.cpp
 )
 
 target_include_directories(Physics PUBLIC

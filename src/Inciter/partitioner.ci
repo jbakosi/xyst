@@ -40,6 +40,7 @@ module partitioner {
         const CProxy_LaxCG& laxcg,
         const CProxy_ZalCG& zalcg,
         const CProxy_KozCG& kozcg,
+        const CProxy_ChoCG& chocg,
         const std::map< int, std::vector< std::size_t > >& belem,
         const std::map< int, std::vector< std::size_t > >& faces,
         const std::map< int, std::vector< std::size_t > >& bnode );

@@ -34,7 +34,7 @@ function(add_async_test scheme virt npes ppn migr)
     LABELS ${scheme} ${migr_label})
 endfunction()
 
-foreach(scheme riecg laxcg zalcg kozcg)
+foreach(scheme riecg laxcg zalcg kozcg chocg)
   foreach(virt 0.0 0.5 0.9)
     foreach(migr 0 1)
 

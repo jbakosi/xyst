@@ -31,6 +31,7 @@
 #include "LaxCG.hpp"
 #include "ZalCG.hpp"
 #include "KozCG.hpp"
+#include "ChoCG.hpp"
 
 #include "NoWarning/transporter.decl.h"
 #include "NoWarning/refiner.decl.h"
@@ -73,6 +74,7 @@ class Refiner : public CBase_Refiner {
                       const CProxy_LaxCG& laxcg,
                       const CProxy_ZalCG& zalcg,
                       const CProxy_KozCG& kozcg,
+                      const CProxy_ChoCG& chocg,
                       const tk::RefinerCallback& cbr,
                       const tk::SorterCallback& cbs,
                       const std::vector< std::size_t >& ginpoel,
@@ -161,6 +163,7 @@ class Refiner : public CBase_Refiner {
       p | m_laxcg;
       p | m_zalcg;
       p | m_kozcg;
+      p | m_chocg;
       p | m_cbr;
       p | m_cbs;
       p | m_ginpoel;
@@ -232,6 +235,8 @@ class Refiner : public CBase_Refiner {
     CProxy_ZalCG m_zalcg;
     //! Discretization scheme proxy
     CProxy_KozCG m_kozcg;
+    //! Discretization scheme proxy
+    CProxy_ChoCG m_chocg;
     //! Charm++ callbacks associated to compile-time tags for refiner
     tk::RefinerCallback m_cbr;
     //! Charm++ callbacks associated to compile-time tags for sorter

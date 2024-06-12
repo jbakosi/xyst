@@ -1,22 +1,17 @@
 // *****************************************************************************
 /*!
-  \file      src/Inciter/LaxCG.cpp
+  \file      src/Inciter/ChoCG.cpp
   \copyright 2012-2015 J. Bakosi,
              2016-2018 Los Alamos National Security, LLC.,
              2019-2021 Triad National Security, LLC.,
              2022-2024 J. Bakosi
              All rights reserved. See the LICENSE file for details.
-  \brief     LaxCG: Time-derivative preconditioning for all Ma
-  \see       Luo, Baum, Lohner, "Extension of Harten-Lax-van Leer Scheme for
-             Flows at All Speeds", AIAA Journal, Vol. 43, No. 6, 2005
-  \see       Weiss & Smith, "Preconditioning Applied to Variable and Constant
-             Density Time-Accurate Flows on Unstructured Meshes", AIAA Journal,
-             Vol. 33, No. 11, 1995, pp. 2050-2057.
+  \brief     ChoCG: Projection-based solver for incompressible flow
 */
 // *****************************************************************************
 
 #include "XystBuildConfig.hpp"
-#include "LaxCG.hpp"
+#include "ChoCG.hpp"
 #include "Vector.hpp"
 #include "Reader.hpp"
 #include "ContainerUtil.hpp"
@@ -31,7 +26,7 @@
 #include "Refiner.hpp"
 #include "Reorder.hpp"
 #include "Around.hpp"
-#include "Lax.hpp"
+#include "Chorin.hpp"
 #include "Problems.hpp"
 #include "EOS.hpp"
 #include "BC.hpp"
@@ -48,9 +43,9 @@ static const std::array< tk::real, 3 > rkcoef{{ 1.0/3.0, 1.0/2.0, 1.0 }};
 } // inciter::
 
 using inciter::g_cfg;
-using inciter::LaxCG;
+using inciter::ChoCG;
 
-LaxCG::LaxCG( const CProxy_Discretization& disc,
+ChoCG::ChoCG( const CProxy_Discretization& disc,
               const std::map< int, std::vector< std::size_t > >& bface,
               const std::map< int, std::vector< std::size_t > >& bnode,
               const std::vector< std::size_t >& triinpoel ) :
@@ -112,154 +107,7 @@ LaxCG::LaxCG( const CProxy_Discretization& disc,
 }
 
 void
-LaxCG::primitive( tk::Fields& U )
-// *****************************************************************************
-//  Convert from conservative to primitive variables
-//! \param[in,out] U Unknown/solution vector to convert
-//! \details On input U is assumed to contain the conservative variables r, ru,
-//!    rv, rw, rE, and  on output the primitive variables p, u, v, w, T.
-// *****************************************************************************
-{
-  auto rgas = g_cfg.get< tag::mat_spec_gas_const >();
-
-  for (std::size_t i=0; i<U.nunk(); ++i) {
-    auto r = U(i,0);
-    auto u = U(i,1)/r;
-    auto v = U(i,2)/r;
-    auto w = U(i,3)/r;
-    auto p = eos::pressure( U(i,4) - 0.5*r*(u*u + v*v + w*w) );
-    U(i,0) = p;
-    U(i,1) = u;
-    U(i,2) = v;
-    U(i,3) = w;
-    U(i,4) = p/r/rgas;
-  }
-}
-
-void
-LaxCG::conservative( tk::Fields& U )
-// *****************************************************************************
-//  Convert from primitive to conservative variables
-//! \param[in,out] U Unknown/solution vector to convert
-//! \details On input U is assumed to contain the primitive variables p, u, v,
-//!    w, T and on output the conservative variables r, ru, rv, rw, rE.
-// *****************************************************************************
-{
-  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
-  auto rgas = g_cfg.get< tag::mat_spec_gas_const >();
-
-  for (std::size_t i=0; i<U.nunk(); ++i) {
-    auto p = U(i,0);
-    auto u = U(i,1);
-    auto v = U(i,2);
-    auto w = U(i,3);
-    auto T = U(i,4);
-    auto r = p/T/rgas;
-    U(i,0) = r;
-    U(i,1) = r*u;
-    U(i,2) = r*v;
-    U(i,3) = r*w;
-    U(i,4) = p/(g-1.0) + 0.5*r*(u*u + v*v + w*w);
-  }
-}
-
-std::array< tk::real, 5*5 >
-LaxCG::precond( const tk::Fields& U, std::size_t i )
-// *****************************************************************************
-//  Compute the inverse of the time-derivative preconditioning matrix
-//! \param[in] U Unknown/solution vector to use
-//! \param[in] i Mesh point index
-//! \return Preconditioning matrix inverse
-//! \see Nishikawa, Weiss-Smith Local-Preconditioning Matrix is a Diagonal
-//!      Matrix in the Symmetric Form of the Euler Equations, 2021.
-// *****************************************************************************
-{
-  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
-  auto rgas = g_cfg.get< tag::mat_spec_gas_const >();
-
-  auto p = U(i,0);
-  auto u = U(i,1);
-  auto v = U(i,2);
-  auto w = U(i,3);
-  auto T = U(i,4);
-  auto r = p/T/rgas;
-  auto cp = g*rgas/(g-1.0);
-  auto k = u*u + v*v + w*w;
-  auto vr = lax::refvel( r, p, std::sqrt(k) );
-  auto vr2 = vr*vr;
-  auto rt = -r/T;
-  auto H = cp*T + k/2.0;
-  auto theta = 1.0/vr2 - rt/r/cp;
-  auto coef = r*cp*theta + rt;
-
-  return {
-     (rt*(H - k) + r*cp)/coef,
-     rt*u/coef,
-     rt*v/coef,
-     rt*w/coef,
-    -rt/coef,
-
-     -u/r,
-    1.0/r,
-    0.0,
-    0.0,
-    0.0,
-
-     -v/r,
-    0.0,
-    1.0/r,
-    0.0,
-    0.0,
-
-     -w/r,
-    0.0,
-    0.0,
-    1.0/r,
-    0.0,
-
-    -(theta*(H - k) - 1.0)/coef,
-    -theta*u/coef,
-    -theta*v/coef,
-    -theta*w/coef,
-     theta/coef
-  };
-}
-
-tk::real
-LaxCG::charvel( std::size_t i )
-// *****************************************************************************
-//  Compute characteristic velocity of the preconditioned system at a point
-//! \param[in] i Mesh point index
-//! \return Maximum eigenvalue: abs(v') + c'
-// *****************************************************************************
-{
-  auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
-  auto rgas = g_cfg.get< tag::mat_spec_gas_const >();
-  auto cp = g*rgas/(g-1.0);
-
-  auto r = m_u(i,0);
-  auto u = m_u(i,1) / r;
-  auto v = m_u(i,2) / r;
-  auto w = m_u(i,3) / r;
-  auto k = u*u + v*v + w*w;
-  auto e = m_u(i,4)/r - k/2.0;
-  auto p = eos::pressure( r*e );
-  auto T = p/r/rgas;
-  auto rp = r/p;
-  auto rt = -r/T;
-  auto vel = std::sqrt( k );
-  auto vr = lax::refvel( r, p, vel );
-  auto vr2 = vr*vr;
-  auto beta = rp + rt/r/cp;
-  auto alpha = 0.5*(1.0 - beta*vr2);
-  auto vpri = vel*(1.0 - alpha);
-  auto cpri = std::sqrt( alpha*alpha*k + vr2 );
-
-  return std::abs(vpri) + cpri;
-}
-
-void
-LaxCG::setupBC()
+ChoCG::setupBC()
 // *****************************************************************************
 // Prepare boundary condition data structures
 // *****************************************************************************
@@ -396,7 +244,7 @@ LaxCG::setupBC()
 }
 
 void
-LaxCG::feop()
+ChoCG::feop()
 // *****************************************************************************
 // Start (re-)computing finite element domain and boundary operators
 // *****************************************************************************
@@ -430,7 +278,7 @@ LaxCG::feop()
 }
 
 void
-LaxCG::bndint()
+ChoCG::bndint()
 // *****************************************************************************
 //! Compute local contributions to boundary normals and integrals
 // *****************************************************************************
@@ -488,7 +336,7 @@ LaxCG::bndint()
 }
 
 void
-LaxCG::domint()
+ChoCG::domint()
 // *****************************************************************************
 //! Compute local contributions to domain edge integrals
 // *****************************************************************************
@@ -533,7 +381,7 @@ LaxCG::domint()
 }
 
 void
-LaxCG::comnorm( const decltype(m_bnorm)& inbnd )
+ChoCG::comnorm( const decltype(m_bnorm)& inbnd )
 // *****************************************************************************
 // Receive contributions to boundary point normals on chare-boundaries
 //! \param[in] inbnd Incoming partial sums of boundary point normals
@@ -558,7 +406,7 @@ LaxCG::comnorm( const decltype(m_bnorm)& inbnd )
 }
 
 void
-LaxCG::registerReducers()
+ChoCG::registerReducers()
 // *****************************************************************************
 //  Configure Charm++ reduction types initiated from this chare array
 //! \details Since this is a [initnode] routine, the runtime system executes the
@@ -574,7 +422,7 @@ LaxCG::registerReducers()
 
 void
 // cppcheck-suppress unusedFunction
-LaxCG::ResumeFromSync()
+ChoCG::ResumeFromSync()
 // *****************************************************************************
 //  Return from migration
 //! \details This is called when load balancing (LB) completes. The presence of
@@ -587,7 +435,7 @@ LaxCG::ResumeFromSync()
 }
 
 void
-LaxCG::setup( tk::real v )
+ChoCG::setup( tk::real v )
 // *****************************************************************************
 // Start setup for solution
 //! \param[in] v Total volume within user-specified box
@@ -616,7 +464,7 @@ LaxCG::setup( tk::real v )
 }
 
 void
-LaxCG::start()
+ChoCG::start()
 // *****************************************************************************
 // Start time stepping
 // *****************************************************************************
@@ -632,7 +480,7 @@ LaxCG::start()
 }
 
 void
-LaxCG::bnorm()
+ChoCG::bnorm()
 // *****************************************************************************
 // Combine own and communicated portions of the boundary point normals
 // *****************************************************************************
@@ -676,7 +524,7 @@ LaxCG::bnorm()
 }
 
 void
-LaxCG::streamable()
+ChoCG::streamable()
 // *****************************************************************************
 // Convert integrals into streamable data structures
 // *****************************************************************************
@@ -769,7 +617,7 @@ LaxCG::streamable()
 }
 
 void
-LaxCG::domsuped()
+ChoCG::domsuped()
 // *****************************************************************************
 // Generate superedge-groups for domain-edge loops
 //! \see See Lohner, Sec. 15.1.6.2, An Introduction to Applied CFD Techniques,
@@ -888,7 +736,7 @@ LaxCG::domsuped()
 
 void
 // cppcheck-suppress unusedFunction
-LaxCG::merge()
+ChoCG::merge()
 // *****************************************************************************
 // Combine own and communicated portions of the integrals
 // *****************************************************************************
@@ -906,14 +754,14 @@ LaxCG::merge()
 
   if (d->Initial()) {
     // Output initial conditions to file
-    writeFields( CkCallback(CkIndex_LaxCG::start(), thisProxy[thisIndex]) );
+    writeFields( CkCallback(CkIndex_ChoCG::start(), thisProxy[thisIndex]) );
   } else {
     feop_complete();
   }
 }
 
 void
-LaxCG::BC( tk::real t )
+ChoCG::BC( tk::real t )
 // *****************************************************************************
 // Apply boundary conditions
 //! \param[in] t Physical time
@@ -935,7 +783,7 @@ LaxCG::BC( tk::real t )
 }
 
 void
-LaxCG::dt()
+ChoCG::dt()
 // *****************************************************************************
 // Compute time step size
 // *****************************************************************************
@@ -944,7 +792,7 @@ LaxCG::dt()
 
   auto const_dt = g_cfg.get< tag::dt >();
   auto eps = std::numeric_limits< tk::real >::epsilon();
-  auto d = Disc();
+  //auto d = Disc();
 
   // use constant dt if configured
   if (std::abs(const_dt) > eps) {
@@ -954,27 +802,27 @@ LaxCG::dt()
 
   } else {
 
-    const auto& vol = d->Vol();
-    auto cfl = g_cfg.get< tag::cfl >();
+    //const auto& vol = d->Vol();
+    //auto cfl = g_cfg.get< tag::cfl >();
 
     if (g_cfg.get< tag::steady >()) {
 
-      for (std::size_t i=0; i<m_u.nunk(); ++i) {
-        auto v = charvel( i );
-        auto L = std::cbrt( vol[i] );
-        m_dtp[i] = L / std::max( v, 1.0e-8 ) * cfl;
-      }
-      mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
+      //for (std::size_t i=0; i<m_u.nunk(); ++i) {
+      //  auto v = charvel( i );
+      //  auto L = std::cbrt( vol[i] );
+      //  m_dtp[i] = L / std::max( v, 1.0e-8 ) * cfl;
+      //}
+      //mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
 
     } else {
 
-      for (std::size_t i=0; i<m_u.nunk(); ++i) {
-        auto v = charvel( i );
-        auto L = std::cbrt( vol[i] );
-        auto euler_dt = L / std::max( v, 1.0e-8 );
-        mindt = std::min( mindt, euler_dt );
-      }
-      mindt *= cfl;
+      //for (std::size_t i=0; i<m_u.nunk(); ++i) {
+      //  auto v = charvel( i );
+      //  auto L = std::cbrt( vol[i] );
+      //  auto euler_dt = L / std::max( v, 1.0e-8 );
+      //  mindt = std::min( mindt, euler_dt );
+      //}
+      //mindt *= cfl;
 
     }
 
@@ -986,11 +834,11 @@ LaxCG::dt()
 
   // Contribute to minimum dt across all chares and advance to next step
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
-              CkCallback(CkReductionTarget(LaxCG,advance), thisProxy) );
+              CkCallback(CkReductionTarget(ChoCG,advance), thisProxy) );
 }
 
 void
-LaxCG::advance( tk::real newdt )
+ChoCG::advance( tk::real newdt )
 // *****************************************************************************
 // Advance equations to next time step
 //! \param[in] newdt The smallest dt across the whole problem
@@ -1003,17 +851,14 @@ LaxCG::advance( tk::real newdt )
 }
 
 void
-LaxCG::grad()
+ChoCG::grad()
 // *****************************************************************************
 // Compute gradients for next time step
 // *****************************************************************************
 {
   auto d = Disc();
 
-  // Convert unknowns: r,ru,rv,rw,rE -> p,u,v,w,T
-  primitive( m_u );
-
-  lax::grad( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_grad );
+  //lax::grad( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_grad );
 
   // Send gradient contributions to neighbor chares
   if (d->NodeCommMap().empty()) {
@@ -1030,7 +875,7 @@ LaxCG::grad()
 }
 
 void
-LaxCG::comgrad(
+ChoCG::comgrad(
   const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
 // *****************************************************************************
 //  Receive contributions to node gradients on chare-boundaries
@@ -1053,7 +898,7 @@ LaxCG::comgrad(
 }
 
 void
-LaxCG::rhs()
+ChoCG::rhs()
 // *****************************************************************************
 // Compute right-hand side of transport equations
 // *****************************************************************************
@@ -1082,8 +927,8 @@ LaxCG::rhs()
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
   }
 
-  lax::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym, m_grad,
-            m_u, d->V(), d->T(), m_tp, m_rhs );
+  //lax::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym, m_grad,
+  //          m_u, d->V(), d->T(), m_tp, m_rhs );
 
   if (steady) {
     for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= prev_rkcoef * m_dtp[p];
@@ -1103,7 +948,7 @@ LaxCG::rhs()
 }
 
 void
-LaxCG::comrhs(
+ChoCG::comrhs(
   const std::unordered_map< std::size_t, std::vector< tk::real > >& inrhs )
 // *****************************************************************************
 //  Receive contributions to right-hand side vector on chare-boundaries
@@ -1128,7 +973,7 @@ LaxCG::comrhs(
 
 void
 // cppcheck-suppress unusedFunction
-LaxCG::solve()
+ChoCG::solve()
 // *****************************************************************************
 //  Advance systems of equations
 // *****************************************************************************
@@ -1148,27 +993,24 @@ LaxCG::solve()
   if (m_stage == 0) m_un = m_u;
 
   // Advance solution
-  auto dt = d->Dt();
-  const auto& vol = d->Vol();
-  auto ncomp = m_u.nprop();
-  for (std::size_t i=0; i<m_u.nunk(); ++i) {
-    if (steady) dt = m_dtp[i];
-    auto R = -rkcoef[m_stage] * dt / vol[i];
-    // flow
-    auto P = precond( m_u, i );
-    tk::real r[] = { R*m_rhs(i,0), R*m_rhs(i,1),  R*m_rhs(i,2),
-                     R*m_rhs(i,3), R*m_rhs(i,4) };
-    auto p = P.data();
-    for (std::size_t c=0; c<5; ++c, p+=5) {
-      m_u(i,c) = m_un(i,c)
-               + p[0]*r[0] + p[1]*r[1] + p[2]*r[2] + p[3]*r[3] + p[4]*r[4];
-    }
-    // scalar
-    for (std::size_t c=5; c<ncomp; ++c) m_u(i,c) = m_un(i,c) + R*m_rhs(i,c);
-  }
-
-  // Convert unknowns: p,u,v,w,T -> r,ru,rv,rw,rE
-  conservative( m_u );
+  //auto dt = d->Dt();
+  //const auto& vol = d->Vol();
+  //auto ncomp = m_u.nprop();
+  //for (std::size_t i=0; i<m_u.nunk(); ++i) {
+  //  if (steady) dt = m_dtp[i];
+  //  auto R = -rkcoef[m_stage] * dt / vol[i];
+  //  // flow
+  //  auto P = precond( m_u, i );
+  //  tk::real r[] = { R*m_rhs(i,0), R*m_rhs(i,1),  R*m_rhs(i,2),
+  //                   R*m_rhs(i,3), R*m_rhs(i,4) };
+  //  auto p = P.data();
+  //  for (std::size_t c=0; c<5; ++c, p+=5) {
+  //    m_u(i,c) = m_un(i,c)
+  //             + p[0]*r[0] + p[1]*r[1] + p[2]*r[2] + p[3]*r[3] + p[4]*r[4];
+  //  }
+  //  // scalar
+  //  for (std::size_t c=5; c<ncomp; ++c) m_u(i,c) = m_un(i,c) + R*m_rhs(i,c);
+  //}
 
   // Configure and apply scalar source to solution (if defined)
   auto src = problems::PHYS_SRC();
@@ -1191,7 +1033,6 @@ LaxCG::solve()
     // Activate SDAG waits for finishing this time step stage
     thisProxy[ thisIndex ].wait4stage();
     // Compute diagnostics, e.g., residuals
-    conservative( m_un );
     auto diag = m_diag.compute( *d, m_u, m_un, g_cfg.get< tag::diag_iter >() );
     // Increase number of iterations and physical time
     d->next();
@@ -1207,7 +1048,7 @@ LaxCG::solve()
 }
 
 void
-LaxCG::evalres( const std::vector< tk::real >& l2res )
+ChoCG::evalres( const std::vector< tk::real >& l2res )
 // *****************************************************************************
 //  Evaluate residuals
 //! \param[in] l2res L2-norms of the residual for each scalar component
@@ -1223,7 +1064,7 @@ LaxCG::evalres( const std::vector< tk::real >& l2res )
 }
 
 void
-LaxCG::refine()
+ChoCG::refine()
 // *****************************************************************************
 // Optionally refine/derefine mesh
 // *****************************************************************************
@@ -1256,7 +1097,7 @@ LaxCG::refine()
 }
 
 void
-LaxCG::resizePostAMR(
+ChoCG::resizePostAMR(
   const std::vector< std::size_t >& /*ginpoel*/,
   const tk::UnsMesh::Chunk& chunk,
   const tk::UnsMesh::Coords& coord,
@@ -1328,7 +1169,7 @@ LaxCG::resizePostAMR(
 }
 
 void
-LaxCG::writeFields( CkCallback cb )
+ChoCG::writeFields( CkCallback cb )
 // *****************************************************************************
 // Output mesh-based fields to file
 //! \param[in] cb Function to continue with after the write
@@ -1465,7 +1306,7 @@ LaxCG::writeFields( CkCallback cb )
 }
 
 void
-LaxCG::out()
+ChoCG::out()
 // *****************************************************************************
 // Output mesh field data
 // *****************************************************************************
@@ -1500,14 +1341,14 @@ LaxCG::out()
 
   // Field data
   if (d->fielditer() or d->fieldtime() or d->fieldrange() or m_finished) {
-    writeFields( CkCallback(CkIndex_LaxCG::integrals(), thisProxy[thisIndex]) );
+    writeFields( CkCallback(CkIndex_ChoCG::integrals(), thisProxy[thisIndex]) );
   } else {
     integrals();
   }
 }
 
 void
-LaxCG::integrals()
+ChoCG::integrals()
 // *****************************************************************************
 // Compute integral quantities for output
 // *****************************************************************************
@@ -1548,7 +1389,7 @@ LaxCG::integrals()
 }
 
 void
-LaxCG::stage()
+ChoCG::stage()
 // *****************************************************************************
 // Evaluate whether to continue with next time step stage
 // *****************************************************************************
@@ -1562,7 +1403,7 @@ LaxCG::stage()
 }
 
 void
-LaxCG::evalLB( int nrestart )
+ChoCG::evalLB( int nrestart )
 // *****************************************************************************
 // Evaluate whether to do load balancing
 //! \param[in] nrestart Number of times restarted
@@ -1591,7 +1432,7 @@ LaxCG::evalLB( int nrestart )
 }
 
 void
-LaxCG::evalRestart()
+ChoCG::evalRestart()
 // *****************************************************************************
 // Evaluate whether to save checkpoint/restart
 // *****************************************************************************
@@ -1615,7 +1456,7 @@ LaxCG::evalRestart()
 }
 
 void
-LaxCG::step()
+ChoCG::step()
 // *****************************************************************************
 // Evaluate whether to continue with next time step
 // *****************************************************************************
@@ -1640,4 +1481,4 @@ LaxCG::step()
   }
 }
 
-#include "NoWarning/laxcg.def.h"
+#include "NoWarning/chocg.def.h"

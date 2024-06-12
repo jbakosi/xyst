@@ -13,6 +13,7 @@ add_library(Inciter
             LaxCG.cpp
             ZalCG.cpp
             KozCG.cpp
+            ChoCG.cpp
             DiagReducer.cpp
             GraphReducer.cpp
             PartsReducer.cpp
@@ -66,6 +67,7 @@ addCharmModule( "riecg" "Inciter" )
 addCharmModule( "laxcg" "Inciter" )
 addCharmModule( "zalcg" "Inciter" )
 addCharmModule( "kozcg" "Inciter" )
+addCharmModule( "chocg" "Inciter" )
 
 # Add extra dependency of Inciter on inciterCharmModule. This is required as
 # Inciter refers to the main Charm++ proxy defined in the Charm++ module

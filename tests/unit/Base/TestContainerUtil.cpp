@@ -390,6 +390,131 @@ void ContainerUtil_object::test< 12 >() {
                  s2[2], 1.0, precision );
 }
 
+//! Test operator -= subtracting values of a std::vector from another one
+template<> template<>
+void ContainerUtil_object::test< 13 >() {
+  set_test_name( "operator-= std::vector" );
+
+  using tk::operator-=;
+
+  // subtract non-empty vector from empty one: copy src to dst (main intended
+  // use-case)
+  std::vector< tk::real > v1, v2{{ 4.0, 9.0, 2.0 }};
+  v1 -= v2;
+  ensure_equals( "subtract non-empty vector from empty one, dst size incorrect",
+                 v1.size(), 3UL );
+  ensure_equals( "subtract non-empty vector from empty one, src size incorrect",
+                 v2.size(), 3UL );
+  ensure_equals(
+    "subtract non-empty vector from empty one, src[0]==dst[0], incorrect",
+    v1[0], -v2[0], precision );
+  ensure_equals(
+    "subtract non-empty vector from empty one, src[1]==dst[1], incorrect",
+    v1[1], -v2[1], precision );
+  ensure_equals(
+    "subtract non-empty vector from empty one, src[2]==dst[2], incorrect",
+    v1[2], -v2[2], precision );
+
+  // subtract empty vector from non-empty one: throw in DEBUG to warn on no-op
+  // skipped in RELEASE mode, would yield segmentation fault
+  #ifndef NDEBUG        // exception only thrown in DEBUG mode
+  try {
+    std::vector< tk::real > r1{{ 4.0, 9.0, 2.0 }}, r2;
+    r1 -= r2;
+    fail( "should throw exception in DEBUG mode" );
+  }
+  catch ( tk::Exception& ) {
+    // exception thrown in DEBUG mode, test ok
+  }
+  #endif
+
+  // subtract empty vector from empty one: throw in DEBUG to warn on no-op
+  // skipped in RELEASE mode, would yield segmentation fault
+  #ifndef NDEBUG        // exception only thrown in DEBUG mode
+  try {
+    std::vector< tk::real > q1, q2;
+    q1 -= q2;
+    fail( "should throw exception in DEBUG mode" );
+  }
+  catch ( tk::Exception& ) {
+    // exception thrown in DEBUG mode, test ok
+  }
+  #endif
+
+  // subtract non-empty vector from non-empty one with src.size() == dst.size():
+  // dst -= src for all components, leave src unchanged
+  std::vector< tk::real > s1{{ 4.0, 9.0, 2.0 }}, s2{{ 3.0, -3.0, 1.0 }};
+  s1 -= s2;
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, dst size incorrect",
+    s1.size(), 3UL );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, src size incorrect",
+   s2.size(), 3UL );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, dst[0], incorrect",
+    s1[0], 1.0, precision );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, dst[1], incorrect",
+    s1[1], 12.0, precision );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, dst[2], incorrect",
+    s1[2], 1.0, precision );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, src[0], incorrect",
+    s2[0], 3.0, precision );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, src[1], incorrect",
+    s2[1], -3.0, precision );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, src[2], incorrect",
+    s2[2], 1.0, precision );
+
+  // subtract non-empty vector from non-empty one with src.size() > dst.size():
+  // grow dst to that of src.size() (padding with zeros), dst -= src for all
+  // components, leave src unchanged
+  std::vector< tk::real > w1{{ 4.0, 9.0 }}, w2{{ 3.0, -3.0, 1.0 }};
+  w1 -= w2;
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, dst size incorrect",
+    w1.size(), 3UL );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, src size incorrect",
+    w2.size(), 3UL );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, dst[0], incorrect",
+    w1[0], 1.0, precision );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, dst[1], incorrect",
+    w1[1], 12.0, precision );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, dst[2], incorrect",
+    w1[2], -1.0, precision );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, src[0], incorrect",
+    w2[0], 3.0, precision );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, src[1], incorrect",
+    w2[1], -3.0, precision );
+  ensure_equals(
+    "subtract non-empty vector from non-empty one, src[2], incorrect",
+    w2[2], 1.0, precision );
+
+  // subtract non-empty vector from non-empty one with src.size() < dst.size():
+  // thrown in DEBUG to warn on loosing data
+  // skipped in RELEASE mode, would yield segmentation fault
+  #ifndef NDEBUG        // exception only thrown in DEBUG mode
+  try {
+    std::vector< tk::real > n1{{ 4.0, 9.0, 2.0 }}, n2{{ 3.0, -3.0 }};
+    n1 -= n2;
+    fail( "should throw exception in DEBUG mode" );
+  }
+  catch ( tk::Exception& ) {
+    // exception thrown in DEBUG mode, test ok
+  }
+  #endif
+}
+
 #if defined(__clang__)
   #pragma clang diagnostic pop
 #elif defined(STRICT_GNUC)

@@ -32,6 +32,7 @@
 #include "Vector.hpp"
 #include "ContainerUtil.hpp"
 #include "Reorder.hpp"
+#include "Print.hpp"
 
 using tk::ConjugateGradients;
 
@@ -61,6 +62,7 @@ ConjugateGradients::ConjugateGradients(
   m_normb( 0.0 ),
   m_it( 0 ),
   m_maxit( 0 ),
+  m_verbose( 0 ),
   m_rho( 0.0 ),
   m_rho0( 0.0 ),
   m_alpha( 0.0 ),
@@ -424,8 +426,9 @@ ConjugateGradients::solve( std::size_t maxit,
   m_tol = tol;
   m_solved = c;
   m_it = 0;
-  m_pe = pe;
-  m_verbose = verbose;
+  m_verbose = pe == 0 ? verbose : 0;
+
+  if (m_verbose) tk::Print() << "Xyst> Conjugate gradients (CG) solve start\n";
 
   next();
 }
@@ -531,6 +534,7 @@ ConjugateGradients::pq( tk::real d )
   if (std::abs(d) < eps) {
     m_it = m_maxit;
     m_alpha = 0.0;
+    if (m_verbose) tk::Print() << "Xyst> CG: (p,q) = 0\n";
   } else {
     m_alpha = m_rho / d;
   }
@@ -618,8 +622,9 @@ ConjugateGradients::x()
   auto normb = m_normb > 1.0e-14 ? m_normb : 1.0;
   auto normr = std::sqrt( m_rho );
 
-  if (m_pe == 0 && m_verbose) {
-    std::cout << "it: " << m_it << ", norm: " << normr/normb << '\n';
+  if (m_verbose) {
+    tk::Print() << "Xyst> CG: "
+                << "it " << m_it << ", norm = " << normr/normb << '\n';
   }
 
   if ( m_it < m_maxit && normr > m_tol*normb ) {

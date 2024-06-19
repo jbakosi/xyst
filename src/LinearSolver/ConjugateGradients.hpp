@@ -136,7 +136,7 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     void normres( tk::real r );
 
     //! Access solution
-    std::vector< tk::real > solution() const { return m_x; }
+    const std::vector< tk::real >& solution() const { return m_x; }
 
     //! Return convergence flag
     bool converged() const { return m_converged; }
@@ -168,7 +168,6 @@ class ConjugateGradients : public CBase_ConjugateGradients {
       p | m_normb;
       p | m_it;
       p | m_maxit;
-      p | m_pe;
       p | m_verbose;
       p | m_tol;
       p | m_rho;
@@ -229,8 +228,6 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     std::size_t m_it;
     //! Max iteration count
     std::size_t m_maxit;
-    //! Processing element
-    int m_pe;
     //! Verbose output
     uint64_t m_verbose;
     //! Stop tolerance

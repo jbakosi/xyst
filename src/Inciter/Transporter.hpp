@@ -173,9 +173,11 @@ class Transporter : public CBase_Transporter {
     //! Reduction target computing total volume of IC box
     void boxvol( tk::real v, tk::real summeshid );
 
-    //! \brief Reduction target optionally collecting diagnostics, e.g.,
-    //!   residuals, from all  worker chares
-    void diagnostics( CkReductionMsg* msg );
+    //! Reduction target collecting diagnostics from density-based solvers
+    void rhodiagnostics( CkReductionMsg* msg );
+
+    //! Reduction target collecting diagnostics from pressure-based solvers
+    void prediagnostics( CkReductionMsg* msg );
 
     //! \brief Reduction target optionally collecting integrals
     void integrals( CkReductionMsg* msg );

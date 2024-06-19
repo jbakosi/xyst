@@ -820,6 +820,7 @@ ChoCG::preinit()
   // Configure Dirichlet BCs for pressure solve
   if (!g_cfg.get< tag::bc_dir >().empty()) {
 
+    auto ic = problems::PRESSURE_IC();
     auto d = Disc();
     std::size_t nmask = 1 + 1;
     Assert( m_dirbcmasks.size() % nmask == 0, "Size mismatch" );
@@ -830,7 +831,7 @@ ChoCG::preinit()
     for (std::size_t i=0; i<m_dirbcmasks.size()/nmask; ++i) {
       auto p = m_dirbcmasks[i*nmask+0];     // local node id
       if (m_dirbcmasks[i*nmask+1]) {
-        pbc[p] = {{ { 1, problems::initialize( x[p], y[p], z[p] ) } }};
+        pbc[p] = {{ { 1, ic( x[p], y[p], z[p] ) } }};
       }
     }
 
@@ -1104,7 +1105,9 @@ ChoCG::solve()
     // Activate SDAG waits for finishing this time step stage
     thisProxy[ thisIndex ].wait4stage();
     // Compute diagnostics, e.g., residuals
-    auto diag = false;//m_diag.compute( *d, m_u, m_un, g_cfg.get< tag::diag_iter >() );
+    const auto& p = m_cgpre[ thisIndex ].ckLocal()->solution();
+    auto diag_iter = g_cfg.get< tag::diag_iter >();
+    auto diag = m_diag.precompute( *d, p, diag_iter );
     // Increase number of iterations and physical time
     d->next();
     // Advance physical time for local time stepping
@@ -1253,18 +1256,23 @@ ChoCG::writeFields( CkCallback cb )
   std::vector< std::string > nodefieldnames{ "pressure", "analytic" };
 
   std::vector< std::vector< tk::real > > nodefields;
-  auto p = m_cgpre[ thisIndex ].ckLocal()->solution();
+  const auto& p = m_cgpre[ thisIndex ].ckLocal()->solution();
   nodefields.push_back( p ) ;
 
-  const auto& coord = d->Coord();
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-  auto ap = p;
-  for (std::size_t i=0; i<ap.size(); ++i) {
-    ap[i] = problems::initialize( x[i], y[i], z[i] );
+  // query function to evaluate analytic solution (if defined)
+  auto pressure_sol = problems::PRESSURE_SOL();
+
+  if (pressure_sol) {
+    const auto& coord = d->Coord();
+    const auto& x = coord[0];
+    const auto& y = coord[1];
+    const auto& z = coord[2];
+    auto ap = p;
+    for (std::size_t i=0; i<ap.size(); ++i) {
+      ap[i] = pressure_sol( x[i], y[i], z[i] );
+    }
+    nodefields.push_back( ap );
   }
-  nodefields.push_back( ap );
 
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 

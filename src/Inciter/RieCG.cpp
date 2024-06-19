@@ -1035,7 +1035,8 @@ RieCG::solve()
     // Activate SDAG waits for finishing this time step stage
     thisProxy[ thisIndex ].wait4stage();
     // Compute diagnostics, e.g., residuals
-    auto diag = m_diag.compute( *d, m_u, m_un, g_cfg.get< tag::diag_iter >() );
+    auto diag_iter = g_cfg.get< tag::diag_iter >();
+    auto diag = m_diag.rhocompute( *d, m_u, m_un, diag_iter );
     // Increase number of iterations and physical time
     d->next();
     // Advance physical time for local time stepping

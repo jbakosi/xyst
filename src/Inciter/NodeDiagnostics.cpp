@@ -43,12 +43,12 @@ NodeDiagnostics::registerReducers()
 }
 
 bool
-NodeDiagnostics::compute( Discretization& d,
-                          const tk::Fields& u,
-                          const tk::Fields& un,
-                          uint64_t diag_iter ) const
+NodeDiagnostics::rhocompute( Discretization& d,
+                             const tk::Fields& u,
+                             const tk::Fields& un,
+                             uint64_t diag_iter ) const
 // *****************************************************************************
-//  Compute diagnostics, e.g., residuals, norms of errors, etc.
+//  Compute diagnostics for density-based solvers
 //! \param[in] d Discretization proxy to read from
 //! \param[in] u Current solution vector
 //! \param[in] un Previous solution vector
@@ -107,7 +107,7 @@ NodeDiagnostics::compute( Discretization& d,
     for (std::size_t c=0; c<ncomp; ++c)
       diag[L2RES][c] += (u(i,c)-un(i,c)) * (u(i,c)-un(i,c)) * v[i];
     // Compute sum for the total energy over the entire domain (first entry)
-    diag[TOTALSOL][0] += u(i,4) * v[i];
+    diag[TOTALEN][0] += u(i,4) * v[i];
     // Compute sum for L2 norm of the numerical-analytic solution
     if (sol) {
       auto nu = u[i];
@@ -139,7 +139,88 @@ NodeDiagnostics::compute( Discretization& d,
   // Contribute to diagnostics
   auto stream = serialize( d.MeshId(), diag );
   d.contribute( stream.first, stream.second.get(), DiagMerger,
-    CkCallback(CkIndex_Transporter::diagnostics(nullptr), d.Tr()) );
+    CkCallback(CkIndex_Transporter::rhodiagnostics(nullptr), d.Tr()) );
+
+  return true;        // diagnostics have been computed
+}
+
+bool
+NodeDiagnostics::precompute( Discretization& d,
+                             const std::vector< tk::real >& p,
+                             uint64_t diag_iter ) const
+// *****************************************************************************
+//  Compute diagnostics for pressure-based solvers
+//! \param[in] d Discretization proxy to read from
+//! \param[in] p Current pressure solution
+//! \param[in] diag_iter Diagnostics output frequency
+//! \return True if diagnostics have been computed
+//! \details Diagnostics are defined as some norm, e.g., L2 norm, of a quantity,
+//!   computed in mesh nodes, A, as ||A||_2 = sqrt[ sum_i(A_i)^2 V_i ],
+//!   where the sum is taken over all mesh nodes and V_i is the nodal volume.
+//!   We send multiple sets of quantities to the host for aggregation across
+//!   the whole mesh. The final aggregated solution will end up in
+//!   Transporter::diagnostics(). Aggregation of the partially computed
+//!   diagnostics is done via potentially different policies for each field.
+//! \see inciter::mergeDiag(), src/Inciter/Diagnostics.hpp
+// *****************************************************************************
+{
+  using namespace diagnostics;
+
+  // Only compute diagnostics if needed in this time step
+  if ( (d.It()+1) % diag_iter ) return false;
+
+  std::size_t ncomp = 1;
+
+  // Diagnostics vector (of vectors) during aggregation. See
+  // Inciter/Diagnostics.h.
+  std::vector< std::vector< tk::real > >
+    diag( NUMDIAG, std::vector< tk::real >( ncomp, 0.0 ) );
+
+  const auto& v = d.V();  // nodal volumes without contributions from others
+
+  // query function to evaluate analytic solution (if defined)
+  auto pressure_sol = problems::PRESSURE_SOL();
+
+  // Evaluate analytic solution (if defined)
+  auto an = p;
+  if (pressure_sol) {
+    const auto& coord = d.Coord();
+    const auto& x = coord[0];
+    const auto& y = coord[1];
+    const auto& z = coord[2];
+    for (std::size_t i=0; i<p.size(); ++i) {
+      an[i] = pressure_sol( x[i], y[i], z[i] );
+    }
+  }
+
+  // Put in norms sweeping our mesh chunk
+  for (std::size_t i=0; i<p.size(); ++i) {
+    // Compute sum for L2 norm of the numerical solution
+    diag[L2SOL][0] += p[i] * p[i] * v[i];
+    // Compute sum for L2 norm of the residual
+    diag[L2RES][0] += 0.0;//(p[i]-pn[i]) * (p[i]-pn[i]) * v[i];
+    // Compute sum for the total energy over the entire domain
+    diag[TOTALEN][0] += 0.0 * v[i];
+    // Compute sum for L2 norm of the numerical-analytic solution
+    if (pressure_sol) {
+      auto dp = p[i] - an[i];
+      diag[L2ERR][0] += dp * dp * v[i];
+      diag[L1ERR][0] += std::abs( dp ) * v[i];
+    }
+  }
+
+  // Append diagnostics vector with metadata on the current time step
+  // ITER:: Current iteration count (only the first entry is used)
+  // TIME: Current physical time (only the first entry is used)
+  // DT: Current physical time step size (only the first entry is used)
+  diag[ITER][0] = static_cast< tk::real >( d.It()+1 );
+  diag[TIME][0] = d.T() + d.Dt();
+  diag[DT][0] = d.Dt();
+
+  // Contribute to diagnostics
+  auto stream = serialize( d.MeshId(), diag );
+  d.contribute( stream.first, stream.second.get(), DiagMerger,
+    CkCallback(CkIndex_Transporter::prediagnostics(nullptr), d.Tr()) );
 
   return true;        // diagnostics have been computed
 }

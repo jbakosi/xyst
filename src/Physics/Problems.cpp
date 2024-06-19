@@ -955,6 +955,46 @@ pressure_rhs( const std::array< std::vector< tk::real >, 3 >& coord,
   }
 }
 
+std::function< tk::real( tk::real, tk::real, tk::real ) >
+PRESSURE_IC()
+// *****************************************************************************
+//  Query user config and assign function to set pressure initial conditions
+//! \return The function to call to set pressure initial conditions
+// *****************************************************************************
+{
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
+
+  std::function< tk::real( tk::real, tk::real, tk::real ) > ic;
+
+  if (problem == "poisson_const_rhs")
+    ic = poisson_const_rhs::ic;
+  else if (problem == "poisson_harmonic")
+    ic = poisson_harmonic::ic;
+  else if (problem == "poisson_sine")
+    ic = poisson_sine::ic;
+  else if (problem == "poisson_sine3")
+    ic = poisson_sine3::ic;
+  else
+    Throw( "problem type not hooked up" );
+
+  return ic;
+}
+
+std::function< tk::real( tk::real, tk::real, tk::real ) >
+PRESSURE_SOL()
+// *****************************************************************************
+//  Query user config and assign function to query analytic pressure solutions
+//! \return The function to call to query analytic solutions
+// *****************************************************************************
+{
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
+
+  if (problem == "userdef")
+    return {};
+  else
+    return PRESSURE_IC();
+}
+
 tk::real
 initialize( tk::real x, tk::real y, tk::real z )
 // *****************************************************************************

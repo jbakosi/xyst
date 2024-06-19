@@ -99,7 +99,7 @@ mergeDiag( int nmsg, CkReductionMsg **msgs )
     // Sum for the L2 norm of the residual of all components
     for (std::size_t i=0; i<v[L2RES].size(); ++i) v[L2RES][i] += w[L2RES][i];
     // Sum of the total energy over the entire domain
-    v[TOTALSOL][0] += w[TOTALSOL][0];
+    v[TOTALEN][0] += w[TOTALEN][0];
     // Sum for the L2 norm of the numerical - analytical solution for all comps
     for (std::size_t i=0; i<v[L2ERR].size(); ++i) v[L2ERR][i] += w[L2ERR][i];
     // Sum for the L1 norm of the numerical - analytical solution for all comps

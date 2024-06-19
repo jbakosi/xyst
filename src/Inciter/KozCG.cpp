@@ -1169,7 +1169,8 @@ KozCG::solve()
   }
 
   // Compute diagnostics, e.g., residuals
-  auto diag = m_diag.compute( *d, m_a, m_u, g_cfg.get< tag::diag_iter >() );
+  auto diag_iter = g_cfg.get< tag::diag_iter >();
+  auto diag = m_diag.rhocompute( *d, m_a, m_u, diag_iter );
 
   // Update solution
   m_u = m_a;

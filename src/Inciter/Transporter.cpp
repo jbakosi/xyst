@@ -753,38 +753,72 @@ Transporter::diagHeader()
                      g_cfg.get< tag::diag_format >(),
                      g_cfg.get< tag::diag_precision >() );
 
-  // Collect variables names for integral/diagnostics output
-  std::vector< std::string > var{ "r", "ru", "rv", "rw", "rE" };
-  auto ncomp = g_cfg.get< tag::problem_ncomp >();
-  for (std::size_t c=5; c<ncomp; ++c)
-    var.push_back( "c" + std::to_string(c-5) );
-
-  auto nv = var.size();
   std::vector< std::string > d;
 
-  // Add 'L2(var)' for all variables
-  for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(" + var[i] + ')' );
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "riecg" ||
+      solver == "laxcg" ||
+      solver == "zalcg" ||
+      solver == "kozcg")
+  {
 
-  // Add L2-norm of the residuals
-  for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(d" + var[i] + ')' );
+    // Collect variables names for integral/diagnostics output
+    std::vector< std::string > var{ "r", "ru", "rv", "rw", "rE" };
+    auto ncomp = g_cfg.get< tag::problem_ncomp >();
+    for (std::size_t c=5; c<ncomp; ++c)
+      var.push_back( "c" + std::to_string(c-5) );
 
-  // Add total energy
-  d.push_back( "mE" );
+    auto nv = var.size();
 
-  // Augment diagnostics variables by error norms (if computed)
-  if (problems::SOL()) {
-    d.push_back( "L2(err:r)" );
-    d.push_back( "L2(err:u)" );
-    d.push_back( "L2(err:v)" );
-    d.push_back( "L2(err:w)" );
-    d.push_back( "L2(err:e)" );
-    for (std::size_t i=5; i<nv; ++i) d.push_back( "L2(err:" + var[i] + ')' );
-    d.push_back( "L1(err:r)" );
-    d.push_back( "L1(err:u)" );
-    d.push_back( "L1(err:v)" );
-    d.push_back( "L1(err:w)" );
-    d.push_back( "L1(err:e)" );
-    for (std::size_t i=5; i<nv; ++i) d.push_back( "L1(err:" + var[i] + ')' );
+    // Add 'L2(var)' for all variables
+    for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(" + var[i] + ')' );
+
+    // Add L2-norm of the residuals
+    for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(d" + var[i] + ')' );
+
+    // Add total energy
+    d.push_back( "mE" );
+
+    // Augment diagnostics variables by error norms (if computed)
+    if (problems::SOL()) {
+      d.push_back( "L2(err:r)" );
+      d.push_back( "L2(err:u)" );
+      d.push_back( "L2(err:v)" );
+      d.push_back( "L2(err:w)" );
+      d.push_back( "L2(err:e)" );
+      for (std::size_t i=5; i<nv; ++i) d.push_back( "L2(err:" + var[i] + ')' );
+      d.push_back( "L1(err:r)" );
+      d.push_back( "L1(err:u)" );
+      d.push_back( "L1(err:v)" );
+      d.push_back( "L1(err:w)" );
+      d.push_back( "L1(err:e)" );
+      for (std::size_t i=5; i<nv; ++i) d.push_back( "L1(err:" + var[i] + ')' );
+    }
+
+  }
+  else if (solver == "chocg")
+  {
+
+    // Collect variables names for integral/diagnostics output
+    std::vector< std::string > var{ "p" };
+
+    auto nv = var.size();
+
+    // Add 'L2(var)' for all variables
+    for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(" + var[i] + ')' );
+
+    // Add L2-norm of the residuals
+    for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(d" + var[i] + ')' );
+
+    // Augment diagnostics variables by error norms (if computed)
+    if (problems::PRESSURE_SOL()) {
+      d.push_back( "L2(err:p)" );
+      d.push_back( "L1(err:p)" );
+    }
+
+  }
+  else {
+    Throw( "Unknown solver: " + solver );
   }
 
   // Write diagnostics header
@@ -1096,9 +1130,9 @@ Transporter::inthead( const tk::Print& print )
 }
 
 void
-Transporter::diagnostics( CkReductionMsg* msg )
+Transporter::rhodiagnostics( CkReductionMsg* msg )
 // *****************************************************************************
-// Reduction target optionally collecting diagnostics, e.g., residuals
+//  Reduction target collecting diagnostics from density-based solvers
 //! \param[in] msg Serialized diagnostics vector aggregated across all PEs
 // *****************************************************************************
 {
@@ -1146,7 +1180,7 @@ Transporter::diagnostics( CkReductionMsg* msg )
   }
 
   // Append total energy
-  diag.push_back( d[TOTALSOL][0] );
+  diag.push_back( d[TOTALEN][0] );
 
   // Finish computing norms of the numerical - analytical solution
   if (problems::SOL()) {
@@ -1186,7 +1220,84 @@ Transporter::diagnostics( CkReductionMsg* msg )
     // cppcheck-suppress uninitvar
     m_kozcg[ meshid ].evalres( l2res );
   }
-  else if (solver == "chocg") {
+  else {
+    Throw( "Unknown solver: " + solver );
+  }
+}
+
+void
+Transporter::prediagnostics( CkReductionMsg* msg )
+// *****************************************************************************
+//  Reduction target collecting diagnostics from pressure-based solvers
+//! \param[in] msg Serialized diagnostics vector aggregated across all PEs
+// *****************************************************************************
+{
+  using namespace diagnostics;
+
+  std::size_t meshid;
+  std::vector< std::vector< tk::real > > d;
+
+  // Deserialize diagnostics vector
+  PUP::fromMem creator( msg->getData() );
+  // cppcheck-suppress uninitvar
+  creator | meshid;
+  creator | d;
+  delete msg;
+
+  // cppcheck-suppress uninitvar
+  // cppcheck-suppress unreadVariable
+  auto id = std::to_string(meshid);
+
+  auto ncomp = g_cfg.get< tag::problem_ncomp >();
+  Assert( ncomp > 0, "Number of scalar components must be positive");
+  Assert( d.size() == NUMDIAG, "Diagnostics vector size mismatch" );
+
+  // cppcheck-suppress unsignedLessThanZero
+  for (std::size_t i=0; i<d.size(); ++i) {
+     Assert( d[i].size() == ncomp, "Size mismatch at final stage of "
+             "diagnostics aggregation for mesh " + id );
+  }
+
+  // Allocate storage for those diagnostics that are always computed
+  std::vector< tk::real > diag( ncomp, 0.0 );
+
+  // Finish computing the L2 norm of conserved variables
+  for (std::size_t i=0; i<d[L2SOL].size(); ++i) {
+    // cppcheck-suppress uninitvar
+    diag[i] = sqrt( d[L2SOL][i] / m_meshvol[meshid] );
+  }
+
+  // Finish computing the L2 norm of the residuals of conserverd variables
+  std::vector< tk::real > l2res( d[L2RES].size(), 0.0 );
+  for (std::size_t i=0; i<d[L2RES].size(); ++i) {
+    // cppcheck-suppress uninitvar
+    l2res[i] = std::sqrt( d[L2RES][i] / m_meshvol[meshid] );
+    diag.push_back( l2res[i] );
+  }
+
+  // Finish computing norms of the numerical - analytical solution
+  if (problems::PRESSURE_SOL()) {
+    for (std::size_t i=0; i<d[L2ERR].size(); ++i) {
+      // cppcheck-suppress uninitvar
+      diag.push_back( std::sqrt( d[L2ERR][i] / m_meshvol[meshid] ) );
+    }
+    for (std::size_t i=0; i<d[L1ERR].size(); ++i) {
+      // cppcheck-suppress uninitvar
+      diag.push_back( d[L1ERR][i] / m_meshvol[meshid] );
+    }
+  }
+
+  // Append diagnostics file at selected times
+  auto filename = g_cfg.get< tag::diag >();
+  if (m_nelem.size() > 1) filename += '.' + id;
+  tk::DiagWriter dw( filename,
+                     g_cfg.get< tag::diag_format >(),
+                     g_cfg.get< tag::diag_precision >(),
+                     std::ios_base::app );
+  dw.write( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
+
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "chocg") {
     // cppcheck-suppress uninitvar
     m_chocg[ meshid ].evalres( l2res );
   }

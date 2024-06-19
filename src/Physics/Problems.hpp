@@ -26,17 +26,6 @@ std::function< std::vector< tk::real >
              ( tk::real, tk::real, tk::real, tk::real ) >
 SOL();
 
-//! Query user config and assign function to add a source term
-std::function< std::vector< tk::real >
-  ( tk::real, tk::real, tk::real, tk::real ) >
-SRC();
-
-//  Query user config and assign function to apply source to numerical solution
-std::function< void( const std::array< std::vector< tk::real >, 3 >&,
-                     tk::real,
-                     tk::Fields& ) >
-PHYS_SRC();
-
 //! Set inital conditions
 void
 initialize(
@@ -44,6 +33,14 @@ initialize(
   tk::Fields& U,
   tk::real t,
   const std::vector< std::unordered_set<std::size_t> >& boxnodes = {} );
+
+//! Query user config and assign function to set pressure initial conditions
+std::function< tk::real( tk::real, tk::real, tk::real ) >
+PRESSURE_IC();
+
+//! Query user config and assign function to query analytic pressure solutions
+std::function< tk::real( tk::real, tk::real, tk::real ) >
+PRESSURE_SOL();
 
 //! Set pressure right hand side
 void
@@ -54,5 +51,16 @@ pressure_rhs( const std::array< std::vector< tk::real >, 3 >& coord,
 //! Set pressure initial condition
 tk::real
 initialize( tk::real x, tk::real y, tk::real z );
+
+//! Query user config and assign function to add a source term
+std::function< std::vector< tk::real >
+  ( tk::real, tk::real, tk::real, tk::real ) >
+SRC();
+
+//  Query user config and assign function to apply source to numerical solution
+std::function< void( const std::array< std::vector< tk::real >, 3 >&,
+                     tk::real,
+                     tk::Fields& ) >
+PHYS_SRC();
 
 } // problems::

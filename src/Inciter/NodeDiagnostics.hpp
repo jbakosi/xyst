@@ -25,11 +25,16 @@ class NodeDiagnostics {
     //! Configure Charm++ custom reduction types initiated from this class
     static void registerReducers();
 
-    //! Compute diagnostics, e.g., residuals, norms of errors, etc.
-    bool compute( Discretization& d,
-                  const tk::Fields& u,
-                  const tk::Fields& un,
-                  uint64_t diag_iter ) const;
+    //! Compute diagnostics for density-based solvers
+    bool rhocompute( Discretization& d,
+                     const tk::Fields& u,
+                     const tk::Fields& un,
+                     uint64_t diag_iter ) const;
+
+    //! Compute diagnostics for pressure-based solvers
+    bool precompute( Discretization& d,
+                     const std::vector< tk::real >& p,
+                     uint64_t diag_iter ) const;
 
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{

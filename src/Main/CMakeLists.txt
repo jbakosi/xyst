@@ -138,6 +138,7 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       Mesh
                       Physics
                       Statistics
+                      LinearSolver
                       zoltan1
                       exodus
                       ${MPI_C_LIBRARIES}

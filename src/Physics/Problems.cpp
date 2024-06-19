@@ -34,6 +34,12 @@ ic( tk::real, tk::real, tk::real, tk::real )
 //! \return Values of conserved variables
 // *****************************************************************************
 {
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "chocg") {
+    std::vector< tk::real > u( 3, 0.0 );
+    return u;
+  }
+
   auto ic_density = g_cfg.get< tag::ic_density >();
   const auto& ic_velocity = g_cfg.get< tag::ic_velocity >();
   ErrChk( ic_velocity.size() == 3, "ic_velocity must have 3 components" );
@@ -585,10 +591,10 @@ static std::vector< tk::real >
 ic( tk::real x, tk::real y, tk::real z, tk::real t )
 // *****************************************************************************
 //! Set initial conditions for point source problem
-//! \param[in] x X coordinate where to evaluate the source
-//! \param[in] y Y coordinate where to evaluate the source
-//! \param[in] z Z coordinate where to evaluate the source
-//! \param[in] t Time where to evaluate the source
+//! \param[in] x X coordinate where to evaluate initial conditions
+//! \param[in] y Y coordinate where to evaluate initial conditions
+//! \param[in] z Z coordinate where to evaluate initial conditions
+//! \param[in] t Time where to evaluate initial conditions
 //! \return Values of conserved variables
 // *****************************************************************************
 {
@@ -656,7 +662,7 @@ static std::vector< tk::real >
 ic( tk::real, tk::real, tk::real, tk::real t )
 // *****************************************************************************
 //! Set initial conditions prescribing gyor
-//! \param[in] t Time where to evaluate the solution
+//! \param[in] t Time where to evaluate initial conditions
 //! \return Values of conserved variables
 // *****************************************************************************
 {
@@ -672,6 +678,137 @@ ic( tk::real, tk::real, tk::real, tk::real t )
 }
 
 } // gyor::
+
+namespace poisson {
+
+static std::vector< tk::real >
+ic( tk::real, tk::real, tk::real, tk::real )
+// *****************************************************************************
+//! Set initial conditions for testing a Poisson solve only
+//! \return Values for initial conditions
+// *****************************************************************************
+{
+  std::vector< tk::real > u( 1, 0.0 );
+  return u;
+}
+
+} // poisson::
+
+namespace poisson_const_rhs {
+
+static tk::real
+pr( tk::real, tk::real, tk::real )
+// *****************************************************************************
+//! Set pressure rhs for testing a Poisson solve
+//! \return Value for pressure rhs
+// *****************************************************************************
+{
+  return 6.0;
+}
+
+static tk::real
+ic( tk::real x, tk::real y, tk::real z )
+// *****************************************************************************
+//! Evaluate pressure boundary condition
+//! \param[in] x X coordinate where to evaluate the BC
+//! \param[in] y Y coordinate where to evaluate the BC
+//! \param[in] z Z coordinate where to evaluate the BC
+//! \return Value for pressure BC
+// *****************************************************************************
+{
+  return x*x + y*y + z*z;
+}
+
+} // poisson_const_rhs::
+
+namespace poisson_harmonic {
+
+static tk::real
+pr( tk::real, tk::real, tk::real )
+// *****************************************************************************
+//! Set pressure rhs for testing a Laplace solve
+//! \return Value for pressure rhs
+// *****************************************************************************
+{
+  return 0.0;
+}
+
+static tk::real
+ic( tk::real x, tk::real y, tk::real z )
+// *****************************************************************************
+//! Evaluate pressure boundary condition
+//! \param[in] x X coordinate where to evaluate the BC
+//! \param[in] y Y coordinate where to evaluate the BC
+//! \param[in] z Z coordinate where to evaluate the BC
+//! \return Value for pressure BC
+// *****************************************************************************
+{
+  const auto& b = g_cfg.get< tag::problem_beta >();
+  auto x0 = b[0];
+  auto y0 = b[1];
+  auto z0 = b[2];
+
+  return 1.0 / std::sqrt( (x-x0)*(x-x0) + (y-y0)*(y-y0) + (z-z0)*(z-z0) );
+}
+
+} // poisson_harmonic::
+
+namespace poisson_sine {
+
+static tk::real
+pr( tk::real x, tk::real y, tk::real z )
+// *****************************************************************************
+//! Set pressure rhs for testing a Poisson solve
+//! \return Value for pressure rhs
+// *****************************************************************************
+{
+  return -M_PI * M_PI * x * y * std::sin( M_PI * z );
+}
+
+static tk::real
+ic( tk::real x, tk::real y, tk::real z )
+// *****************************************************************************
+//! Evaluate pressure boundary condition
+//! \param[in] x X coordinate where to evaluate the BC
+//! \param[in] y Y coordinate where to evaluate the BC
+//! \param[in] z Z coordinate where to evaluate the BC
+//! \return Value for pressure BC
+// *****************************************************************************
+{
+  return x * y * std::sin( M_PI * z );
+}
+
+} // poisson_sine::
+
+namespace poisson_sine3 {
+
+static tk::real
+pr( tk::real x, tk::real y, tk::real z )
+// *****************************************************************************
+//! Set pressure rhs for testing a Poisson solve
+//! \return Value for pressure rhs
+// *****************************************************************************
+{
+  using std::sin;
+
+  return -3.0 * M_PI * M_PI * sin(M_PI*x) * sin(M_PI*y) * sin(M_PI*z);
+}
+
+static tk::real
+ic( tk::real x, tk::real y, tk::real z )
+// *****************************************************************************
+//! Evaluate pressure boundary condition
+//! \param[in] x X coordinate where to evaluate the BC
+//! \param[in] y Y coordinate where to evaluate the BC
+//! \param[in] z Z coordinate where to evaluate the BC
+//! \return Value for pressure BC
+// *****************************************************************************
+{
+  return sin(M_PI*x) * sin(M_PI*y) * sin(M_PI*z);
+}
+
+} // poisson_sine3::
+
 
 std::function< std::vector< tk::real >
              ( tk::real, tk::real, tk::real, tk::real ) >
@@ -706,6 +843,8 @@ IC()
     ic = point_src::ic;
   else if (problem == "gyor")
     ic = gyor::ic;
+  else if (problem.find("poisson") != std::string::npos)
+    ic = poisson::ic;
   else
     Throw( "problem type ic not hooked up" );
 
@@ -765,6 +904,83 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
     for (std::size_t c=0; c<s.size(); ++c) U(i,c) = s[c];
 
   }
+}
+
+static
+std::function< tk::real( tk::real, tk::real, tk::real ) >
+PR()
+// *****************************************************************************
+//  Query user config and assign function to set pressure rhs
+//! \return The function to call to set pressure rhs
+// *****************************************************************************
+{
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
+
+  std::function< tk::real( tk::real, tk::real, tk::real ) > pr;
+
+  if (problem == "poisson_const_rhs")
+    pr = poisson_const_rhs::pr;
+  else if (problem == "poisson_harmonic")
+    pr = poisson_harmonic::pr;
+  else if (problem == "poisson_sine")
+    pr = poisson_sine::pr;
+  else if (problem == "poisson_sine3")
+    pr = poisson_sine3::pr;
+  else
+    Throw( "problem type not hooked up" );
+
+  return pr;
+}
+
+void
+pressure_rhs( const std::array< std::vector< tk::real >, 3 >& coord,
+              const std::vector< tk::real >& vol,
+              std::vector< tk::real >& r )
+// *****************************************************************************
+//  Set pressure right hand side
+//! \param[in] coord Mesh node coordinates
+//! \param[in] v Nodal mesh volumes with contributions from other chares
+//! \param[in,out] r Right-hand side of pressure solve
+// *****************************************************************************
+{
+  Assert( coord[0].size() == r.size(), "Size mismatch" );
+
+  auto pr = PR();
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  for (std::size_t i=0; i<x.size(); ++i) {
+    r[i] = pr( x[i], y[i], z[i] ) * vol[i];
+  }
+}
+
+tk::real
+initialize( tk::real x, tk::real y, tk::real z )
+// *****************************************************************************
+//  Evaluate initial condition for pressure
+//! \param[in] x X coordinate where to evaluate the pressure initial condition
+//! \param[in] y Y coordinate where to evaluate the pressure initial condition
+//! \param[in] z Z coordinate where to evaluate the pressure initial condition
+//! \return Pressure initial condition
+// *****************************************************************************
+{
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
+
+  std::function< tk::real( tk::real, tk::real, tk::real ) > ic;
+
+  if (problem == "poisson_const_rhs")
+    ic = poisson_const_rhs::ic;
+  else if (problem == "poisson_harmonic")
+    ic = poisson_harmonic::ic;
+  else if (problem == "poisson_sine")
+    ic = poisson_sine::ic;
+  else if (problem == "poisson_sine3")
+    ic = poisson_sine3::ic;
+  else
+    Throw( "problem type not hooked up" );
+
+  return ic( x, y, z );
 }
 
 std::function< std::vector< tk::real >

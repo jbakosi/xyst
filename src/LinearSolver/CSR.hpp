@@ -49,14 +49,15 @@ class CSR {
     //! Set Dirichlet boundary condition at a node
     void dirichlet(
       std::size_t i,
+      tk::real val,
+      std::vector< tk::real >& b,
       const std::vector< std::size_t >& gid = {},
       const std::unordered_map< int,
               std::unordered_set< std::size_t > >& nodecommap = {},
       std::size_t pos=0 );
 
     //! Multiply CSR matrix with vector from the right: r = A * x
-    void mult( const std::vector< real >& x, std::vector< real >& r,
-               const std::vector< tk::real >& bcmask ) const;
+    void mult( const std::vector< real >& x, std::vector< real >& r ) const;
 
     //! Access real size of matrix
     std::size_t rsize() const { return rnz.size()*ncomp; }

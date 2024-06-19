@@ -22,6 +22,7 @@
 #include "Partitioner.hpp"
 #include "Progress.hpp"
 #include "ContainerUtil.hpp"
+#include "ConjugateGradients.hpp"
 
 namespace inciter {
 
@@ -215,6 +216,7 @@ class Transporter : public CBase_Transporter {
       p | m_zalcg;
       p | m_kozcg;
       p | m_chocg;
+      p | m_cgpre;
       p | m_partitioner;
       p | m_refiner;
       p | m_meshwriter;
@@ -276,6 +278,8 @@ class Transporter : public CBase_Transporter {
     std::vector< CProxy_KozCG > m_kozcg;
     //! Discretization scheme proxies (one per mesh)
     std::vector< CProxy_ChoCG > m_chocg;
+    //! Conjugate gradients solver proxies for pressure solve (one per mesh)
+    std::vector< tk::CProxy_ConjugateGradients > m_cgpre;
     //! Partitioner nodegroup proxies (one per mesh)
     std::vector< CProxy_Partitioner > m_partitioner;
     //! Mesh refiner array proxies (one per mesh)

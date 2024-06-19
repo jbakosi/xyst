@@ -46,6 +46,7 @@ Refiner::Refiner( std::size_t meshid,
                   const CProxy_ZalCG& zalcg,
                   const CProxy_KozCG& kozcg,
                   const CProxy_ChoCG& chocg,
+                  const tk::CProxy_ConjugateGradients& cgpre,
                   const tk::RefinerCallback& cbr,
                   const tk::SorterCallback& cbs,
                   const std::vector< std::size_t >& ginpoel,
@@ -65,6 +66,7 @@ Refiner::Refiner( std::size_t meshid,
   m_zalcg( zalcg ),
   m_kozcg( kozcg ),
   m_chocg( chocg ),
+  m_cgpre( cgpre ),
   m_cbr( cbr ),
   m_cbs( cbs ),
   m_ginpoel( ginpoel ),
@@ -100,6 +102,7 @@ Refiner::Refiner( std::size_t meshid,
 //! \param[in] zalcg Discretization scheme proxy
 //! \param[in] kozcg Discretization scheme proxy
 //! \param[in] chocg Discretization scheme proxy
+//! \param[in] cgpre ConjugateGradients Charm++ proxy for pressure solve
 //! \param[in] cbr Charm++ callbacks for Refiner
 //! \param[in] cbs Charm++ callbacks for Sorter
 //! \param[in] ginpoel Mesh connectivity (this chare) using global node IDs
@@ -1074,7 +1077,7 @@ Refiner::endt0ref()
 {
   // create sorter Charm++ chare array elements using dynamic insertion
   m_sorter[ thisIndex ].insert( m_meshid, m_host, m_meshwriter, m_cbs,
-    m_disc, m_riecg, m_laxcg, m_zalcg, m_kozcg, m_chocg,
+    m_disc, m_riecg, m_laxcg, m_zalcg, m_kozcg, m_chocg, m_cgpre,
     CkCallback(CkIndex_Refiner::reorder(), thisProxy[thisIndex]), m_ginpoel,
     m_coordmap, m_el, m_bface, m_triinpoel, m_bnode, m_nchare );
 

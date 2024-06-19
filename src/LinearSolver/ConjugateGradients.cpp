@@ -50,15 +50,10 @@ ConjugateGradients::ConjugateGradients(
   m_lid( lid ),
   m_nodeCommMap( nodecommmap ),
   m_r( m_A.rsize(), 0.0 ),
-  m_rc(),
   m_nr( 0 ),
-  m_bc(),
-  m_bcc(),
-  m_bcmask( m_A.rsize(), 1.0 ),
   m_nb( 0 ),
   m_p( m_A.rsize(), 0.0 ),
   m_q( m_A.rsize(), 0.0 ),
-  m_qc(),
   m_nq( 0 ),
   m_initres(),
   m_solved(),
@@ -69,7 +64,6 @@ ConjugateGradients::ConjugateGradients(
   m_rho0( 0.0 ),
   m_alpha( 0.0 ),
   m_converged( false ),
-  m_xc(),
   m_nx( 0 )
 // *****************************************************************************
 //  Constructor
@@ -157,7 +151,7 @@ ConjugateGradients::residual()
 // *****************************************************************************
 {
   // Compute own contribution to r = A * x
-  m_A.mult( m_x, m_r, m_bcmask );
+  m_A.mult( m_x, m_r );
 
   // Send partial product on chare-boundary nodes to fellow chares
   if (m_nodeCommMap.empty()) {
@@ -191,10 +185,7 @@ ConjugateGradients::comres( const std::vector< std::size_t >& gid,
 {
   Assert( rc.size() == gid.size(), "Size mismatch" );
 
-  using tk::operator+=;
-
-  for (std::size_t i=0; i<gid.size(); ++i)
-    m_rc[ gid[i] ] += rc[i];
+  for (std::size_t i=0; i<gid.size(); ++i) m_rc[ gid[i] ] += rc[i];
 
   if (++m_nr == m_nodeCommMap.size()) {
     m_nr = 0;
@@ -255,7 +246,7 @@ ConjugateGradients::init(
 //! \param[in] x Initial guess
 //! \param[in] b Right hand side vector
 //! \param[in] bc Local node ids and associated Dirichlet BCs
-//! \param[in] ignorebc True if applyin BCs should be skipped
+//! \param[in] ignorebc True if applying BCs should be skipped
 //! \param[in] cb Call to continue with when initialized and ready for a solve
 //! \details This function allows setting the initial guess and boundary
 //!   conditions, followed by computing the initial residual and the rhs norm.
@@ -274,31 +265,31 @@ ConjugateGradients::init(
   } else {
 
     // Store incoming BCs
-    m_bc = bc;
+    for (auto&& [i,bcval] : bc) m_bc[i] = std::move(bcval);
 
     // Get ready to communicate boundary conditions. This is necessary because
-    // there can be nodes a chare contributes to but does not apply BCs on. This
-    // happens if a node is in the node communication map but not on the list of
-    // incoming BCs on this chare. To have all chares share the same view on all
-    // BC nodes, we send the global node ids together with the Dirichlet BCs at
-    // which BCs are set to those fellow chares that also contribute to those BC
-    // nodes. Only after this communication step we apply the BCs on the matrix,
-    // which then will correctly setup the BC rows that exist on multiple chares
-    // (which now will be the same as the results of making the BCs consistent
-    // across all chares that contribute.
+    // there can be nodes a chare contributes to but does not apply BCs on.
+    // This happens if a node is in the node communication map but not on the
+    // list of incoming BCs on this chare. To have all chares share the same
+    // view on all BC nodes, we send the global node ids together with the
+    // Dirichlet BCs at which BCs are set to those fellow chares that also
+    // contribute to those BC nodes. Only after this communication step will we
+    // apply the BCs on the matrix, which then will correctly setup the BC rows
+    // that exist on multiple chares (which now will be the same as the results
+    // of making the BCs consistent across all chares that contribute).
     thisProxy[ thisIndex ].wait4bc();
+    thisProxy[ thisIndex ].wait4r();
 
     // Send boundary conditions to those who contribute to those rows
     if (m_nodeCommMap.empty()) {
       combc_complete();
     } else {
       for (const auto& [c,n] : m_nodeCommMap) {
-        std::unordered_map< std::size_t,
-          std::vector< std::pair< bool, tk::real > > > expbc;
+        decltype(m_bc) expbc;
         for (auto g : n) {
           auto i = tk::cref_find( m_lid, g );
-          auto j = bc.find(i);
-          if (j != end(bc)) expbc[g] = j->second;
+          auto j = m_bc.find(i);
+          if (j != end(m_bc)) expbc[g] = j->second;
         }
         thisProxy[c].combc( expbc );
       }
@@ -310,9 +301,8 @@ ConjugateGradients::init(
 }
 
 void
-ConjugateGradients::combc(
-  const std::unordered_map< std::size_t,
-     std::vector< std::pair< bool, tk::real > > >& bc )
+ConjugateGradients::combc( const std::map< std::size_t,
+                             std::vector< std::pair< bool, tk::real > > >& bc )
 // *****************************************************************************
 //  Receive contributions to boundary conditions on chare-boundaries
 //! \param[in] bc Contributions to boundary conditions
@@ -339,16 +329,80 @@ ConjugateGradients::apply( CkCallback cb )
 
   auto ncomp = m_A.Ncomp();
 
-  // Setup Dirichlet BC map as contiguous mask
-  for (const auto& [i,bc] : m_bc)
-    for (std::size_t j=0; j<ncomp; ++j)
-      m_bcmask[i*ncomp+j] = 0.0;
+  // Apply Dirichlet BCs on matrix and rhs (with decreasing local id)
+  std::fill( begin(m_r), end(m_r), 0.0 );
+  for (auto bi = m_bc.rbegin(); bi != m_bc.rend(); ++bi) {
+    auto i = bi->first;
+    const auto& dirbc = bi->second;
+    for (std::size_t j=0; j<ncomp; ++j) {
+      if (dirbc[j].first) {
+        m_A.dirichlet( i, dirbc[j].second, m_r, m_gid, m_nodeCommMap, j );
+      }
+    }
+  }
 
-  // Apply Dirichlet BCs on matrix and rhs
+  // Send partial rhs with BCs applied on chare-boundary nodes to fellow chares
+  if (m_nodeCommMap.empty()) {
+    comr_complete();
+  } else {
+    for (const auto& [c,n] : m_nodeCommMap) {
+      std::vector< std::vector< tk::real > > rc( n.size() );
+      std::size_t j = 0;
+      for (auto g : n) {
+        std::vector< tk::real > nr( ncomp );
+        auto i = tk::cref_find( m_lid, g );
+        for (std::size_t d=0; d<ncomp; ++d) nr[d] = m_r[ i*ncomp+d ];
+        rc[j++] = std::move(nr);
+      }
+      thisProxy[c].comr( std::vector<std::size_t>(begin(n),end(n)), rc );
+    }
+  }
+
+  ownr_complete( cb );
+}
+
+void
+ConjugateGradients::comr( const std::vector< std::size_t >& gid,
+                          const std::vector< std::vector< tk::real > >& rc )
+// *****************************************************************************
+//  Receive contributions rhs with BCs applied on chare-boundaries
+//! \param[in] gid Global mesh node IDs at which we receive contributions
+//! \param[in] rc Partial contributions at chare-boundary nodes
+// *****************************************************************************
+{
+  Assert( rc.size() == gid.size(), "Size mismatch" );
+
+  for (std::size_t i=0; i<gid.size(); ++i) m_rc[ gid[i] ] += rc[i];
+
+  if (++m_nr == m_nodeCommMap.size()) {
+    m_nr = 0;
+    comr_complete();
+  }
+}
+
+void
+ConjugateGradients::r( CkCallback cb )
+// *****************************************************************************
+//  Finish computing rhs with BCs applied
+//! \param[in] cb Call to continue with after applying the BCs is complete
+// *****************************************************************************
+{
+  auto ncomp = m_A.Ncomp();
+
+  // Combine own and communicated contributions
+  for (const auto& [gid,r] : m_rc) {
+    auto i = tk::cref_find( m_lid, gid );
+    for (std::size_t c=0; c<ncomp; ++c) m_r[i*ncomp+c] += r[c];
+  }
+  tk::destroy( m_rc );
+
+  // Subtract matrix columns * BC values from rhs at Dirichlet BC nodes
+  m_b -= m_r;
+
+  // Apply Dirichlet BCs on rhs
   for (const auto& [i,dirbc] : m_bc) {
     for (std::size_t j=0; j<ncomp; ++j) {
       if (dirbc[j].first) {
-        m_A.dirichlet( i, m_gid, m_nodeCommMap, j );
         m_b[i*ncomp+j] = dirbc[j].second;
       }
     }
@@ -359,11 +413,17 @@ ConjugateGradients::apply( CkCallback cb )
 }
 
 void
-ConjugateGradients::solve( std::size_t maxit, tk::real tol, CkCallback c )
+ConjugateGradients::solve( std::size_t maxit,
+                           tk::real tol,
+                           int pe,
+                           uint64_t verbose,
+                           CkCallback c )
 // *****************************************************************************
 //  Solve linear system
 //! \param[in] maxit Max iteration count
 //! \param[in] tol Stop tolerance
+//! \param[in] pe Processing element
+//! \param[in] verbose Verbose output
 //! \param[in] c Call to continue with after solve is complete
 // *****************************************************************************
 {
@@ -371,6 +431,8 @@ ConjugateGradients::solve( std::size_t maxit, tk::real tol, CkCallback c )
   m_tol = tol;
   m_solved = c;
   m_it = 0;
+  m_pe = pe;
+  m_verbose = verbose;
 
   next();
 }
@@ -400,7 +462,7 @@ ConjugateGradients::qAp()
 // *****************************************************************************
 {
   // Compute own contribution to q = A * p
-  m_A.mult( m_p, m_q, m_bcmask );
+  m_A.mult( m_p, m_q );
 
   // Send partial product on chare-boundary nodes to fellow chares
   if (m_nodeCommMap.empty()) {
@@ -434,10 +496,7 @@ ConjugateGradients::comq( const std::vector< std::size_t >& gid,
 {
   Assert( qc.size() == gid.size(), "Size mismatch" );
 
-  using tk::operator+=;
-
-  for (std::size_t i=0; i<gid.size(); ++i)
-    m_qc[ gid[i] ] += qc[i];
+  for (std::size_t i=0; i<gid.size(); ++i) m_qc[ gid[i] ] += qc[i];
 
   if (++m_nq == m_nodeCommMap.size()) {
     m_nq = 0;
@@ -565,6 +624,10 @@ ConjugateGradients::x()
   ++m_it;
   auto normb = m_normb > 1.0e-14 ? m_normb : 1.0;
   auto normr = std::sqrt( m_rho );
+
+  if (m_pe == 0 && m_verbose) {
+    std::cout << "it: " << m_it << ", norm: " << normr/normb << '\n';
+  }
 
   if ( m_it < m_maxit && normr > m_tol*normb ) {
 

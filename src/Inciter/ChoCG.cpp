@@ -30,6 +30,7 @@
 #include "Problems.hpp"
 #include "EOS.hpp"
 #include "BC.hpp"
+#include "ConjugateGradients.hpp"
 
 namespace inciter {
 
@@ -46,23 +47,23 @@ using inciter::g_cfg;
 using inciter::ChoCG;
 
 ChoCG::ChoCG( const CProxy_Discretization& disc,
+              const tk::CProxy_ConjugateGradients& cgpre,
               const std::map< int, std::vector< std::size_t > >& bface,
               const std::map< int, std::vector< std::size_t > >& bnode,
               const std::vector< std::size_t >& triinpoel ) :
   m_disc( disc ),
+  m_cgpre( cgpre ),
   m_nrhs( 0 ),
   m_nnorm( 0 ),
   m_nbpint( 0 ),
   m_nbeint( 0 ),
   m_ndeint( 0 ),
-  m_ngrad( 0 ),
   m_bnode( bnode ),
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
-  m_grad( m_u.nunk(), m_u.nprop()*3 ),
   m_stage( 0 ),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
@@ -70,6 +71,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
 // *****************************************************************************
 //  Constructor
 //! \param[in] disc Discretization proxy
+//! \param[in] cgpre ConjugateGradients Charm++ proxy for pressure solve
 //! \param[in] bface Boundary-faces mapped to side sets used in the input file
 //! \param[in] bnode Boundary-node lists mapped to side sets used in input file
 //! \param[in] triinpoel Boundary-face connectivity where BCs set (global ids)
@@ -102,8 +104,58 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   // Compute total box IC volume
   d->boxvol();
 
+  // Setup LHS for pressure solve
+  m_cgpre[ thisIndex ].insert( laplacian(),
+                               d->Gid(),
+                               d->Lid(),
+                               d->NodeCommMap() );
+
   // Activate SDAG wait for initially computing integrals
   thisProxy[ thisIndex ].wait4int();
+}
+
+std::tuple< tk::CSR, std::vector< tk::real >, std::vector< tk::real > >
+ChoCG::laplacian()
+// *****************************************************************************
+//  Setup matrix for pressure solve
+//! \return { A, x, b } in linear system A * x = b to solve for pressure
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto& inpoel = d->Inpoel();
+  const auto& coord = d->Coord();
+  const auto& X = coord[0];
+  const auto& Y = coord[1];
+  const auto& Z = coord[2];
+
+  // Matrix with Compressed spares row storage
+  tk::CSR A( /*DOF=*/ 1, tk::genPsup(inpoel,4,tk::genEsup(inpoel,4)) );
+
+  // fill matrix with Laplacian
+  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+    const auto N = inpoel.data() + e*4;
+    const std::array< tk::real, 3 >
+      ba{{ X[N[1]]-X[N[0]], Y[N[1]]-Y[N[0]], Z[N[1]]-Z[N[0]] }},
+      ca{{ X[N[2]]-X[N[0]], Y[N[2]]-Y[N[0]], Z[N[2]]-Z[N[0]] }},
+      da{{ X[N[3]]-X[N[0]], Y[N[3]]-Y[N[0]], Z[N[3]]-Z[N[0]] }};
+    const auto J = tk::triple( ba, ca, da );        // J = 6V
+    Assert( J > 0, "Element Jacobian non-positive" );
+    std::array< std::array< tk::real, 3 >, 4 > grad;
+    grad[1] = tk::crossdiv( ca, da, J );
+    grad[2] = tk::crossdiv( da, ba, J );
+    grad[3] = tk::crossdiv( ba, ca, J );
+    for (std::size_t i=0; i<3; ++i)
+      grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
+    for (std::size_t a=0; a<4; ++a)
+      for (std::size_t b=0; b<4; ++b)
+         for (std::size_t k=0; k<3; ++k)
+           A(N[a],N[b]) -= J/6.0 * grad[a][k] * grad[b][k];
+  }
+
+  auto npoin = X.size();
+  std::vector< tk::real > x( npoin, 0.0 ), b( npoin, 0.0 );
+
+  return { std::move(A), std::move(x), std::move(b) };
 }
 
 void
@@ -244,6 +296,74 @@ ChoCG::setupBC()
 }
 
 void
+ChoCG::preinit()
+// *****************************************************************************
+//  Initialize pressure solve
+// *****************************************************************************
+{
+  std::vector< tk::real > r;
+
+  std::unordered_map< std::size_t,
+    std::vector< std::pair< bool, tk::real > > > pbc;
+
+  // Configure Dirichlet BCs for pressure solve
+  if (!g_cfg.get< tag::bc_dir >().empty()) {
+
+    auto d = Disc();
+    std::size_t nmask = 1 + 1;
+    Assert( m_dirbcmasks.size() % nmask == 0, "Size mismatch" );
+    const auto& coord = d->Coord();
+    const auto& x = coord[0];
+    const auto& y = coord[1];
+    const auto& z = coord[2];
+    for (std::size_t i=0; i<m_dirbcmasks.size()/nmask; ++i) {
+      auto p = m_dirbcmasks[i*nmask+0];     // local node id
+      if (m_dirbcmasks[i*nmask+1]) {
+        pbc[p] = {{ { 1, problems::initialize( x[p], y[p], z[p] ) } }};
+      }
+    }
+
+    r.resize( x.size() );
+    problems::pressure_rhs( d->Coord(), d->Vol(), r );
+
+        //auto x0 = 0.5;
+        //auto y0 = 0.5;
+        //auto z0 = 0.5;
+        //auto r = 1.0 / tk::length( x[p]-x0, y[p]-y0, z[p]-z0 );
+        //auto r = x[p]*x[p] + y[p]*y[p] + z[p]*z[p];
+        //pbc[p] = {{ { 1, r } }};
+
+    //const auto& inpoel = d->Inpoel();
+    //for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+    //  const auto N = inpoel.data() + e*4;
+    //  const std::array< tk::real, 3 >
+    //    ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
+    //    ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
+    //    da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
+    //  const auto J = tk::triple( ba, ca, da );        // J = 6V
+    //  Assert( J > 0, "Element Jacobian non-positive" );
+    //  for (std::size_t a=0; a<4; ++a)
+    //    for (std::size_t b=0; b<4; ++b) {
+    //      auto m = J/120.0 * ((a == b) ? 2.0 : 1.0);
+    //      r[N[a]] += 6.0 * m;
+    //    }
+    //}
+
+    //const auto& lid = d->Lid();
+    //for (const auto& [g,ndA] : m_bndpoinint) {
+    //  auto i = tk::cref_find( lid, g );
+    //  std::array< tk::real, 3 > grad{ 2.0*x[i], 2.0*y[i], 2.0*z[i] };
+    //  r[i] -= 2.0 * tk::dot( ndA, grad );
+    //}
+
+  }
+
+  // Initialize pressure solve: x initial guess, r: rhs, pbc: Dirichlet BCs
+  m_cgpre[ thisIndex ].ckLocal()->init( {}, r, pbc, /* ignorebc = */ false,
+    CkCallback( CkIndex_ChoCG::presolve(), thisProxy[thisIndex] ) );
+}
+
+void
 ChoCG::feop()
 // *****************************************************************************
 // Start (re-)computing finite element domain and boundary operators
@@ -258,6 +378,8 @@ ChoCG::feop()
   bndint();
   // Compute local contributions to domain edge integrals
   domint();
+  // Initialize pressure solve
+  preinit();
 
   // Send boundary point normal contributions to neighbor chares
   if (d->NodeCommMap().empty()) {
@@ -278,9 +400,22 @@ ChoCG::feop()
 }
 
 void
+ChoCG::presolve()
+// *****************************************************************************
+//  Solve for pressure
+// *****************************************************************************
+{
+  auto iter = g_cfg.get< tag::pre_iter >();
+  auto tol = g_cfg.get< tag::pre_tol >();
+  auto verbose = g_cfg.get< tag::pre_verbose >();
+  m_cgpre[ thisIndex ].ckLocal()->solve( iter, tol, thisIndex, verbose,
+    CkCallback( CkIndex_ChoCG::presolved(),thisProxy[thisIndex] ) );
+}
+
+void
 ChoCG::bndint()
 // *****************************************************************************
-//! Compute local contributions to boundary normals and integrals
+//  Compute local contributions to boundary normals and integrals
 // *****************************************************************************
 {
   auto d = Disc();
@@ -327,7 +462,7 @@ ChoCG::bndint()
         bpn[2] += r * n[2];
         bpn[3] += r;                   // inv.dist.sq of node from centroid
         auto& b = m_bndpoinint[gid[p]];// assoc global id of bnd point
-        b[0] += n[0] * A2 / 6.0;        // bnd-point integral
+        b[0] += n[0] * A2 / 6.0;       // bnd-point integral
         b[1] += n[1] * A2 / 6.0;
         b[2] += n[2] * A2 / 6.0;
       }
@@ -761,25 +896,25 @@ ChoCG::merge()
 }
 
 void
-ChoCG::BC( tk::real t )
+ChoCG::BC( tk::real /*t*/ )
 // *****************************************************************************
 // Apply boundary conditions
 //! \param[in] t Physical time
 // *****************************************************************************
 {
-  auto d = Disc();
-
-  // Apply Dirichlet BCs
-  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
-
-  // Apply symmetry BCs
-  physics::symbc( m_u, m_symbcnodes, m_symbcnorms );
-
-  // Apply farfield BCs
-  physics::farbc( m_u, m_farbcnodes, m_farbcnorms );
-
-  // Apply pressure BCs
-  physics::prebc( m_u, m_prebcnodes, m_prebcvals );
+//  auto d = Disc();
+//
+//  // Apply Dirichlet BCs
+//  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
+//
+//  // Apply symmetry BCs
+//  physics::symbc( m_u, m_symbcnodes, m_symbcnorms );
+//
+//  // Apply farfield BCs
+//  physics::farbc( m_u, m_farbcnodes, m_farbcnorms );
+//
+//  // Apply pressure BCs
+//  physics::prebc( m_u, m_prebcnodes, m_prebcvals );
 }
 
 void
@@ -829,7 +964,6 @@ ChoCG::dt()
   }
 
   // Actiavate SDAG waits for next time step stage
-  thisProxy[ thisIndex ].wait4grad();
   thisProxy[ thisIndex ].wait4rhs();
 
   // Contribute to minimum dt across all chares and advance to next step
@@ -847,54 +981,7 @@ ChoCG::advance( tk::real newdt )
   // Set new time step size
   if (m_stage == 0) Disc()->setdt( newdt );
 
-  grad();
-}
-
-void
-ChoCG::grad()
-// *****************************************************************************
-// Compute gradients for next time step
-// *****************************************************************************
-{
-  auto d = Disc();
-
-  //lax::grad( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_grad );
-
-  // Send gradient contributions to neighbor chares
-  if (d->NodeCommMap().empty()) {
-    comgrad_complete();
-  } else {
-    const auto& lid = d->Lid();
-    for (const auto& [c,n] : d->NodeCommMap()) {
-      std::unordered_map< std::size_t, std::vector< tk::real > > exp;
-      for (auto g : n) exp[g] = m_grad[ tk::cref_find(lid,g) ];
-      thisProxy[c].comgrad( exp );
-    }
-  }
-  owngrad_complete();
-}
-
-void
-ChoCG::comgrad(
-  const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
-// *****************************************************************************
-//  Receive contributions to node gradients on chare-boundaries
-//! \param[in] ingrad Partial contributions to chare-boundary nodes. Key: 
-//!   global mesh node IDs, value: contributions for all scalar components.
-//! \details This function receives contributions to m_grad, which stores the
-//!   gradients at mesh nodes. While m_grad stores own contributions, m_gradc
-//!   collects the neighbor chare contributions during communication. This way
-//!   work on m_grad and m_gradc is overlapped. The two are combined in rhs().
-// *****************************************************************************
-{
-  using tk::operator+=;
-  for (const auto& [g,r] : ingrad) m_gradc[g] += r;
-
-  // When we have heard from all chares we communicate with, this chare is done
-  if (++m_ngrad == Disc()->NodeCommMap().size()) {
-    m_ngrad = 0;
-    comgrad_complete();
-  }
+  rhs();
 }
 
 void
@@ -906,19 +993,6 @@ ChoCG::rhs()
   auto d = Disc();
   const auto& lid = d->Lid();
   const auto steady = g_cfg.get< tag::steady >();
-
-  // Combine own and communicated contributions to gradients
-  for (const auto& [g,r] : m_gradc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c) += r[c];
-  }
-  tk::destroy(m_gradc);
-
-  // divide weak result in gradients by nodal volume
-  const auto& vol = d->Vol();
-  for (std::size_t p=0; p<m_grad.nunk(); ++p)
-    for (std::size_t c=0; c<m_grad.nprop(); ++c)
-      m_grad(p,c) /= vol[p];
 
   // Compute own portion of right-hand side for all equations
   auto prev_rkcoef = m_stage == 0 ? 0.0 : rkcoef[m_stage-1];
@@ -1022,7 +1096,6 @@ ChoCG::solve()
   if (m_stage < 2) {
 
     // Activate SDAG wait for next time step stage
-    thisProxy[ thisIndex ].wait4grad();
     thisProxy[ thisIndex ].wait4rhs();
 
     // start next time step stage
@@ -1033,7 +1106,7 @@ ChoCG::solve()
     // Activate SDAG waits for finishing this time step stage
     thisProxy[ thisIndex ].wait4stage();
     // Compute diagnostics, e.g., residuals
-    auto diag = m_diag.compute( *d, m_u, m_un, g_cfg.get< tag::diag_iter >() );
+    auto diag = false;//m_diag.compute( *d, m_u, m_un, g_cfg.get< tag::diag_iter >() );
     // Increase number of iterations and physical time
     d->next();
     // Advance physical time for local time stepping
@@ -1140,14 +1213,12 @@ ChoCG::resizePostAMR(
   m_u.rm( removedNodes );
   m_un.rm( removedNodes );
   m_rhs.rm( removedNodes );
-  m_grad.rm( removedNodes );
 
   // Resize auxiliary solution vectors
   auto npoin = coord[0].size();
   m_u.resize( npoin );
   m_un.resize( npoin );
   m_rhs.resize( npoin );
-  m_grad.resize( npoin );
 
   // Update solution on new mesh
   for (const auto& n : addedNodes)
@@ -1178,70 +1249,24 @@ ChoCG::writeFields( CkCallback cb )
   if (g_cfg.get< tag::benchmark >()) { cb.send(); return; }
 
   auto d = Disc();
-  auto ncomp = m_u.nprop();
-  auto steady = g_cfg.get< tag::steady >();
 
   // Field output
 
-  std::vector< std::string > nodefieldnames
-    {"density", "velocityx", "velocityy", "velocityz", "energy", "pressure"};
-  if (steady) nodefieldnames.push_back( "mach" );
+  std::vector< std::string > nodefieldnames{ "pressure", "analytic" };
 
-  using tk::operator/=;
-  auto r = m_u.extract(0);
-  auto u = m_u.extract(1);  u /= r;
-  auto v = m_u.extract(2);  v /= r;
-  auto w = m_u.extract(3);  w /= r;
-  auto e = m_u.extract(4);  e /= r;
-  std::vector< tk::real > pr( m_u.nunk() ), ma;
-  if (steady) ma.resize( m_u.nunk() );
-  for (std::size_t i=0; i<pr.size(); ++i) {
-    auto vv = u[i]*u[i] + v[i]*v[i] + w[i]*w[i];
-    pr[i] = eos::pressure( r[i]*(e[i] - 0.5*vv) );
-    if (steady) ma[i] = std::sqrt(vv) / eos::soundspeed( r[i], pr[i] );
+  std::vector< std::vector< tk::real > > nodefields;
+  auto p = m_cgpre[ thisIndex ].ckLocal()->solution();
+  nodefields.push_back( p ) ;
+
+  const auto& coord = d->Coord();
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+  auto ap = p;
+  for (std::size_t i=0; i<ap.size(); ++i) {
+    ap[i] = problems::initialize( x[i], y[i], z[i] );
   }
-
-  std::vector< std::vector< tk::real > > nodefields{
-    std::move(r), std::move(u), std::move(v), std::move(w), std::move(e),
-    std::move(pr) };
-  if (steady) nodefields.push_back( std::move(ma) );
-
-  for (std::size_t c=0; c<ncomp-5; ++c) {
-    nodefieldnames.push_back( "c" + std::to_string(c) );
-    nodefields.push_back( m_u.extract(5+c) );
-  }
-
-  // query function to evaluate analytic solution (if defined)
-  auto sol = problems::SOL();
-
-  if (sol) {
-    const auto& coord = d->Coord();
-    const auto& x = coord[0];
-    const auto& y = coord[1];
-    const auto& z = coord[2];
-    auto an = m_u;
-    std::vector< tk::real > ap( m_u.nunk() );
-    for (std::size_t i=0; i<an.nunk(); ++i) {
-      auto s = sol( x[i], y[i], z[i], d->T() );
-      s[1] /= s[0];
-      s[2] /= s[0];
-      s[3] /= s[0];
-      s[4] /= s[0];
-      for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
-      s[4] -= 0.5*(s[1]*s[1] + s[2]*s[2] + s[3]*s[3]);
-      ap[i] = eos::pressure( s[0]*s[4] );
-    }
-    for (std::size_t c=0; c<5; ++c) {
-      nodefieldnames.push_back( nodefieldnames[c] + "_analytic" );
-      nodefields.push_back( an.extract(c) );
-    }
-    nodefieldnames.push_back( nodefieldnames[5] + "_analytic" );
-    nodefields.push_back( std::move(ap) );
-    for (std::size_t c=0; c<ncomp-5; ++c) {
-      nodefieldnames.push_back( nodefieldnames[6+c] + "_analytic" );
-      nodefields.push_back( an.extract(5+c) );
-    }
-  }
+  nodefields.push_back( ap );
 
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 
@@ -1250,54 +1275,54 @@ ChoCG::writeFields( CkCallback cb )
   std::vector< std::string > nodesurfnames;
   std::vector< std::vector< tk::real > > nodesurfs;
 
-  const auto& f = g_cfg.get< tag::fieldout >();
-
-  if (!f.empty()) {
-    nodesurfnames.push_back( "density" );
-    nodesurfnames.push_back( "velocityx" );
-    nodesurfnames.push_back( "velocityy" );
-    nodesurfnames.push_back( "velocityz" );
-    nodesurfnames.push_back( "energy" );
-    nodesurfnames.push_back( "pressure" );
-
-    for (std::size_t c=0; c<ncomp-5; ++c) {
-      nodesurfnames.push_back( "c" + std::to_string(c) );
-    }
-
-    if (steady) nodesurfnames.push_back( "mach" );
-
-    auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
-    std::set< int > outsets( begin(f), end(f) );
-    for (auto sideset : outsets) {
-      auto b = bnode.find(sideset);
-      if (b == end(bnode)) continue;
-      const auto& nodes = b->second;
-      auto i = nodesurfs.size();
-      auto ns = ncomp + 1;
-      if (steady) ++ns;
-      nodesurfs.insert( end(nodesurfs), ns,
-                        std::vector< tk::real >( nodes.size() ) );
-      std::size_t j = 0;
-      for (auto n : nodes) {
-        const auto s = m_u[n];
-        std::size_t p = 0;
-        nodesurfs[i+(p++)][j] = s[0];
-        nodesurfs[i+(p++)][j] = s[1]/s[0];
-        nodesurfs[i+(p++)][j] = s[2]/s[0];
-        nodesurfs[i+(p++)][j] = s[3]/s[0];
-        nodesurfs[i+(p++)][j] = s[4]/s[0];
-        auto vv = (s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
-        auto ei = s[4]/s[0] - 0.5*vv;
-        auto sp = eos::pressure( s[0]*ei );
-        nodesurfs[i+(p++)][j] = sp;
-        for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+(p++)+c][j] = s[5+c];
-        if (steady) {
-          nodesurfs[i+(p++)][j] = std::sqrt(vv) / eos::soundspeed( s[0], sp );
-        }
-        ++j;
-      }
-    }
-  }
+//  const auto& f = g_cfg.get< tag::fieldout >();
+//
+//  if (!f.empty()) {
+//    nodesurfnames.push_back( "density" );
+//    nodesurfnames.push_back( "velocityx" );
+//    nodesurfnames.push_back( "velocityy" );
+//    nodesurfnames.push_back( "velocityz" );
+//    nodesurfnames.push_back( "energy" );
+//    nodesurfnames.push_back( "pressure" );
+//
+//    for (std::size_t c=0; c<ncomp-5; ++c) {
+//      nodesurfnames.push_back( "c" + std::to_string(c) );
+//    }
+//
+//    if (steady) nodesurfnames.push_back( "mach" );
+//
+//    auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
+//    std::set< int > outsets( begin(f), end(f) );
+//    for (auto sideset : outsets) {
+//      auto b = bnode.find(sideset);
+//      if (b == end(bnode)) continue;
+//      const auto& nodes = b->second;
+//      auto i = nodesurfs.size();
+//      auto ns = ncomp + 1;
+//      if (steady) ++ns;
+//      nodesurfs.insert( end(nodesurfs), ns,
+//                        std::vector< tk::real >( nodes.size() ) );
+//      std::size_t j = 0;
+//      for (auto n : nodes) {
+//        const auto s = m_u[n];
+//        std::size_t p = 0;
+//        nodesurfs[i+(p++)][j] = s[0];
+//        nodesurfs[i+(p++)][j] = s[1]/s[0];
+//        nodesurfs[i+(p++)][j] = s[2]/s[0];
+//        nodesurfs[i+(p++)][j] = s[3]/s[0];
+//        nodesurfs[i+(p++)][j] = s[4]/s[0];
+//        auto vv = (s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
+//        auto ei = s[4]/s[0] - 0.5*vv;
+//        auto sp = eos::pressure( s[0]*ei );
+//        nodesurfs[i+(p++)][j] = sp;
+//        for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+(p++)+c][j] = s[5+c];
+//        if (steady) {
+//          nodesurfs[i+(p++)][j] = std::sqrt(vv) / eos::soundspeed( s[0], sp );
+//        }
+//        ++j;
+//      }
+//    }
+//  }
 
   // Send mesh and fields data (solution dump) for output to file
   d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,d->Lid()),
@@ -1399,7 +1424,7 @@ ChoCG::stage()
 
   // If not all Runge-Kutta stages complete, continue to next time stage,
   // otherwise output field data to file(s)
-  if (m_stage < 3) grad(); else out();
+  if (m_stage < 3) rhs(); else out();
 }
 
 void

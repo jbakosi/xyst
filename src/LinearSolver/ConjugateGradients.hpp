@@ -54,15 +54,16 @@ class ConjugateGradients : public CBase_ConjugateGradients {
       const CSR& A,
       const std::vector< tk::real >& x,
       const std::vector< tk::real >& b,
-      const std::vector< std::size_t >& gid,
-      const std::unordered_map< std::size_t, std::size_t >& lid,
+      const std::vector< std::size_t >& gid = {},
+      const std::unordered_map< std::size_t, std::size_t >& lid = {},
       const std::unordered_map< int,
-              std::unordered_set< std::size_t > >& nodecommmap );
+              std::unordered_set< std::size_t > >& nodecommmap = {} );
 
     #if defined(__clang__)
       #pragma clang diagnostic push
       #pragma clang diagnostic ignored "-Wundefined-func-template"
     #endif
+
     //! Constructor taking a tuple of {A,x,b} by rvalue reference
     explicit ConjugateGradients(
       std::tuple< tk::CSR,
@@ -77,14 +78,20 @@ class ConjugateGradients : public CBase_ConjugateGradients {
                           std::move(std::get<2>(system)),
                           gid, lid, nodecommmap ) {}
 
-    //! Migrate constructor
-    explicit ConjugateGradients( CkMigrateMessage* ) {}
     #if defined(__clang__)
       #pragma clang diagnostic pop
     #endif
 
+    //! Migrate constructor
+    explicit ConjugateGradients( CkMigrateMessage* m )
+     : CBase_ConjugateGradients( m ) {}
+
     //! Solve linear system
-    void solve( std::size_t maxit, tk::real tol, CkCallback c );
+    void solve( std::size_t maxit,
+                tk::real tol,
+                int pe,
+                uint64_t verbose,
+                CkCallback c );
 
     //! Initialize linear solve: set initial guess and boundary conditions
     void init( const std::vector< tk::real >& x,
@@ -108,13 +115,18 @@ class ConjugateGradients : public CBase_ConjugateGradients {
                  const std::vector< std::vector< tk::real > >& rc );
 
     //! Receive contributions to boundary conditions on chare-boundaries
-    void combc( const std::unordered_map< std::size_t,
+    void combc( const std::map< std::size_t,
                        std::vector< std::pair< bool, tk::real > > >& bc );
+
+    //! Receive contributions to rhs with BCs applied on chare-boundaries
+    void comr( const std::vector< std::size_t >& gid,
+               const std::vector< std::vector< tk::real > >& rc );
 
     //! Receive contributions to q = A * p on chare-boundaries
     void comq( const std::vector< std::size_t >& gid,
                const std::vector< std::vector< tk::real > >& qc );
 
+    //! Receive contributions to final solution on chare-boundaries
     void comx( const std::vector< std::size_t >& gid,
                const std::vector< std::vector< tk::real > >& xc );
 
@@ -146,7 +158,6 @@ class ConjugateGradients : public CBase_ConjugateGradients {
       p | m_nr;
       p | m_bc;
       p | m_bcc;
-      p | m_bcmask;
       p | m_nb;
       p | m_p;
       p | m_q;
@@ -157,6 +168,8 @@ class ConjugateGradients : public CBase_ConjugateGradients {
       p | m_normb;
       p | m_it;
       p | m_maxit;
+      p | m_pe;
+      p | m_verbose;
       p | m_tol;
       p | m_rho;
       p | m_rho0;
@@ -191,13 +204,9 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     //! Counter for assembling m_r
     std::size_t m_nr;
     //! Dirichlet boundary conditions
-    std::unordered_map< std::size_t,
-        std::vector< std::pair< bool, tk::real > > > m_bc;
+    std::map< std::size_t, std::vector< std::pair< bool, tk::real > > > m_bc;
     //! Dirichlet boundary conditions communication buffer
-    std::unordered_map< std::size_t,
-        std::vector< std::pair< bool, tk::real > > > m_bcc;
-    //! Dirichlet boundary condition mask
-    std::vector< tk::real > m_bcmask;
+    std::map< std::size_t, std::vector< std::pair< bool, tk::real > > > m_bcc;
     //! Counter for assembling boundary conditions
     std::size_t m_nb;
     //! Auxiliary vector for CG solve
@@ -218,6 +227,10 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     std::size_t m_it;
     //! Max iteration count
     std::size_t m_maxit;
+    //! Processing element
+    int m_pe;
+    //! Verbose output
+    uint64_t m_verbose;
     //! Stop tolerance
     tk::real m_tol;
     //! Helper scalar for CG algorithm
@@ -245,6 +258,9 @@ class ConjugateGradients : public CBase_ConjugateGradients {
 
     //! Apply boundary conditions
     void apply( CkCallback cb );
+
+    //! Finish computing rhs with applied BCs
+    void r( CkCallback cb );
 
     //! Initiate computing q = A * p
     void qAp();

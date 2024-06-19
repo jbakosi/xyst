@@ -65,7 +65,7 @@ class CGReceiver : public CBase_CGReceiver {
       auto normb = static_cast<tk::real*>( msg->getData() );
       received( "init, ch" + std::to_string(thisIndex),
                 "normb", *normb, m_normb_ex );
-      m_cg[thisIndex].solve( m_maxit, m_tol,
+      m_cg[thisIndex].solve( m_maxit, m_tol, thisIndex, /*verbose=*/ 0,
         CkCallback(CkIndex_CGReceiver::solved(nullptr),thisProxy[thisIndex]) );
     }
     //! Called after CG solve() finished
@@ -202,7 +202,7 @@ void ConjugateGradients_object::test< 1 >() {
   std::vector< tk::real > b(npoin,1.0), x(npoin,0.0);
 
   // Grab a node (id=0) as Dirichlet BC
-  A.dirichlet( 0 );
+  A.dirichlet( 0, 0, b );
 
   // Create CG solver (chare array with a single element)
   tk::CProxy_ConjugateGradients cg =
@@ -338,7 +338,7 @@ void ConjugateGradients_object::test< 2 >() {
     auto it = lid[m].find( 0 );
     if (it != end(lid[m])) { // if row with global id g exists on this partition
       auto i = it->second;
-      A.dirichlet( i, gid[m], nodecommap[m] );
+      A.dirichlet( i, 0, b, gid[m], nodecommap[m] );
     }
 
     // Dynamically insert array element with mesh partition
@@ -443,7 +443,7 @@ void ConjugateGradients_object::test< 3 >() {
   std::vector< tk::real > b(npoin*3,1.0), x(npoin*3,0.0);
 
   // Grab a node (id=0 for all components) as Dirichlet BC
-  for (std::size_t i=0; i<3; ++i) A.dirichlet( 0, {}, {}, i );
+  for (std::size_t i=0; i<3; ++i) A.dirichlet( 0, 0, b, {}, {}, i );
 
   // Create CG solver (chare array with a single element)
   tk::CProxy_ConjugateGradients cg =
@@ -581,7 +581,7 @@ void ConjugateGradients_object::test< 4 >() {
     if (it != end(lid[m])) { // if row with global id g exists on this partition
       auto i = it->second;
       for (std::size_t j=0; j<3; ++j)
-        A.dirichlet( i, gid[m], nodecommap[m], j );
+        A.dirichlet( i, 0, b, gid[m], nodecommap[m], j );
     }
 
     // Dynamically insert array element with mesh partition

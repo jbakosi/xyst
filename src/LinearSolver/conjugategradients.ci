@@ -42,39 +42,49 @@ module conjugategradients {
                        std::size_t ignorebc,
                        CkCallback cb );
       entry void setup( CkCallback cb );
-      entry void solve( std::size_t maxit, tk::real stop_tol, CkCallback c );
+      entry void solve( std::size_t maxit,
+                        tk::real tol,
+                        int pe,
+                        uint64_t verbose,
+                        CkCallback c );
       entry [reductiontarget] void normb( tk::real n );
       entry [reductiontarget] void rho( tk::real r );
       entry [reductiontarget] void pq( tk::real n );
       entry [reductiontarget] void normres( tk::real r );
       entry void comres( const std::vector< std::size_t >& gid,
                          const std::vector< std::vector< tk::real > >& rc );
-      entry void combc( const std::unordered_map< std::size_t,
+      entry void combc( const std::map< std::size_t,
                           std::vector< std::pair< bool, tk::real > > >& bc );
       entry void comq( const std::vector< std::size_t >& gid,
                        const std::vector< std::vector< tk::real > >& qc );
+      entry void comr( const std::vector< std::size_t >& gid,
+                       const std::vector< std::vector< tk::real > >& rc );
       entry void comx( const std::vector< std::size_t >& gid,
                        const std::vector< std::vector< tk::real > >& xc );
 
-      // SDAG code follows. See http://charm.cs.illinois.edu/manuals/html/
-      // charm++/manual.html, Sec. "Structured Control Flow: Structured Dagger".
-
       entry void wait4res() {
-        when ownres_complete(), comres_complete(), normb_complete()
-        serial "res" { initres(); }
+        when ownres_complete(), comres_complete(), normb_complete() serial
+        { initres(); }
       }
 
       entry void wait4bc() {
-        when ownbc_complete( CkCallback cb ), combc_complete()
-          serial "bc" { apply( cb ); }
+        when ownbc_complete( CkCallback cb ), combc_complete() serial
+        { apply( cb ); }
+      }
+
+      entry void wait4r() {
+        when ownr_complete( CkCallback cb ), comr_complete() serial
+        { r( cb ); }
       }
 
       entry void wait4q() {
-        when ownq_complete(), comq_complete() serial "q" { q(); }
+        when ownq_complete(), comq_complete() serial
+        { q(); }
       }
 
       entry void wait4x() {
-        when ownx_complete(), comx_complete() serial "x" { x(); }
+        when ownx_complete(), comx_complete() serial
+        { x(); }
       }
 
       entry void ownres_complete();
@@ -84,6 +94,8 @@ module conjugategradients {
       entry void combc_complete();
       entry void ownq_complete();
       entry void comq_complete();
+      entry void ownr_complete( CkCallback cb );
+      entry void comr_complete();
       entry void ownx_complete();
       entry void comx_complete();
     };

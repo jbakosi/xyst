@@ -41,6 +41,9 @@ DEFTAG( t0 );
 DEFTAG( dt );
 DEFTAG( turkel );
 DEFTAG( velinf );
+DEFTAG( pre_iter );
+DEFTAG( pre_tol );
+DEFTAG( pre_verbose );
 DEFTAG( reorder );
 DEFTAG( part );
 DEFTAG( zoltan_params );
@@ -154,6 +157,9 @@ using ConfigMembers = brigand::list<
   , tag::dt, double
   , tag::turkel, double
   , tag::velinf, std::vector< double >
+  , tag::pre_iter, uint64_t
+  , tag::pre_tol, double
+  , tag::pre_verbose, uint64_t
   , tag::reorder, bool
   , tag::part, std::string
   , tag::zoltan_params, std::vector< std::string >

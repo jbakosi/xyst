@@ -18,6 +18,7 @@ module refiner {
 
   extern module sorter;
   extern module meshwriter;
+  extern module conjugategradients;
 
   namespace inciter {
 
@@ -32,6 +33,7 @@ module refiner {
                      const CProxy_ZalCG& zalcg,
                      const CProxy_KozCG& kozcg,
                      const CProxy_ChoCG& chocg,
+                     const tk::CProxy_ConjugateGradients& cgpre,
                      const tk::RefinerCallback& cbr,
                      const tk::SorterCallback& cbs,
                      const std::vector< std::size_t >& ginpoel,

@@ -32,6 +32,7 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Statistics
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PROJECT_SOURCE_DIR}/../Physics
+                           ${PROJECT_SOURCE_DIR}/../LinearSolver
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_C_INCLUDE_DIRS}
                            ${NETCDF_INCLUDE_DIRS}
@@ -39,6 +40,7 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_BINARY_DIR}/../Base
                            ${PROJECT_BINARY_DIR}/../IO
                            ${PROJECT_BINARY_DIR}/../Mesh
+                           ${PROJECT_BINARY_DIR}/../LinearSolver
                            ${PROJECT_BINARY_DIR}/../Main)
 
 add_library(MeshRefinement
@@ -69,20 +71,26 @@ addCharmModule( "zalcg" "Inciter" )
 addCharmModule( "kozcg" "Inciter" )
 addCharmModule( "chocg" "Inciter" )
 
-# Add extra dependency of Inciter on inciterCharmModule. This is required as
-# Inciter refers to the main Charm++ proxy defined in the Charm++ module
-# inciter (in Main/Inciter.cpp).
+# Add extra dependency of Inciter on inciterCharmModule
 add_dependencies( "Inciter" "inciterCharmModule" )
 
-# Add extra dependency of Transporter charm module on Partitioner charm module.
-# This is required so that partitioner.decl.h and partitioner.def.h are
-# generated before Transporter including those.
+# Add extra dependency of Transporter charm module on Partitioner charm module
 add_dependencies( "transporterCharmModule" "partitionerCharmModule" )
 
-# Add extra dependency of Discretization charm module on MeshWriter charm
-# module. This is so meshwriter.decl.h and meshwriter.def.h are generated
-# before Discretization which needs meshwriter's type information.
+# Add extra dependency of Discretization charm module on MeshWriter charm module
 add_dependencies( "discretizationCharmModule" "meshwriterCharmModule" )
+
+# Add extra dependency of Partitioner charm module on ConjugateGradients charm
+# module
+add_dependencies( "partitionerCharmModule" "conjugategradientsCharmModule" )
+
+# Add extra dependency of Refiner charm module on ConjugateGradients charm
+# module
+add_dependencies( "refinerCharmModule" "conjugategradientsCharmModule" )
+
+# Add extra dependency of Sorter charm module on ConjugateGradients charm
+# module
+add_dependencies( "sorterCharmModule" "conjugategradientsCharmModule" )
 
 set_target_properties(Inciter PROPERTIES LIBRARY_OUTPUT_NAME xyst_inciter)
 set_target_properties(MeshRefinement PROPERTIES LIBRARY_OUTPUT_NAME

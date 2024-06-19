@@ -847,6 +847,7 @@ problem( lua_State* L, Config& cfg )
   auto& n = cfg.get< tag::problem_ncomp >();
   n = 5;
   if (problem == "slot_cyl" || problem == "point_src") ++n;
+  if (problem.find("poisson") != std::string::npos) n = 1;
 
   lua_pop( L, 1 );
 }
@@ -889,6 +890,23 @@ deactivate( lua_State* L, Config& cfg )
   cfg.get< tag::deatime >() = real( L, "time", 0.0 );
 
   cfg.get< tag::deactivate >() = cfg.get< tag::deafreq >();  // on if freq > 0
+
+  lua_pop( L, 1 );
+}
+
+static void
+pressure( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse pressure table
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  lua_getglobal( L, "pressure" );
+
+  cfg.get< tag::pre_iter >() = unsigint( L, "iter", 10 );
+  cfg.get< tag::pre_tol >() = real( L, "tol", 1.0e-3 );
+  cfg.get< tag::pre_verbose >() = unsigint( L, "verbose", 0 );
 
   lua_pop( L, 1 );
 }
@@ -965,6 +983,7 @@ Config::control()
     diag( L, *this );
     href( L, *this );
     deactivate( L, *this );
+    pressure( L, *this );
     lb( L, *this );
 
     print << "Solver: " << get< tag::solver >() << '\n';

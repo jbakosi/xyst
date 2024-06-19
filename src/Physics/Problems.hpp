@@ -45,4 +45,14 @@ initialize(
   tk::real t,
   const std::vector< std::unordered_set<std::size_t> >& boxnodes = {} );
 
+//! Set pressure right hand side
+void
+pressure_rhs( const std::array< std::vector< tk::real >, 3 >& coord,
+              const std::vector< tk::real >& vol,
+              std::vector< tk::real >& r );
+
+//! Set pressure initial condition
+tk::real
+initialize( tk::real x, tk::real y, tk::real z );
+
 } // problems::

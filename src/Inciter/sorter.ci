@@ -16,12 +16,13 @@ module sorter {
 
   include "Callback.hpp";
 
-  extern module meshwriter;
   extern module riecg;
   extern module laxcg;
   extern module zalcg;
   extern module kozcg;
   extern module chocg;
+  extern module meshwriter;
+  extern module conjugategradients;
 
   namespace inciter {
 
@@ -36,6 +37,7 @@ module sorter {
                     const CProxy_ZalCG& zalcg,
                     const CProxy_KozCG& kozcg,
                     const CProxy_ChoCG& chocg,
+                    const tk::CProxy_ConjugateGradients& cgpre,
                     CkCallback reorderRefiner,
                     const std::vector< std::size_t >& ginpoel,
                     const tk::UnsMesh::CoordMap& coordmap,

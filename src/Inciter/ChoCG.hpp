@@ -20,6 +20,7 @@
 #include "Table.hpp"
 #include "DerivedData.hpp"
 #include "NodeDiagnostics.hpp"
+#include "PUPUtil.hpp"
 
 #include "NoWarning/chocg.decl.h"
 
@@ -54,6 +55,7 @@ class ChoCG : public CBase_ChoCG {
 
     //! Constructor
     explicit ChoCG( const CProxy_Discretization& disc,
+                    const tk::CProxy_ConjugateGradients& cgpre,
                     const std::map< int, std::vector< std::size_t > >& bface,
                     const std::map< int, std::vector< std::size_t > >& bnode,
                     const std::vector< std::size_t >& triinpoel );
@@ -78,6 +80,9 @@ class ChoCG : public CBase_ChoCG {
     //! Start setup for solution
     void setup( tk::real v );
 
+    //! Solve for pressure
+    void presolve();
+
     // Start time stepping
     void start();
 
@@ -90,10 +95,6 @@ class ChoCG : public CBase_ChoCG {
     //! Receive contributions to boundary point normals on chare-boundaries
     void comnorm( const std::unordered_map< int,
       std::unordered_map< std::size_t, std::array<tk::real,4> > >& inbnd );
-
-    //! Receive contributions to node gradients on chare-boundaries
-    void comgrad( const std::unordered_map< std::size_t,
-                          std::vector< tk::real > >& ingrad );
 
     //! Receive contributions to right-hand side vector on chare-boundaries
     void comrhs( const std::unordered_map< std::size_t,
@@ -138,12 +139,12 @@ class ChoCG : public CBase_ChoCG {
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
     void pup( PUP::er &p ) override {
       p | m_disc;
+      p | m_cgpre;
       p | m_nrhs;
       p | m_nnorm;
       p | m_nbpint;
       p | m_nbeint;
       p | m_ndeint;
-      p | m_ngrad;
       p | m_bnode;
       p | m_bface;
       p | m_triinpoel;
@@ -152,10 +153,8 @@ class ChoCG : public CBase_ChoCG {
       if (p.isUnpacking()) {
         m_un.resize( m_u.nunk(), m_u.nprop() );
         m_rhs.resize( m_u.nunk(), m_u.nprop() );
-        m_grad.resize( m_u.nunk(), m_u.nprop()*3 );
       }
       p | m_rhsc;
-      p | m_gradc;
       p | m_diag;
       p | m_bnorm;
       p | m_bnormc;
@@ -189,6 +188,8 @@ class ChoCG : public CBase_ChoCG {
   private:
     //! Discretization proxy
     CProxy_Discretization m_disc;
+    //! Conjugate Gradients Charm++ proxy for pressure solve
+    tk::CProxy_ConjugateGradients m_cgpre;
     //! Counter for right-hand side vector nodes updated
     std::size_t m_nrhs;
     //! Counter for receiving boundary point normals
@@ -199,8 +200,6 @@ class ChoCG : public CBase_ChoCG {
     std::size_t m_nbeint;
     //! Counter for receiving domain edge integrals
     std::size_t m_ndeint;
-    //! Counter for receiving gradients
-    std::size_t m_ngrad;
     //! Boundary node lists mapped to side set ids used in the input file
     std::map< int, std::vector< std::size_t > > m_bnode;
     //! Boundary face lists mapped to side set ids used in the input file
@@ -243,10 +242,6 @@ class ChoCG : public CBase_ChoCG {
     std::array< std::vector< tk::real >, 3 > m_dsupint;
     //! Streamable boundary element symmetry BC flags
     std::vector< std::uint8_t > m_besym;
-    //! Gradients in mesh nodes
-    tk::Fields m_grad;
-    //! Gradients receive buffer
-    std::unordered_map< std::size_t, std::vector< tk::real > > m_gradc;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmasks;
     //! Nodes at pressure BCs
@@ -286,13 +281,20 @@ class ChoCG : public CBase_ChoCG {
     //! Prepare boundary condition data structures
     void setupBC();
 
+    //! Initialize pressure solve
+    void preinit();
+
     //! Compute local contributions to domain edge integrals
     void domint();
+
+    //! Setup pressure solve
+    std::tuple< tk::CSR, std::vector< tk::real >, std::vector< tk::real > >
+    laplacian();
 
     //! Compute chare-boundary edges
     void bndEdges();
 
-    //! Compute boundary point normals
+    //! Compute local contributions to boundary normals and integrals
     void bndint();
 
     //! Combine own and communicated portions of the boundary point normals
@@ -330,9 +332,6 @@ class ChoCG : public CBase_ChoCG {
 
     //! Apply boundary conditions
     void BC( tk::real t );
-
-    //! Compute gradients for next time step
-    void grad();
 
     //! Apply scalar source to solution
     void src();

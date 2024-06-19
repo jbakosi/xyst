@@ -75,6 +75,7 @@ class Refiner : public CBase_Refiner {
                       const CProxy_ZalCG& zalcg,
                       const CProxy_KozCG& kozcg,
                       const CProxy_ChoCG& chocg,
+                      const tk::CProxy_ConjugateGradients& cgpre,
                       const tk::RefinerCallback& cbr,
                       const tk::SorterCallback& cbs,
                       const std::vector< std::size_t >& ginpoel,
@@ -164,6 +165,7 @@ class Refiner : public CBase_Refiner {
       p | m_zalcg;
       p | m_kozcg;
       p | m_chocg;
+      p | m_cgpre;
       p | m_cbr;
       p | m_cbs;
       p | m_ginpoel;
@@ -237,6 +239,8 @@ class Refiner : public CBase_Refiner {
     CProxy_KozCG m_kozcg;
     //! Discretization scheme proxy
     CProxy_ChoCG m_chocg;
+    //! Conjugate Gradients Charm++ proxy for pressure solve
+    tk::CProxy_ConjugateGradients m_cgpre;
     //! Charm++ callbacks associated to compile-time tags for refiner
     tk::RefinerCallback m_cbr;
     //! Charm++ callbacks associated to compile-time tags for sorter

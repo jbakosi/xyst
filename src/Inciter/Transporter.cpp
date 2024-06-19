@@ -258,26 +258,29 @@ Transporter::createPartitioner()
     CProxy_ZalCG zalcg;
     CProxy_KozCG kozcg;
     CProxy_ChoCG chocg;
+    tk::CProxy_ConjugateGradients cgpre;
     const auto& solver = g_cfg.get< tag::solver >();
     if (solver == "riecg") {
-      m_riecg.push_back( CProxy_Refiner::ckNew(opt) );
+      m_riecg.push_back( CProxy_RieCG::ckNew(opt) );
       riecg = m_riecg.back();
     }
     else if (solver == "laxcg") {
-      m_laxcg.push_back( CProxy_Refiner::ckNew(opt) );
+      m_laxcg.push_back( CProxy_LaxCG::ckNew(opt) );
       laxcg = m_laxcg.back();
     }
     else if (solver == "zalcg") {
-      m_zalcg.push_back( CProxy_Refiner::ckNew(opt) );
+      m_zalcg.push_back( CProxy_ZalCG::ckNew(opt) );
       zalcg = m_zalcg.back();
     }
     else if (solver == "kozcg") {
-      m_kozcg.push_back( CProxy_Refiner::ckNew(opt) );
+      m_kozcg.push_back( CProxy_KozCG::ckNew(opt) );
       kozcg = m_kozcg.back();
     }
     else if (solver == "chocg") {
-      m_chocg.push_back( CProxy_Refiner::ckNew(opt) );
+      m_chocg.push_back( CProxy_ChoCG::ckNew(opt) );
       chocg = m_chocg.back();
+      m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
+      cgpre = m_cgpre.back();
     }
     else {
       Throw( "Unknown solver: " + solver );
@@ -297,7 +300,7 @@ Transporter::createPartitioner()
     m_partitioner.push_back(
       CProxy_Partitioner::ckNew( meshid, filename, cbp, cbr, cbs,
         thisProxy, m_refiner.back(), m_sorter.back(), m_meshwriter.back(),
-        m_discretization.back(), riecg, laxcg, zalcg, kozcg, chocg,
+        m_discretization.back(), riecg, laxcg, zalcg, kozcg, chocg, cgpre,
         bface, faces, bnode ) );
 
     ++meshid;
@@ -732,6 +735,7 @@ Transporter::workinserted( std::size_t meshid )
   }
   else if (solver == "chocg") {
     m_chocg[ meshid ].doneInserting();
+    m_cgpre[ meshid ].doneInserting();
   }
   else {
     Throw( "Unknown solver: " + solver );

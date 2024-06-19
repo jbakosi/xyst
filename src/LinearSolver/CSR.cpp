@@ -106,12 +106,16 @@ CSR::operator()( std::size_t row, std::size_t col, std::size_t pos ) const
 void
 CSR::dirichlet(
   std::size_t i,
+  tk::real val,
+  std::vector< tk::real >& b,
   const std::vector< std::size_t >& gid,
   const std::unordered_map< int, std::unordered_set<std::size_t> >& nodecommap,
   std::size_t pos )
 // *****************************************************************************
 //  Set Dirichlet boundary condition at a node
 //! \param[in] i Local id at which to set Dirichlet BC
+//! \param[in] val Value of Dirichlet BC
+//! \param[in,out] b RHS to modify as a result of setting the Dirichlet BC
 //! \param[in] gid Local->global node id map
 //! \param[in] nodecommap Node communication map with global node ids
 //! \param[in] pos Position in block
@@ -128,37 +132,43 @@ CSR::dirichlet(
 // *****************************************************************************
 {
   auto incomp = i * ncomp;
-  auto diag = nodecommap.empty() ? 1.0 : 1.0/tk::count(nodecommap,gid[i]);
 
-  // zero column
-  for (std::size_t r=0; r<rnz.size()*ncomp; ++r)
-    for (std::size_t j=ia[r]-1; j<ia[r+1]-1; ++j)
-      if (incomp+pos+1==ja[j]) a[j] = 0.0;
+  // apply Dirichlet BC on rhs, zero column
+  for (std::size_t r=0; r<rnz.size()*ncomp; ++r) {
+    for (std::size_t j=ia[r]-1; j<ia[r+1]-1; ++j) {
+      if (incomp+pos+1 == ja[j]) {
+        b[r] += a[j] * val;
+        a[j] = 0.0;
+        break;
+      }
+    }
+  }
 
   // zero row and put in diagonal
-  for (std::size_t j=ia[incomp+pos]-1; j<ia[incomp+pos+1]-1; ++j)
-    if (incomp+pos+1==ja[j]) a[j] = diag; else a[j] = 0.0;
+  auto diag = nodecommap.empty() ? 1.0 : 1.0/tk::count(nodecommap,gid[i]);
+  for (std::size_t j=ia[incomp+pos]-1; j<ia[incomp+pos+1]-1; ++j) {
+    if (incomp+pos+1 == ja[j]) a[j] = diag; else a[j] = 0.0;
+  }
 }
 
 void
-CSR::mult( const std::vector< real >& x,
-           std::vector< real >& r,
-           const std::vector< tk::real >& bcmask ) const
+CSR::mult( const std::vector< real >& x, std::vector< real >& r ) const
 // *****************************************************************************
 //  Multiply CSR matrix with vector from the right: r = A * x
 //! \param[in] x Vector to multiply matrix with from the right
 //! \param[in] r Result vector of product r = A * x
-//! \param[in] bcmask Dirichlet BC mask
 //! \note This is only complete in serial. In parallel, this computes the own
 //!   contributions to the product, so it must be followed by communication
-//!   combining the rows stored on multiple partitions.
+//!   summing the products of rows stored on multiple partitions.
 // *****************************************************************************
 {
   std::fill( begin(r), end(r), 0.0 );
 
-  for (std::size_t i=0; i<rnz.size()*ncomp; ++i)
-    for (std::size_t j=ia[i]-1; j<ia[i+1]-1; ++j)
-      r[i] += bcmask[i] * a[j] * x[ja[j]-1];
+  for (std::size_t i=0; i<rnz.size()*ncomp; ++i) {
+    for (std::size_t j=ia[i]-1; j<ia[i+1]-1; ++j) {
+      r[i] += a[j] * x[ja[j]-1];
+    }
+  }
 }
 
 std::ostream&

@@ -1,8 +1,8 @@
 /*!
   \page      vnv V&V
 
-This page links to verification and validation (V&V) examples exercrising the
-solvers in @ref inciter_main.
+This page links to verification and validation (V&V) cases and example
+simulations exercrising the solvers in @ref inciter_main.
 
 \section riecg_vnv RieCG V&V
 

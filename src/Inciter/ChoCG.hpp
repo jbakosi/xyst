@@ -83,6 +83,9 @@ class ChoCG : public CBase_ChoCG {
     //! Solve for pressure
     void presolve();
 
+    //! Continue setup after pressure solve
+    void presolved();
+
     // Start time stepping
     void start();
 

@@ -98,7 +98,6 @@ class ConjugateGradients : public CBase_ConjugateGradients {
                const std::vector< tk::real >& b,
                const std::unordered_map< std::size_t,
                        std::vector< std::pair< bool, tk::real > > >& bc,
-               std::size_t ignorebc,
                CkCallback cb );
 
     //! Setup solver
@@ -156,6 +155,7 @@ class ConjugateGradients : public CBase_ConjugateGradients {
       p | m_r;
       p | m_rc;
       p | m_nr;
+      p | m_na;
       p | m_bc;
       p | m_bcc;
       p | m_nb;
@@ -203,6 +203,8 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     std::unordered_map< std::size_t, std::vector< tk::real > > m_rc;
     //! Counter for assembling m_r
     std::size_t m_nr;
+    //! Counter for assembling m_r (rhs with BCs applied)
+    std::size_t m_na;
     //! Dirichlet boundary conditions
     std::map< std::size_t, std::vector< std::pair< bool, tk::real > > > m_bc;
     //! Dirichlet boundary conditions communication buffer

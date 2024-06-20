@@ -42,6 +42,10 @@ PRESSURE_IC();
 std::function< tk::real( tk::real, tk::real, tk::real ) >
 PRESSURE_SOL();
 
+//! Assign function to query Neumann boundary conditions for pressure solve
+std::function< std::array< tk::real, 3 >( tk::real, tk::real, tk::real ) >
+PRESSURE_GRAD();
+
 //! Set pressure right hand side
 void
 pressure_rhs( const std::array< std::vector< tk::real >, 3 >& coord,

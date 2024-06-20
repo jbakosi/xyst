@@ -812,59 +812,56 @@ ChoCG::preinit()
 //  Initialize pressure solve
 // *****************************************************************************
 {
-  std::vector< tk::real > r;
+  auto d = Disc();
 
   std::unordered_map< std::size_t,
-    std::vector< std::pair< bool, tk::real > > > pbc;
+    std::vector< std::pair< bool, tk::real > > > dirbc;
 
-  // Configure Dirichlet BCs for pressure solve
+  const auto& coord = d->Coord();
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  // Configure Dirichlet BCs
   if (!g_cfg.get< tag::bc_dir >().empty()) {
-
     auto ic = problems::PRESSURE_IC();
-    auto d = Disc();
     std::size_t nmask = 1 + 1;
     Assert( m_dirbcmasks.size() % nmask == 0, "Size mismatch" );
-    const auto& coord = d->Coord();
-    const auto& x = coord[0];
-    const auto& y = coord[1];
-    const auto& z = coord[2];
     for (std::size_t i=0; i<m_dirbcmasks.size()/nmask; ++i) {
       auto p = m_dirbcmasks[i*nmask+0];     // local node id
       if (m_dirbcmasks[i*nmask+1]) {
-        pbc[p] = {{ { 1, ic( x[p], y[p], z[p] ) } }};
+        dirbc[p] = {{ { 1, ic( x[p], y[p], z[p] ) } }};
       }
     }
-
-    r.resize( x.size() );
-    problems::pressure_rhs( d->Coord(), d->Vol(), r );
-
-    //const auto& inpoel = d->Inpoel();
-    //for (std::size_t e=0; e<inpoel.size()/4; ++e) {
-    //  const auto N = inpoel.data() + e*4;
-    //  const std::array< tk::real, 3 >
-    //    ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
-    //    ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
-    //    da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
-    //  const auto J = tk::triple( ba, ca, da );        // J = 6V
-    //  Assert( J > 0, "Element Jacobian non-positive" );
-    //  for (std::size_t a=0; a<4; ++a)
-    //    for (std::size_t b=0; b<4; ++b) {
-    //      auto m = J/120.0 * ((a == b) ? 2.0 : 1.0);
-    //      r[N[a]] += 6.0 * m;
-    //    }
-    //}
-
-    //const auto& lid = d->Lid();
-    //for (const auto& [g,ndA] : m_bndpoinint) {
-    //  auto i = tk::cref_find( lid, g );
-    //  std::array< tk::real, 3 > grad{ 2.0*x[i], 2.0*y[i], 2.0*z[i] };
-    //  r[i] -= 2.0 * tk::dot( ndA, grad );
-    //}
-
   }
 
-  // Initialize pressure solve: x initial guess, r: rhs, pbc: Dirichlet BCs
-  m_cgpre[ thisIndex ].ckLocal()->init( {}, r, pbc,
+  // Configure Neumann BCs
+  std::vector< tk::real > neubc( x.size(), 0.0 );
+  auto pg = problems::PRESSURE_GRAD();
+  if (pg) {
+    for (std::size_t e=0; e<m_triinpoel.size()/3; ++e) {
+      const auto N = m_triinpoel.data() + e*3;
+      const auto sym = m_besym.data() + e*3;
+      if (sym[0] && sym[1] && sym[2]) {
+        const std::array< tk::real, 3 >
+          ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
+          ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
+        auto n = tk::cross( ba, ca );
+        auto grad = pg( x[N[0]], y[N[1]], z[N[2]] );
+        auto f = tk::dot( n, grad ) / 6.0;
+        neubc[N[0]] -= f;
+        neubc[N[1]] -= f;
+        neubc[N[2]] -= f;
+      }
+    }
+  }
+
+  // Configure right hand side
+  std::vector< tk::real > rhs( x.size() );
+  problems::pressure_rhs( d->Coord(), d->Vol(), rhs );
+
+  // Initialize pressure solve
+  m_cgpre[ thisIndex ].ckLocal()->init( {}, rhs, neubc, dirbc,
     CkCallback( CkIndex_ChoCG::presolve(), thisProxy[thisIndex] ) );
 }
 

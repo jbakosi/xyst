@@ -96,8 +96,9 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     //! Initialize linear solve: set initial guess and boundary conditions
     void init( const std::vector< tk::real >& x,
                const std::vector< tk::real >& b,
+               const std::vector< tk::real >& neubc,
                const std::unordered_map< std::size_t,
-                       std::vector< std::pair< bool, tk::real > > >& bc,
+                       std::vector< std::pair< bool, tk::real > > >& dirbc,
                CkCallback cb );
 
     //! Setup solver
@@ -113,9 +114,11 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     void comres( const std::vector< std::size_t >& gid,
                  const std::vector< std::vector< tk::real > >& rc );
 
-    //! Receive contributions to boundary conditions on chare-boundaries
+    //! Receive contributions to boundary conditions and rhs on chare-boundaries
     void combc( const std::map< std::size_t,
-                       std::vector< std::pair< bool, tk::real > > >& bc );
+                        std::vector< std::pair< bool, tk::real > > >& bc,
+                const std::vector< std::size_t >& gid,
+                const std::vector< std::vector< tk::real > >& qc );
 
     //! Receive contributions to rhs with BCs applied on chare-boundaries
     void comr( const std::vector< std::size_t >& gid,
@@ -168,6 +171,7 @@ class ConjugateGradients : public CBase_ConjugateGradients {
       p | m_normb;
       p | m_it;
       p | m_maxit;
+      p | m_finished;
       p | m_verbose;
       p | m_tol;
       p | m_rho;
@@ -228,6 +232,8 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     std::size_t m_it;
     //! Max iteration count
     std::size_t m_maxit;
+    //! True if finished
+    bool m_finished;
     //! Verbose output
     uint64_t m_verbose;
     //! Stop tolerance

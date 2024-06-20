@@ -809,6 +809,47 @@ ic( tk::real x, tk::real y, tk::real z )
 
 } // poisson_sine3::
 
+namespace poisson_neumann {
+
+static tk::real
+pr( tk::real x, tk::real y, tk::real )
+// *****************************************************************************
+//! Set pressure rhs for testing a Poisson solve
+//! \param[in] x X coordinate where to evaluate the rhs
+//! \param[in] y Y coordinate where to evaluate the rhs
+//! \return Value for pressure rhs
+// *****************************************************************************
+{
+  return -3.0 * std::cos(2.0*x) * std::exp(y);
+}
+
+static std::array< tk::real, 3 >
+pg( tk::real x, tk::real y, tk::real)
+// *****************************************************************************
+//! Set pressure gradient for testing a Poisson solve
+//! \param[in] x X coordinate where to evaluate the gradient
+//! \param[in] y Y coordinate where to evaluate the gradient
+//! \return Value for pressure rhs
+// *****************************************************************************
+{
+  return { -2.0 * std::sin( 2.0 * x ) * std::exp( y ),
+           std::cos(2.0*x) * std::exp(y),
+           0.0 };
+}
+
+static tk::real
+ic( tk::real x, tk::real y, tk::real )
+// *****************************************************************************
+//! Evaluate pressure boundary condition
+//! \param[in] x X coordinate where to evaluate the IC / analytic solution
+//! \param[in] y Y coordinate where to evaluate the IC / analytic solution
+//! \return Value for pressure
+// *****************************************************************************
+{
+  return std::cos(2.0*x) * std::exp(y);
+}
+
+} // poisson_neumann::
 
 std::function< std::vector< tk::real >
              ( tk::real, tk::real, tk::real, tk::real ) >
@@ -926,6 +967,8 @@ PR()
     pr = poisson_sine::pr;
   else if (problem == "poisson_sine3")
     pr = poisson_sine3::pr;
+  else if (problem == "poisson_neumann")
+    pr = poisson_neumann::pr;
   else
     Throw( "problem type not hooked up" );
 
@@ -974,6 +1017,8 @@ PRESSURE_IC()
     ic = poisson_sine::ic;
   else if (problem == "poisson_sine3")
     ic = poisson_sine3::ic;
+  else if (problem == "poisson_neumann")
+    ic = poisson_neumann::ic;
   else
     Throw( "problem type not hooked up" );
 
@@ -993,6 +1038,23 @@ PRESSURE_SOL()
     return {};
   else
     return PRESSURE_IC();
+}
+
+std::function< std::array< tk::real, 3 >( tk::real, tk::real, tk::real ) >
+PRESSURE_GRAD()
+// *****************************************************************************
+//  Assign function to query Neumann boundary conditions for pressure solve
+//! \return The function to call to query Neumann BCs
+// *****************************************************************************
+{
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
+
+  std::function< std::array< tk::real, 3 >( tk::real, tk::real, tk::real ) > g;
+
+  if (problem == "poisson_neumann")
+    g = poisson_neumann::pg;
+
+  return g;
 }
 
 tk::real

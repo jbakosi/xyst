@@ -62,6 +62,7 @@ ConjugateGradients::ConjugateGradients(
   m_normb( 0.0 ),
   m_it( 0 ),
   m_maxit( 0 ),
+  m_finished( false ),
   m_verbose( 0 ),
   m_rho( 0.0 ),
   m_rho0( 0.0 ),
@@ -240,29 +241,33 @@ void
 ConjugateGradients::init(
   const std::vector< tk::real >& x,
   const std::vector< tk::real >& b,
+  const std::vector< tk::real >& neubc,
   const std::unordered_map< std::size_t,
-          std::vector< std::pair< bool, tk::real > > >& bc,
+          std::vector< std::pair< bool, tk::real > > >& dirbc,
   CkCallback cb )
 // *****************************************************************************
 //  Initialize linear solve: set initial guess and boundary conditions
 //! \param[in] x Initial guess
 //! \param[in] b Right hand side vector
-//! \param[in] bc Local node ids and associated Dirichlet BCs
+//! \param[in] neubc Right hand side vector with Neumann BCs partially applied
+//! \param[in] dirbc Local node ids and associated Dirichlet BCs
 //! \param[in] cb Call to continue with when initialized and ready for a solve
 //! \details This function allows setting the initial guess and boundary
 //!   conditions, followed by computing the initial residual and the rhs norm.
-//!   It also performs communication of the Dirichlet BCs so that this data is
-//!   the same on all chares.
+//!   It also performs communication of BC data.
 // *****************************************************************************
 {
   // Optionally set initial guess
   if (not x.empty()) m_x = x;
 
-  // Optionally update rhs
+  // Optionally set rhs
   if (not b.empty()) m_b = b;
 
+  // Set Neumann BCs
+  m_q = neubc;
+
   // Store incoming BCs in ordered map
-  for (auto&& [i,bcval] : bc) m_bc[i] = std::move(bcval);
+  for (auto&& [i,bcval] : dirbc) m_bc[i] = std::move(bcval);
 
   // Get ready to communicate boundary conditions. This is necessary because
   // there can be nodes a chare contributes to but does not apply BCs on.
@@ -271,9 +276,10 @@ ConjugateGradients::init(
   // view on all BC nodes, we send the global node ids together with the
   // Dirichlet BCs at which BCs are set to those fellow chares that also
   // contribute to those BC nodes. Only after this communication step will we
-  // apply the BCs on the matrix, which then will correctly setup the BC rows
-  // that exist on multiple chares (which now will be the same as the results
-  // of making the BCs consistent across all chares that contribute).
+  // apply the BCs, which then will correctly setup the BC rows of the matrix
+  // and on the rhs that (1) may contain a nonzero value, (2) may have partial
+  // contributions due to Neumann BCs, and (3) will be modified to apply
+  // Dirichlet BCs.
   thisProxy[ thisIndex ].wait4bc();
   thisProxy[ thisIndex ].wait4r();
 
@@ -281,14 +287,21 @@ ConjugateGradients::init(
   if (m_nodeCommMap.empty()) {
     combc_complete();
   } else {
+    auto ncomp = m_A.Ncomp();
     for (const auto& [c,n] : m_nodeCommMap) {
       decltype(m_bc) expbc;
+      std::vector< std::vector< tk::real > > qc( n.size() );
+      std::size_t k = 0;
       for (auto g : n) {
         auto i = tk::cref_find( m_lid, g );
         auto j = m_bc.find(i);
         if (j != end(m_bc)) expbc[g] = j->second;
+        std::vector< tk::real > nq( ncomp );
+        for (std::size_t d=0; d<ncomp; ++d) nq[d] = m_q[ i*ncomp+d ];
+        qc[k++] = std::move(nq);
       }
-      thisProxy[c].combc( expbc );
+      std::vector< std::size_t > g( begin(n), end(n) );
+      thisProxy[c].combc( expbc, g, qc );
     }
   }
 
@@ -296,14 +309,19 @@ ConjugateGradients::init(
 }
 
 void
-ConjugateGradients::combc( const std::map< std::size_t,
-                             std::vector< std::pair< bool, tk::real > > >& bc )
+ConjugateGradients::combc(
+  const std::map< std::size_t, std::vector< std::pair< bool, tk::real > > >& bc,
+  const std::vector< std::size_t >& gid,
+  const std::vector< std::vector< tk::real > >& qc )
 // *****************************************************************************
-//  Receive contributions to boundary conditions on chare-boundaries
+//  Receive contributions to boundary conditions and rhs on chare-boundaries
 //! \param[in] bc Contributions to boundary conditions
+//! \param[in] gid Global mesh node IDs at which we receive contributions
+//! \param[in] qc Partial contributions at chare-boundary nodes
 // *****************************************************************************
 {
-  for (const auto& [g,dirbc] : bc) m_bcc[ tk::cref_find(m_lid,g) ] = dirbc;
+  for (const auto& [g,dirbc] : bc) m_bcc[ tk::cref_find( m_lid, g ) ] = dirbc;
+  for (std::size_t i=0; i<gid.size(); ++i) m_qc[ gid[i] ] += qc[i];
 
   if (++m_nb == m_nodeCommMap.size()) {
     m_nb = 0;
@@ -318,11 +336,20 @@ ConjugateGradients::apply( CkCallback cb )
 //! \param[in] cb Call to continue with after applying the BCs is complete
 // *****************************************************************************
 {
+  auto ncomp = m_A.Ncomp();
+
   // Merge own and received contributions to boundary conditions
   for (const auto& [i,dirbc] : m_bcc) m_bc[i] = dirbc;
   tk::destroy( m_bcc );
 
-  auto ncomp = m_A.Ncomp();
+  for (const auto& [gid,q] : m_qc) {
+    auto i = tk::cref_find( m_lid, gid );
+    for (std::size_t c=0; c<ncomp; ++c) m_q[i*ncomp+c] += q[c];
+  }
+  tk::destroy( m_qc );
+
+  // Initialize rhs with Neumann BCs applied
+  m_b += m_q;
 
   // Apply Dirichlet BCs on matrix and rhs (with decreasing local id)
   std::fill( begin(m_r), end(m_r), 0.0 );
@@ -428,7 +455,7 @@ ConjugateGradients::solve( std::size_t maxit,
   m_it = 0;
   m_verbose = pe == 0 ? verbose : 0;
 
-  if (m_verbose) tk::Print() << "Xyst> Conjugate gradients (CG) solve start\n";
+  if (m_verbose) tk::Print() << "Xyst> Conjugate gradients start\n";
 
   next();
 }
@@ -532,9 +559,11 @@ ConjugateGradients::pq( tk::real d )
   // solve cannot continue.
   const auto eps = std::numeric_limits< tk::real >::epsilon();
   if (std::abs(d) < eps) {
-    m_it = m_maxit;
+    if (m_verbose) {
+      tk::Print() << "Xyst> Conjugate gradients it " << m_it << ", (p,q) = 0\n";
+    }
+    m_finished = true;
     m_alpha = 0.0;
-    if (m_verbose) tk::Print() << "Xyst> CG: (p,q) = 0\n";
   } else {
     m_alpha = m_rho / d;
   }
@@ -622,19 +651,31 @@ ConjugateGradients::x()
   auto normb = m_normb > 1.0e-14 ? m_normb : 1.0;
   auto normr = std::sqrt( m_rho );
 
-  if (m_verbose) {
-    tk::Print() << "Xyst> CG: "
-                << "it " << m_it << ", norm = " << normr/normb << '\n';
-  }
+  if ( m_finished || normr < m_tol*normb || m_it >= m_maxit ) {
 
-  if ( m_it < m_maxit && normr > m_tol*normb ) {
+    m_converged = normr > m_tol*normb ? false : true;
 
-    next();
+    if (m_verbose) {
+      std::stringstream c;
+      if (m_converged) {
+        c << " < " << m_tol << ", converged";
+      } else {
+        c << " > " << m_tol << ", not converged";
+      }
+      tk::Print() << "Xyst> Conjugate gradients it " << m_it
+                  << ", norm = " << normr/normb << c.str() << '\n';
+    }
+
+    m_solved.send( CkDataMsg::buildNew( sizeof(tk::real), &normr ) );
 
   } else {
 
-    m_converged = m_it == m_maxit && normr > m_tol*normb ? false : true;
-    m_solved.send( CkDataMsg::buildNew( sizeof(tk::real), &normr ) );
+    if (m_verbose > 1) {
+      tk::Print() << "Xyst> Conjugate gradients it "
+                  << m_it << ", norm = " << normr/normb << '\n';
+    }
+
+    next();
 
   }
 }

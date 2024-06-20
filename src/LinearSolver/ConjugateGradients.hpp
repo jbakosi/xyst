@@ -98,7 +98,7 @@ class ConjugateGradients : public CBase_ConjugateGradients {
                const std::vector< tk::real >& b,
                const std::vector< tk::real >& neubc,
                const std::unordered_map< std::size_t,
-                       std::vector< std::pair< bool, tk::real > > >& dirbc,
+                       std::vector< std::pair< int, tk::real > > >& dirbc,
                CkCallback cb );
 
     //! Setup solver
@@ -116,11 +116,12 @@ class ConjugateGradients : public CBase_ConjugateGradients {
 
     //! Receive contributions to boundary conditions and rhs on chare-boundaries
     void combc( const std::map< std::size_t,
-                        std::vector< std::pair< bool, tk::real > > >& bc,
+                        std::vector< std::pair< int, tk::real > > >& dbc,
                 const std::vector< std::size_t >& gid,
                 const std::vector< std::vector< tk::real > >& qc );
 
-    //! Receive contributions to rhs with BCs applied on chare-boundaries
+    //! \brief Receive contributions to rhs with Dirichlet BCs applied on
+    //!        chare-boundaries
     void comr( const std::vector< std::size_t >& gid,
                const std::vector< std::vector< tk::real > >& rc );
 
@@ -159,8 +160,8 @@ class ConjugateGradients : public CBase_ConjugateGradients {
       p | m_rc;
       p | m_nr;
       p | m_na;
-      p | m_bc;
-      p | m_bcc;
+      p | m_dirbc;
+      p | m_dirbcc;
       p | m_nb;
       p | m_p;
       p | m_q;
@@ -209,9 +210,9 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     //! Counter for assembling m_r (rhs with BCs applied)
     std::size_t m_na;
     //! Dirichlet boundary conditions
-    std::map< std::size_t, std::vector< std::pair< bool, tk::real > > > m_bc;
+    std::map< std::size_t, std::vector< std::pair<int,tk::real> > > m_dirbc;
     //! Dirichlet boundary conditions communication buffer
-    std::map< std::size_t, std::vector< std::pair< bool, tk::real > > > m_bcc;
+    std::map< std::size_t, std::vector< std::pair<int,tk::real> > > m_dirbcc;
     //! Counter for assembling boundary conditions
     std::size_t m_nb;
     //! Auxiliary vector for CG solve

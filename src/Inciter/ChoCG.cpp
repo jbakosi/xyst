@@ -815,7 +815,7 @@ ChoCG::preinit()
   auto d = Disc();
 
   std::unordered_map< std::size_t,
-    std::vector< std::pair< bool, tk::real > > > dirbc;
+    std::vector< std::pair< int, tk::real > > > dirbc;
 
   const auto& coord = d->Coord();
   const auto& x = coord[0];
@@ -849,9 +849,9 @@ ChoCG::preinit()
         auto n = tk::cross( ba, ca );
         auto grad = pg( x[N[0]], y[N[1]], z[N[2]] );
         auto f = tk::dot( n, grad ) / 6.0;
-        neubc[N[0]] -= f;
-        neubc[N[1]] -= f;
-        neubc[N[2]] -= f;
+        neubc[ N[0] ] -= f;
+        neubc[ N[1] ] -= f;
+        neubc[ N[2] ] -= f;
       }
     }
   }

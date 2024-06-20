@@ -243,7 +243,7 @@ ConjugateGradients::init(
   const std::vector< tk::real >& b,
   const std::vector< tk::real >& neubc,
   const std::unordered_map< std::size_t,
-          std::vector< std::pair< bool, tk::real > > >& dirbc,
+          std::vector< std::pair< int, tk::real > > >& dirbc,
   CkCallback cb )
 // *****************************************************************************
 //  Initialize linear solve: set initial guess and boundary conditions
@@ -260,14 +260,14 @@ ConjugateGradients::init(
   // Optionally set initial guess
   if (not x.empty()) m_x = x;
 
-  // Optionally set rhs
+  // Optionally set rhs, assumed complete in parallel
   if (not b.empty()) m_b = b;
 
-  // Set Neumann BCs
+  // Set Neumann BCs, partial in parallel, communication below
   m_q = neubc;
 
-  // Store incoming BCs in ordered map
-  for (auto&& [i,bcval] : dirbc) m_bc[i] = std::move(bcval);
+  // Store incoming Dirichlet BCs, partial in parallel, communication below
+  for (auto&& [i,bcval] : dirbc) m_dirbc[i] = std::move(bcval);
 
   // Get ready to communicate boundary conditions. This is necessary because
   // there can be nodes a chare contributes to but does not apply BCs on.
@@ -289,19 +289,19 @@ ConjugateGradients::init(
   } else {
     auto ncomp = m_A.Ncomp();
     for (const auto& [c,n] : m_nodeCommMap) {
-      decltype(m_bc) expbc;
+      decltype(m_dirbc) dbc;
       std::vector< std::vector< tk::real > > qc( n.size() );
       std::size_t k = 0;
       for (auto g : n) {
         auto i = tk::cref_find( m_lid, g );
-        auto j = m_bc.find(i);
-        if (j != end(m_bc)) expbc[g] = j->second;
+        auto j = m_dirbc.find(i);
+        if (j != end(m_dirbc)) dbc[g] = j->second;
         std::vector< tk::real > nq( ncomp );
         for (std::size_t d=0; d<ncomp; ++d) nq[d] = m_q[ i*ncomp+d ];
         qc[k++] = std::move(nq);
       }
-      std::vector< std::size_t > g( begin(n), end(n) );
-      thisProxy[c].combc( expbc, g, qc );
+      std::vector< std::size_t > gid( begin(n), end(n) );
+      thisProxy[c].combc( dbc, gid, qc );
     }
   }
 
@@ -310,17 +310,17 @@ ConjugateGradients::init(
 
 void
 ConjugateGradients::combc(
-  const std::map< std::size_t, std::vector< std::pair< bool, tk::real > > >& bc,
+  const std::map< std::size_t, std::vector< std::pair< int, tk::real > > >& dbc,
   const std::vector< std::size_t >& gid,
   const std::vector< std::vector< tk::real > >& qc )
 // *****************************************************************************
 //  Receive contributions to boundary conditions and rhs on chare-boundaries
-//! \param[in] bc Contributions to boundary conditions
+//! \param[in] dbc Contributions to Dirichlet boundary conditions
 //! \param[in] gid Global mesh node IDs at which we receive contributions
-//! \param[in] qc Partial contributions at chare-boundary nodes
+//! \param[in] qc Contributions to Neumann boundary conditions
 // *****************************************************************************
 {
-  for (const auto& [g,dirbc] : bc) m_bcc[ tk::cref_find( m_lid, g ) ] = dirbc;
+  for (const auto& [g,dirbc] : dbc) m_dirbcc[ tk::cref_find(m_lid,g) ] = dirbc;
   for (std::size_t i=0; i<gid.size(); ++i) m_qc[ gid[i] ] += qc[i];
 
   if (++m_nb == m_nodeCommMap.size()) {
@@ -338,22 +338,23 @@ ConjugateGradients::apply( CkCallback cb )
 {
   auto ncomp = m_A.Ncomp();
 
-  // Merge own and received contributions to boundary conditions
-  for (const auto& [i,dirbc] : m_bcc) m_bc[i] = dirbc;
-  tk::destroy( m_bcc );
+  // Merge own and received contributions to Dirichlet boundary conditions
+  for (const auto& [i,dirbc] : m_dirbcc) m_dirbc[i] = dirbc;
+  tk::destroy( m_dirbcc );
 
+  // Merge own and received contributions to Neumann boundary conditions
   for (const auto& [gid,q] : m_qc) {
     auto i = tk::cref_find( m_lid, gid );
     for (std::size_t c=0; c<ncomp; ++c) m_q[i*ncomp+c] += q[c];
   }
   tk::destroy( m_qc );
 
-  // Initialize rhs with Neumann BCs applied
+  // Apply Neumann BCs on rhs
   m_b += m_q;
 
   // Apply Dirichlet BCs on matrix and rhs (with decreasing local id)
   std::fill( begin(m_r), end(m_r), 0.0 );
-  for (auto bi = m_bc.rbegin(); bi != m_bc.rend(); ++bi) {
+  for (auto bi = m_dirbc.rbegin(); bi != m_dirbc.rend(); ++bi) {
     auto i = bi->first;
     const auto& dirbc = bi->second;
     for (std::size_t j=0; j<ncomp; ++j) {
@@ -363,7 +364,7 @@ ConjugateGradients::apply( CkCallback cb )
     }
   }
 
-  // Send partial rhs with BCs applied on chare-boundary nodes to fellow chares
+  // Send rhs with Dirichlet BCs partially applied to fellow chares
   if (m_nodeCommMap.empty()) {
     comr_complete();
   } else {
@@ -387,7 +388,7 @@ void
 ConjugateGradients::comr( const std::vector< std::size_t >& gid,
                           const std::vector< std::vector< tk::real > >& rc )
 // *****************************************************************************
-//  Receive contributions rhs with BCs applied on chare-boundaries
+//  Receive contributions to rhs with Dirichlet BCs applied on chare-boundaries
 //! \param[in] gid Global mesh node IDs at which we receive contributions
 //! \param[in] rc Partial contributions at chare-boundary nodes
 // *****************************************************************************
@@ -411,7 +412,7 @@ ConjugateGradients::r( CkCallback cb )
 {
   auto ncomp = m_A.Ncomp();
 
-  // Combine own and communicated contributions
+  // Combine own and communicated contributions to Dirichlet BCs applied to rhs
   for (const auto& [gid,r] : m_rc) {
     auto i = tk::cref_find( m_lid, gid );
     for (std::size_t c=0; c<ncomp; ++c) m_r[i*ncomp+c] += r[c];
@@ -422,7 +423,7 @@ ConjugateGradients::r( CkCallback cb )
   m_b -= m_r;
 
   // Apply Dirichlet BCs on rhs
-  for (const auto& [i,dirbc] : m_bc) {
+  for (const auto& [i,dirbc] : m_dirbc) {
     for (std::size_t j=0; j<ncomp; ++j) {
       if (dirbc[j].first) {
         m_b[i*ncomp+j] = dirbc[j].second;

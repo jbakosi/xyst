@@ -114,7 +114,7 @@ class CGReceiver : public CBase_CGReceiver {
 
 //! Test definitions for group
 
-//! Test simple CG solve with DOF=1 of Laplacian in serial
+//! Test simple CG solve with DOF=1 of Laplace eq in serial
 template<> template<>
 void ConjugateGradients_object::test< 1 >() {
   // This test spawns a new Charm++ chare which creates two new TUT tests. Each
@@ -122,7 +122,7 @@ void ConjugateGradients_object::test< 1 >() {
   // stage of the completion of the multiple tests as part of the series. The
   // spawed tests create new test results, sending them back to the suite if
   // successful.
-  set_test_name( "Laplacian 1DOF 1PE setup" );
+  set_test_name( "Laplace eq 1DOF 1PE setup" );
 
   // Mesh connectivity for simple tetrahedron-only mesh
   std::vector< std::size_t > inpoel {
@@ -210,7 +210,7 @@ void ConjugateGradients_object::test< 1 >() {
 
   // Create receiver chare whose callbacks are called when a CG task is done
   CProxy_CGReceiver host =
-    CProxy_CGReceiver::ckNew( "Laplacian 1DOF 1PE",
+    CProxy_CGReceiver::ckNew( "Laplace eq 1DOF 1PE",
                               /* maxit = */ 10,
                               /* tol = * */ 1.0e-3,
                               /* normb_ex = */ 3.7416573867739413,
@@ -221,7 +221,7 @@ void ConjugateGradients_object::test< 1 >() {
   cg[0].setup( CkCallback(CkIndex_CGReceiver::initialized(nullptr), host[0]) );
 }
 
-//! Test simple CG solve with DOF=1 of Laplacian on 2 PEs
+//! Test simple CG solve with DOF=1 of Laplace eq on 2 PEs
 template<> template<>
 void ConjugateGradients_object::test< 2 >() {
   // This test spawns a new Charm++ chare array of two elements which each
@@ -230,7 +230,7 @@ void ConjugateGradients_object::test< 2 >() {
   // the completion of the multiple tests as part of the series and
   // corresponding to which chare array element they complete. The spawed tests
   // create new test results, sending them back to the suite if successful.
-  set_test_name( "Laplacian 1DOF 2PE setup" );
+  set_test_name( "Laplace eq 1DOF 2PE setup" );
 
   // Initialize psup for PE0 and PE1
   std::vector<
@@ -284,7 +284,7 @@ void ConjugateGradients_object::test< 2 >() {
   // Create receiver chare array (2 elements) whose callbacks are called when a
   // CG task is done on a PE
   CProxy_CGReceiver host =
-    CProxy_CGReceiver::ckNew( "Laplacian 1DOF 2PE",
+    CProxy_CGReceiver::ckNew( "Laplace eq 1DOF 2PE",
                               /* maxit = */ 10,
                               /* tol = * */ 1.0e-3,
                               /* normb_ex = */ 3.7416573867739413,
@@ -354,7 +354,7 @@ void ConjugateGradients_object::test< 2 >() {
   cg.doneInserting();
 }
 
-//! Test simple CG solve with DOF=3 of Laplacian in serial
+//! Test simple CG solve with DOF=3 of Laplace eq in serial
 template<> template<>
 void ConjugateGradients_object::test< 3 >() {
   // This test spawns a new Charm++ chare which creates two new TUT tests. Each
@@ -362,7 +362,7 @@ void ConjugateGradients_object::test< 3 >() {
   // stage of the completion of the multiple tests as part of the series. The
   // spawed tests create new test results, sending them back to the suite if
   // successful.
-  set_test_name( "Laplacian 3DOF 1PE setup" );
+  set_test_name( "Laplace eq 3DOF 1PE setup" );
 
   // Mesh connectivity for simple tetrahedron-only mesh
   std::vector< std::size_t > inpoel {
@@ -451,7 +451,7 @@ void ConjugateGradients_object::test< 3 >() {
 
   // Create receiver chare whose callbacks are called when a CG task is done
   CProxy_CGReceiver host =
-    CProxy_CGReceiver::ckNew( "Laplacian 3DOF 1PE",
+    CProxy_CGReceiver::ckNew( "Laplace eq 3DOF 1PE",
                               /* maxit = */ 1000,
                               /* tol = * */ 1.0e-3,
                               /* normb_ex = */ 6.4807406984078604,
@@ -462,7 +462,7 @@ void ConjugateGradients_object::test< 3 >() {
   cg[0].setup( CkCallback(CkIndex_CGReceiver::initialized(nullptr), host[0]) );
 }
 
-//! Test simple CG solve with DOF=3 of Laplacian on 2 PEs
+//! Test simple CG solve with DOF=3 of Laplace eq on 2 PEs
 template<> template<>
 void ConjugateGradients_object::test< 4 >() {
   // This test spawns a new Charm++ chare array of two elements which each
@@ -471,7 +471,7 @@ void ConjugateGradients_object::test< 4 >() {
   // the completion of the multiple tests as part of the series and
   // corresponding to which chare array element they complete. The spawed tests
   // create new test results, sending them back to the suite if successful.
-  set_test_name( "Laplacian 3DOF 2PE setup" );
+  set_test_name( "Laplace eq 3DOF 2PE setup" );
 
   // Initialize psup for PE0 and PE1
   std::vector<
@@ -525,7 +525,7 @@ void ConjugateGradients_object::test< 4 >() {
   // Create receiver chare array (2 elements) whose callbacks are called when a
   // CG task is done on a PE
   CProxy_CGReceiver host =
-    CProxy_CGReceiver::ckNew( "Laplacian 3DOF 2PE",
+    CProxy_CGReceiver::ckNew( "Laplace eq 3DOF 2PE",
                               /* maxit = */ 1000,
                               /* tol = * */ 1.0e-3,
                               /* normb_ex = */ 6.4807406984078604,

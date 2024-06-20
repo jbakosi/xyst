@@ -39,7 +39,7 @@ module conjugategradients {
                        const std::vector< tk::real >& b,
                        const std::vector< tk::real >& neubc,
                        const std::unordered_map< std::size_t,
-                         std::vector< std::pair< bool, tk::real > > >& dirbc,
+                         std::vector< std::pair< int, tk::real > > >& dirbc,
                        CkCallback cb );
       entry void setup( CkCallback cb );
       entry void solve( std::size_t maxit,
@@ -54,7 +54,7 @@ module conjugategradients {
       entry void comres( const std::vector< std::size_t >& gid,
                          const std::vector< std::vector< tk::real > >& rc );
       entry void combc( const std::map< std::size_t,
-                          std::vector< std::pair< bool, tk::real > > >& bc,
+                          std::vector< std::pair< int, tk::real > > >& dbc,
                         const std::vector< std::size_t >& gid,
                           const std::vector< std::vector< tk::real > >& qc );
       entry void comq( const std::vector< std::size_t >& gid,

@@ -969,8 +969,6 @@ PR()
     pr = poisson_sine3::pr;
   else if (problem == "poisson_neumann")
     pr = poisson_neumann::pr;
-  else
-    Throw( "problem type not hooked up" );
 
   return pr;
 }
@@ -989,12 +987,14 @@ pressure_rhs( const std::array< std::vector< tk::real >, 3 >& coord,
   Assert( coord[0].size() == r.size(), "Size mismatch" );
 
   auto pr = PR();
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
 
-  for (std::size_t i=0; i<x.size(); ++i) {
-    r[i] = pr( x[i], y[i], z[i] ) * vol[i];
+  if (pr) {
+    const auto& x = coord[0];
+    const auto& y = coord[1];
+    const auto& z = coord[2];
+    for (std::size_t i=0; i<x.size(); ++i) {
+      r[i] = pr( x[i], y[i], z[i] ) * vol[i];
+    }
   }
 }
 

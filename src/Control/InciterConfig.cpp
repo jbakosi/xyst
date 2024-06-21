@@ -843,15 +843,17 @@ problem( lua_State* L, Config& cfg )
     lua_pop( L, 1 );
   }
 
+  const auto& solver = cfg.get< tag::solver >();
   const auto& problem = cfg.get< tag::problem >();
+
   auto& n = cfg.get< tag::problem_ncomp >();
   n = 5;
+
   if (problem == "slot_cyl" || problem == "point_src") ++n;
 
-  const auto& solver = cfg.get< tag::solver >();
   if (solver == "chocg") {
+    //if (problem.find("poisson") != std::string::npos)
     n = 1;
-    //if (problem.find("poisson") != std::string::npos) n = 1;
   }
 
   lua_pop( L, 1 );

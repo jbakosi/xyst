@@ -4,6 +4,7 @@ print "Poisson solve with Dirichlet and Neumann BCs"
 
 nstep = 1
 ttyi = 1
+dt = 0.5
 
 solver = "chocg"
 

@@ -955,7 +955,7 @@ Config::control()
     get< tag::term >() = real( L, "term", largereal, true );
     get< tag::ttyi >() = unsigint( L, "ttyi", 1, true );
     get< tag::cfl >() = real( L, "cfl", 0.0, true );
-    get< tag::dt >() = real( L, "dt", 0.0, true );
+    get< tag::dt >() = real( L, "dt", 0.5, true );
     get< tag::turkel >() = real( L, "turkel", 0.5, true );
     get< tag::velinf >() = vector( L, "velinf", 1.0, true );
     get< tag::t0 >() = real( L, "t0", 0.0, true );

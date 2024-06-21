@@ -694,7 +694,7 @@ ic( tk::real, tk::real, tk::real, tk::real )
 
 } // poisson::
 
-namespace poisson_const_rhs {
+namespace poisson_const {
 
 static tk::real
 pr( tk::real, tk::real, tk::real )
@@ -719,7 +719,7 @@ ic( tk::real x, tk::real y, tk::real z )
   return x*x + y*y + z*z;
 }
 
-} // poisson_const_rhs::
+} // poisson_const::
 
 namespace poisson_harmonic {
 
@@ -959,8 +959,8 @@ PR()
 
   std::function< tk::real( tk::real, tk::real, tk::real ) > pr;
 
-  if (problem == "poisson_const_rhs")
-    pr = poisson_const_rhs::pr;
+  if (problem == "poisson_const")
+    pr = poisson_const::pr;
   else if (problem == "poisson_harmonic")
     pr = poisson_harmonic::pr;
   else if (problem == "poisson_sine")
@@ -1009,8 +1009,8 @@ PRESSURE_IC()
 
   std::function< tk::real( tk::real, tk::real, tk::real ) > ic;
 
-  if (problem == "poisson_const_rhs")
-    ic = poisson_const_rhs::ic;
+  if (problem == "poisson_const")
+    ic = poisson_const::ic;
   else if (problem == "poisson_harmonic")
     ic = poisson_harmonic::ic;
   else if (problem == "poisson_sine")
@@ -1071,8 +1071,8 @@ initialize( tk::real x, tk::real y, tk::real z )
 
   std::function< tk::real( tk::real, tk::real, tk::real ) > ic;
 
-  if (problem == "poisson_const_rhs")
-    ic = poisson_const_rhs::ic;
+  if (problem == "poisson_const")
+    ic = poisson_const::ic;
   else if (problem == "poisson_harmonic")
     ic = poisson_harmonic::ic;
   else if (problem == "poisson_sine")

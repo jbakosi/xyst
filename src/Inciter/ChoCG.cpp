@@ -862,7 +862,8 @@ ChoCG::preinit()
   problems::pressure_rhs( d->Coord(), d->Vol(), rhs );
 
   // Initialize pressure solve
-  m_cgpre[ thisIndex ].ckLocal()->init( {}, rhs, neubc, dirbc,
+  const auto& pc = g_cfg.get< tag::pre_pc >();
+  m_cgpre[ thisIndex ].ckLocal()->init( {}, rhs, neubc, dirbc, pc,
     CkCallback( CkIndex_ChoCG::presolve(), thisProxy[thisIndex] ) );
 }
 

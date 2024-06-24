@@ -914,6 +914,7 @@ pressure( lua_State* L, Config& cfg )
   cfg.get< tag::pre_iter >() = unsigint( L, "iter", 10 );
   cfg.get< tag::pre_tol >() = real( L, "tol", 1.0e-3 );
   cfg.get< tag::pre_verbose >() = unsigint( L, "verbose", 0 );
+  cfg.get< tag::pre_pc >() = string( L, "pc", "none" );
 
   lua_pop( L, 1 );
 }

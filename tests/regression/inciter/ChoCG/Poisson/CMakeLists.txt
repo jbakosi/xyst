@@ -81,6 +81,26 @@ add_regression_test(chocg_poisson_neumann
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS chocg)
 
+add_regression_test(chocg_poisson_sine3_jacobi
+                    ${INCITER_EXECUTABLE}
+                    NUMPES 4
+                    INPUTFILES poisson_sine3_jacobi.q unitcube_01_1k.exo
+                    ARGS -c poisson_sine3_jacobi.q -i unitcube_01_1k.exo
+                    BIN_BASELINE poisson_sine3_jacobi_pe4.std.exo.0
+                                 poisson_sine3_jacobi_pe4.std.exo.1
+                                 poisson_sine3_jacobi_pe4.std.exo.2
+                                 poisson_sine3_jacobi_pe4.std.exo.3
+                    BIN_RESULT out.e-s.0.4.0
+                               out.e-s.0.4.1
+                               out.e-s.0.4.2
+                               out.e-s.0.4.3
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    TEXT_BASELINE diag_poisson_sine3.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS chocg)
+
 # Parallel + virtualization
 
 add_regression_test(chocg_poisson_const

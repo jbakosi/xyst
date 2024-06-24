@@ -8,24 +8,28 @@
              All rights reserved. See the LICENSE file for details.
   \brief     Charm++ chare array for distributed conjugate gradients.
   \details   Charm++ chare array for asynchronous distributed
-             conjugate gradients linear solver.
-  \see Y. Saad, Iterative Methods for Sparse Linear Systems: Second Edition,
-    ISBN 9780898718003, 2003, Algorithm 6.18, conjugate gradients to solve the
-    linear system A * x = b, reproduced here:
+             conjugate gradients linear solver for the symmetric linear system
+             A * x = b, where A is in compressed sparse row storage, containing
+             only the upper triangular part of A.
+  \see Y. Saad, Iterative Methods for Sparse Linear Systems: 2nd Edition,
+    ISBN 9780898718003, 2003.
 
-    Compute r0:=b-A*x0, p0:=r0
+    Algorithm 'Preconditioned Conjugate Gradient':
+
+    Compute r0 := b - A x0, z0 := M^{-1} r0, p0 := z0
     For j=0,1,..., until convergence, do
-      alpha_j := (r_j,r_j) / (Ap_j,p_j)
+      alpha_j := (r_j,z_j) / (A p_j,p_j)
       x_{j+1} := x_j + alpha_j p_j
       r_{j+1} := r_j - alpha_j A p_j
-      beta_j := (r_{j+1},r_{j+1}) / (r_j,r_j)
-      p_{j+1} := r_{j+1} + beta_j p_j
+      z_{j+1} := M^{-1} r_{j+1}
+      beta_j  := (r_{j+1},z_{j+1}) / (r_j,z_j)
+      p_{j+1} := z_{j+1} + beta_j p_j
     end
+
 */
 // *****************************************************************************
 
 #include <numeric>
-#include <iostream>
 
 #include "Exception.hpp"
 #include "ConjugateGradients.hpp"
@@ -47,16 +51,20 @@ ConjugateGradients::ConjugateGradients(
   m_A( A ),
   m_x( x ),
   m_b( b ),
+  m_pc( "none" ),
   m_gid( gid ),
   m_lid( lid ),
   m_nodeCommMap( nodecommmap ),
   m_r( m_A.rsize(), 0.0 ),
+  m_z( m_A.rsize(), 0.0 ),
+  m_d( m_A.rsize(), 0.0 ),
   m_nr( 0 ),
   m_na( 0 ),
   m_nb( 0 ),
   m_p( m_A.rsize(), 0.0 ),
   m_q( m_A.rsize(), 0.0 ),
   m_nq( 0 ),
+  m_nd( 0 ),
   m_initres(),
   m_solved(),
   m_normb( 0.0 ),
@@ -106,6 +114,7 @@ ConjugateGradients::setup( CkCallback cb )
   // initiate computing A * x (for the initial residual)
   thisProxy[ thisIndex ].wait4res();
   residual();
+  pc();
 
   // initiate computing norm of right hand side
   dot( m_b, m_b,
@@ -198,13 +207,81 @@ ConjugateGradients::comres( const std::vector< std::size_t >& gid,
 }
 
 void
+ConjugateGradients::pc()
+// *****************************************************************************
+//  Setup preconditioner
+// *****************************************************************************
+{
+  auto ncomp = m_A.Ncomp();
+
+  if (m_pc == "none") {
+
+    for (std::size_t i=0; i<m_q.size()/ncomp; ++i) {
+      auto c = tk::count( m_nodeCommMap, m_gid[i] );
+      for (std::size_t d=0; d<ncomp; ++d) {
+        m_q[i*ncomp+d] = 1.0 / c;
+      }
+    }
+
+  } else if (m_pc == "jacobi") {
+
+    // Extract Jacobi preconditioner from matrix
+    for (std::size_t i=0; i<m_q.size()/ncomp; ++i) {
+      for (std::size_t d=0; d<ncomp; ++d) {
+        m_q[i*ncomp+d] = m_A(i,i,d);
+      }
+    }
+
+  }
+
+  // Send partial preconditioner on chare-boundary nodes to fellow chares
+  if (m_nodeCommMap.empty()) {
+    comd_complete();
+  } else {
+    for (const auto& [c,n] : m_nodeCommMap) {
+      std::vector< std::vector< tk::real > > qc( n.size() );
+      std::size_t j = 0;
+      for (auto g : n) {
+        std::vector< tk::real > nq( ncomp );
+        auto i = tk::cref_find( m_lid, g );
+        for (std::size_t d=0; d<ncomp; ++d) nq[d] = m_q[ i*ncomp+d ];
+        qc[j++] = std::move(nq);
+      }
+      thisProxy[c].comd( std::vector<std::size_t>(begin(n),end(n)), qc );
+    }
+  }
+
+  ownd_complete();
+}
+
+void
+ConjugateGradients::comd( const std::vector< std::size_t >& gid,
+                          const std::vector< std::vector< tk::real > >& qc )
+// *****************************************************************************
+//  Receive contributions to preconditioner on chare-boundaries
+//! \param[in] gid Global mesh node IDs at which we receive contributions
+//! \param[in] qc Partial contributions at chare-boundary nodes
+// *****************************************************************************
+{
+  Assert( qc.size() == gid.size(), "Size mismatch" );
+
+  for (std::size_t i=0; i<gid.size(); ++i) m_qc[ gid[i] ] += qc[i];
+
+  if (++m_nd == m_nodeCommMap.size()) {
+    m_nd = 0;
+    comd_complete();
+  }
+}
+
+void
 ConjugateGradients::initres()
 // *****************************************************************************
 // Finish computing the initial residual, r = b - A * x
 // *****************************************************************************
 {
-  // Combine own and communicated contributions to r = A * x
   auto ncomp = m_A.Ncomp();
+
+  // Combine own and communicated contributions to r = A * x
   for (const auto& [gid,r] : m_rc) {
     auto i = tk::cref_find( m_lid, gid );
     for (std::size_t c=0; c<ncomp; ++c) m_r[i*ncomp+c] += r[c];
@@ -218,16 +295,30 @@ ConjugateGradients::initres()
   // Initialize p
   m_p = m_r;
 
-  // initiate computing the dot product of the initial residual, rho = (r,r)
-  dot( m_r, m_r,
+  // Combine own and communicated contributions to q = A * p
+  for (const auto& [gid,q] : m_qc) {
+    auto i = tk::cref_find( m_lid, gid );
+    for (std::size_t c=0; c<ncomp; ++c)
+      m_q[i*ncomp+c] += q[c];
+  }
+  tk::destroy( m_qc );
+
+  // Set preconditioner
+  m_d = m_q;
+
+  // initialize preconditioned solve: compute z = M^{-1} * r
+  for (std::size_t i=0; i<m_z.size(); ++i) m_z[i] = m_r[i] / m_d[i];
+
+  // initiate computing the dot product of the initial residual, rho = (r,z)
+  dot( m_r, m_z,
        CkCallback( CkReductionTarget(ConjugateGradients,rho), thisProxy ) );
 }
 
 void
 ConjugateGradients::rho( tk::real r )
 // *****************************************************************************
-// Compute rho = (r,r)
-//! \param[in] r Dot product, rho = (r,r) (aggregated across all chares)
+// Compute rho = (r,z)
+//! \param[in] r Dot product, rho = (r,z) (aggregated across all chares)
 // *****************************************************************************
 {
   // store dot product of residual
@@ -244,6 +335,7 @@ ConjugateGradients::init(
   const std::vector< tk::real >& neubc,
   const std::unordered_map< std::size_t,
           std::vector< std::pair< int, tk::real > > >& dirbc,
+  const std::string& pc,
   CkCallback cb )
 // *****************************************************************************
 //  Initialize linear solve: set initial guess and boundary conditions
@@ -251,12 +343,16 @@ ConjugateGradients::init(
 //! \param[in] b Right hand side vector
 //! \param[in] neubc Right hand side vector with Neumann BCs partially applied
 //! \param[in] dirbc Local node ids and associated Dirichlet BCs
+//! \param[in] pc Preconditioner to use
 //! \param[in] cb Call to continue with when initialized and ready for a solve
 //! \details This function allows setting the initial guess and boundary
 //!   conditions, followed by computing the initial residual and the rhs norm.
 //!   It also performs communication of BC data.
 // *****************************************************************************
 {
+  // Configure preconditioner
+  m_pc = pc;
+
   // Optionally set initial guess
   if (not x.empty()) m_x = x;
 
@@ -470,8 +566,8 @@ ConjugateGradients::next()
   if (m_it == 0) m_alpha = 0.0; else m_alpha = m_rho/m_rho0;
   m_rho0 = m_rho;
 
-  // compute p = r + alpha * p
-  for (std::size_t i=0; i<m_p.size(); ++i) m_p[i] = m_r[i] + m_alpha * m_p[i];
+  // compute p = z + alpha * p
+  for (std::size_t i=0; i<m_p.size(); ++i) m_p[i] = m_z[i] + m_alpha * m_p[i];
 
   // initiate computing q = A * p
   thisProxy[ thisIndex ].wait4q();
@@ -572,6 +668,12 @@ ConjugateGradients::pq( tk::real d )
   // compute r = r - alpha * q
   for (std::size_t i=0; i<m_r.size(); ++i) m_r[i] -= m_alpha * m_q[i];
 
+  // apply preconditioner: compute z = M^{-1} * r
+  for (std::size_t i=0; i<m_z.size(); ++i) m_z[i] = m_r[i] / m_d[i];
+
+  // initiate computing (r,z)
+  dot( m_r, m_z,
+       CkCallback( CkReductionTarget(ConjugateGradients,rz), thisProxy ) );
   // initiate computing norm of residual: (r,r)
   dot( m_r, m_r,
        CkCallback( CkReductionTarget(ConjugateGradients,normres), thisProxy ) );
@@ -584,7 +686,18 @@ ConjugateGradients::normres( tk::real r )
 //! \param[in] r Dot product, (r,r) (aggregated across all chares)
 // *****************************************************************************
 {
-  m_rho = r;
+  m_normr = r;
+  normr_complete();
+}
+
+void
+ConjugateGradients::rz( tk::real rz )
+// *****************************************************************************
+// Compute (r,z)
+//! \param[in] rz Dot product, (r,z) (aggregated across all chares)
+// *****************************************************************************
+{
+  m_rho = rz;
 
   // Advance solution: x = x + alpha * p
   for (std::size_t i=0; i<m_x.size(); ++i) m_x[i] += m_alpha * m_p[i];
@@ -635,7 +748,7 @@ ConjugateGradients::comx( const std::vector< std::size_t >& gid,
 void
 ConjugateGradients::x()
 // *****************************************************************************
-// Assemble solution on chare boundaries
+//  Assemble solution on chare boundaries
 // *****************************************************************************
 {
   // Assemble solution on chare boundaries by averaging
@@ -650,7 +763,7 @@ ConjugateGradients::x()
 
   ++m_it;
   auto normb = m_normb > 1.0e-14 ? m_normb : 1.0;
-  auto normr = std::sqrt( m_rho );
+  auto normr = std::sqrt( m_normr );
 
   if ( m_finished || normr < m_tol*normb || m_it >= m_maxit ) {
 

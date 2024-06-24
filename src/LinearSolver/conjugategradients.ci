@@ -40,6 +40,7 @@ module conjugategradients {
                        const std::vector< tk::real >& neubc,
                        const std::unordered_map< std::size_t,
                          std::vector< std::pair< int, tk::real > > >& dirbc,
+                       const std::string& pc,
                        CkCallback cb );
       entry void setup( CkCallback cb );
       entry void solve( std::size_t maxit,
@@ -51,6 +52,7 @@ module conjugategradients {
       entry [reductiontarget] void rho( tk::real r );
       entry [reductiontarget] void pq( tk::real n );
       entry [reductiontarget] void normres( tk::real r );
+      entry [reductiontarget] void rz( tk::real rz );
       entry void comres( const std::vector< std::size_t >& gid,
                          const std::vector< std::vector< tk::real > >& rc );
       entry void combc( const std::map< std::size_t,
@@ -61,11 +63,14 @@ module conjugategradients {
                        const std::vector< std::vector< tk::real > >& qc );
       entry void comr( const std::vector< std::size_t >& gid,
                        const std::vector< std::vector< tk::real > >& rc );
+      entry void comd( const std::vector< std::size_t >& gid,
+                       const std::vector< std::vector< tk::real > >& qc );
       entry void comx( const std::vector< std::size_t >& gid,
                        const std::vector< std::vector< tk::real > >& xc );
 
       entry void wait4res() {
-        when ownres_complete(), comres_complete(), normb_complete() serial
+        when ownres_complete(), comres_complete(), normb_complete(),
+             ownd_complete(), comd_complete() serial
         { initres(); }
       }
 
@@ -85,7 +90,7 @@ module conjugategradients {
       }
 
       entry void wait4x() {
-        when ownx_complete(), comx_complete() serial
+        when ownx_complete(), comx_complete(), normr_complete() serial
         { x(); }
       }
 
@@ -94,12 +99,15 @@ module conjugategradients {
       entry void normb_complete();
       entry void ownbc_complete( CkCallback cb );
       entry void combc_complete();
+      entry void ownd_complete();
+      entry void comd_complete();
       entry void ownq_complete();
       entry void comq_complete();
       entry void ownr_complete( CkCallback cb );
       entry void comr_complete();
       entry void ownx_complete();
       entry void comx_complete();
+      entry void normr_complete();
     };
 
   } // tk::

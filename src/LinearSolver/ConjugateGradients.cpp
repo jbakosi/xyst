@@ -264,7 +264,7 @@ ConjugateGradients::init(
   if (not b.empty()) m_b = b;
 
   // Set Neumann BCs, partial in parallel, communication below
-  m_q = neubc;
+  if (not neubc.empty()) m_q = neubc;
 
   // Store incoming Dirichlet BCs, partial in parallel, communication below
   for (auto&& [i,bcval] : dirbc) m_dirbc[i] = std::move(bcval);

@@ -836,9 +836,10 @@ ChoCG::preinit()
   }
 
   // Configure Neumann BCs
-  std::vector< tk::real > neubc( x.size(), 0.0 );
+  std::vector< tk::real > neubc;
   auto pg = problems::PRESSURE_GRAD();
   if (pg) {
+    neubc.resize( x.size(), 0.0 );
     for (std::size_t e=0; e<m_triinpoel.size()/3; ++e) {
       const auto N = m_triinpoel.data() + e*3;
       const auto sym = m_besym.data() + e*3;

@@ -68,12 +68,14 @@ dirbc( tk::Fields& U,
 void
 symbc( tk::Fields& U,
        const std::vector< std::size_t >& symbcnodes,
-       const std::vector< tk::real >& symbcnorms )
+       const std::vector< tk::real >& symbcnorms,
+       std::size_t pos )
 // *****************************************************************************
 //  Set symmetry boundary conditions at nodes
 //! \param[in] U Solution vector at recent time step
 //! \param[in] symbcnodes Node ids at which to set symmetry BCs
 //! \param[in] symbcnorms Normals at nodes at which to set symmetry BCs
+//! \param[in] pos Position at which the three velocity components are in U
 // *****************************************************************************
 {
   if (g_cfg.get< tag::bc_sym >().empty()) return;
@@ -85,10 +87,10 @@ symbc( tk::Fields& U,
     auto nx = symbcnorms[i*3+0];
     auto ny = symbcnorms[i*3+1];
     auto nz = symbcnorms[i*3+2];
-    auto rvn = U(p,1)*nx + U(p,2)*ny + U(p,3)*nz;
-    U(p,1) -= rvn * nx;
-    U(p,2) -= rvn * ny;
-    U(p,3) -= rvn * nz;
+    auto rvn = U(p,pos+0)*nx + U(p,pos+1)*ny + U(p,pos+2)*nz;
+    U(p,pos+0) -= rvn * nx;
+    U(p,pos+1) -= rvn * ny;
+    U(p,pos+2) -= rvn * nz;
   }
 }
 

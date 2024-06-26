@@ -643,21 +643,28 @@ diag( lua_State* L, Config& cfg )
 }
 
 static void
-bc_dir( lua_State* L, Config& cfg )
+bc_dir( lua_State* L,
+        std::vector< std::vector< int > >& s,
+        bool global = false )
 // *****************************************************************************
 // Parse bc_dir table
 //! \param[in,out] L Lua state
-//! \param[in,out] cfg Config state
+//! \param[in] global True to parse from global scope, false from table on stack
+//! \param[in,out] s Config state
 // *****************************************************************************
 {
-  lua_getglobal( L, "bc_dir" );
+  if (global) {
+    lua_getglobal( L, "bc_dir" );
+  } else {
+    if (lua_istable( L, -1 )) lua_getfield( L, -1, "bc_dir" ); else return;
+  }
 
-  if (lua_istable( L, -1 )) {
-    auto& s = cfg.get< tag::bc_dir >();
+  if (!lua_isnil( L, -1 )) {
+    ErrChk( lua_istable( L, -1 ), "bc_dir must be a table" );
     int64_t n = luaL_len( L, -1 );
     for (int64_t i=1; i<=n; ++i) {
       lua_geti( L, -1, i );
-      ErrChk( lua_istable( L, -1 ), "bc_dir must be a table" );
+      ErrChk( lua_istable( L, -1 ), "bc_dir table entry must be a table" );
       s.emplace_back();
       auto& b = s.back();
       int64_t m = luaL_len( L, -1 );
@@ -675,16 +682,23 @@ bc_dir( lua_State* L, Config& cfg )
 }
 
 static void
-bc_sym( lua_State* L, Config& cfg )
+bc_sym( lua_State* L, std::vector< int >& s, bool global = false )
 // *****************************************************************************
 // Parse bc_sym table
 //! \param[in,out] L Lua state
-//! \param[in,out] cfg Config state
+//! \param[in] global True to parse from global scope, false from table on stack
+//! \param[in,out] s Config state
 // *****************************************************************************
 {
-  lua_getglobal( L, "bc_sym" );
+  if (global) {
+    lua_getglobal( L, "bc_sym" );
+  } else {
+    if (lua_istable( L, -1 )) lua_getfield( L, -1, "bc_sym" ); else return;
+  }
 
-  cfg.get< tag::bc_sym >() = sideset( L );
+  if (!lua_isnil( L, -1 )) {
+    s = sideset( L );
+  }
 
   lua_pop( L, 1 );
 }
@@ -848,12 +862,11 @@ problem( lua_State* L, Config& cfg )
 
   auto& n = cfg.get< tag::problem_ncomp >();
   n = 5;
-
   if (problem == "slot_cyl" || problem == "point_src") ++n;
 
   if (solver == "chocg") {
-    //if (problem.find("poisson") != std::string::npos)
-    n = 1;
+    n -= 2;
+    //if (problem.find("poisson") != std::string::npos) n = 1;
   }
 
   lua_pop( L, 1 );
@@ -915,6 +928,8 @@ pressure( lua_State* L, Config& cfg )
   cfg.get< tag::pre_tol >() = real( L, "tol", 1.0e-3 );
   cfg.get< tag::pre_verbose >() = unsigint( L, "verbose", 0 );
   cfg.get< tag::pre_pc >() = string( L, "pc", "none" );
+  bc_dir( L, cfg.get< tag::pre_bc_dir >() );
+  bc_sym( L, cfg.get< tag::pre_bc_sym >() );
 
   lua_pop( L, 1 );
 }
@@ -979,8 +994,8 @@ Config::control()
     get< tag::freezetime >() = real( L, "freezetime", 0.0, true );
 
     ic( L, *this );
-    bc_dir( L, *this );
-    bc_sym( L, *this );
+    bc_dir( L, get< tag::bc_dir >(), true );
+    bc_sym( L, get< tag::bc_sym >(), true );
     bc_far( L, *this );
     bc_pre( L, *this );
     problem( L, *this );

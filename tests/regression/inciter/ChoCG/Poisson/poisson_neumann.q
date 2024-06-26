@@ -17,20 +17,18 @@ problem = {
 pressure = {
   iter = 100,
   tol = 1.0e-6,
-  verbose = 2
-}
-
-bc_dir = {
-  { 1, 1 },     -- x = 0
-  { 2, 1 },     -- y = 0
-  { 3, 1 }      -- z = 1
-}
-
-bc_sym = {
-  sideset = {
-    4,          -- y = 1
-    5,          -- x = pi/4
-    6 }         -- z = 0
+  verbose = 2,
+  bc_dir = {
+    { 1, 1 },     -- x = 0
+    { 2, 1 },     -- y = 0
+    { 3, 1 }      -- z = 1
+  },
+  bc_sym = {
+    sideset = {
+      4,          -- y = 1
+      5,          -- x = pi/4
+      6 }         -- z = 0
+  }
 }
 
 fieldout = {

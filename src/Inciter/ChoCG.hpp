@@ -99,9 +99,16 @@ class ChoCG : public CBase_ChoCG {
     void comnorm( const std::unordered_map< int,
       std::unordered_map< std::size_t, std::array<tk::real,4> > >& inbnd );
 
+    //! Receive contributions to node gradients on chare-boundaries
+    void comgrad( const std::unordered_map< std::size_t,
+                          std::vector< tk::real > >& ingrad );
+
     //! Receive contributions to right-hand side vector on chare-boundaries
     void comrhs( const std::unordered_map< std::size_t,
                          std::vector< tk::real > >& inrhs );
+
+    //! Receive contributions to velocity divergence on chare-boundaries
+    void comdiv( const std::unordered_map< std::size_t, tk::real >& indiv );
 
     //! Evaluate residuals
     void evalres( const std::vector< tk::real >& l2res );
@@ -127,6 +134,9 @@ class ChoCG : public CBase_ChoCG {
     //! Compute integral quantities for output
     void integrals();
 
+    //! Compute gradient
+    void grad();
+
     //! Evaluate whether to continue with next time step
     void step();
 
@@ -145,6 +155,8 @@ class ChoCG : public CBase_ChoCG {
       p | m_cgpre;
       p | m_nrhs;
       p | m_nnorm;
+      p | m_ngrad;
+      p | m_ndiv;
       p | m_nbpint;
       p | m_nbeint;
       p | m_ndeint;
@@ -156,8 +168,12 @@ class ChoCG : public CBase_ChoCG {
       if (p.isUnpacking()) {
         m_un.resize( m_u.nunk(), m_u.nprop() );
         m_rhs.resize( m_u.nunk(), m_u.nprop() );
+        m_grad.resize( m_u.nunk(), 3UL );
       }
       p | m_rhsc;
+      p | m_gradc;
+      p | m_div;
+      p | m_divc;
       p | m_diag;
       p | m_bnorm;
       p | m_bnormc;
@@ -167,10 +183,11 @@ class ChoCG : public CBase_ChoCG {
       p | m_dsupedge;
       p | m_dsupint;
       p | m_besym;
+      p | m_besymp;
       p | m_dirbcmasks;
-      p | m_prebcnodes;
-      p | m_prebcvals;
+      p | m_dirbcmasksp;
       p | m_symbcnodeset;
+      p | m_symbcnodesetp;
       p | m_symbcnodes;
       p | m_symbcnorms;
       p | m_farbcnodeset;
@@ -197,6 +214,10 @@ class ChoCG : public CBase_ChoCG {
     std::size_t m_nrhs;
     //! Counter for receiving boundary point normals
     std::size_t m_nnorm;
+    //! Counter for receiving gradient
+    std::size_t m_ngrad;
+    //! Counter for receiving boundary velocity divergences
+    std::size_t m_ndiv;
     //! Counter for receiving boundary point integrals
     std::size_t m_nbpint;
     //! Counter for receiving boundary edge integrals
@@ -215,10 +236,19 @@ class ChoCG : public CBase_ChoCG {
     tk::Fields m_un;
     //! Right-hand side vector (for the high order system)
     tk::Fields m_rhs;
+    //! Scalar gradient in mesh nodes
+    tk::Fields m_grad;
+    //! Gradient receive buffer
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_gradc;
     //! Receive buffer for communication of the right hand side
     //! \details Key: global node id, value: rhs for all scalar components per
     //!   node.
     std::unordered_map< std::size_t, std::vector< tk::real > > m_rhsc;
+    //! Velocity divergence
+    std::vector< tk::real > m_div;
+    //! Receive buffer for communication of the velocity divergence
+    //! \details Key: global node id, value: velocity divergence
+    std::unordered_map< std::size_t, tk::real > m_divc;
     //! Diagnostics object
     NodeDiagnostics m_diag;
     //! Boundary point normals
@@ -245,14 +275,16 @@ class ChoCG : public CBase_ChoCG {
     std::array< std::vector< tk::real >, 3 > m_dsupint;
     //! Streamable boundary element symmetry BC flags
     std::vector< std::uint8_t > m_besym;
+    //! Streamable boundary element pressure Neumann BC flags
+    std::vector< std::uint8_t > m_besymp;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmasks;
-    //! Nodes at pressure BCs
-    std::vector< std::size_t > m_prebcnodes;
-    //! Density and pressure values at pressure BCs
-    std::vector< tk::real > m_prebcvals;
+    //! Nodes and their pressure Dirichlet BC masks
+    std::vector< std::size_t > m_dirbcmasksp;
     //! Unique set of ordered nodes at which symmetry BCs are set
     std::set< std::size_t > m_symbcnodeset;
+    //! Unique set of ordered nodes at which pressure Neumann BCs are set
+    std::set< std::size_t > m_symbcnodesetp;
     //! Streamable nodes at which symmetry BCs are set
     std::vector< std::size_t > m_symbcnodes;
     //! Streamable normals at nodes at which symmetry BCs are set
@@ -281,8 +313,20 @@ class ChoCG : public CBase_ChoCG {
       return m_disc[ thisIndex ].ckLocal();
     }
 
+   //! Prepare Dirichlet boundary condition data structures
+   void setupDirBC( const std::vector< std::vector< int > >& cfg,
+                    std::size_t ncomp,
+                    std::vector< std::size_t >& masks );
+
+   //! Prepare symmetry/Neumann boundary condition data structures
+   void setupSymBC( const std::vector< int >& cfg,
+                    std::set< std::size_t >& nodeset );
+
     //! Prepare boundary condition data structures
     void setupBC();
+
+    //! Start computing velocity divergence
+    void div();
 
     //! Initialize pressure solve
     void preinit();

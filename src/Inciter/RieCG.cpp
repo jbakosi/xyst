@@ -773,7 +773,7 @@ RieCG::BC( tk::real t )
   physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
 
   // Apply symmetry BCs
-  physics::symbc( m_u, m_symbcnodes, m_symbcnorms );
+  physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
 
   // Apply farfield BCs
   physics::farbc( m_u, m_farbcnodes, m_farbcnorms );

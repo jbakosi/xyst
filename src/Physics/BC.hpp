@@ -28,7 +28,8 @@ dirbc(
 void
 symbc( tk::Fields& U,
        const std::vector< std::size_t >& symbcnodes,
-       const std::vector< tk::real >& symbcnorms );
+       const std::vector< tk::real >& symbcnorms,
+       std::size_t pos );
 
 //! Set farfield boundary conditions
 void

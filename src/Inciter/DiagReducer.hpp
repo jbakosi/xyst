@@ -26,6 +26,7 @@ namespace diagnostics {
 //! Serialize to raw memory stream
 std::pair< int, std::unique_ptr<char[]> >
 serialize( std::size_t meshid,
+           std::size_t ncomp,
            const std::vector< std::vector< tk::real > >& d );
 
 //! Charm++ custom reducer for merging during reduction across PEs

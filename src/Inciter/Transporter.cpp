@@ -138,22 +138,25 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
   std::unordered_set< int > usersets;
 
   // Collect side sets at which BCs are set
+
   for (const auto& s : g_cfg.get< tag::bc_dir >()) {
-    if (!s.empty()) {
-      usersets.insert( s[0] );
-    }
+    if (!s.empty()) usersets.insert( s[0] );
   }
 
   for (auto s : g_cfg.get< tag::bc_sym >()) usersets.insert( s );
 
   for (auto s : g_cfg.get< tag::bc_far >()) usersets.insert( s );
  
-  for (auto s : g_cfg.get< tag::bc_pre >()) {
-    if (!s.empty()) {
-      usersets.insert( s[0] );
-    }
+  for (const auto& s : g_cfg.get< tag::bc_pre >()) {
+    if (!s.empty()) usersets.insert( s[0] );
   }
  
+  for (const auto& s : g_cfg.get< tag::pre_bc_dir >()) {
+    if (!s.empty()) usersets.insert( s[0] );
+  }
+
+  for (auto s : g_cfg.get< tag::pre_bc_sym >()) usersets.insert( s );
+
   // Add sidesets requested for field output
   for (auto s : g_cfg.get< tag::fieldout >()) usersets.insert( s );
   // Add sidesets requested for integral output
@@ -1139,12 +1142,14 @@ Transporter::rhodiagnostics( CkReductionMsg* msg )
   using namespace diagnostics;
 
   std::size_t meshid;
+  std::size_t ncomp;
   std::vector< std::vector< tk::real > > d;
 
   // Deserialize diagnostics vector
   PUP::fromMem creator( msg->getData() );
   // cppcheck-suppress uninitvar
   creator | meshid;
+  creator | ncomp;
   creator | d;
   delete msg;
 
@@ -1152,7 +1157,6 @@ Transporter::rhodiagnostics( CkReductionMsg* msg )
   // cppcheck-suppress unreadVariable
   auto id = std::to_string(meshid);
 
-  auto ncomp = g_cfg.get< tag::problem_ncomp >();
   Assert( ncomp > 0, "Number of scalar components must be positive");
   Assert( d.size() == NUMDIAG, "Diagnostics vector size mismatch" );
 
@@ -1235,12 +1239,14 @@ Transporter::prediagnostics( CkReductionMsg* msg )
   using namespace diagnostics;
 
   std::size_t meshid;
+  std::size_t ncomp;
   std::vector< std::vector< tk::real > > d;
 
   // Deserialize diagnostics vector
   PUP::fromMem creator( msg->getData() );
   // cppcheck-suppress uninitvar
   creator | meshid;
+  creator | ncomp;
   creator | d;
   delete msg;
 
@@ -1248,7 +1254,6 @@ Transporter::prediagnostics( CkReductionMsg* msg )
   // cppcheck-suppress unreadVariable
   auto id = std::to_string(meshid);
 
-  auto ncomp = g_cfg.get< tag::problem_ncomp >();
   Assert( ncomp > 0, "Number of scalar components must be positive");
   Assert( d.size() == NUMDIAG, "Diagnostics vector size mismatch" );
 

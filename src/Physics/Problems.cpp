@@ -34,11 +34,20 @@ ic( tk::real, tk::real, tk::real, tk::real )
 //! \return Values of conserved variables
 // *****************************************************************************
 {
+  // pressure-based solvers
+
   const auto& solver = g_cfg.get< tag::solver >();
   if (solver == "chocg") {
-    std::vector< tk::real > u( 3, 0.0 );
+    const auto& ncomp = g_cfg.get< tag::problem_ncomp >();
+    std::vector< tk::real > u( ncomp, 0.0 );
+    const auto& ic_velocity = g_cfg.get< tag::ic_velocity >();
+    u[0] = ic_velocity[0];
+    u[1] = ic_velocity[1];
+    u[2] = ic_velocity[2];
     return u;
   }
+
+  // density-based solvers
 
   auto ic_density = g_cfg.get< tag::ic_density >();
   const auto& ic_velocity = g_cfg.get< tag::ic_velocity >();
@@ -688,8 +697,7 @@ ic( tk::real, tk::real, tk::real, tk::real )
 //! \return Values for initial conditions
 // *****************************************************************************
 {
-  std::vector< tk::real > u( 1, 0.0 );
-  return u;
+  return { 0, 0, 0 };
 }
 
 } // poisson::

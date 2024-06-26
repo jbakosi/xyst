@@ -15,6 +15,24 @@
 
 namespace chorin {
 
+//! Compute divergence of a vector in all points
+void
+div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+     const std::array< std::vector< tk::real >, 3 >& dsupint,
+     const std::array< std::vector< tk::real >, 3 >& coord,
+     const std::vector< std::size_t >& triinpoel,
+     const tk::Fields& U,
+     std::vector< tk::real >& D );
+
+//! Compute nodal gradients of a scalar in all points
+void
+grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+      const std::array< std::vector< tk::real >, 3 >& dsupint,
+      const std::array< std::vector< tk::real >, 3 >& coord,
+      const std::vector< std::size_t >& triinpoel,
+      const std::vector< tk::real >& u,
+      tk::Fields& G );
+
 //! Compute right hand side
 void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,

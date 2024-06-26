@@ -33,6 +33,8 @@ class NodeDiagnostics {
 
     //! Compute diagnostics for pressure-based solvers
     bool precompute( Discretization& d,
+                     const tk::Fields& u,
+                     const tk::Fields& un,
                      const std::vector< tk::real >& p,
                      uint64_t diag_iter ) const;
 

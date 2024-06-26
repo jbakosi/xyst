@@ -137,7 +137,7 @@ NodeDiagnostics::rhocompute( Discretization& d,
   diag[DT][0] = d.Dt();
 
   // Contribute to diagnostics
-  auto stream = serialize( d.MeshId(), diag );
+  auto stream = serialize( d.MeshId(), ncomp, diag );
   d.contribute( stream.first, stream.second.get(), DiagMerger,
     CkCallback(CkIndex_Transporter::rhodiagnostics(nullptr), d.Tr()) );
 
@@ -146,11 +146,15 @@ NodeDiagnostics::rhocompute( Discretization& d,
 
 bool
 NodeDiagnostics::precompute( Discretization& d,
+                             const tk::Fields& u,
+                             const tk::Fields& /*un*/,
                              const std::vector< tk::real >& p,
                              uint64_t diag_iter ) const
 // *****************************************************************************
 //  Compute diagnostics for pressure-based solvers
 //! \param[in] d Discretization proxy to read from
+//! \param[in] u Current solution vector
+//! \param[in] un Previous solution vector
 //! \param[in] p Current pressure solution
 //! \param[in] diag_iter Diagnostics output frequency
 //! \return True if diagnostics have been computed
@@ -169,12 +173,7 @@ NodeDiagnostics::precompute( Discretization& d,
   // Only compute diagnostics if needed in this time step
   if ( (d.It()+1) % diag_iter ) return false;
 
-  std::size_t ncomp = 1;
-
-  // Diagnostics vector (of vectors) during aggregation. See
-  // Inciter/Diagnostics.h.
-  std::vector< std::vector< tk::real > >
-    diag( NUMDIAG, std::vector< tk::real >( ncomp, 0.0 ) );
+  auto ncomp = u.nprop();
 
   const auto& v = d.V();  // nodal volumes without contributions from others
 
@@ -184,6 +183,7 @@ NodeDiagnostics::precompute( Discretization& d,
   // Evaluate analytic solution (if defined)
   auto an = p;
   if (pressure_sol) {
+    ncomp = 1;
     const auto& coord = d.Coord();
     const auto& x = coord[0];
     const auto& y = coord[1];
@@ -192,6 +192,11 @@ NodeDiagnostics::precompute( Discretization& d,
       an[i] = pressure_sol( x[i], y[i], z[i] );
     }
   }
+
+  // Diagnostics vector (of vectors) during aggregation. See
+  // Inciter/Diagnostics.h.
+  std::vector< std::vector< tk::real > >
+    diag( NUMDIAG, std::vector< tk::real >( ncomp, 0.0 ) );
 
   // Put in norms sweeping our mesh chunk
   for (std::size_t i=0; i<p.size(); ++i) {
@@ -218,7 +223,7 @@ NodeDiagnostics::precompute( Discretization& d,
   diag[DT][0] = d.Dt();
 
   // Contribute to diagnostics
-  auto stream = serialize( d.MeshId(), diag );
+  auto stream = serialize( d.MeshId(), ncomp, diag );
   d.contribute( stream.first, stream.second.get(), DiagMerger,
     CkCallback(CkIndex_Transporter::prediagnostics(nullptr), d.Tr()) );
 

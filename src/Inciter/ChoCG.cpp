@@ -55,6 +55,8 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_cgpre( cgpre ),
   m_nrhs( 0 ),
   m_nnorm( 0 ),
+  m_ngrad( 0 ),
+  m_ndiv( 0 ),
   m_nbpint( 0 ),
   m_nbeint( 0 ),
   m_ndeint( 0 ),
@@ -64,6 +66,8 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
+  m_grad( m_u.nunk(), 3 ),
+  m_div( m_u.nunk() ),
   m_stage( 0 ),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
@@ -110,8 +114,10 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
                                d->Lid(),
                                d->NodeCommMap() );
 
-  // Activate SDAG wait for initially computing integrals
+  // Activate SDAG waits for setup
   thisProxy[ thisIndex ].wait4int();
+  thisProxy[ thisIndex ].wait4div();
+  thisProxy[ thisIndex ].wait4grad();
 }
 
 std::tuple< tk::CSR, std::vector< tk::real >, std::vector< tk::real > >
@@ -159,14 +165,19 @@ ChoCG::laplacian()
 }
 
 void
-ChoCG::setupBC()
+ChoCG::setupDirBC( const std::vector< std::vector< int > >& cfg,
+                   std::size_t ncomp,
+                   std::vector< std::size_t >& masks )
 // *****************************************************************************
-// Prepare boundary condition data structures
+//  Prepare Dirichlet boundary condition data structures
+//! \param[in] cfg Boundary condition config data to use
+//! \param[in] ncomp Number of scalar component BCs expected per mesh node
+//! \param[in,out] masks Mesh nodes and their Dirichlet BC masks
 // *****************************************************************************
 {
   // Query Dirichlet BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > dir;
-  for (const auto& s : g_cfg.get< tag::bc_dir >()) {
+  for (const auto& s : cfg) {
     auto k = m_bface.find(s[0]);
     if (k != end(m_bface)) {
       auto& n = dir[ k->first ];
@@ -180,7 +191,7 @@ ChoCG::setupBC()
 
   // Augment Dirichlet BC nodes with nodes not necessarily part of faces
   const auto& lid = Disc()->Lid();
-  for (const auto& s : g_cfg.get< tag::bc_dir >()) {
+  for (const auto& s : cfg) {
     auto k = m_bnode.find(s[0]);
     if (k != end(m_bnode)) {
       auto& n = dir[ k->first ];
@@ -191,11 +202,9 @@ ChoCG::setupBC()
   }
 
   // Collect unique set of nodes + Dirichlet BC components mask
-  auto ncomp = m_u.nprop();
   auto nmask = ncomp + 1;
-  const auto& dbc = g_cfg.get< tag::bc_dir >();
   std::unordered_map< std::size_t, std::vector< int > > dirbcset;
-  for (const auto& mask : dbc) {
+  for (const auto& mask : cfg) {
     ErrChk( mask.size() == nmask, "Incorrect Dirichlet BC mask ncomp" );
     auto n = dir.find( mask[0] );
     if (n != end(dir))
@@ -206,59 +215,28 @@ ChoCG::setupBC()
           if (!m[c]) m[c] = mask[c+1];  // overwrite mask if 0 -> 1
       }
   }
+
   // Compile streamable list of nodes + Dirichlet BC components mask
-  tk::destroy( m_dirbcmasks );
+  tk::destroy( masks );
   for (const auto& [p,mask] : dirbcset) {
-    m_dirbcmasks.push_back( p );
-    m_dirbcmasks.insert( end(m_dirbcmasks), begin(mask), end(mask) );
+    masks.push_back( p );
+    masks.insert( end(masks), begin(mask), end(mask) );
   }
-  ErrChk( m_dirbcmasks.size() % nmask == 0, "Dirichlet BC masks incomplete" );
+  ErrChk( masks.size() % nmask == 0, "Dirichlet BC masks incomplete" );
+}
 
-  // Query pressure BC nodes associated to side sets
-  std::unordered_map< int, std::unordered_set< std::size_t > > pre;
-  for (const auto& ss : g_cfg.get< tag::bc_pre >()) {
-    for (const auto& s : ss) {
-      auto k = m_bface.find(s);
-      if (k != end(m_bface)) {
-        auto& n = pre[ k->first ];
-        for (auto f : k->second) {
-          n.insert( m_triinpoel[f*3+0] );
-          n.insert( m_triinpoel[f*3+1] );
-          n.insert( m_triinpoel[f*3+2] );
-        }
-      }
-    }
-  }
-
-  // Prepare density and pressure values for pressure BC nodes
-  const auto& pbc_set = g_cfg.get< tag::bc_pre >();
-  if (!pbc_set.empty()) {
-    const auto& pbc_r = g_cfg.get< tag::bc_pre_density >();
-    ErrChk( pbc_r.size() == pbc_set.size(), "Pressure BC density unspecified" );
-    const auto& pbc_p = g_cfg.get< tag::bc_pre_pressure >();
-    ErrChk( pbc_p.size() == pbc_set.size(), "Pressure BC pressure unspecified" );
-    tk::destroy( m_prebcnodes );
-    tk::destroy( m_prebcvals );
-    for (const auto& [s,n] : pre) {
-      m_prebcnodes.insert( end(m_prebcnodes), begin(n), end(n) );
-      for (std::size_t p=0; p<pbc_set.size(); ++p) {
-        for (auto u : pbc_set[p]) {
-          if (s == u) {
-            for (std::size_t i=0; i<n.size(); ++i) {
-              m_prebcvals.push_back( pbc_r[p] );
-              m_prebcvals.push_back( pbc_p[p] );
-            }
-          }
-        }
-      }
-    }
-    ErrChk( m_prebcnodes.size()*2 == m_prebcvals.size(),
-            "Pressure BC data incomplete" );
-  }
-
+void
+ChoCG::setupSymBC( const std::vector< int >& cfg,
+                   std::set< std::size_t >& nodeset )
+// *****************************************************************************
+//  Prepare symmetry/Neumann boundary condition data structures
+//! \param[in] cfg Boundary condition config data to use
+//! \param[in,out] set Mesh nodes at which symmetry BCs are set
+// *****************************************************************************
+{
   // Query symmetry BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > sym;
-  for (auto s : g_cfg.get< tag::bc_sym >()) {
+  for (auto s : cfg) {
     auto k = m_bface.find(s);
     if (k != end(m_bface)) {
       auto& n = sym[ k->first ];
@@ -270,29 +248,22 @@ ChoCG::setupBC()
     }
   }
 
-  // Query farfield BC nodes associated to side sets
-  std::unordered_map< int, std::unordered_set< std::size_t > > far;
-  for (auto s : g_cfg.get< tag::bc_far >()) {
-    auto k = m_bface.find(s);
-    if (k != end(m_bface)) {
-      auto& n = far[ k->first ];
-      for (auto f : k->second) {
-        n.insert( m_triinpoel[f*3+0] );
-        n.insert( m_triinpoel[f*3+1] );
-        n.insert( m_triinpoel[f*3+2] );
-      }
-    }
-  }
-
   // Generate unique set of symmetry BC nodes
-  tk::destroy( m_symbcnodeset );
-  for (const auto& [s,n] : sym) m_symbcnodeset.insert( begin(n), end(n) );
-  // Generate unique set of farfield BC nodes
-  tk::destroy( m_farbcnodeset );
-  for (const auto& [s,n] : far) m_farbcnodeset.insert( begin(n), end(n) );
+  tk::destroy( nodeset );
+  for (const auto& [s,n] : sym) nodeset.insert( begin(n), end(n) );
+}
 
-  // If farfield BC is set on a node, will not also set symmetry BC
-  for (auto i : m_farbcnodeset) m_symbcnodeset.erase(i);
+void
+ChoCG::setupBC()
+// *****************************************************************************
+// Prepare boundary condition data structures
+// *****************************************************************************
+{
+  setupDirBC( g_cfg.get< tag::bc_dir >(), m_u.nprop(), m_dirbcmasks );
+  setupDirBC( g_cfg.get< tag::pre_bc_dir >(), /*ncomp=*/1, m_dirbcmasksp );
+
+  setupSymBC( g_cfg.get< tag::bc_sym >(), m_symbcnodeset );
+  setupSymBC( g_cfg.get< tag::pre_bc_sym >(), m_symbcnodesetp );
 }
 
 void
@@ -499,7 +470,7 @@ ChoCG::setup( tk::real v )
   Disc()->Boxvol() = v;
 
   // Set initial conditions
-  //problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
+  problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
   if (!g_cfg.get< tag::histout >().empty()) {
@@ -586,6 +557,13 @@ ChoCG::streamable()
   std::size_t i = 0;
   for (auto p : m_triinpoel) {
     m_besym[i++] = static_cast< std::uint8_t >(m_symbcnodeset.count(p));
+  }
+
+  // Generate boundary element Neumann pressure BC flags
+  m_besymp.resize( m_triinpoel.size() );
+  i = 0;
+  for (auto p : m_triinpoel) {
+    m_besymp[i++] = static_cast< std::uint8_t >(m_symbcnodesetp.count(p));
   }
 
   // Query surface integral output nodes
@@ -802,8 +780,55 @@ ChoCG::merge()
   // Enforce boundary conditions using (re-)computed boundary data
   BC( Disc()->T() );
 
-  // Initialize pressure solve
-  preinit();
+  // Compute initial velocity divergence
+  div();
+}
+
+void
+ChoCG::div()
+// *****************************************************************************
+//  Start computing velocity divergence
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  // Compute velocity divergence
+  chorin::div( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_div );
+
+  // Communicate velocity divergence to other chares on chare-boundary
+  const auto& lid = d->Lid();
+  if (d->NodeCommMap().empty()) {
+    comdiv_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      decltype(m_divc) exp;
+      for (auto g : n) exp[g] = m_div[ tk::cref_find(lid,g) ];
+      thisProxy[c].comdiv( exp );
+    }
+  }
+  owndiv_complete();
+}
+
+void
+ChoCG::comdiv( const std::unordered_map< std::size_t, tk::real >& indiv )
+// *****************************************************************************
+//  Receive contributions to velocity divergence on chare-boundaries
+//! \param[in] indiv Partial contributions of velocity divergence to
+//!   chare-boundary nodes. Key: global mesh node IDs, value: contribution.
+//! \details This function receives contributions to m_div, which stores the
+//!   velocity divergence at mesh nodes. While m_div stores own contributions,
+//!   m_divc collects the neighbor chare contributions during communication.
+//!   This way work on m_div and m_divc is overlapped. The two are combined in
+//!   preinit().
+// *****************************************************************************
+{
+  for (const auto& [g,r] : indiv) m_divc[g] += r;
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_ndiv == Disc()->NodeCommMap().size()) {
+    m_ndiv = 0;
+    comdiv_complete();
+  }
 }
 
 void
@@ -813,6 +838,11 @@ ChoCG::preinit()
 // *****************************************************************************
 {
   auto d = Disc();
+  const auto lid = d->Lid();
+
+  // Combine own and communicated contributions to velocity divergence
+  for (const auto& [g,r] : m_divc) m_div[ tk::cref_find( lid, g ) ] += r;
+  tk::destroy(m_divc);
 
   std::unordered_map< std::size_t,
     std::vector< std::pair< int, tk::real > > > dirbc;
@@ -823,13 +853,13 @@ ChoCG::preinit()
   const auto& z = coord[2];
 
   // Configure Dirichlet BCs
-  if (!g_cfg.get< tag::bc_dir >().empty()) {
+  if (!g_cfg.get< tag::pre_bc_dir >().empty()) {
     auto ic = problems::PRESSURE_IC();
     std::size_t nmask = 1 + 1;
-    Assert( m_dirbcmasks.size() % nmask == 0, "Size mismatch" );
-    for (std::size_t i=0; i<m_dirbcmasks.size()/nmask; ++i) {
-      auto p = m_dirbcmasks[i*nmask+0];     // local node id
-      if (m_dirbcmasks[i*nmask+1]) {
+    Assert( m_dirbcmasksp.size() % nmask == 0, "Size mismatch" );
+    for (std::size_t i=0; i<m_dirbcmasksp.size()/nmask; ++i) {
+      auto p = m_dirbcmasksp[i*nmask+0];     // local node id
+      if (m_dirbcmasksp[i*nmask+1]) {
         dirbc[p] = {{ { 1, ic( x[p], y[p], z[p] ) } }};
       }
     }
@@ -842,7 +872,7 @@ ChoCG::preinit()
     neubc.resize( x.size(), 0.0 );
     for (std::size_t e=0; e<m_triinpoel.size()/3; ++e) {
       const auto N = m_triinpoel.data() + e*3;
-      const auto sym = m_besym.data() + e*3;
+      const auto sym = m_besymp.data() + e*3;
       if (sym[0] && sym[1] && sym[2]) {
         const std::array< tk::real, 3 >
           ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
@@ -858,12 +888,11 @@ ChoCG::preinit()
   }
 
   // Configure right hand side
-  std::vector< tk::real > rhs( x.size() );
-  problems::pressure_rhs( d->Coord(), d->Vol(), rhs );
+  problems::pressure_rhs( d->Coord(), d->Vol(), m_div );
 
   // Initialize pressure solve
   const auto& pc = g_cfg.get< tag::pre_pc >();
-  m_cgpre[ thisIndex ].ckLocal()->init( {}, rhs, neubc, dirbc, pc,
+  m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, pc,
     CkCallback( CkIndex_ChoCG::presolve(), thisProxy[thisIndex] ) );
 }
 
@@ -876,8 +905,58 @@ ChoCG::presolve()
   auto iter = g_cfg.get< tag::pre_iter >();
   auto tol = g_cfg.get< tag::pre_tol >();
   auto verbose = g_cfg.get< tag::pre_verbose >();
+
   m_cgpre[ thisIndex ].ckLocal()->solve( iter, tol, thisIndex, verbose,
-    CkCallback( CkIndex_ChoCG::presolved(),thisProxy[thisIndex] ) );
+    CkCallback( CkIndex_ChoCG::grad(),thisProxy[thisIndex] ) );
+}
+
+void
+ChoCG::grad()
+// *****************************************************************************
+// Compute gradient
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  const auto& p = m_cgpre[ thisIndex ].ckLocal()->solution();
+  chorin::grad( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, p, m_grad );
+
+  // Send gradient contributions to neighbor chares
+  if (d->NodeCommMap().empty()) {
+    comgrad_complete();
+  } else {
+    const auto& lid = d->Lid();
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      std::unordered_map< std::size_t, std::vector< tk::real > > exp;
+      for (auto g : n) exp[g] = m_grad[ tk::cref_find(lid,g) ];
+      thisProxy[c].comgrad( exp );
+    }
+  }
+  owngrad_complete();
+}
+
+void
+ChoCG::comgrad(
+  const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
+// *****************************************************************************
+//  Receive contributions to node gradient on chare-boundaries
+//! \param[in] ingrad Partial contributions to chare-boundary nodes. Key: 
+//!   global mesh node IDs, value: contributions for all scalar components.
+//! \details This function receives contributions to m_grad, which stores the
+//!   gradients at mesh nodes. While m_grad stores own contributions, m_gradc
+//!   collects the neighbor chare contributions during communication. This way
+//!   work on m_grad and m_gradc is overlapped. The two are combined in
+//!   presolved().
+// *****************************************************************************
+{
+  using tk::operator+=;
+  for (const auto& [g,r] : ingrad) m_gradc[g] += r;
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_ngrad == Disc()->NodeCommMap().size()) {
+    m_ngrad = 0;
+    comgrad_complete();
+  }
 }
 
 void
@@ -886,6 +965,22 @@ ChoCG::presolved()
 // Continue setup after initial pressupre solve
 // *****************************************************************************
 {
+  auto d = Disc();
+  const auto lid = d->Lid();
+
+  // Combine own and communicated contributions to gradient
+  for (const auto& [g,r] : m_gradc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c) += r[c];
+  }
+  tk::destroy(m_gradc);
+
+  // divide weak result in gradient by nodal volume
+  const auto& vol = d->Vol();
+  for (std::size_t p=0; p<m_grad.nunk(); ++p)
+    for (std::size_t c=0; c<m_grad.nprop(); ++c)
+      m_grad(p,c) /= vol[p];
+
   if (Disc()->Initial()) {
     writeFields( CkCallback(CkIndex_ChoCG::start(), thisProxy[thisIndex]) );
   } else {
@@ -894,25 +989,17 @@ ChoCG::presolved()
 }
 
 void
-ChoCG::BC( tk::real /*t*/ )
+ChoCG::BC( tk::real t )
 // *****************************************************************************
 // Apply boundary conditions
 //! \param[in] t Physical time
 // *****************************************************************************
 {
-//  auto d = Disc();
-//
-//  // Apply Dirichlet BCs
-//  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
-//
-//  // Apply symmetry BCs
-//  physics::symbc( m_u, m_symbcnodes, m_symbcnorms );
-//
-//  // Apply farfield BCs
-//  physics::farbc( m_u, m_farbcnodes, m_farbcnorms );
-//
-//  // Apply pressure BCs
-//  physics::prebc( m_u, m_prebcnodes, m_prebcvals );
+  auto d = Disc();
+
+  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
+  physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
+  physics::farbc( m_u, m_farbcnodes, m_farbcnorms );
 }
 
 void
@@ -1106,7 +1193,7 @@ ChoCG::solve()
     // Compute diagnostics, e.g., residuals
     const auto& p = m_cgpre[ thisIndex ].ckLocal()->solution();
     auto diag_iter = g_cfg.get< tag::diag_iter >();
-    auto diag = m_diag.precompute( *d, p, diag_iter );
+    auto diag = m_diag.precompute( *d, m_u, m_un, p, diag_iter );
     // Increase number of iterations and physical time
     d->next();
     // Advance physical time for local time stepping

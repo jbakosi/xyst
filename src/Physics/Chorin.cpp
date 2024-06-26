@@ -28,6 +28,240 @@ namespace chorin {
 
 using inciter::g_cfg;
 
+void
+div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+     const std::array< std::vector< tk::real >, 3 >& dsupint,
+     const std::array< std::vector< tk::real >, 3 >& coord,
+     const std::vector< std::size_t >& triinpoel,
+     const tk::Fields& U,
+     std::vector< tk::real >& D )
+// *****************************************************************************
+//  Compute divergence of a vector in all points
+//! \param[in] dsupedge Domain superedges
+//! \param[in] dsupint Domain superedge integrals
+//! \param[in] coord Mesh node coordinates
+//! \param[in] triinpoel Boundary face connectivity
+//! \param[in] U Vector whose divergence to compute
+//! \param[in,out] D Nodal divergence of vector in all points
+//! \return Divergence of a vector in all mesh points
+// *****************************************************************************
+{
+
+  // flux function to compute velocity divergence for edge p,q
+  auto flux = [&]( const tk::real d[], std::size_t p, std::size_t q ) {
+    return d[0] * ( U(p,0) + U(q,0) ) +
+           d[1] * ( U(p,1) + U(q,1) ) +
+           d[2] * ( U(p,2) + U(q,2) );
+  };
+
+  std::fill( begin(D), end(D), 0.0 );
+
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
+  // domain integral
+
+  // domain edge contributions: tetrahedron superedges
+  for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
+    const auto N = dsupedge[0].data() + e*4;
+    const auto d = dsupint[0].data();
+    // edge fluxes
+    tk::real f[6] = {
+      flux( d+(e*6+0)*3, N[0], N[1] ),
+      flux( d+(e*6+1)*3, N[1], N[2] ),
+      flux( d+(e*6+2)*3, N[2], N[0] ),
+      flux( d+(e*6+3)*3, N[0], N[3] ),
+      flux( d+(e*6+4)*3, N[1], N[3] ),
+      flux( d+(e*6+5)*3, N[2], N[3] ) };
+    // edge flux contributions
+    D[ N[0] ] = D[ N[0] ] - f[0] + f[2] - f[3];
+    D[ N[1] ] = D[ N[1] ] + f[0] - f[1] - f[4];
+    D[ N[2] ] = D[ N[2] ] + f[1] - f[2] - f[5];
+    D[ N[3] ] = D[ N[3] ] + f[3] + f[4] + f[5];
+  }
+
+  // domain edge contributions: triangle superedges
+  for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
+    const auto N = dsupedge[1].data() + e*3;
+    const auto d = dsupint[1].data();
+    // edge fluxes
+    tk::real f[3] = {
+      flux( d+(e*3+0)*3, N[0], N[1] ),
+      flux( d+(e*3+1)*3, N[1], N[2] ),
+      flux( d+(e*3+2)*3, N[2], N[0] ) };
+    // edge flux contributions
+    D[ N[0] ] = D[ N[0] ] - f[0] + f[2];
+    D[ N[1] ] = D[ N[1] ] + f[0] - f[1];
+    D[ N[2] ] = D[ N[2] ] + f[1] - f[2];
+  }
+
+  // domain edge contributions: edges
+  for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
+    const auto N = dsupedge[2].data() + e*2;
+    const auto d = dsupint[2].data();
+    // edge flux
+    tk::real f = flux( d+e*3, N[0], N[1] );
+    // edge flux contributions
+    D[ N[0] ] -= f;
+    D[ N[1] ] += f;
+  }
+
+  // boundary integral
+
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
+    const auto N = triinpoel.data() + e*3;
+    const std::array< tk::real, 3 >
+      ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
+      ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
+    auto [nx,ny,nz] = tk::cross( ba, ca );
+    nx /= 12.0;
+    ny /= 12.0;
+    nz /= 12.0;
+    tk::real f[3] = { nx*U(N[0],0) + ny*U(N[0],1) + nz*U(N[0],2),
+                      nx*U(N[1],0) + ny*U(N[1],1) + nz*U(N[1],2),
+                      nx*U(N[2],0) + ny*U(N[2],1) + nz*U(N[2],2) };
+    auto fab = (f[0] + f[1])/4.0;
+    auto fbc = (f[1] + f[2])/4.0;
+    auto fca = (f[2] + f[0])/4.0;
+    D[ N[0] ] += fab + fca + f[0];
+    D[ N[1] ] += fab + fbc + f[1];
+    D[ N[2] ] += fbc + fca + f[2];
+  }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
+}
+
+void
+grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+      const std::array< std::vector< tk::real >, 3 >& dsupint,
+      const std::array< std::vector< tk::real >, 3 >& coord,
+      const std::vector< std::size_t >& triinpoel,
+      const std::vector< tk::real >& U,
+      tk::Fields& G )
+// *****************************************************************************
+//  Compute nodal gradients of a scalar in all points
+//! \param[in] dsupedge Domain superedges
+//! \param[in] dsupint Domain superedge integrals
+//! \param[in] coord Mesh node coordinates
+//! \param[in] triinpoel Boundary face connectivity
+//! \param[in] U Scalar whose gradient to compute
+//! \param[in,out] G Nodal gradient of scalar in all points
+//! \return Gradients of a scalar in all mesh points
+// *****************************************************************************
+{
+  Assert( G.nunk() == U.size(), "Size mismatch" );
+  Assert( G.nprop() == 3, "Size mismatch" );
+  G.fill( 0.0 );
+
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
+  // domain integral
+
+  // domain edge contributions: tetrahedron superedges
+  for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
+    const auto N = dsupedge[0].data() + e*4;
+    const auto d = dsupint[0].data();
+    tk::real u[] = { U[N[0]], U[N[1]], U[N[2]], U[N[3]] };
+    for (std::size_t j=0; j<3; ++j) {
+      tk::real f[] = {
+        d[(e*6+0)*3+j] * (u[1] + u[0]),
+        d[(e*6+1)*3+j] * (u[2] + u[1]),
+        d[(e*6+2)*3+j] * (u[0] + u[2]),
+        d[(e*6+3)*3+j] * (u[3] + u[0]),
+        d[(e*6+4)*3+j] * (u[3] + u[1]),
+        d[(e*6+5)*3+j] * (u[3] + u[2]) };
+      G(N[0],j) = G(N[0],j) - f[0] + f[2] - f[3];
+      G(N[1],j) = G(N[1],j) + f[0] - f[1] - f[4];
+      G(N[2],j) = G(N[2],j) + f[1] - f[2] - f[5];
+      G(N[3],j) = G(N[3],j) + f[3] + f[4] + f[5];
+    }
+  }
+
+  // domain edge contributions: triangle superedges
+  for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
+    const auto N = dsupedge[1].data() + e*3;
+    const auto d = dsupint[1].data();
+    tk::real u[] = { U[N[0]], U[N[1]], U[N[2]] };
+    for (std::size_t j=0; j<3; ++j) {
+      tk::real f[] = {
+        d[(e*3+0)*3+j] * (u[1] + u[0]),
+        d[(e*3+1)*3+j] * (u[2] + u[1]),
+        d[(e*3+2)*3+j] * (u[0] + u[2]) };
+      G(N[0],j) = G(N[0],j) - f[0] + f[2];
+      G(N[1],j) = G(N[1],j) + f[0] - f[1];
+      G(N[2],j) = G(N[2],j) + f[1] - f[2];
+    }
+  }
+
+  // domain edge contributions: edges
+  for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
+    const auto N = dsupedge[2].data() + e*2;
+    const auto d = dsupint[2].data() + e*3;
+    tk::real u[] = { U[N[0]], U[N[1]] };
+    for (std::size_t j=0; j<3; ++j) {
+      tk::real f = d[j] * (u[1] + u[0]);
+      G(N[0],j) -= f;
+      G(N[1],j) += f;
+    }
+  }
+
+  // boundary integral
+
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
+    const auto N = triinpoel.data() + e*3;
+    const std::array< tk::real, 3 >
+      ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
+      ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
+    auto n = tk::cross( ba, ca );
+    n[0] /= 12.0;
+    n[1] /= 12.0;
+    n[2] /= 12.0;
+    tk::real u[] = { U[N[0]], U[N[1]], U[N[2]] };
+    auto uab = (u[0] + u[1])/4.0;
+    auto ubc = (u[1] + u[2])/4.0;
+    auto uca = (u[2] + u[0])/4.0;
+    tk::real g[] = { uab + uca + u[0],
+                     uab + ubc + u[1],
+                     ubc + uca + u[2] };
+    for (std::size_t j=0; j<3; ++j) {
+      G(N[0],j) += g[j] * n[j];
+      G(N[1],j) += g[j] * n[j];
+      G(N[2],j) += g[j] * n[j];
+    }
+  }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
+}
+
 static void
 advdom( const tk::UnsMesh::Coords& /*coord*/,
         const std::array< std::vector< std::size_t >, 3 >& /*dsupedge*/,

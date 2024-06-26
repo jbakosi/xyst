@@ -598,7 +598,7 @@ KozCG::BC( tk::Fields& u, tk::real t )
   physics::dirbc( u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
 
   // Apply symmetry BCs
-  physics::symbc( u, m_symbcnodes, m_symbcnorms );
+  physics::symbc( u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
 
   // Apply farfield BCs
   physics::farbc( u, m_farbcnodes, m_farbcnorms );

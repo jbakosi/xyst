@@ -110,6 +110,7 @@ ConjugateGradients::setup( CkCallback cb )
 // *****************************************************************************
 {
   m_initres = cb;
+  m_converged = false;
 
   // initiate computing A * x (for the initial residual)
   thisProxy[ thisIndex ].wait4res();
@@ -363,6 +364,7 @@ ConjugateGradients::init(
   if (not neubc.empty()) m_q = neubc;
 
   // Store incoming Dirichlet BCs, partial in parallel, communication below
+  tk::destroy(m_dirbc);
   for (auto&& [i,bcval] : dirbc) m_dirbc[i] = std::move(bcval);
 
   // Get ready to communicate boundary conditions. This is necessary because
@@ -554,7 +556,7 @@ ConjugateGradients::solve( std::size_t maxit,
 
   if (m_verbose) tk::Print() << "Xyst> Conjugate gradients start\n";
 
-  next();
+  if (m_converged) x(); else next();
 }
 
 void

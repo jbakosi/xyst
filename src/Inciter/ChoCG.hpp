@@ -80,11 +80,11 @@ class ChoCG : public CBase_ChoCG {
     //! Start setup for solution
     void setup( tk::real v );
 
-    //! Solve for pressure
-    void presolve();
+    //! Solve Poisson equation
+    void poisson_solve();
 
-    //! Continue setup after pressure solve
-    void presolved();
+    //! Continue after Poisson solve
+    void poisson_solved();
 
     // Start time stepping
     void start();
@@ -160,6 +160,7 @@ class ChoCG : public CBase_ChoCG {
       p | m_nbpint;
       p | m_nbeint;
       p | m_ndeint;
+      p | m_np;
       p | m_bnode;
       p | m_bface;
       p | m_triinpoel;
@@ -224,6 +225,8 @@ class ChoCG : public CBase_ChoCG {
     std::size_t m_nbeint;
     //! Counter for receiving domain edge integrals
     std::size_t m_ndeint;
+    //! Count number of Poisson solves during setup
+    std::size_t m_np;
     //! Boundary node lists mapped to side set ids used in the input file
     std::map< int, std::vector< std::size_t > > m_bnode;
     //! Boundary face lists mapped to side set ids used in the input file
@@ -328,8 +331,8 @@ class ChoCG : public CBase_ChoCG {
     //! Start computing velocity divergence
     void div();
 
-    //! Initialize pressure solve
-    void preinit();
+    //! Initialize Poisson solve
+    void poisson_init();
 
     //! Compute local contributions to domain edge integrals
     void domint();

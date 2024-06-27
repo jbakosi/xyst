@@ -40,10 +40,11 @@ ic( tk::real, tk::real, tk::real, tk::real )
   if (solver == "chocg") {
     const auto& ncomp = g_cfg.get< tag::problem_ncomp >();
     std::vector< tk::real > u( ncomp, 0.0 );
-    const auto& ic_velocity = g_cfg.get< tag::ic_velocity >();
-    u[0] = ic_velocity[0];
-    u[1] = ic_velocity[1];
-    u[2] = ic_velocity[2];
+    auto ic_velocity = g_cfg.get< tag::ic_velocity >();
+    auto large = std::numeric_limits< double >::max();
+    if (std::abs(ic_velocity[0] - large) > 1.0e-12) u[0] = ic_velocity[0];
+    if (std::abs(ic_velocity[1] - large) > 1.0e-12) u[1] = ic_velocity[1];
+    if (std::abs(ic_velocity[2] - large) > 1.0e-12) u[2] = ic_velocity[2];
     return u;
   }
 
@@ -693,7 +694,7 @@ namespace poisson {
 static std::vector< tk::real >
 ic( tk::real, tk::real, tk::real, tk::real )
 // *****************************************************************************
-//! Set initial conditions for testing a Poisson solve only
+//! Set velocity initial conditions for testing a Poisson solve only
 //! \return Values for initial conditions
 // *****************************************************************************
 {
@@ -996,13 +997,14 @@ pressure_rhs( const std::array< std::vector< tk::real >, 3 >& coord,
 
   auto pr = PR();
 
-  if (pr) {
-    const auto& x = coord[0];
-    const auto& y = coord[1];
-    const auto& z = coord[2];
-    for (std::size_t i=0; i<x.size(); ++i) {
-      r[i] = pr( x[i], y[i], z[i] ) * vol[i];
-    }
+  if (!pr) return;
+
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  for (std::size_t i=0; i<x.size(); ++i) {
+    r[i] = pr( x[i], y[i], z[i] ) * vol[i];
   }
 }
 

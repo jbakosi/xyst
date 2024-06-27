@@ -60,6 +60,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_nbpint( 0 ),
   m_nbeint( 0 ),
   m_ndeint( 0 ),
+  m_np( 0 ),
   m_bnode( bnode ),
   m_bface( bface ),
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
@@ -819,7 +820,7 @@ ChoCG::comdiv( const std::unordered_map< std::size_t, tk::real >& indiv )
 //!   velocity divergence at mesh nodes. While m_div stores own contributions,
 //!   m_divc collects the neighbor chare contributions during communication.
 //!   This way work on m_div and m_divc is overlapped. The two are combined in
-//!   preinit().
+//!   poisson_init().
 // *****************************************************************************
 {
   for (const auto& [g,r] : indiv) m_divc[g] += r;
@@ -832,9 +833,9 @@ ChoCG::comdiv( const std::unordered_map< std::size_t, tk::real >& indiv )
 }
 
 void
-ChoCG::preinit()
+ChoCG::poisson_init()
 // *****************************************************************************
-//  Initialize pressure solve
+//  Initialize Poisson solve
 // *****************************************************************************
 {
   auto d = Disc();
@@ -890,24 +891,31 @@ ChoCG::preinit()
   // Configure right hand side
   problems::pressure_rhs( d->Coord(), d->Vol(), m_div );
 
-  // Initialize pressure solve
-  const auto& pc = g_cfg.get< tag::pre_pc >();
-  m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, pc,
-    CkCallback( CkIndex_ChoCG::presolve(), thisProxy[thisIndex] ) );
+  // Initialize Poisson solve
+  if (m_np == 0) {
+    const auto& pc = g_cfg.get< tag::pre_pc >();
+    m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, pc,
+      CkCallback( CkIndex_ChoCG::poisson_solve(), thisProxy[thisIndex] ) );
+  } else {
+    poisson_solve();
+  }
 }
 
 void
-ChoCG::presolve()
+ChoCG::poisson_solve()
 // *****************************************************************************
-//  Solve for pressure
+//  Solve Poisson equation
 // *****************************************************************************
 {
   auto iter = g_cfg.get< tag::pre_iter >();
   auto tol = g_cfg.get< tag::pre_tol >();
   auto verbose = g_cfg.get< tag::pre_verbose >();
 
-  m_cgpre[ thisIndex ].ckLocal()->solve( iter, tol, thisIndex, verbose,
-    CkCallback( CkIndex_ChoCG::grad(),thisProxy[thisIndex] ) );
+  auto c = m_np == 0 ?
+           CkCallback( CkIndex_ChoCG::grad(), thisProxy[thisIndex] ) :
+           CkCallback( CkIndex_ChoCG::poisson_solved(), thisProxy[thisIndex] );
+
+  m_cgpre[ thisIndex ].ckLocal()->solve( iter, tol, thisIndex, verbose, c );
 }
 
 void
@@ -960,9 +968,9 @@ ChoCG::comgrad(
 }
 
 void
-ChoCG::presolved()
+ChoCG::poisson_solved()
 // *****************************************************************************
-// Continue setup after initial pressupre solve
+// Continue setup after Poisson solve and gradient computation
 // *****************************************************************************
 {
   auto d = Disc();
@@ -981,8 +989,21 @@ ChoCG::presolved()
     for (std::size_t c=0; c<m_grad.nprop(); ++c)
       m_grad(p,c) /= vol[p];
 
-  if (Disc()->Initial()) {
-    writeFields( CkCallback(CkIndex_ChoCG::start(), thisProxy[thisIndex]) );
+  // project velocity to divergence-free subspace
+  for (std::size_t i=0; i<m_u.nunk(); ++i) {
+    m_u(i,0) -= m_grad(i,0);
+    m_u(i,1) -= m_grad(i,1);
+    m_u(i,2) -= m_grad(i,2);
+  }
+
+  if (d->Initial()) {
+    if (++m_np < 2) {
+      thisProxy[ thisIndex ].wait4grad();
+      std::fill( begin(m_div), end(m_div), 0.0 );
+      poisson_init();
+    } else {
+      writeFields( CkCallback(CkIndex_ChoCG::start(), thisProxy[thisIndex]) );
+    }
   } else {
     feop_complete();
   }
@@ -1359,6 +1380,15 @@ ChoCG::writeFields( CkCallback cb )
     }
     nodefields.push_back( ap );
   }
+
+  nodefieldnames.push_back( "velocityx" );
+  nodefieldnames.push_back( "velocityy" );
+  nodefieldnames.push_back( "velocityz" );
+  nodefieldnames.push_back( "div" );
+  nodefields.push_back( m_u.extract(0) );
+  nodefields.push_back( m_u.extract(1) );
+  nodefields.push_back( m_u.extract(2) );
+  nodefields.push_back( m_div );
 
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 

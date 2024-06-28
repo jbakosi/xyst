@@ -46,11 +46,9 @@ PRESSURE_SOL();
 std::function< std::array< tk::real, 3 >( tk::real, tk::real, tk::real ) >
 PRESSURE_GRAD();
 
-//! Set pressure right hand side
-void
-pressure_rhs( const std::array< std::vector< tk::real >, 3 >& coord,
-              const std::vector< tk::real >& vol,
-              std::vector< tk::real >& r );
+//! Assign function to set pressure solve right hand side
+std::function< tk::real( tk::real, tk::real, tk::real ) >
+PRESSURE_RHS();
 
 //! Set pressure initial condition
 tk::real

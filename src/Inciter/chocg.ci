@@ -45,8 +45,8 @@ module chocg {
       entry void feop();
       entry void step();
       entry void grad();
+      entry void diag();
       entry void integrals();
-      entry void stage();
       entry void evalLB( int nrestart );
 
       // SDAG code follows. See http://charm.cs.illinois.edu/manuals/html/
@@ -68,9 +68,9 @@ module chocg {
         when ownrhs_complete(), comrhs_complete() serial
         { solve(); } }
 
-      entry void wait4stage() {
+      entry void wait4step() {
         when feop_complete(), resize_complete() serial
-        { stage(); } }
+        { out(); } }
 
       entry void ownnorm_complete();
       entry void comnorm_complete();

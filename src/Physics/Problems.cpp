@@ -956,9 +956,8 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
   }
 }
 
-static
 std::function< tk::real( tk::real, tk::real, tk::real ) >
-PR()
+PRESSURE_RHS()
 // *****************************************************************************
 //  Query user config and assign function to set pressure rhs
 //! \return The function to call to set pressure rhs
@@ -980,32 +979,6 @@ PR()
     pr = poisson_neumann::pr;
 
   return pr;
-}
-
-void
-pressure_rhs( const std::array< std::vector< tk::real >, 3 >& coord,
-              const std::vector< tk::real >& vol,
-              std::vector< tk::real >& r )
-// *****************************************************************************
-//  Set pressure right hand side
-//! \param[in] coord Mesh node coordinates
-//! \param[in] v Nodal mesh volumes with contributions from other chares
-//! \param[in,out] r Right-hand side of pressure solve
-// *****************************************************************************
-{
-  Assert( coord[0].size() == r.size(), "Size mismatch" );
-
-  auto pr = PR();
-
-  if (!pr) return;
-
-  const auto& x = coord[0];
-  const auto& y = coord[1];
-  const auto& z = coord[2];
-
-  for (std::size_t i=0; i<x.size(); ++i) {
-    r[i] = pr( x[i], y[i], z[i] ) * vol[i];
-  }
 }
 
 std::function< tk::real( tk::real, tk::real, tk::real ) >

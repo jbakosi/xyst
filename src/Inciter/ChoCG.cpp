@@ -38,9 +38,6 @@ extern ctr::Config g_cfg;
 
 static CkReduction::reducerType IntegralsMerger;
 
-//! Runge-Kutta coefficients
-static const std::array< tk::real, 3 > rkcoef{{ 1.0/3.0, 1.0/2.0, 1.0 }};
-
 } // inciter::
 
 using inciter::g_cfg;
@@ -66,10 +63,10 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
+  m_p( m_u.nunk() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
   m_grad( m_u.nunk(), 3 ),
   m_div( m_u.nunk() ),
-  m_stage( 0 ),
   m_dtp( m_u.nunk(), 0.0 ),
   m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
   m_finished( 0 )
@@ -889,16 +886,18 @@ ChoCG::poisson_init()
   }
 
   // Configure right hand side
-  problems::pressure_rhs( d->Coord(), d->Vol(), m_div );
+  auto pr = problems::PRESSURE_RHS();
+  if (pr) {
+    const auto& vol = d->Vol();
+    for (std::size_t i=0; i<x.size(); ++i) {
+      m_div[i] = pr( x[i], y[i], z[i] ) * vol[i];
+    }
+  }
 
   // Initialize Poisson solve
-  if (m_np == 0) {
-    const auto& pc = g_cfg.get< tag::pre_pc >();
-    m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, pc,
-      CkCallback( CkIndex_ChoCG::poisson_solve(), thisProxy[thisIndex] ) );
-  } else {
-    poisson_solve();
-  }
+  const auto& pc = g_cfg.get< tag::pre_pc >();
+  m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, pc,
+    CkCallback( CkIndex_ChoCG::poisson_solve(), thisProxy[thisIndex] ) );
 }
 
 void
@@ -911,7 +910,7 @@ ChoCG::poisson_solve()
   auto tol = g_cfg.get< tag::pre_tol >();
   auto verbose = g_cfg.get< tag::pre_verbose >();
 
-  auto c = m_np == 0 ?
+  auto c = m_np != 1 ?
            CkCallback( CkIndex_ChoCG::grad(), thisProxy[thisIndex] ) :
            CkCallback( CkIndex_ChoCG::poisson_solved(), thisProxy[thisIndex] );
 
@@ -974,38 +973,63 @@ ChoCG::poisson_solved()
 // *****************************************************************************
 {
   auto d = Disc();
-  const auto lid = d->Lid();
 
-  // Combine own and communicated contributions to gradient
-  for (const auto& [g,r] : m_gradc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c) += r[c];
-  }
-  tk::destroy(m_gradc);
+  if (m_np != 1) {
 
-  // divide weak result in gradient by nodal volume
-  const auto& vol = d->Vol();
-  for (std::size_t p=0; p<m_grad.nunk(); ++p)
-    for (std::size_t c=0; c<m_grad.nprop(); ++c)
-      m_grad(p,c) /= vol[p];
+    // Combine own and communicated contributions to gradient
+    const auto lid = d->Lid();
+    for (const auto& [g,r] : m_gradc) {
+      auto i = tk::cref_find( lid, g );
+      for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c) += r[c];
+    }
+    tk::destroy(m_gradc);
 
-  // project velocity to divergence-free subspace
-  for (std::size_t i=0; i<m_u.nunk(); ++i) {
-    m_u(i,0) -= m_grad(i,0);
-    m_u(i,1) -= m_grad(i,1);
-    m_u(i,2) -= m_grad(i,2);
+    // Divide weak result in gradient by nodal volume
+    const auto& vol = d->Vol();
+    for (std::size_t p=0; p<m_grad.nunk(); ++p)
+      for (std::size_t c=0; c<m_grad.nprop(); ++c)
+        m_grad(p,c) /= vol[p];
+
+    // Project velocity to divergence-free subspace
+    for (std::size_t i=0; i<m_u.nunk(); ++i) {
+      m_u(i,0) -= m_grad(i,0);
+      m_u(i,1) -= m_grad(i,1);
+      m_u(i,2) -= m_grad(i,2);
+    }
+
   }
 
   if (d->Initial()) {
-    if (++m_np < 2) {
-      thisProxy[ thisIndex ].wait4grad();
-      std::fill( begin(m_div), end(m_div), 0.0 );
-      poisson_init();
+
+    if (g_cfg.get< tag::nstep >() == 1) {  // test first Poisson solve only
+
+      m_p = m_cgpre[ thisIndex ].ckLocal()->solution();
+      thisProxy[ thisIndex ].wait4step();
+      writeFields( CkCallback(CkIndex_ChoCG::diag(), thisProxy[thisIndex]) );
+
     } else {
-      writeFields( CkCallback(CkIndex_ChoCG::start(), thisProxy[thisIndex]) );
+
+      if (++m_np < 2) {
+        std::fill( begin(m_div), end(m_div), 0.0 );
+        thisProxy[ thisIndex ].wait4grad();
+        poisson_init();
+      } else {
+        m_p = m_cgpre[ thisIndex ].ckLocal()->solution();
+        writeFields( CkCallback(CkIndex_ChoCG::start(), thisProxy[thisIndex]) );
+      }
+
     }
+
   } else {
-    feop_complete();
+
+    // Advance pressure
+    const auto& dp = m_cgpre[ thisIndex ].ckLocal()->solution();
+    using tk::operator+=;
+    m_p += dp;
+
+    // Continue with computing diagnostics
+    diag();
+
   }
 }
 
@@ -1033,7 +1057,6 @@ ChoCG::dt()
 
   auto const_dt = g_cfg.get< tag::dt >();
   auto eps = std::numeric_limits< tk::real >::epsilon();
-  //auto d = Disc();
 
   // use constant dt if configured
   if (std::abs(const_dt) > eps) {
@@ -1043,27 +1066,34 @@ ChoCG::dt()
 
   } else {
 
-    //const auto& vol = d->Vol();
-    //auto cfl = g_cfg.get< tag::cfl >();
+    auto d = Disc();
+    const auto& vol = d->Vol();
+    auto cfl = g_cfg.get< tag::cfl >();
 
     if (g_cfg.get< tag::steady >()) {
 
-      //for (std::size_t i=0; i<m_u.nunk(); ++i) {
-      //  auto v = charvel( i );
-      //  auto L = std::cbrt( vol[i] );
-      //  m_dtp[i] = L / std::max( v, 1.0e-8 ) * cfl;
-      //}
-      //mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
+      for (std::size_t i=0; i<m_u.nunk(); ++i) {
+        auto u = m_u(i,0);
+        auto v = m_u(i,1);
+        auto w = m_u(i,2);
+        auto vel = std::sqrt( u*u + v*v + w*w );
+        auto L = std::cbrt( vol[i] );
+        m_dtp[i] = L / std::max( vel, 1.0e-8 ) * cfl;
+      }
+      mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
 
     } else {
 
-      //for (std::size_t i=0; i<m_u.nunk(); ++i) {
-      //  auto v = charvel( i );
-      //  auto L = std::cbrt( vol[i] );
-      //  auto euler_dt = L / std::max( v, 1.0e-8 );
-      //  mindt = std::min( mindt, euler_dt );
-      //}
-      //mindt *= cfl;
+      for (std::size_t i=0; i<m_u.nunk(); ++i) {
+        auto u = m_u(i,0);
+        auto v = m_u(i,1);
+        auto w = m_u(i,2);
+        auto vel = std::sqrt( u*u + v*v + w*w );
+        auto L = std::cbrt( vol[i] );
+        auto euler_dt = L / std::max( vel, 1.0e-8 );
+        mindt = std::min( mindt, euler_dt );
+      }
+      mindt *= cfl;
 
     }
 
@@ -1071,6 +1101,9 @@ ChoCG::dt()
 
   // Actiavate SDAG waits for next time step stage
   thisProxy[ thisIndex ].wait4rhs();
+  thisProxy[ thisIndex ].wait4div();
+  thisProxy[ thisIndex ].wait4grad();
+  thisProxy[ thisIndex ].wait4step();
 
   // Contribute to minimum dt across all chares and advance to next step
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
@@ -1085,7 +1118,7 @@ ChoCG::advance( tk::real newdt )
 // *****************************************************************************
 {
   // Set new time step size
-  if (m_stage == 0) Disc()->setdt( newdt );
+  Disc()->setdt( newdt );
 
   rhs();
 }
@@ -1101,18 +1134,13 @@ ChoCG::rhs()
   const auto steady = g_cfg.get< tag::steady >();
 
   // Compute own portion of right-hand side for all equations
-  auto prev_rkcoef = m_stage == 0 ? 0.0 : rkcoef[m_stage-1];
+  if (steady) for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += m_dtp[p];
 
-  if (steady) {
-    for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += prev_rkcoef * m_dtp[p];
-  }
+  m_rhs.fill( 0.0 );
+  //chorin::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym,
+  //             m_u, m_p, d->T(), d->Dt(), m_tp, m_dtp, m_rhs );
 
-  //lax::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym, m_grad,
-  //          m_u, d->V(), d->T(), m_tp, m_rhs );
-
-  if (steady) {
-    for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= prev_rkcoef * m_dtp[p];
-  }
+  if (steady) for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
@@ -1159,73 +1187,61 @@ ChoCG::solve()
 // *****************************************************************************
 {
   auto d = Disc();
-  const auto lid = d->Lid();
-  const auto steady = g_cfg.get< tag::steady >();
 
   // Combine own and communicated contributions to rhs
+  const auto lid = d->Lid();
   for (const auto& [g,r] : m_rhsc) {
     auto i = tk::cref_find( lid, g );
     for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c) += r[c];
   }
   tk::destroy(m_rhsc);
 
-  // Update state at time n
-  if (m_stage == 0) m_un = m_u;
+  // Save previous solution
+  m_un = m_u;
 
   // Advance solution
-  //auto dt = d->Dt();
-  //const auto& vol = d->Vol();
-  //auto ncomp = m_u.nprop();
-  //for (std::size_t i=0; i<m_u.nunk(); ++i) {
-  //  if (steady) dt = m_dtp[i];
-  //  auto R = -rkcoef[m_stage] * dt / vol[i];
-  //  // flow
-  //  auto P = precond( m_u, i );
-  //  tk::real r[] = { R*m_rhs(i,0), R*m_rhs(i,1),  R*m_rhs(i,2),
-  //                   R*m_rhs(i,3), R*m_rhs(i,4) };
-  //  auto p = P.data();
-  //  for (std::size_t c=0; c<5; ++c, p+=5) {
-  //    m_u(i,c) = m_un(i,c)
-  //             + p[0]*r[0] + p[1]*r[1] + p[2]*r[2] + p[3]*r[3] + p[4]*r[4];
-  //  }
-  //  // scalar
-  //  for (std::size_t c=5; c<ncomp; ++c) m_u(i,c) = m_un(i,c) + R*m_rhs(i,c);
-  //}
+  auto dt = d->Dt();
+  const auto& vol = d->Vol();
+  auto ncomp = m_u.nprop();
+  for (std::size_t i=0; i<m_u.nunk(); ++i) {
+    if (g_cfg.get< tag::steady >()) dt = m_dtp[i];
+    for (std::size_t c=0; c<ncomp; ++c) m_u(i,c) += dt*m_rhs(i,c)/vol[i];
+  }
 
   // Configure and apply scalar source to solution (if defined)
   auto src = problems::PHYS_SRC();
   if (src) src( d->Coord(), d->T(), m_u );
 
   // Enforce boundary conditions
-  BC( d->T() + rkcoef[m_stage] * d->Dt() );
+  BC( d->T() + d->Dt() );
 
-  if (m_stage < 2) {
+  // Compute velocity divergence
+  div();
+}
 
-    // Activate SDAG wait for next time step stage
-    thisProxy[ thisIndex ].wait4rhs();
+void
+ChoCG::diag()
+// *****************************************************************************
+//  Compute diagnostics
+// *****************************************************************************
+{
+  auto d = Disc();
 
-    // start next time step stage
-    stage();
+  // Compute diagnostics, e.g., residuals
+  auto diag_iter = g_cfg.get< tag::diag_iter >();
+  auto diagnostics = m_diag.precompute( *d, m_u, m_un, m_p, diag_iter );
 
-  } else {
+  // Increase number of iterations and physical time
+  d->next();
 
-    // Activate SDAG waits for finishing this time step stage
-    thisProxy[ thisIndex ].wait4stage();
-    // Compute diagnostics, e.g., residuals
-    const auto& p = m_cgpre[ thisIndex ].ckLocal()->solution();
-    auto diag_iter = g_cfg.get< tag::diag_iter >();
-    auto diag = m_diag.precompute( *d, m_u, m_un, p, diag_iter );
-    // Increase number of iterations and physical time
-    d->next();
-    // Advance physical time for local time stepping
-    if (steady) {
-      using tk::operator+=;
-      m_tp += m_dtp;
-    }
-    // Evaluate residuals
-    if (!diag) evalres( std::vector< tk::real >( m_u.nprop(), 1.0 ) );
-
+  // Advance physical time for local time stepping
+  if (g_cfg.get< tag::steady >()) {
+    using tk::operator+=;
+    m_tp += m_dtp;
   }
+
+  // Evaluate residuals
+  if (!diagnostics) evalres( std::vector< tk::real >( m_u.nprop(), 1.0 ) );
 }
 
 void
@@ -1319,13 +1335,13 @@ ChoCG::resizePostAMR(
 
   // Remove newly removed nodes from solution vectors
   m_u.rm( removedNodes );
-  m_un.rm( removedNodes );
+  //m_p.rm( removedNodes );
   m_rhs.rm( removedNodes );
 
   // Resize auxiliary solution vectors
   auto npoin = coord[0].size();
   m_u.resize( npoin );
-  m_un.resize( npoin );
+  m_p.resize( npoin );
   m_rhs.resize( npoin );
 
   // Update solution on new mesh
@@ -1360,35 +1376,31 @@ ChoCG::writeFields( CkCallback cb )
 
   // Field output
 
-  std::vector< std::string > nodefieldnames{ "pressure", "analytic" };
+  std::vector< std::string > nodefieldnames{
+    "velocityx", "velocityy", "velocityz", "div", "pressure" };
 
   std::vector< std::vector< tk::real > > nodefields;
-  const auto& p = m_cgpre[ thisIndex ].ckLocal()->solution();
-  nodefields.push_back( p ) ;
 
-  // query function to evaluate analytic solution (if defined)
+  nodefields.push_back( m_u.extract(0) );
+  nodefields.push_back( m_u.extract(1) );
+  nodefields.push_back( m_u.extract(2) );
+  nodefields.push_back( m_div );
+  nodefields.push_back( m_p ) ;
+
+  // also output analytic pressure (if defined)
   auto pressure_sol = problems::PRESSURE_SOL();
-
   if (pressure_sol) {
     const auto& coord = d->Coord();
     const auto& x = coord[0];
     const auto& y = coord[1];
     const auto& z = coord[2];
-    auto ap = p;
+    auto ap = m_p;
     for (std::size_t i=0; i<ap.size(); ++i) {
       ap[i] = pressure_sol( x[i], y[i], z[i] );
     }
+    nodefieldnames.push_back( "analytic" );
     nodefields.push_back( ap );
   }
-
-  nodefieldnames.push_back( "velocityx" );
-  nodefieldnames.push_back( "velocityy" );
-  nodefieldnames.push_back( "velocityz" );
-  nodefieldnames.push_back( "div" );
-  nodefields.push_back( m_u.extract(0) );
-  nodefields.push_back( m_u.extract(1) );
-  nodefields.push_back( m_u.extract(2) );
-  nodefields.push_back( m_div );
 
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 
@@ -1536,20 +1548,6 @@ ChoCG::integrals()
 }
 
 void
-ChoCG::stage()
-// *****************************************************************************
-// Evaluate whether to continue with next time step stage
-// *****************************************************************************
-{
-  // Increment Runge-Kutta stage counter
-  ++m_stage;
-
-  // If not all Runge-Kutta stages complete, continue to next time stage,
-  // otherwise output field data to file(s)
-  if (m_stage < 3) rhs(); else out();
-}
-
-void
 ChoCG::evalLB( int nrestart )
 // *****************************************************************************
 // Evaluate whether to do load balancing
@@ -1611,9 +1609,7 @@ ChoCG::step()
   auto d = Disc();
 
   // Output one-liner status report to screen
-  d->status();
-  // Reset Runge-Kutta stage counter
-  m_stage = 0;
+  if(thisIndex == 0) d->status();
 
   if (not m_finished) {
 

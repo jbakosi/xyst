@@ -9,8 +9,6 @@ ttyi = 1      -- TTY output interval
 solver = "chocg"
 
 ic = {
-  density = 1.0,
-  pressure = 1.0,
   velocity = { 0, 0, 0 }
 }
 

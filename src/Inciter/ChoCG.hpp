@@ -92,6 +92,9 @@ class ChoCG : public CBase_ChoCG {
     //! Advance equations to next time step
     void advance( tk::real newdt );
 
+    //! Evaluate diagnostics
+    void diag();
+
     //! Start (re-)computing domain and boundary integrals
     void feop();
 
@@ -143,9 +146,6 @@ class ChoCG : public CBase_ChoCG {
     // Evaluate whether to do load balancing
     void evalLB( int nrestart );
 
-    //! Evaluate whether to continue with next time step stage
-    void stage();
-
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{
     //! \brief Pack/Unpack serialize member function
@@ -165,9 +165,10 @@ class ChoCG : public CBase_ChoCG {
       p | m_bface;
       p | m_triinpoel;
       p | m_u;
+      p | m_un;
+      p | m_p;
       // do not pup these, will recompute after migration anyway
       if (p.isUnpacking()) {
-        m_un.resize( m_u.nunk(), m_u.nprop() );
         m_rhs.resize( m_u.nunk(), m_u.nprop() );
         m_grad.resize( m_u.nunk(), 3UL );
       }
@@ -195,7 +196,6 @@ class ChoCG : public CBase_ChoCG {
       p | m_farbcnodes;
       p | m_farbcnorms;
       p | m_surfint;
-      p | m_stage;
       p | m_dtp;
       p | m_tp;
       p | m_finished;
@@ -235,8 +235,10 @@ class ChoCG : public CBase_ChoCG {
     std::vector< std::size_t > m_triinpoel;
     //! Unknown/solution vector at mesh nodes
     tk::Fields m_u;
-    //! Unknown/solution vector at mesh nodes at previous time
+    //! Unknown/solution vector at mesh nodes at previous time step
     tk::Fields m_un;
+    //! Pressure
+    std::vector< tk::real > m_p;
     //! Right-hand side vector (for the high order system)
     tk::Fields m_rhs;
     //! Scalar gradient in mesh nodes
@@ -301,8 +303,6 @@ class ChoCG : public CBase_ChoCG {
     //! Streamable surface integral nodes and normals * dA on surfaces
     std::map< int, std::pair< std::vector< std::size_t >,
                               std::vector< tk::real > > > m_surfint;
-    //! Runge-Kutta stage counter
-    std::size_t m_stage;
     //! Time step size for each mesh node
     std::vector< tk::real > m_dtp;
     //! Physical time for each mesh node

@@ -74,6 +74,13 @@ Compared to Quinoa, Xyst
 Development on [Quinoa](https://github.com/quinoacomputing/quinoa) and
 [Xyst](https://codeberg.org/xyst/xyst) continues on different forks.
 
+@section funding Funding
+
+This work is co-funded by the European Union and has received funding from the
+European High Performance Computing Joint Undertaking and Poland, Germany,
+Spain, Hungary, France under grant agreement number 101093457 via the
+[HiDALGO2](https://www.hidalgo2.eu/) project.
+
 @section authors Authors
 
 @m_class{m-note m-default m-text-center}

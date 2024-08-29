@@ -802,8 +802,16 @@ Transporter::diagHeader()
   else if (solver == "chocg")
   {
 
+    // query function to evaluate analytic solution (if defined)
+    auto pressure_sol = problems::PRESSURE_SOL();
+
     // Collect variables names for integral/diagnostics output
     std::vector< std::string > var{ "p" };
+    if (!pressure_sol) {
+      var.push_back( "u" );
+      var.push_back( "v" );
+      var.push_back( "w" );
+    }
 
     auto nv = var.size();
 
@@ -814,7 +822,7 @@ Transporter::diagHeader()
     for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(d" + var[i] + ')' );
 
     // Augment diagnostics variables by error norms (if computed)
-    if (problems::PRESSURE_SOL()) {
+    if (pressure_sol) {
       d.push_back( "L2(err:p)" );
       d.push_back( "L1(err:p)" );
     }
@@ -1111,6 +1119,9 @@ Transporter::inthead( const tk::Print& print )
 //! \param[in] print Pretty printer object to use for printing
 // *****************************************************************************
 {
+  auto dea = g_cfg.get< tag::deactivate >();
+  auto pre = g_cfg.get< tag::solver >() == "chocg" ? 1 : 0;
+
   print.section( "Time integration" );
   print <<
   "Legend: it - iteration count\n"
@@ -1126,8 +1137,9 @@ Transporter::inthead( const tk::Print& print )
   "             t - physics time history output\n"
   "             h - h-refinement\n"
   "             l - load balancing\n"
-  "             c - checkpoint\n" << (g_cfg.get< tag::deactivate >() ?
-  "             e:x/y - x of y work units deactivated\n" : "") <<
+  "             c - checkpoint\n" << (dea ?
+  "             e:x/y - x of y work units deactivated\n" : "") << (pre ?
+  "             p:it - number of linear solve iterations taken\n" : "") <<
   "\n      it             t            dt        ETE        ETA        EGT  flg\n"
     "--------------------------------------------------------------------------\n";
 }

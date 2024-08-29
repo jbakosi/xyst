@@ -46,6 +46,7 @@ DEFTAG( pre_tol );
 DEFTAG( pre_verbose );
 DEFTAG( pre_pc );
 DEFTAG( pre_bc_dir );
+DEFTAG( pre_bc_dirval );
 DEFTAG( pre_bc_sym );
 DEFTAG( reorder );
 DEFTAG( part );
@@ -108,6 +109,7 @@ DEFTAG( ic_energy );
 DEFTAG( ic_temperature );
 DEFTAG( ic_velocity );
 DEFTAG( bc_dir );
+DEFTAG( bc_dirval );
 DEFTAG( bc_sym );
 DEFTAG( bc_far );
 DEFTAG( bc_far_density );
@@ -165,6 +167,7 @@ using ConfigMembers = brigand::list<
   , tag::pre_verbose, uint64_t
   , tag::pre_pc, std::string
   , tag::pre_bc_dir, std::vector< std::vector< int > >
+  , tag::pre_bc_dirval, std::vector< std::vector< double > >
   , tag::pre_bc_sym, std::vector< int >
   , tag::reorder, bool
   , tag::part, std::string
@@ -236,6 +239,7 @@ using ConfigMembers = brigand::list<
   , tag::ic_temperature, double
   , tag::ic_velocity,  std::vector< double >
   , tag::bc_dir, std::vector< std::vector< int > >
+  , tag::bc_dirval, std::vector< std::vector< double > >
   , tag::bc_sym, std::vector< int >
   , tag::bc_far, std::vector< int >
   , tag::bc_far_density, double

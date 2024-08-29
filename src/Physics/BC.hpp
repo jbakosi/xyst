@@ -22,7 +22,8 @@ dirbc(
   tk::real t,
   const std::array< std::vector< tk::real >, 3 >& coord,
   const std::vector< std::unordered_set< std::size_t > >& boxnodes,
-  const std::vector< std::size_t >& dirbcmasks );
+  const std::vector< std::size_t >& dirbcmask,
+  const std::vector< double >& dirbcval = {} );
 
 //! Set symmetry boundary conditions
 void

@@ -1514,7 +1514,7 @@ ZalCG::comlim( const std::unordered_map< std::size_t,
 void
 ZalCG::solve()
 // *****************************************************************************
-// Compute limit coefficients
+// Advance systems of equations
 // *****************************************************************************
 {
   auto d = Disc();

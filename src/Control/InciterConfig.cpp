@@ -644,13 +644,13 @@ diag( lua_State* L, Config& cfg )
 
 static void
 bc_dir( lua_State* L,
-        std::vector< std::vector< int > >& s,
+        std::vector< std::vector< int > >& mask,
         bool global = false )
 // *****************************************************************************
 // Parse bc_dir table
 //! \param[in,out] L Lua state
 //! \param[in] global True to parse from global scope, false from table on stack
-//! \param[in,out] s Config state
+//! \param[in,out] mask Config state to store Dirichlet BC setids and mask
 // *****************************************************************************
 {
   if (global) {
@@ -665,13 +665,52 @@ bc_dir( lua_State* L,
     for (int64_t i=1; i<=n; ++i) {
       lua_geti( L, -1, i );
       ErrChk( lua_istable( L, -1 ), "bc_dir table entry must be a table" );
-      s.emplace_back();
-      auto& b = s.back();
+      mask.emplace_back();
+      auto& b = mask.back();
       int64_t m = luaL_len( L, -1 );
       for (int64_t j=1; j<=m; ++j) {
         lua_geti( L, -1, j );
         ErrChk( lua_isinteger( L, -1 ), "bc_dir entry must be an integer" );
         b.push_back( static_cast< int >( lua_tointeger( L, -1 ) ) );
+        lua_pop( L, 1 );
+      }
+      lua_pop( L, 1 );
+    }
+  }
+
+  lua_pop( L, 1 );
+}
+
+static void
+bc_dirval( lua_State* L,
+           std::vector< std::vector< double > >& val,
+           bool global = false )
+// *****************************************************************************
+// Parse bc_dirval table
+//! \param[in,out] L Lua state
+//! \param[in] global True to parse from global scope, false from table on stack
+//! \param[in,out] val Config state to store Dirichlet BC setids and values
+// *****************************************************************************
+{
+  if (global) {
+    lua_getglobal( L, "bc_dirval" );
+  } else {
+    if (lua_istable( L, -1 )) lua_getfield( L, -1, "bc_dirval" ); else return;
+  }
+
+  if (!lua_isnil( L, -1 )) {
+    ErrChk( lua_istable( L, -1 ), "bc_dirval must be a table" );
+    int64_t n = luaL_len( L, -1 );
+    for (int64_t i=1; i<=n; ++i) {
+      lua_geti( L, -1, i );
+      ErrChk( lua_istable( L, -1 ), "bc_dirval table entry must be a table" );
+      val.emplace_back();
+      auto& b = val.back();
+      int64_t m = luaL_len( L, -1 );
+      for (int64_t j=1; j<=m; ++j) {
+        lua_geti( L, -1, j );
+        ErrChk( lua_isnumber( L, -1 ), "bc_dirval entry must be an real" );
+        b.push_back( static_cast< double >( lua_tonumber( L, -1 ) ) );
         lua_pop( L, 1 );
       }
       lua_pop( L, 1 );
@@ -819,7 +858,7 @@ mat( lua_State* L, Config& cfg )
 {
   lua_getglobal( L, "mat" );
 
-  cfg.get< tag::mat_spec_heat_ratio >() = real( L, "spec_heat_ratio" );
+  cfg.get< tag::mat_spec_heat_ratio >() = real( L, "spec_heat_ratio", 1.4 );
   cfg.get< tag::mat_spec_heat_const_vol >() = real( L, "spec_heat_const_vol" );
   cfg.get< tag::mat_spec_gas_const >() = real(L, "spec_gas_const", 287.052874);
   cfg.get< tag::mat_heat_conductivity >() = real( L, "heat_conductivity" );
@@ -929,6 +968,7 @@ pressure( lua_State* L, Config& cfg )
   cfg.get< tag::pre_verbose >() = unsigint( L, "verbose", 0 );
   cfg.get< tag::pre_pc >() = string( L, "pc", "none" );
   bc_dir( L, cfg.get< tag::pre_bc_dir >() );
+  bc_dirval( L, cfg.get< tag::pre_bc_dirval >() );
   bc_sym( L, cfg.get< tag::pre_bc_sym >() );
 
   lua_pop( L, 1 );
@@ -995,6 +1035,7 @@ Config::control()
 
     ic( L, *this );
     bc_dir( L, get< tag::bc_dir >(), true );
+    bc_dirval( L, get< tag::bc_dirval >(), true );
     bc_sym( L, get< tag::bc_sym >(), true );
     bc_far( L, *this );
     bc_pre( L, *this );

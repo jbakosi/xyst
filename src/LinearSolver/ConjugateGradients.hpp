@@ -153,12 +153,16 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     //! Return convergence flag
     bool converged() const { return m_converged; }
 
+    //! Return number of iterations taken
+    std::size_t it() const { return m_it; }
+
     /** @name Pack/unpack (Charm++ serialization) routines */
     ///@{
     //! \brief Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
     void pup( PUP::er &p ) override {
       p | m_A;
+      p | m_An;
       p | m_x;
       p | m_b;
       p | m_pc;
@@ -204,6 +208,8 @@ class ConjugateGradients : public CBase_ConjugateGradients {
   private:
     //! Sparse matrix
     CSR m_A;
+    //! Sparse matrix before boundary conditions
+    CSR m_An;
     //! Solution/unknown
     std::vector< tk::real > m_x;
     //! Right hand side

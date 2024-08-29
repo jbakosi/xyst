@@ -93,6 +93,16 @@ ic( tk::real, tk::real, tk::real, tk::real )
   return u;
 }
 
+static tk::real
+pic( tk::real, tk::real, tk::real )
+// *****************************************************************************
+//! Set homogeneous initial conditions for a generic user-defined problem
+//! \return Value of pressure
+// *****************************************************************************
+{
+  return 0.0;
+}
+
 } // userdef::
 
 namespace nonlinear_energy_growth {
@@ -833,12 +843,12 @@ pr( tk::real x, tk::real y, tk::real )
 }
 
 static std::array< tk::real, 3 >
-pg( tk::real x, tk::real y, tk::real)
+pg( tk::real x, tk::real y, tk::real )
 // *****************************************************************************
 //! Set pressure gradient for testing a Poisson solve
-//! \param[in] x X coordinate where to evaluate the gradient
-//! \param[in] y Y coordinate where to evaluate the gradient
-//! \return Value for pressure rhs
+//! \param[in] x X coordinate where to evaluate the pressure gradient
+//! \param[in] y Y coordinate where to evaluate the pressure gradient
+//! \return Value for pressure gradient at a point
 // *****************************************************************************
 {
   return { -2.0 * std::sin( 2.0 * x ) * std::exp( y ),
@@ -992,7 +1002,9 @@ PRESSURE_IC()
 
   std::function< tk::real( tk::real, tk::real, tk::real ) > ic;
 
-  if (problem == "poisson_const")
+  if (problem == "userdef")
+    ic = userdef::pic;
+  else if (problem == "poisson_const")
     ic = poisson_const::ic;
   else if (problem == "poisson_harmonic")
     ic = poisson_harmonic::ic;
@@ -1026,18 +1038,16 @@ PRESSURE_SOL()
 std::function< std::array< tk::real, 3 >( tk::real, tk::real, tk::real ) >
 PRESSURE_GRAD()
 // *****************************************************************************
-//  Assign function to query Neumann boundary conditions for pressure solve
-//! \return The function to call to query Neumann BCs
+//  Assign function to query pressure gradient at a point
+//! \return The function to call to query the pressure gradient
 // *****************************************************************************
 {
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
-  std::function< std::array< tk::real, 3 >( tk::real, tk::real, tk::real ) > g;
-
   if (problem == "poisson_neumann")
-    g = poisson_neumann::pg;
+    return poisson_neumann::pg;
 
-  return g;
+  return {};
 }
 
 tk::real

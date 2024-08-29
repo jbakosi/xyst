@@ -42,7 +42,7 @@ PRESSURE_IC();
 std::function< tk::real( tk::real, tk::real, tk::real ) >
 PRESSURE_SOL();
 
-//! Assign function to query Neumann boundary conditions for pressure solve
+//! Assign function to query pressure gradient at a point
 std::function< std::array< tk::real, 3 >( tk::real, tk::real, tk::real ) >
 PRESSURE_GRAD();
 

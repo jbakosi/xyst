@@ -80,11 +80,14 @@ class ChoCG : public CBase_ChoCG {
     //! Start setup for solution
     void setup( tk::real v );
 
+    //! Initialize Poisson solve
+    void pinit();
+
     //! Solve Poisson equation
-    void poisson_solve();
+    void psolve();
 
     //! Continue after Poisson solve
-    void poisson_solved();
+    void psolved();
 
     // Start time stepping
     void start();
@@ -102,9 +105,17 @@ class ChoCG : public CBase_ChoCG {
     void comnorm( const std::unordered_map< int,
       std::unordered_map< std::size_t, std::array<tk::real,4> > >& inbnd );
 
-    //! Receive contributions to node gradients on chare-boundaries
-    void comgrad( const std::unordered_map< std::size_t,
-                          std::vector< tk::real > >& ingrad );
+    //! Receive contributions to momentum flux on chare-boundaries
+    void comflux( const std::unordered_map< std::size_t,
+                          std::vector< tk::real > >& influx );
+
+    //! Receive contributions to conjugate gradients solution gradient
+    void comsgrad( const std::unordered_map< std::size_t,
+                            std::vector< tk::real > >& ingrad );
+
+    //! Receive contributions to pressure gradient
+    void compgrad( const std::unordered_map< std::size_t,
+                           std::vector< tk::real > >& ingrad );
 
     //! Receive contributions to right-hand side vector on chare-boundaries
     void comrhs( const std::unordered_map< std::size_t,
@@ -112,6 +123,19 @@ class ChoCG : public CBase_ChoCG {
 
     //! Receive contributions to velocity divergence on chare-boundaries
     void comdiv( const std::unordered_map< std::size_t, tk::real >& indiv );
+
+    //! Receive antidiffusive and low-order contributions on chare-boundaries
+    void comaec( const std::unordered_map< std::size_t,
+                         std::vector< tk::real > >& inaec );
+
+
+    //! Receive allowed limits contributions on chare-boundaries
+    void comalw( const std::unordered_map< std::size_t,
+                         std::vector< tk::real > >& inalw );
+
+    //! Receive limited antidiffusive contributions on chare-boundaries
+    void comlim( const std::unordered_map< std::size_t,
+                         std::vector< tk::real > >& inlim );
 
     //! Evaluate residuals
     void evalres( const std::vector< tk::real >& l2res );
@@ -137,8 +161,8 @@ class ChoCG : public CBase_ChoCG {
     //! Compute integral quantities for output
     void integrals();
 
-    //! Compute gradient
-    void grad();
+    //! Compute recent conjugate gradients solution gradient
+    void sgrad();
 
     //! Evaluate whether to continue with next time step
     void step();
@@ -155,7 +179,12 @@ class ChoCG : public CBase_ChoCG {
       p | m_cgpre;
       p | m_nrhs;
       p | m_nnorm;
-      p | m_ngrad;
+      p | m_naec;
+      p | m_nalw;
+      p | m_nlim;
+      p | m_nsgrad;
+      p | m_npgrad;
+      p | m_nflux;
       p | m_ndiv;
       p | m_nbpint;
       p | m_nbeint;
@@ -166,14 +195,24 @@ class ChoCG : public CBase_ChoCG {
       p | m_triinpoel;
       p | m_u;
       p | m_un;
+      p | m_pr;
       p | m_p;
+      p | m_pc;
+      p | m_q;
+      p | m_qc;
+      p | m_a;
+      p | m_ac;
       // do not pup these, will recompute after migration anyway
       if (p.isUnpacking()) {
         m_rhs.resize( m_u.nunk(), m_u.nprop() );
-        m_grad.resize( m_u.nunk(), 3UL );
+        m_sgrad.resize( m_u.nunk(), 3UL );
+        m_pgrad.resize( m_u.nunk(), 3UL );
+        m_flux.resize( m_u.nunk(), 3UL );
       }
       p | m_rhsc;
-      p | m_gradc;
+      p | m_sgradc;
+      p | m_pgradc;
+      p | m_fluxc;
       p | m_div;
       p | m_divc;
       p | m_diag;
@@ -184,21 +223,17 @@ class ChoCG : public CBase_ChoCG {
       p | m_bpint;
       p | m_dsupedge;
       p | m_dsupint;
-      p | m_besym;
-      p | m_besymp;
-      p | m_dirbcmasks;
-      p | m_dirbcmasksp;
-      p | m_symbcnodeset;
-      p | m_symbcnodesetp;
+      p | m_dsuplim;
+      p | m_dirbcmask;
+      p | m_dirbcval;
+      p | m_dirbcmaskp;
+      p | m_dirbcvalp;
       p | m_symbcnodes;
       p | m_symbcnorms;
-      p | m_farbcnodeset;
-      p | m_farbcnodes;
-      p | m_farbcnorms;
       p | m_surfint;
       p | m_dtp;
-      p | m_tp;
       p | m_finished;
+      p | m_fctfreeze;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -215,8 +250,18 @@ class ChoCG : public CBase_ChoCG {
     std::size_t m_nrhs;
     //! Counter for receiving boundary point normals
     std::size_t m_nnorm;
-    //! Counter for receiving gradient
-    std::size_t m_ngrad;
+    //! Counter for receiving antidiffusive contributions
+    std::size_t m_naec;
+    //! Counter for receiving allowed limits
+    std::size_t m_nalw;
+    //! Counter for receiving limited antidiffusive contributions
+    std::size_t m_nlim;
+    //! Counter for receiving conjugrate gradient solution gradient
+    std::size_t m_nsgrad;
+    //! Counter for receiving pressure gradient
+    std::size_t m_npgrad;
+    //! Counter for receiving momentum flux
+    std::size_t m_nflux;
     //! Counter for receiving boundary velocity divergences
     std::size_t m_ndiv;
     //! Counter for receiving boundary point integrals
@@ -238,13 +283,37 @@ class ChoCG : public CBase_ChoCG {
     //! Unknown/solution vector at mesh nodes at previous time step
     tk::Fields m_un;
     //! Pressure
-    std::vector< tk::real > m_p;
+    std::vector< tk::real > m_pr;
+    //! Max/min antidiffusive edge contributions at mesh nodes
+    tk::Fields m_p;
+    //! Receive buffer for max/min antidiffusive edge contributions
+    //! \details Key: global node id, value: max/min antidiff edge contributions
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_pc;
+    //! Max/min allowed limits at mesh nodes
+    tk::Fields m_q;
+    //! Receive buffer for max/min allowed limits
+    //! \details Key: global node id, value: max/min allowed limits in nodes.
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_qc;
+    //! Limited antidiffusive contributions at mesh nodes
+    tk::Fields m_a;
+    //! Receive buffer for limited antidiffusive contributions
+    //! \details Key: global node id, value: limited antidiffusive contributions
+    //!     in nodes.
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_ac;
     //! Right-hand side vector (for the high order system)
     tk::Fields m_rhs;
-    //! Scalar gradient in mesh nodes
-    tk::Fields m_grad;
-    //! Gradient receive buffer
-    std::unordered_map< std::size_t, std::vector< tk::real > > m_gradc;
+    //! Conjugate gradient solution gradient in mesh nodes
+    tk::Fields m_sgrad;
+    //! Conjugate gradient solution gradient receive buffer
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_sgradc;
+    //! Pressure gradient in mesh nodes
+    tk::Fields m_pgrad;
+    //! Pressure gradient receive buffer
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_pgradc;
+    //! Momentum flux in mesh nodes
+    tk::Fields m_flux;
+    //! Momentum flux receive buffer
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_fluxc;
     //! Receive buffer for communication of the right hand side
     //! \details Key: global node id, value: rhs for all scalar components per
     //!   node.
@@ -258,9 +327,9 @@ class ChoCG : public CBase_ChoCG {
     NodeDiagnostics m_diag;
     //! Boundary point normals
     //! \details Outer key: side set id. Inner key: global node id of boundary
-    //!   point, value: weighted normals, inverse distance square, nodal area.
+    //!   point, value: weighted normal vector, inverse distance square.
     std::unordered_map< int,
-      std::unordered_map< std::size_t, std::array<tk::real,4> > > m_bnorm;
+      std::unordered_map< std::size_t, std::array< tk::real, 4 > > > m_bnorm;
     //! Boundary point normals receive buffer
     //! \details Outer key: side set id. Inner key: global node id of boundary
     //!   point, value: weighted normals and inverse distance square.
@@ -270,7 +339,7 @@ class ChoCG : public CBase_ChoCG {
     //!   integral contributions.
     std::unordered_map< std::size_t, std::array<tk::real,3> > m_bndpoinint;
     //! Domain edge integrals
-    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 3 >,
+    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 4 >,
       tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_domedgeint;
     //! Streamable boundary point integrals
     std::vector< tk::real > m_bpint;
@@ -278,37 +347,29 @@ class ChoCG : public CBase_ChoCG {
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals
     std::array< std::vector< tk::real >, 3 > m_dsupint;
-    //! Streamable boundary element symmetry BC flags
-    std::vector< std::uint8_t > m_besym;
-    //! Streamable boundary element pressure Neumann BC flags
-    std::vector< std::uint8_t > m_besymp;
+    //! FCT limiter coefficients in domain superedges
+    std::array< std::vector< tk::real >, 3 > m_dsuplim;
     //! Nodes and their Dirichlet BC masks
-    std::vector< std::size_t > m_dirbcmasks;
+    std::vector< std::size_t > m_dirbcmask;
+    //! Nodes and their Dirichlet BC values
+    std::vector< double > m_dirbcval;
     //! Nodes and their pressure Dirichlet BC masks
-    std::vector< std::size_t > m_dirbcmasksp;
-    //! Unique set of ordered nodes at which symmetry BCs are set
-    std::set< std::size_t > m_symbcnodeset;
-    //! Unique set of ordered nodes at which pressure Neumann BCs are set
-    std::set< std::size_t > m_symbcnodesetp;
+    std::vector< std::size_t > m_dirbcmaskp;
+    //! Nodes and their pressure Dirichlet BC values
+    std::vector< double > m_dirbcvalp;
     //! Streamable nodes at which symmetry BCs are set
     std::vector< std::size_t > m_symbcnodes;
     //! Streamable normals at nodes at which symmetry BCs are set
     std::vector< tk::real > m_symbcnorms;
-    //! Unique set of ordered nodes at which farfield BCs are set
-    std::set< std::size_t > m_farbcnodeset;
-    //! Streamable nodes at which farfield BCs are set
-    std::vector< std::size_t > m_farbcnodes;
-    //! Streamable normals at nodes at which farfield BCs are set
-    std::vector< tk::real > m_farbcnorms;
     //! Streamable surface integral nodes and normals * dA on surfaces
     std::map< int, std::pair< std::vector< std::size_t >,
                               std::vector< tk::real > > > m_surfint;
     //! Time step size for each mesh node
     std::vector< tk::real > m_dtp;
-    //! Physical time for each mesh node
-    std::vector< tk::real > m_tp;
     //! True in the last time step
     int m_finished;
+    //! Freeze FCT limiter if 1, 0 FCT as usual
+    int m_fctfreeze;
 
     //! Access bound Discretization class pointer
     Discretization* Disc() const {
@@ -317,22 +378,27 @@ class ChoCG : public CBase_ChoCG {
     }
 
    //! Prepare Dirichlet boundary condition data structures
-   void setupDirBC( const std::vector< std::vector< int > >& cfg,
+   void setupDirBC( const std::vector< std::vector< int > >& cfgmask,
+                    const std::vector< std::vector< double > >& cfgval,
                     std::size_t ncomp,
-                    std::vector< std::size_t >& masks );
-
-   //! Prepare symmetry/Neumann boundary condition data structures
-   void setupSymBC( const std::vector< int >& cfg,
-                    std::set< std::size_t >& nodeset );
-
-    //! Prepare boundary condition data structures
-    void setupBC();
+                    std::vector< std::size_t >& mask,
+                    std::vector< double >& val );
 
     //! Start computing velocity divergence
-    void div();
+    void div( const tk::Fields& u );
 
-    //! Initialize Poisson solve
-    void poisson_init();
+    //! Start computing momentum flux
+    void flux();
+
+    //! Finalize computing gradient
+    void fingrad( tk::Fields& grad,
+      std::unordered_map< std::size_t, std::vector< tk::real > >& gradc );
+
+    //! Finalize computing pressure gradient
+    void finpgrad();
+
+    //! Compute pressure gradient
+    void pgrad();
 
     //! Compute local contributions to domain edge integrals
     void domint();
@@ -368,6 +434,18 @@ class ChoCG : public CBase_ChoCG {
     //! Compute righ-hand side vector of transport equations
     void rhs();
 
+    //! Continue with flux-corrected transport if enabled
+    void fct();
+
+    //! Compute antidiffusive contributions: P+/-
+    void aec();
+
+    //! Compute allowed limits, Q+/-
+    void alw();
+
+    //! Compute limit coefficients
+    void lim();
+
     //! Advance systems of equations
     void solve();
 
@@ -381,7 +459,7 @@ class ChoCG : public CBase_ChoCG {
     void evalRestart();
 
     //! Apply boundary conditions
-    void BC( tk::real t );
+    void BC( tk::Fields& u, tk::real t );
 
     //! Apply scalar source to solution
     void src();

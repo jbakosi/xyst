@@ -36,6 +36,7 @@ class NodeDiagnostics {
                      const tk::Fields& u,
                      const tk::Fields& un,
                      const std::vector< tk::real >& p,
+                     const std::vector< tk::real >& dp,
                      uint64_t diag_iter ) const;
 
     /** @name Charm++ pack/unpack serializer member functions */

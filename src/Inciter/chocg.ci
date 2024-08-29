@@ -34,52 +34,80 @@ module chocg {
       entry [reductiontarget] void advance( tk::real newdt );
       entry void comnorm( const std::unordered_map< int,
         std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& inbnd );
-      entry void comgrad( const std::unordered_map< std::size_t,
-                                  std::vector< tk::real > >& ingrad );
+      entry void comflux( const std::unordered_map< std::size_t,
+                                  std::vector< tk::real > >& influx );
+      entry void comsgrad( const std::unordered_map< std::size_t,
+                                   std::vector< tk::real > >& ingrad );
+      entry void compgrad( const std::unordered_map< std::size_t,
+                                   std::vector< tk::real > >& ingrad );
       entry void comrhs( const std::unordered_map< std::size_t,
                                  std::vector< tk::real > >& inrhs );
       entry void comdiv( const std::unordered_map< std::size_t,
                                  tk::real >& indiv );
-      entry void poisson_solve();
-      entry void poisson_solved();
+      entry void comaec( const std::unordered_map< std::size_t,
+                           std::vector< tk::real > >& inaec );
+      entry void comalw( const std::unordered_map< std::size_t,
+                           std::vector< tk::real > >& inalw );
+      entry void comlim( const std::unordered_map< std::size_t,
+                           std::vector< tk::real > >& inlim );
+      entry void pinit();
+      entry void psolve();
+      entry void psolved();
       entry void feop();
       entry void step();
-      entry void grad();
+      entry void sgrad();
       entry void diag();
       entry void integrals();
       entry void evalLB( int nrestart );
 
-      // SDAG code follows. See http://charm.cs.illinois.edu/manuals/html/
-      // charm++/manual.html, Sec. "Structured Control Flow: Structured Dagger".
-
       entry void wait4int() {
-        when ownnorm_complete(), comnorm_complete() serial
-        { merge(); } }
+        when ownnorm_complete(), comnorm_complete() serial { merge(); } }
 
       entry void wait4div() {
-        when owndiv_complete(), comdiv_complete() serial
-        { poisson_init(); } }
+        when owndiv_complete(), comdiv_complete() serial { pinit(); } }
 
-      entry void wait4grad() {
-        when owngrad_complete(), comgrad_complete() serial
-        { poisson_solved(); } }
+      entry void wait4flux() {
+        when ownflux_complete(), comflux_complete() serial { div( m_flux ); } }
+
+      entry void wait4sgrad() {
+        when ownsgrad_complete(), comsgrad_complete() serial { psolved(); } }
+
+      entry void wait4pgrad() {
+        when ownpgrad_complete(), compgrad_complete() serial { finpgrad(); } }
 
       entry void wait4rhs() {
-        when ownrhs_complete(), comrhs_complete() serial
-        { solve(); } }
+        when ownrhs_complete(), comrhs_complete() serial { fct(); } }
+
+      entry void wait4aec() {
+        when ownaec_complete(), comaec_complete() serial { alw(); } }
+
+      entry void wait4alw() {
+        when ownalw_complete(), comalw_complete() serial { lim(); } }
+
+      entry void wait4sol() {
+        when ownlim_complete(), comlim_complete() serial { solve(); } }
 
       entry void wait4step() {
-        when feop_complete(), resize_complete() serial
-        { out(); } }
+        when feop_complete(), resize_complete() serial { out(); } }
 
       entry void ownnorm_complete();
       entry void comnorm_complete();
       entry void owndiv_complete();
       entry void comdiv_complete();
-      entry void owngrad_complete();
-      entry void comgrad_complete();
+      entry void ownsgrad_complete();
+      entry void comsgrad_complete();
+      entry void ownpgrad_complete();
+      entry void compgrad_complete();
+      entry void ownflux_complete();
+      entry void comflux_complete();
       entry void ownrhs_complete();
       entry void comrhs_complete();
+      entry void ownaec_complete();
+      entry void comaec_complete();
+      entry void ownalw_complete();
+      entry void comalw_complete();
+      entry void ownlim_complete();
+      entry void comlim_complete();
       entry void feop_complete();
       entry void resize_complete();
     }

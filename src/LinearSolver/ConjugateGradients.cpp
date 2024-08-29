@@ -49,6 +49,7 @@ ConjugateGradients::ConjugateGradients(
   const std::unordered_map< int,
           std::unordered_set< std::size_t > >& nodecommmap ) :
   m_A( A ),
+  m_An( A ),
   m_x( x ),
   m_b( b ),
   m_pc( "none" ),
@@ -111,6 +112,7 @@ ConjugateGradients::setup( CkCallback cb )
 {
   m_initres = cb;
   m_converged = false;
+  m_finished = false;
 
   // initiate computing A * x (for the initial residual)
   thisProxy[ thisIndex ].wait4res();
@@ -354,14 +356,17 @@ ConjugateGradients::init(
   // Configure preconditioner
   m_pc = pc;
 
+  // Save matrix state
+  m_An = m_A;
+
   // Optionally set initial guess
-  if (not x.empty()) m_x = x;
+  if (!x.empty()) m_x = x; //else std::fill( begin(m_x), end(m_x), 0.0 );
 
   // Optionally set rhs, assumed complete in parallel
-  if (not b.empty()) m_b = b;
+  if (!b.empty()) m_b = b;
 
   // Set Neumann BCs, partial in parallel, communication below
-  if (not neubc.empty()) m_q = neubc;
+  if (!neubc.empty()) m_q = neubc; else std::fill( begin(m_q), end(m_q), 0.0 );
 
   // Store incoming Dirichlet BCs, partial in parallel, communication below
   tk::destroy(m_dirbc);
@@ -418,7 +423,7 @@ ConjugateGradients::combc(
 //! \param[in] qc Contributions to Neumann boundary conditions
 // *****************************************************************************
 {
-  for (const auto& [g,dirbc] : dbc) m_dirbcc[ tk::cref_find(m_lid,g) ] = dirbc;
+  for (const auto& [g,dirbc] : dbc) m_dirbcc[g] = dirbc;
   for (std::size_t i=0; i<gid.size(); ++i) m_qc[ gid[i] ] += qc[i];
 
   if (++m_nb == m_nodeCommMap.size()) {
@@ -437,7 +442,9 @@ ConjugateGradients::apply( CkCallback cb )
   auto ncomp = m_A.Ncomp();
 
   // Merge own and received contributions to Dirichlet boundary conditions
-  for (const auto& [i,dirbc] : m_dirbcc) m_dirbc[i] = dirbc;
+  for (const auto& [g,dirbc] : m_dirbcc) {
+    m_dirbc[ tk::cref_find(m_lid,g) ] = dirbc;
+  }
   tk::destroy( m_dirbcc );
 
   // Merge own and received contributions to Neumann boundary conditions
@@ -554,7 +561,7 @@ ConjugateGradients::solve( std::size_t maxit,
   m_it = 0;
   m_verbose = pe == 0 ? verbose : 0;
 
-  if (m_verbose) tk::Print() << "Xyst> Conjugate gradients start\n";
+  if (m_verbose > 1) tk::Print() << "Xyst> Conjugate gradients start\n";
 
   if (m_converged) x(); else next();
 }
@@ -658,7 +665,7 @@ ConjugateGradients::pq( tk::real d )
   // solve cannot continue.
   const auto eps = std::numeric_limits< tk::real >::epsilon();
   if (std::abs(d) < eps) {
-    if (m_verbose) {
+    if (m_verbose > 1) {
       tk::Print() << "Xyst> Conjugate gradients it " << m_it << ", (p,q) = 0\n";
     }
     m_finished = true;
@@ -776,11 +783,15 @@ ConjugateGradients::x()
       if (m_converged) {
         c << " < " << m_tol << ", converged";
       } else {
-        c << " > " << m_tol << ", not converged";
+        c << " > " << m_tol << ", not converged, ||r|| / ||b|| = "
+          << normr << '/' << normb;
       }
       tk::Print() << "Xyst> Conjugate gradients it " << m_it
                   << ", norm = " << normr/normb << c.str() << '\n';
     }
+
+    // Restore matrix to state before init()
+    m_A = m_An;
 
     m_solved.send( CkDataMsg::buildNew( sizeof(tk::real), &normr ) );
 

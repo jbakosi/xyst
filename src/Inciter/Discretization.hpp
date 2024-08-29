@@ -294,6 +294,9 @@ class Discretization : public CBase_Discretization {
     //! Update residual (during convergence to steady state)
     void residual( tk::real r );
 
+    //! Update number of pressure linear solve iterations taken
+    void pit( std::size_t it );
+
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{
     //! \brief Pack/Unpack serialize member function
@@ -344,6 +347,7 @@ class Discretization : public CBase_Discretization {
       p | m_res1;
       p | m_dea;
       p | m_deastarted;
+      p | m_pit;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -465,6 +469,8 @@ class Discretization : public CBase_Discretization {
     int m_dea;
     //! Flag: 1 if deactivation procedure has started
     int m_deastarted;
+    //! Numberf of recent pressure solve iterations taken
+    std::size_t m_pit;
 
     //! Set mesh coordinates based on coordinates map
     tk::UnsMesh::Coords setCoord( const tk::UnsMesh::CoordMap& coordmap );

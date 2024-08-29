@@ -31,14 +31,16 @@ dirbc( tk::Fields& U,
        tk::real t,
        const std::array< std::vector< tk::real >, 3 >& coord,
        const std::vector< std::unordered_set< std::size_t > >& boxnodes,
-       const std::vector< std::size_t >& dirbcmasks )
+       const std::vector< std::size_t >& dirbcmask,
+       const std::vector< double >& dirbcval )
 // *****************************************************************************
 //  Set symmetry boundary conditions at nodes
 //! \param[in] t Physical time at which to evaluate BCs
 //! \param[in] U Solution vector at recent time step
 //! \param[in] coord Mesh node coordinates
 //! \param[in] boxnodes List of nodes at which box user ICs are set
-//! \param[in] dirbcmasks Nodes and component masks for Dirichlet BCs
+//! \param[in] dirbcmask Nodes and component masks for Dirichlet BCs
+//! \param[in] dirbcval Nodes and component values for Dirichlet BCs
 // *****************************************************************************
 {
   if (g_cfg.get< tag::bc_dir >().empty()) return;
@@ -46,20 +48,24 @@ dirbc( tk::Fields& U,
   auto ncomp = U.nprop();
   auto nmask = ncomp + 1;
 
-  Assert( dirbcmasks.size() % nmask == 0, "Size mismatch" );
+  Assert( dirbcmask.size() % nmask == 0, "Size mismatch" );
+  Assert( dirbcval.size() % nmask == 0, "Size mismatch" );
 
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
   auto ic = problems::IC();
 
-  for (std::size_t i=0; i<dirbcmasks.size()/nmask; ++i) {
-    auto p = dirbcmasks[i*nmask+0];     // local node id
+  for (std::size_t i=0; i<dirbcmask.size()/nmask; ++i) {
+    auto p = dirbcmask[i*nmask+0];      // local node id
     auto u = ic( x[p], y[p], z[p], t ); // evaluate solution/ic
     problems::box( p, u, boxnodes );    // overwrite with box value
     for (std::size_t c=0; c<ncomp; ++c) {
-      if (dirbcmasks[i*nmask+1+c]) {
+      auto mask = dirbcmask[i*nmask+1+c];
+      if (mask == 1) {                              // mask == 1: IC+box value
         U(p,c) = u[c];
+      } else if (mask == 2 && !dirbcval.empty()) {  // mask == 2: BC value
+        U(p,c) = dirbcval[i*nmask+1+c];
       }
     }
   }
@@ -83,14 +89,15 @@ symbc( tk::Fields& U,
   Assert( symbcnodes.size()*3 == symbcnorms.size(), "Size mismatch" );
 
   for (std::size_t i=0; i<symbcnodes.size(); ++i) {
-    auto p  = symbcnodes[i];
-    auto nx = symbcnorms[i*3+0];
-    auto ny = symbcnorms[i*3+1];
-    auto nz = symbcnorms[i*3+2];
-    auto rvn = U(p,pos+0)*nx + U(p,pos+1)*ny + U(p,pos+2)*nz;
-    U(p,pos+0) -= rvn * nx;
-    U(p,pos+1) -= rvn * ny;
-    U(p,pos+2) -= rvn * nz;
+    auto p = symbcnodes[i];
+    auto n = symbcnorms.data() + i*3;
+    auto& u = U(p,pos+0);
+    auto& v = U(p,pos+1);
+    auto& w = U(p,pos+2);
+    auto vn = u*n[0] + v*n[1] + w*n[2];
+    u -= vn * n[0];
+    v -= vn * n[1];
+    w -= vn * n[2];
   }
 }
 

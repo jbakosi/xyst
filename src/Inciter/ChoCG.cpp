@@ -52,7 +52,12 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_cgpre( cgpre ),
   m_nrhs( 0 ),
   m_nnorm( 0 ),
-  m_ngrad( 0 ),
+  m_naec( 0 ),
+  m_nalw( 0 ),
+  m_nlim( 0 ),
+  m_nsgrad( 0 ),
+  m_npgrad( 0 ),
+  m_nflux( 0 ),
   m_ndiv( 0 ),
   m_nbpint( 0 ),
   m_nbeint( 0 ),
@@ -63,13 +68,18 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
-  m_p( m_u.nunk() ),
+  m_pr( m_u.nunk(), 0.0 ),
+  m_p( m_u.nunk(), m_u.nprop()*2 ),
+  m_q( m_u.nunk(), m_u.nprop()*2 ),
+  m_a( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
-  m_grad( m_u.nunk(), 3 ),
+  m_sgrad( m_u.nunk(), 3UL ),
+  m_pgrad( m_u.nunk(), 3UL ),
+  m_flux( m_u.nunk(), 3UL ),
   m_div( m_u.nunk() ),
   m_dtp( m_u.nunk(), 0.0 ),
-  m_tp( m_u.nunk(), g_cfg.get< tag::t0 >() ),
-  m_finished( 0 )
+  m_finished( 0 ),
+  m_fctfreeze( 0 )
 // *****************************************************************************
 //  Constructor
 //! \param[in] disc Discretization proxy
@@ -114,8 +124,6 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
 
   // Activate SDAG waits for setup
   thisProxy[ thisIndex ].wait4int();
-  thisProxy[ thisIndex ].wait4div();
-  thisProxy[ thisIndex ].wait4grad();
 }
 
 std::tuple< tk::CSR, std::vector< tk::real >, std::vector< tk::real > >
@@ -163,19 +171,22 @@ ChoCG::laplacian()
 }
 
 void
-ChoCG::setupDirBC( const std::vector< std::vector< int > >& cfg,
+ChoCG::setupDirBC( const std::vector< std::vector< int > >& cfgmask,
+                   const std::vector< std::vector< double > >& cfgval,
                    std::size_t ncomp,
-                   std::vector< std::size_t >& masks )
+                   std::vector< std::size_t >& mask,
+                   std::vector< double >& val )
 // *****************************************************************************
 //  Prepare Dirichlet boundary condition data structures
-//! \param[in] cfg Boundary condition config data to use
+//! \param[in] cfgmask Boundary condition config data to use
 //! \param[in] ncomp Number of scalar component BCs expected per mesh node
-//! \param[in,out] masks Mesh nodes and their Dirichlet BC masks
+//! \param[in,out] mask Mesh nodes and their Dirichlet BC masks
+//! \param[in,out] val Mesh nodes and their Dirichlet BC values
 // *****************************************************************************
 {
   // Query Dirichlet BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > dir;
-  for (const auto& s : cfg) {
+  for (const auto& s : cfgmask) {
     auto k = m_bface.find(s[0]);
     if (k != end(m_bface)) {
       auto& n = dir[ k->first ];
@@ -189,7 +200,7 @@ ChoCG::setupDirBC( const std::vector< std::vector< int > >& cfg,
 
   // Augment Dirichlet BC nodes with nodes not necessarily part of faces
   const auto& lid = Disc()->Lid();
-  for (const auto& s : cfg) {
+  for (const auto& s : cfgmask) {
     auto k = m_bnode.find(s[0]);
     if (k != end(m_bnode)) {
       auto& n = dir[ k->first ];
@@ -199,69 +210,55 @@ ChoCG::setupDirBC( const std::vector< std::vector< int > >& cfg,
     }
   }
 
-  // Collect unique set of nodes + Dirichlet BC components mask
+  // Associate sidesets to Dirichlet BC values if configured by user
+  std::unordered_map< int, std::vector< double > > dirval;
+  for (const auto& s : cfgval) {
+    auto k = dir.find( static_cast<int>(s[0]) );
+    if (k != end(dir)) {
+      auto& v = dirval[ k->first ];
+      v.resize( s.size()-1 );
+      for (std::size_t i=1; i<s.size(); ++i) v[i-1] = s[i];
+    }
+  }
+
+  // Collect unique set of nodes + Dirichlet BC components mask and value
   auto nmask = ncomp + 1;
-  std::unordered_map< std::size_t, std::vector< int > > dirbcset;
-  for (const auto& mask : cfg) {
-    ErrChk( mask.size() == nmask, "Incorrect Dirichlet BC mask ncomp" );
-    auto n = dir.find( mask[0] );
-    if (n != end(dir))
-      for (auto p : n->second) {
-        auto& m = dirbcset[p];
-        if (m.empty()) m.resize( ncomp, 0 );
-        for (std::size_t c=0; c<ncomp; ++c)
-          if (!m[c]) m[c] = mask[c+1];  // overwrite mask if 0 -> 1
+  std::unordered_map< std::size_t,
+                      std::pair< std::vector< int >,
+                                 std::vector< double > > > dirbcset;
+  for (const auto& vec : cfgmask) {
+    ErrChk( vec.size() == nmask, "Incorrect Dirichlet BC mask ncomp" );
+    auto n = dir.find( vec[0] );
+    if (n != end(dir)) {
+      std::vector< double > v( ncomp, 0.0 );
+      auto m = dirval.find( vec[0] );
+      if (m != end(dirval)) {
+        ErrChk( m->second.size() == ncomp, "Incorrect Dirichlet BC val ncomp" );
+        v = m->second;
       }
-  }
-
-  // Compile streamable list of nodes + Dirichlet BC components mask
-  tk::destroy( masks );
-  for (const auto& [p,mask] : dirbcset) {
-    masks.push_back( p );
-    masks.insert( end(masks), begin(mask), end(mask) );
-  }
-  ErrChk( masks.size() % nmask == 0, "Dirichlet BC masks incomplete" );
-}
-
-void
-ChoCG::setupSymBC( const std::vector< int >& cfg,
-                   std::set< std::size_t >& nodeset )
-// *****************************************************************************
-//  Prepare symmetry/Neumann boundary condition data structures
-//! \param[in] cfg Boundary condition config data to use
-//! \param[in,out] set Mesh nodes at which symmetry BCs are set
-// *****************************************************************************
-{
-  // Query symmetry BC nodes associated to side sets
-  std::unordered_map< int, std::unordered_set< std::size_t > > sym;
-  for (auto s : cfg) {
-    auto k = m_bface.find(s);
-    if (k != end(m_bface)) {
-      auto& n = sym[ k->first ];
-      for (auto f : k->second) {
-        n.insert( m_triinpoel[f*3+0] );
-        n.insert( m_triinpoel[f*3+1] );
-        n.insert( m_triinpoel[f*3+2] );
+      for (auto p : n->second) {
+        auto& mv = dirbcset[p]; // mask & value
+        mv.second = v;
+        auto& mval = mv.first;
+        if (mval.empty()) mval.resize( ncomp, 0 );
+        for (std::size_t c=0; c<ncomp; ++c)
+          if (!mval[c]) mval[c] = vec[c+1];  // overwrite mask if 0 -> 1
       }
     }
   }
 
-  // Generate unique set of symmetry BC nodes
-  tk::destroy( nodeset );
-  for (const auto& [s,n] : sym) nodeset.insert( begin(n), end(n) );
-}
+  // Compile streamable list of nodes + Dirichlet BC components mask and values
+  tk::destroy( mask );
+  for (const auto& [p,mv] : dirbcset) {
+    mask.push_back( p );
+    mask.insert( end(mask), begin(mv.first), end(mv.first) );
+    val.push_back( static_cast< double >( p ) );
+    val.insert( end(val), begin(mv.second), end(mv.second) );
+  }
 
-void
-ChoCG::setupBC()
-// *****************************************************************************
-// Prepare boundary condition data structures
-// *****************************************************************************
-{
-  setupDirBC( g_cfg.get< tag::bc_dir >(), m_u.nprop(), m_dirbcmasks );
-  setupDirBC( g_cfg.get< tag::pre_bc_dir >(), /*ncomp=*/1, m_dirbcmasksp );
-
-  setupSymBC( g_cfg.get< tag::bc_sym >(), m_symbcnodeset );
-  setupSymBC( g_cfg.get< tag::pre_bc_sym >(), m_symbcnodesetp );
+  ErrChk( mask.size() % nmask == 0, "Dirichlet BC mask incomplete" );
+  ErrChk( val.size() % nmask == 0, "Dirichlet BC val incomplete" );
+  ErrChk( mask.size() == val.size(), "Dirichlet BC mask & val size mismatch" );
 }
 
 void
@@ -272,8 +269,11 @@ ChoCG::feop()
 {
   auto d = Disc();
 
-  // Prepare boundary conditions data structures
-  setupBC();
+  // Prepare Dirichlet boundary conditions data structures
+  setupDirBC( g_cfg.get< tag::bc_dir >(), g_cfg.get< tag::bc_dirval >(),
+              m_u.nprop(), m_dirbcmask, m_dirbcval );
+  setupDirBC( g_cfg.get< tag::pre_bc_dir >(), g_cfg.get< tag::pre_bc_dirval >(),
+              1, m_dirbcmaskp, m_dirbcvalp );
 
   // Compute local contributions to boundary normals and integrals
   bndint();
@@ -380,12 +380,15 @@ ChoCG::domint()
       ba{{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] }},
       ca{{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] }},
       da{{ x[N[3]]-x[N[0]], y[N[3]]-y[N[0]], z[N[3]]-z[N[0]] }};
+    const auto J = tk::triple( ba, ca, da );        // J = 6V
+    Assert( J > 0, "Element Jacobian non-positive" );
     std::array< std::array< tk::real, 3 >, 4 > grad;
     grad[1] = tk::cross( ca, da );
     grad[2] = tk::cross( da, ba );
     grad[3] = tk::cross( ba, ca );
     for (std::size_t i=0; i<3; ++i)
       grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
+    auto J120 = J/120.0;
     for (const auto& [p,q] : tk::lpoed) {
       tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
       tk::real sig = 1.0;
@@ -397,6 +400,7 @@ ChoCG::domint()
       n[0] += sig * (grad[p][0] - grad[q][0]) / 48.0;
       n[1] += sig * (grad[p][1] - grad[q][1]) / 48.0;
       n[2] += sig * (grad[p][2] - grad[q][2]) / 48.0;
+      n[3] += J120;
     }
   }
 }
@@ -485,22 +489,6 @@ ChoCG::setup( tk::real v )
 }
 
 void
-ChoCG::start()
-// *****************************************************************************
-// Start time stepping
-// *****************************************************************************
-{
-  // Set flag that indicates that we are now during time stepping
-  Disc()->Initial( 0 );
-  // Start timer measuring time stepping wall clock time
-  Disc()->Timer().zero();
-  // Zero grind-timer
-  Disc()->grindZero();
-  // Continue to first time step
-  dt();
-}
-
-void
 ChoCG::bnorm()
 // *****************************************************************************
 // Combine own and communicated portions of the boundary point normals
@@ -550,20 +538,6 @@ ChoCG::streamable()
 // Convert integrals into streamable data structures
 // *****************************************************************************
 {
-  // Generate boundary element symmetry BC flags
-  m_besym.resize( m_triinpoel.size() );
-  std::size_t i = 0;
-  for (auto p : m_triinpoel) {
-    m_besym[i++] = static_cast< std::uint8_t >(m_symbcnodeset.count(p));
-  }
-
-  // Generate boundary element Neumann pressure BC flags
-  m_besymp.resize( m_triinpoel.size() );
-  i = 0;
-  for (auto p : m_triinpoel) {
-    m_besymp[i++] = static_cast< std::uint8_t >(m_symbcnodesetp.count(p));
-  }
-
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
   const auto& is = g_cfg.get< tag::integout >();
@@ -602,16 +576,36 @@ ChoCG::streamable()
 
   // Generate domain superedges
   domsuped();
-  tk::destroy( m_domedgeint );
 
-  // Convert symmetry BC data to streamable data structures
+  //  Prepare symmetry boundary condition data structures
+
+  // Query symmetry BC nodes associated to side sets
+  std::unordered_map< int, std::unordered_set< std::size_t > > sym;
+  for (auto s : g_cfg.get< tag::bc_sym >()) {
+    auto k = m_bface.find(s);
+    if (k != end(m_bface)) {
+      auto& n = sym[ k->first ];
+      for (auto f : k->second) {
+        const auto& t = m_triinpoel.data() + f*3;
+        n.insert( t[0] );
+        n.insert( t[1] );
+        n.insert( t[2] );
+      }
+    }
+  }
+
+  // Generate unique set of symmetry BC nodes of all symmetryc BC side sets
+  std::set< std::size_t > symbcnodeset;
+  for (const auto& [s,n] : sym) symbcnodeset.insert( begin(n), end(n) );
+
+  // Generate symmetry BC data as streamable data structures
   tk::destroy( m_symbcnodes );
   tk::destroy( m_symbcnorms );
-  for (auto p : m_symbcnodeset) {
+  for (auto p : symbcnodeset) {
     for (const auto& s : g_cfg.get< tag::bc_sym >()) {
-      auto m = m_bnorm.find(s);
+      auto m = m_bnorm.find( s );
       if (m != end(m_bnorm)) {
-        auto r = m->second.find(p);
+        auto r = m->second.find( p );
         if (r != end(m->second)) {
           m_symbcnodes.push_back( p );
           m_symbcnorms.push_back( r->second[0] );
@@ -621,26 +615,6 @@ ChoCG::streamable()
       }
     }
   }
-  tk::destroy( m_symbcnodeset );
-
-  // Convert farfield BC data to streamable data structures
-  tk::destroy( m_farbcnodes );
-  tk::destroy( m_farbcnorms );
-  for (auto p : m_farbcnodeset) {
-    for (const auto& s : g_cfg.get< tag::bc_far >()) {
-      auto n = m_bnorm.find(s);
-      if (n != end(m_bnorm)) {
-        auto a = n->second.find(p);
-        if (a != end(n->second)) {
-          m_farbcnodes.push_back( p );
-          m_farbcnorms.push_back( a->second[0] );
-          m_farbcnorms.push_back( a->second[1] );
-          m_farbcnorms.push_back( a->second[2] );
-        }
-      }
-    }
-  }
-  tk::destroy( m_farbcnodeset );
   tk::destroy( m_bnorm );
 }
 
@@ -696,9 +670,11 @@ ChoCG::domsuped()
       m_dsupedge[0].push_back( N[3] );
       for (const auto& [a,b,c] : tk::lpofa) untri.erase( { N[a], N[b], N[c] } );
       for (int ed=0; ed<6; ++ed) {
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[0] );
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[1] );
-        m_dsupint[0].push_back( sig[ed] * d[ed]->second[2] );
+        const auto& ded = d[ed]->second;
+        m_dsupint[0].push_back( sig[ed] * ded[0] );
+        m_dsupint[0].push_back( sig[ed] * ded[1] );
+        m_dsupint[0].push_back( sig[ed] * ded[2] );
+        m_dsupint[0].push_back( ded[3] );
         m_domedgeint.erase( d[ed] );
       }
     }
@@ -719,27 +695,39 @@ ChoCG::domsuped()
       m_dsupedge[1].push_back( N[1] );
       m_dsupedge[1].push_back( N[2] );
       for (int ed=0; ed<3; ++ed) {
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[0] );
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[1] );
-        m_dsupint[1].push_back( sig[ed] * d[ed]->second[2] );
+        const auto& ded = d[ed]->second;
+        m_dsupint[1].push_back( sig[ed] * ded[0] );
+        m_dsupint[1].push_back( sig[ed] * ded[1] );
+        m_dsupint[1].push_back( sig[ed] * ded[2] );
+        m_dsupint[1].push_back( ded[3] );
         m_domedgeint.erase( d[ed] );
       }
     }
   }
 
   m_dsupedge[2].resize( m_domedgeint.size()*2 );
-  m_dsupint[2].resize( m_domedgeint.size()*3 );
+  m_dsupint[2].resize( m_domedgeint.size()*4 );
   std::size_t k = 0;
   for (const auto& [ed,d] : m_domedgeint) {
     auto e = m_dsupedge[2].data() + k*2;
     e[0] = tk::cref_find( lid, ed[0] );
     e[1] = tk::cref_find( lid, ed[1] );
-    auto i = m_dsupint[2].data() + k*3;
+    auto i = m_dsupint[2].data() + k*4;
     i[0] = d[0];
     i[1] = d[1];
     i[2] = d[2];
+    i[3] = d[3];
     ++k;
   }
+
+  if (g_cfg.get< tag::fct >()) {
+    const auto ncomp = m_u.nprop();
+    m_dsuplim[0].resize( m_dsupedge[0].size() * 6 * ncomp );
+    m_dsuplim[1].resize( m_dsupedge[1].size() * 3 * ncomp );
+    m_dsuplim[2].resize( m_dsupedge[2].size() * ncomp );
+  }
+
+  tk::destroy( m_domedgeint );
 
   //std::cout << std::setprecision(2)
   //          << "superedges: ntet:" << m_dsupedge[0].size()/4 << "(nedge:"
@@ -775,26 +763,65 @@ ChoCG::merge()
   // Convert integrals into streamable data structures
   streamable();
 
-  // Enforce boundary conditions using (re-)computed boundary data
-  BC( Disc()->T() );
+  // Enforce boundary conditions on initial conditions
+  BC( m_u, Disc()->T() );
 
-  // Compute initial velocity divergence
-  div();
+  // Compute initial momentum flux
+  thisProxy[ thisIndex ].wait4div();
+  thisProxy[ thisIndex ].wait4sgrad();
+  div( m_u );
 }
 
 void
-ChoCG::div()
+ChoCG::fingrad( tk::Fields& grad,
+  std::unordered_map< std::size_t, std::vector< tk::real > >& gradc )
 // *****************************************************************************
-//  Start computing velocity divergence
+//  Finalize computing gradient
+//! \param[in,out] grad Gradient to finalize
+//! \param[in,out] gradc Gradient communication buffer to finalize
 // *****************************************************************************
 {
   auto d = Disc();
+  const auto lid = d->Lid();
 
-  // Compute velocity divergence
-  chorin::div( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_div );
+  // Combine own and communicated contributions
+  for (const auto& [g,r] : gradc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) grad(i,c) += r[c];
+  }
+  tk::destroy(gradc);
+
+  // Divide weak result by nodal volume
+  const auto& vol = d->Vol();
+  for (std::size_t p=0; p<grad.nunk(); ++p) {
+    for (std::size_t c=0; c<grad.nprop(); ++c) {
+      grad(p,c) /= vol[p];
+    }
+  }
+
+  // Apply symmetry BCs
+  physics::symbc( grad, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
+}
+
+void
+ChoCG::div( const tk::Fields& u )
+// *****************************************************************************
+//  Start computing divergence
+// \para[in] u Vector field whose divergence to compute
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto lid = d->Lid();
+
+  // Finalize momentum flux gradient communications if needed
+  if (m_np == 1) fingrad( m_pgrad, m_pgradc );
+
+  // Compute divergence
+  std::fill( begin(m_div), end(m_div), 0.0 );
+  chorin::div( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel,
+               d->Dt(), m_dtp, m_pr, m_pgrad, u, m_div, m_np>1 );
 
   // Communicate velocity divergence to other chares on chare-boundary
-  const auto& lid = d->Lid();
   if (d->NodeCommMap().empty()) {
     comdiv_complete();
   } else {
@@ -817,7 +844,7 @@ ChoCG::comdiv( const std::unordered_map< std::size_t, tk::real >& indiv )
 //!   velocity divergence at mesh nodes. While m_div stores own contributions,
 //!   m_divc collects the neighbor chare contributions during communication.
 //!   This way work on m_div and m_divc is overlapped. The two are combined in
-//!   poisson_init().
+//!   pinit().
 // *****************************************************************************
 {
   for (const auto& [g,r] : indiv) m_divc[g] += r;
@@ -830,35 +857,97 @@ ChoCG::comdiv( const std::unordered_map< std::size_t, tk::real >& indiv )
 }
 
 void
-ChoCG::poisson_init()
+ChoCG::flux()
+// *****************************************************************************
+//  Start computing momentum flux
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  // Compute momentum flux
+  m_flux.fill( 0.0 );
+  chorin::flux( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_flux );
+
+  // Communicate velocity divergence to other chares on chare-boundary
+  const auto& lid = d->Lid();
+  if (d->NodeCommMap().empty()) {
+    comflux_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      decltype(m_fluxc) exp;
+      for (auto g : n) exp[g] = m_flux[ tk::cref_find(lid,g) ];
+      thisProxy[c].comflux( exp );
+    }
+  }
+  ownflux_complete();
+}
+
+void
+ChoCG::comflux(
+  const std::unordered_map< std::size_t, std::vector< tk::real > >& influx )
+// *****************************************************************************
+//  Receive contributions to momentum flux on chare-boundaries
+//! \param[in] influx Partial contributions of momentum flux to
+//!   chare-boundary nodes. Key: global mesh node IDs, values: contributions.
+//! \details This function receives contributions to m_flux, which stores the
+//!   momentum flux at mesh nodes. While m_flux stores own contributions,
+//!   m_fluxc collects the neighbor chare contributions during communication.
+//!   This way work on m_flux and m_fluxc is overlapped. The two are combined in
+//!   div().
+// *****************************************************************************
+{
+  using tk::operator+=;
+  for (const auto& [g,r] : influx) m_fluxc[g] += r;
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_nflux == Disc()->NodeCommMap().size()) {
+    m_nflux = 0;
+    comflux_complete();
+  }
+}
+
+void
+ChoCG::pinit()
 // *****************************************************************************
 //  Initialize Poisson solve
 // *****************************************************************************
 {
   auto d = Disc();
   const auto lid = d->Lid();
-
-  // Combine own and communicated contributions to velocity divergence
-  for (const auto& [g,r] : m_divc) m_div[ tk::cref_find( lid, g ) ] += r;
-  tk::destroy(m_divc);
-
-  std::unordered_map< std::size_t,
-    std::vector< std::pair< int, tk::real > > > dirbc;
-
   const auto& coord = d->Coord();
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
 
+  // Combine own and communicated contributions to velocity divergence
+  for (const auto& [g,r] : m_divc) m_div[ tk::cref_find(lid,g) ] += r;
+  tk::destroy(m_divc);
+
+  if (m_np == 1) {
+    for (auto& div : m_div) div *= -1.0;
+  } else if (m_np > 1) {
+    if (g_cfg.get< tag::steady >()) {
+      for (std::size_t i=0; i<m_div.size(); ++i) m_div[i] /= m_dtp[i];
+    } else {
+      for (auto& div : m_div) div /= d->Dt();
+    }
+  }
+
   // Configure Dirichlet BCs
+  std::unordered_map< std::size_t,
+    std::vector< std::pair< int, tk::real > > > dirbc;
   if (!g_cfg.get< tag::pre_bc_dir >().empty()) {
     auto ic = problems::PRESSURE_IC();
     std::size_t nmask = 1 + 1;
-    Assert( m_dirbcmasksp.size() % nmask == 0, "Size mismatch" );
-    for (std::size_t i=0; i<m_dirbcmasksp.size()/nmask; ++i) {
-      auto p = m_dirbcmasksp[i*nmask+0];     // local node id
-      if (m_dirbcmasksp[i*nmask+1]) {
+    Assert( m_dirbcmaskp.size() % nmask == 0, "Size mismatch" );
+    for (std::size_t i=0; i<m_dirbcmaskp.size()/nmask; ++i) {
+      auto p = m_dirbcmaskp[i*nmask+0];     // local node id
+      m_div[p] = 0.0;
+      auto mask = m_dirbcmaskp[i*nmask+1];
+      if (mask == 1) {                                  // mask == 1: IC value
         dirbc[p] = {{ { 1, ic( x[p], y[p], z[p] ) } }};
+      } else if (mask == 2 && !m_dirbcvalp.empty()) {   // mask == 2: BC value
+        dirbc[p] = {{ { 1, m_dirbcvalp[i*nmask+1] } }};
       }
     }
   }
@@ -867,20 +956,27 @@ ChoCG::poisson_init()
   std::vector< tk::real > neubc;
   auto pg = problems::PRESSURE_GRAD();
   if (pg) {
+    // Collect Neumann BC elements
+    std::vector< std::uint8_t > besym( m_triinpoel.size(), 0 );
+    for (auto s : g_cfg.get< tag::pre_bc_sym >()) {
+      auto k = m_bface.find(s);
+      if (k != end(m_bface)) for (auto f : k->second) besym[f] = 1;
+    }
+    // Setup Neumann BCs
     neubc.resize( x.size(), 0.0 );
     for (std::size_t e=0; e<m_triinpoel.size()/3; ++e) {
-      const auto N = m_triinpoel.data() + e*3;
-      const auto sym = m_besymp.data() + e*3;
-      if (sym[0] && sym[1] && sym[2]) {
-        const std::array< tk::real, 3 >
-          ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
-          ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
-        auto n = tk::cross( ba, ca );
-        auto grad = pg( x[N[0]], y[N[1]], z[N[2]] );
-        auto f = tk::dot( n, grad ) / 6.0;
-        neubc[ N[0] ] -= f;
-        neubc[ N[1] ] -= f;
-        neubc[ N[2] ] -= f;
+      if (besym[e]) {
+        const auto N = m_triinpoel.data() + e*3;
+        tk::real n[3];
+        tk::crossdiv( x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]],
+                      x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]], 6.0,
+                      n[0], n[1], n[2] );
+        auto g = pg( x[N[0]], y[N[0]], z[N[0]] );
+        neubc[ N[0] ] -= n[0]*g[0] + n[1]*g[1] + n[2]*g[2];
+        g = pg( x[N[1]], y[N[1]], z[N[1]] );
+        neubc[ N[1] ] -= n[0]*g[0] + n[1]*g[1] + n[2]*g[2];
+        g = pg( x[N[2]], y[N[2]], z[N[2]] );
+        neubc[ N[2] ] -= n[0]*g[0] + n[1]*g[1] + n[2]*g[2];
       }
     }
   }
@@ -897,11 +993,11 @@ ChoCG::poisson_init()
   // Initialize Poisson solve
   const auto& pc = g_cfg.get< tag::pre_pc >();
   m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, pc,
-    CkCallback( CkIndex_ChoCG::poisson_solve(), thisProxy[thisIndex] ) );
+    CkCallback( CkIndex_ChoCG::psolve(), thisProxy[thisIndex] ) );
 }
 
 void
-ChoCG::poisson_solve()
+ChoCG::psolve()
 // *****************************************************************************
 //  Solve Poisson equation
 // *****************************************************************************
@@ -911,140 +1007,685 @@ ChoCG::poisson_solve()
   auto verbose = g_cfg.get< tag::pre_verbose >();
 
   auto c = m_np != 1 ?
-           CkCallback( CkIndex_ChoCG::grad(), thisProxy[thisIndex] ) :
-           CkCallback( CkIndex_ChoCG::poisson_solved(), thisProxy[thisIndex] );
+           CkCallback( CkIndex_ChoCG::sgrad(), thisProxy[thisIndex] ) :
+           CkCallback( CkIndex_ChoCG::psolved(), thisProxy[thisIndex] );
 
   m_cgpre[ thisIndex ].ckLocal()->solve( iter, tol, thisIndex, verbose, c );
 }
 
 void
-ChoCG::grad()
+ChoCG::sgrad()
 // *****************************************************************************
-// Compute gradient
+// Compute recent conjugate gradients solution gradient
 // *****************************************************************************
 {
   auto d = Disc();
 
-  const auto& p = m_cgpre[ thisIndex ].ckLocal()->solution();
-  chorin::grad( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, p, m_grad );
+  auto sol = m_cgpre[ thisIndex ].ckLocal()->solution();
+  m_sgrad.fill( 0.0 );
+  chorin::grad( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, sol, m_sgrad );
 
   // Send gradient contributions to neighbor chares
   if (d->NodeCommMap().empty()) {
-    comgrad_complete();
+    comsgrad_complete();
   } else {
     const auto& lid = d->Lid();
     for (const auto& [c,n] : d->NodeCommMap()) {
       std::unordered_map< std::size_t, std::vector< tk::real > > exp;
-      for (auto g : n) exp[g] = m_grad[ tk::cref_find(lid,g) ];
-      thisProxy[c].comgrad( exp );
+      for (auto g : n) exp[g] = m_sgrad[ tk::cref_find(lid,g) ];
+      thisProxy[c].comsgrad( exp );
     }
   }
-  owngrad_complete();
+  ownsgrad_complete();
 }
 
 void
-ChoCG::comgrad(
+ChoCG::comsgrad(
   const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
 // *****************************************************************************
-//  Receive contributions to node gradient on chare-boundaries
+//  Receive contributions to conjugrate gradients solution gradient
 //! \param[in] ingrad Partial contributions to chare-boundary nodes. Key: 
 //!   global mesh node IDs, value: contributions for all scalar components.
-//! \details This function receives contributions to m_grad, which stores the
-//!   gradients at mesh nodes. While m_grad stores own contributions, m_gradc
+//! \details This function receives contributions to m_sgrad, which stores the
+//!   gradients at mesh nodes. While m_sgrad stores own contributions, m_sgradc
 //!   collects the neighbor chare contributions during communication. This way
-//!   work on m_grad and m_gradc is overlapped. The two are combined in
-//!   presolved().
+//!   work on m_sgrad and m_sgradc is overlapped. The two are combined in
+//!   psolved().
 // *****************************************************************************
 {
   using tk::operator+=;
-  for (const auto& [g,r] : ingrad) m_gradc[g] += r;
+  for (const auto& [g,r] : ingrad) m_sgradc[g] += r;
 
   // When we have heard from all chares we communicate with, this chare is done
-  if (++m_ngrad == Disc()->NodeCommMap().size()) {
-    m_ngrad = 0;
-    comgrad_complete();
+  if (++m_nsgrad == Disc()->NodeCommMap().size()) {
+    m_nsgrad = 0;
+    comsgrad_complete();
   }
 }
 
 void
-ChoCG::poisson_solved()
+ChoCG::psolved()
 // *****************************************************************************
 // Continue setup after Poisson solve and gradient computation
 // *****************************************************************************
 {
   auto d = Disc();
 
+  if (thisIndex == 0) d->pit( m_cgpre[ thisIndex ].ckLocal()->it() );
+
   if (m_np != 1) {
-
-    // Combine own and communicated contributions to gradient
-    const auto lid = d->Lid();
-    for (const auto& [g,r] : m_gradc) {
-      auto i = tk::cref_find( lid, g );
-      for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c) += r[c];
-    }
-    tk::destroy(m_gradc);
-
-    // Divide weak result in gradient by nodal volume
-    const auto& vol = d->Vol();
-    for (std::size_t p=0; p<m_grad.nunk(); ++p)
-      for (std::size_t c=0; c<m_grad.nprop(); ++c)
-        m_grad(p,c) /= vol[p];
-
+    // Finalize gradient communications
+    fingrad( m_sgrad, m_sgradc );
     // Project velocity to divergence-free subspace
+    const auto steady = g_cfg.get< tag::steady >();
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
-      m_u(i,0) -= m_grad(i,0);
-      m_u(i,1) -= m_grad(i,1);
-      m_u(i,2) -= m_grad(i,2);
+      auto dt = m_np > 1 ? (steady ? m_dtp[i] : d->Dt()) : 1.0;
+      m_u(i,0) -= dt * m_sgrad(i,0);
+      m_u(i,1) -= dt * m_sgrad(i,1);
+      m_u(i,2) -= dt * m_sgrad(i,2);
     }
-
+    // Enforce boundary conditions
+    BC( m_u, d->T() + d->Dt() );
   }
 
   if (d->Initial()) {
 
     if (g_cfg.get< tag::nstep >() == 1) {  // test first Poisson solve only
 
-      m_p = m_cgpre[ thisIndex ].ckLocal()->solution();
+      m_pr = m_cgpre[ thisIndex ].ckLocal()->solution();
       thisProxy[ thisIndex ].wait4step();
       writeFields( CkCallback(CkIndex_ChoCG::diag(), thisProxy[thisIndex]) );
 
     } else {
 
       if (++m_np < 2) {
-        std::fill( begin(m_div), end(m_div), 0.0 );
-        thisProxy[ thisIndex ].wait4grad();
-        poisson_init();
+        // Compute momentum flux for initial pressure-Poisson rhs
+        thisProxy[ thisIndex ].wait4flux();
+        thisProxy[ thisIndex ].wait4div();
+        thisProxy[ thisIndex ].wait4sgrad();
+        flux();
       } else {
-        m_p = m_cgpre[ thisIndex ].ckLocal()->solution();
-        writeFields( CkCallback(CkIndex_ChoCG::start(), thisProxy[thisIndex]) );
+        // Assign initial pressure and compute its gradient
+        m_pr = m_cgpre[ thisIndex ].ckLocal()->solution();
+        pgrad();
       }
 
     }
 
   } else {
 
-    // Advance pressure
-    const auto& dp = m_cgpre[ thisIndex ].ckLocal()->solution();
+    // Update pressure and compute its gradient
     using tk::operator+=;
-    m_p += dp;
-
-    // Continue with computing diagnostics
-    diag();
+    m_pr += m_cgpre[ thisIndex ].ckLocal()->solution();
+    pgrad();
 
   }
 }
 
 void
-ChoCG::BC( tk::real t )
+ChoCG::pgrad()
+// *****************************************************************************
+//  Compute pressure gradient
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  thisProxy[ thisIndex ].wait4pgrad();
+
+  m_pgrad.fill( 0.0 );
+  chorin::grad( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_pr, m_pgrad );
+
+  // Send gradient contributions to neighbor chares
+  if (d->NodeCommMap().empty()) {
+    compgrad_complete();
+  } else {
+    const auto& lid = d->Lid();
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      std::unordered_map< std::size_t, std::vector< tk::real > > exp;
+      for (auto g : n) exp[g] = m_pgrad[ tk::cref_find(lid,g) ];
+      thisProxy[c].compgrad( exp );
+    }
+  }
+  ownpgrad_complete();
+}
+
+void
+ChoCG::compgrad(
+  const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
+// *****************************************************************************
+//  Receive contributions to pressure gradient  on chare-boundaries
+//! \param[in] ingrad Partial contributions to chare-boundary nodes. Key:
+//!   global mesh node IDs, value: contributions for all scalar components.
+//! \details This function receives contributions to m_pgrad, which stores the
+//!   gradients at mesh nodes. While m_pgrad stores own contributions, m_pgradc
+//!   collects the neighbor chare contributions during communication. This way
+//!   work on m_pgrad and m_pgradc is overlapped. The two are combined in
+//!   rhs().
+// *****************************************************************************
+{
+  using tk::operator+=;
+  for (const auto& [g,r] : ingrad) m_pgradc[g] += r;
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_npgrad == Disc()->NodeCommMap().size()) {
+    m_npgrad = 0;
+    compgrad_complete();
+  }
+}
+
+void
+ChoCG::finpgrad()
+// *****************************************************************************
+//  Compute pressure gradient
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  // Finalize pressure gradient communications
+  fingrad( m_pgrad, m_pgradc );
+
+  if (d->Initial()) {
+    writeFields( CkCallback(CkIndex_ChoCG::start(), thisProxy[thisIndex]) );
+  } else {
+    diag();
+  }
+}
+
+void
+ChoCG::start()
+// *****************************************************************************
+// Start time stepping
+// *****************************************************************************
+{
+  // Set flag that indicates that we are now during time stepping
+  Disc()->Initial( 0 );
+  // Start timer measuring time stepping wall clock time
+  Disc()->Timer().zero();
+  // Zero grind-timer
+  Disc()->grindZero();
+  // Continue to first time step
+  dt();
+}
+
+void
+// cppcheck-suppress unusedFunction
+ChoCG::aec()
+// *****************************************************************************
+// Compute antidiffusive contributions: P+/-
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto ncomp = m_u.nprop();
+  const auto& lid = d->Lid();
+
+  // Antidiffusive contributions: P+/-
+
+  auto ctau = g_cfg.get< tag::fctdif >();
+  m_p.fill( 0.0 );
+
+  // tetrahedron superedges
+  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
+    const auto N = m_dsupedge[0].data() + e*4;
+    const auto D = m_dsupint[0].data();
+    std::size_t i = 0;
+    for (const auto& [p,q] : tk::lpoed) {
+      auto dif = D[(e*6+i)*4+3];
+      for (std::size_t c=0; c<ncomp; ++c) {
+        auto aec = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
+        auto a = c*2;
+        auto b = a+1;
+        if (aec > 0.0) std::swap(a,b);
+        m_p(N[p],a) -= aec;
+        m_p(N[q],b) += aec;
+      }
+      ++i;
+    }
+  }
+
+  // triangle superedges
+  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
+    const auto N = m_dsupedge[1].data() + e*3;
+    const auto D = m_dsupint[1].data();
+    std::size_t i = 0;
+    for (const auto& [p,q] : tk::lpoet) {
+      auto dif = D[(e*3+i)*4+3];
+      for (std::size_t c=0; c<ncomp; ++c) {
+        auto aec = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
+        auto a = c*2;
+        auto b = a+1;
+        if (aec > 0.0) std::swap(a,b);
+        m_p(N[p],a) -= aec;
+        m_p(N[q],b) += aec;
+      }
+      ++i;
+    }
+  }
+
+  // edges
+  for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
+    const auto N = m_dsupedge[2].data() + e*2;
+    const auto dif = m_dsupint[2][e*4+3];
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto aec = -dif * ctau * (m_u(N[0],c) - m_u(N[1],c));
+      auto a = c*2;
+      auto b = a+1;
+      if (aec > 0.0) std::swap(a,b);
+      m_p(N[0],a) -= aec;
+      m_p(N[1],b) += aec;
+    }
+  }
+
+  //// Apply symmetry BCs on AEC
+  //for (std::size_t i=0; i<m_symbcnodes.size(); ++i) {
+  //  auto p = m_symbcnodes[i];
+  //  auto nx = m_symbcnorms[i*3+0];
+  //  auto ny = m_symbcnorms[i*3+1];
+  //  auto nz = m_symbcnorms[i*3+2];
+  //  auto rvnp = m_p(p,0)*nx + m_p(p,2)*ny + m_p(p,4)*nz;
+  //  auto rvnn = m_p(p,1)*nx + m_p(p,3)*ny + m_p(p,5)*nz;
+  //  m_p(p,0) -= rvnp * nx;
+  //  m_p(p,1) -= rvnn * nx;
+  //  m_p(p,2) -= rvnp * ny;
+  //  m_p(p,3) -= rvnn * ny;
+  //  m_p(p,4) -= rvnp * nz;
+  //  m_p(p,5) -= rvnn * nz;
+  //}
+
+  // Communicate antidiffusive edge and low-order solution contributions
+  if (d->NodeCommMap().empty()) {
+    comaec_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      decltype(m_pc) exp;
+      for (auto g : n) exp[g] = m_p[ tk::cref_find(lid,g) ];
+      thisProxy[c].comaec( exp );
+    }
+  }
+  ownaec_complete();
+}
+
+void
+ChoCG::comaec( const std::unordered_map< std::size_t,
+                       std::vector< tk::real > >& inaec )
+// *****************************************************************************
+//  Receive antidiffusive and low-order contributions on chare-boundaries
+//! \param[in] inaec Partial contributions of antidiffusive edge and low-order
+//!   solution contributions on chare-boundary nodes. Key: global mesh node IDs,
+//!   value: 0: antidiffusive contributions, 1: low-order solution.
+// *****************************************************************************
+{
+  using tk::operator+=;
+  for (const auto& [g,a] : inaec) m_pc[g] += a;
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_naec == Disc()->NodeCommMap().size()) {
+    m_naec = 0;
+    comaec_complete();
+  }
+}
+
+void
+ChoCG::alw()
+// *****************************************************************************
+// Compute allowed limits, Q+/-
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto steady = g_cfg.get< tag::steady >();
+  const auto npoin = m_u.nunk();
+  const auto ncomp = m_u.nprop();
+  const auto& lid = d->Lid();
+  const auto& vol = d->Vol();
+
+  // Combine own and communicated contributions to antidiffusive contributions
+  // and low-order solution
+  for (const auto& [g,p] : m_pc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<p.size(); ++c) m_p(i,c) += p[c];
+  }
+  tk::destroy(m_pc);
+
+  // Finish computing antidiffusive contributions and low-order solution
+  auto dt = d->Dt();
+  for (std::size_t i=0; i<npoin; ++i) {
+    if (steady) dt = m_dtp[i];
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      m_p(i,a) /= vol[i];
+      m_p(i,b) /= vol[i];
+      // low-order solution
+      m_rhs(i,c) = m_u(i,c) - dt*m_rhs(i,c)/vol[i] - m_p(i,a) - m_p(i,b);
+    }
+  }
+
+  // Allowed limits: Q+/-
+
+  using std::max;
+  using std::min;
+
+  auto large = std::numeric_limits< tk::real >::max();
+  for (std::size_t i=0; i<m_q.nunk(); ++i) {
+    for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
+      m_q(i,c*2+0) = -large;
+      m_q(i,c*2+1) = +large;
+    }
+  }
+
+  // tetrahedron superedges
+  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
+    const auto N = m_dsupedge[0].data() + e*4;
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      for (const auto& [p,q] : tk::lpoed) {
+        tk::real alwp, alwn;
+        if (g_cfg.get< tag::fctclip >()) {
+          alwp = max( m_rhs(N[p],c), m_rhs(N[q],c) );
+          alwn = min( m_rhs(N[p],c), m_rhs(N[q],c) );
+        } else {
+          alwp = max( max(m_rhs(N[p],c), m_u(N[p],c)),
+                      max(m_rhs(N[q],c), m_u(N[q],c)) );
+          alwn = min( min(m_rhs(N[p],c), m_u(N[p],c)),
+                      min(m_rhs(N[q],c), m_u(N[q],c)) );
+        }
+        m_q(N[p],a) = max(m_q(N[p],a), alwp);
+        m_q(N[p],b) = min(m_q(N[p],b), alwn);
+        m_q(N[q],a) = max(m_q(N[q],a), alwp);
+        m_q(N[q],b) = min(m_q(N[q],b), alwn);
+      }
+    }
+  }
+
+  // triangle superedges
+  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
+    const auto N = m_dsupedge[1].data() + e*3;
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      for (const auto& [p,q] : tk::lpoet) {
+        tk::real alwp, alwn;
+        if (g_cfg.get< tag::fctclip >()) {
+          alwp = max( m_rhs(N[p],c), m_rhs(N[q],c) );
+          alwn = min( m_rhs(N[p],c), m_rhs(N[q],c) );
+        } else {
+          alwp = max( max(m_rhs(N[p],c), m_u(N[p],c)),
+                      max(m_rhs(N[q],c), m_u(N[q],c)) );
+          alwn = min( min(m_rhs(N[p],c), m_u(N[p],c)),
+                      min(m_rhs(N[q],c), m_u(N[q],c)) );
+        }
+        m_q(N[p],a) = max(m_q(N[p],a), alwp);
+        m_q(N[p],b) = min(m_q(N[p],b), alwn);
+        m_q(N[q],a) = max(m_q(N[q],a), alwp);
+        m_q(N[q],b) = min(m_q(N[q],b), alwn);
+      }
+    }
+  }
+
+  // edges
+  for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
+    const auto N = m_dsupedge[2].data() + e*2;
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      tk::real alwp, alwn;
+      if (g_cfg.get< tag::fctclip >()) {
+        alwp = max( m_rhs(N[0],c), m_rhs(N[1],c) );
+        alwn = min( m_rhs(N[0],c), m_rhs(N[1],c) );
+      } else {
+        alwp = max( max(m_rhs(N[0],c), m_u(N[0],c)),
+                    max(m_rhs(N[1],c), m_u(N[1],c)) );
+        alwn = min( min(m_rhs(N[0],c), m_u(N[0],c)),
+                    min(m_rhs(N[1],c), m_u(N[1],c)) );
+      }
+      m_q(N[0],a) = max(m_q(N[0],a), alwp);
+      m_q(N[0],b) = min(m_q(N[0],b), alwn);
+      m_q(N[1],a) = max(m_q(N[1],a), alwp);
+      m_q(N[1],b) = min(m_q(N[1],b), alwn);
+    }
+  }
+
+  // Communicate allowed limits contributions
+  if (d->NodeCommMap().empty()) {
+    comalw_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      decltype(m_qc) exp;
+      for (auto g : n) exp[g] = m_q[ tk::cref_find(lid,g) ];
+      thisProxy[c].comalw( exp );
+    }
+  }
+  ownalw_complete();
+}
+
+void
+ChoCG::comalw( const std::unordered_map< std::size_t,
+                       std::vector< tk::real > >& inalw )
+// *****************************************************************************
+//  Receive allowed limits contributions on chare-boundaries
+//! \param[in] inalw Partial contributions of allowed limits contributions on
+//!   chare-boundary nodes. Key: global mesh node IDs, value: allowed limit
+//!   contributions.
+// *****************************************************************************
+{
+  for (const auto& [g,alw] : inalw) {
+    auto& q = m_qc[g];
+    q.resize( alw.size() );
+    for (std::size_t c=0; c<alw.size()/2; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      q[a] = std::max( q[a], alw[a] );
+      q[b] = std::min( q[b], alw[b] );
+    }
+  }
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_nalw == Disc()->NodeCommMap().size()) {
+    m_nalw = 0;
+    comalw_complete();
+  }
+}
+
+void
+ChoCG::lim()
+// *****************************************************************************
+// Compute limit coefficients
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto npoin = m_u.nunk();
+  const auto ncomp = m_u.nprop();
+  const auto& lid = d->Lid();
+
+  using std::max;
+  using std::min;
+
+  // Combine own and communicated contributions to allowed limits
+  for (const auto& [g,alw] : m_qc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<alw.size()/2; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      m_q(i,a) = max( m_q(i,a), alw[a] );
+      m_q(i,b) = min( m_q(i,b), alw[b] );
+    }
+  }
+  tk::destroy(m_qc);
+
+  // Finish computing allowed limits
+  for (std::size_t i=0; i<npoin; ++i) {
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      m_q(i,a) -= m_rhs(i,c);
+      m_q(i,b) -= m_rhs(i,c);
+    }
+  }
+
+  // Limit coefficients, C
+
+  for (std::size_t i=0; i<npoin; ++i) {
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto a = c*2;
+      auto b = a+1;
+      auto eps = std::numeric_limits< tk::real >::epsilon();
+      m_q(i,a) = m_p(i,a) <  eps ? 0.0 : min(1.0, m_q(i,a)/m_p(i,a));
+      m_q(i,b) = m_p(i,b) > -eps ? 0.0 : min(1.0, m_q(i,b)/m_p(i,b));
+    }
+  }
+
+  // Limited antidiffusive contributions
+
+  auto ctau = g_cfg.get< tag::fctdif >();
+  m_a.fill( 0.0 );
+
+  auto fctsys = g_cfg.get< tag::fctsys >();
+  for (auto& c : fctsys) --c;
+
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
+  // tetrahedron superedges
+  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
+    const auto N = m_dsupedge[0].data() + e*4;
+    const auto D = m_dsupint[0].data();
+    auto C = m_dsuplim[0].data();
+    std::size_t i = 0;
+    for (const auto& [p,q] : tk::lpoed) {
+      auto dif = D[(e*6+i)*4+3];
+      auto coef = C + (e*6+i)*ncomp;
+      tk::real aec[ncomp];
+      for (std::size_t c=0; c<ncomp; ++c) {
+        aec[c] = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
+        if (m_fctfreeze) continue;
+        auto a = c*2;
+        auto b = a+1;
+        coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a) : m_q(N[p],b),
+                       aec[c] > 0.0 ? m_q(N[q],a) : m_q(N[q],b) );
+      }
+      tk::real cs = 1.0;
+      for (auto c : fctsys) cs = min( cs, coef[c] );
+      for (auto c : fctsys) coef[c] = cs;
+      for (std::size_t c=0; c<ncomp; ++c) {
+        aec[c] *= coef[c];
+        m_a(N[p],c) -= aec[c];
+        m_a(N[q],c) += aec[c];
+      }
+      ++i;
+    }
+  }
+
+  // triangle superedges
+  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
+    const auto N = m_dsupedge[1].data() + e*3;
+    const auto D = m_dsupint[1].data();
+    auto C = m_dsuplim[0].data();
+    std::size_t i = 0;
+    for (const auto& [p,q] : tk::lpoet) {
+      auto dif = D[(e*3+i)*4+3];
+      auto coef = C + (e*3+i)*ncomp;
+      tk::real aec[ncomp];
+      for (std::size_t c=0; c<ncomp; ++c) {
+        aec[c] = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
+        if (m_fctfreeze) continue;
+        auto a = c*2;
+        auto b = a+1;
+        coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a) : m_q(N[p],b),
+                       aec[c] > 0.0 ? m_q(N[q],a) : m_q(N[q],b) );
+      }
+      tk::real cs = 1.0;
+      for (auto c : fctsys) cs = min( cs, coef[c] );
+      for (auto c : fctsys) coef[c] = cs;
+      for (std::size_t c=0; c<ncomp; ++c) {
+        aec[c] *= coef[c];
+        m_a(N[p],c) -= aec[c];
+        m_a(N[q],c) += aec[c];
+      }
+      ++i;
+    }
+  }
+
+  // edges
+  for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
+    const auto N = m_dsupedge[2].data() + e*2;
+    const auto dif = m_dsupint[2][e*4+3];
+    auto coef = m_dsuplim[2].data() + e*ncomp;
+    tk::real aec[ncomp];
+    for (std::size_t c=0; c<ncomp; ++c) {
+      aec[c] = -dif * ctau * (m_u(N[0],c) - m_u(N[1],c));
+      auto a = c*2;
+      auto b = a+1;
+      if (m_fctfreeze) continue;
+      coef[c] = min( aec[c] < 0.0 ? m_q(N[0],a) : m_q(N[0],b),
+                     aec[c] > 0.0 ? m_q(N[1],a) : m_q(N[1],b) );
+    }
+    tk::real cs = 1.0;
+    for (auto c : fctsys) cs = min( cs, coef[c] );
+    for (auto c : fctsys) coef[c] = cs;
+    for (std::size_t c=0; c<ncomp; ++c) {
+      aec[c] *= coef[c];
+      m_a(N[0],c) -= aec[c];
+      m_a(N[1],c) += aec[c];
+    }
+  }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
+
+  // Communicate limited antidiffusive contributions
+  if (d->NodeCommMap().empty()){
+    comlim_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      decltype(m_ac) exp;
+      for (auto g : n) exp[g] = m_a[ tk::cref_find(lid,g) ];
+      thisProxy[c].comlim( exp );
+    }
+  }
+  ownlim_complete();
+}
+
+void
+ChoCG::comlim( const std::unordered_map< std::size_t,
+                       std::vector< tk::real > >& inlim )
+// *****************************************************************************
+//  Receive limited antidiffusive contributions on chare-boundaries
+//! \param[in] inlim Partial contributions of limited contributions on
+//!   chare-boundary nodes. Key: global mesh node IDs, value: limited
+//!   contributions.
+// *****************************************************************************
+{
+  using tk::operator+=;
+  for (const auto& [g,a] : inlim) m_ac[g] += a;
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_nlim == Disc()->NodeCommMap().size()) {
+    m_nlim = 0;
+    comlim_complete();
+  }
+}
+
+void
+ChoCG::BC( tk::Fields& u, tk::real t )
 // *****************************************************************************
 // Apply boundary conditions
+//! \param[in,out] u Solution to apply BCs to
 //! \param[in] t Physical time
 // *****************************************************************************
 {
   auto d = Disc();
 
-  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
-  physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
-  physics::farbc( m_u, m_farbcnodes, m_farbcnorms );
+  physics::dirbc( u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
+  physics::symbc( u, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
 }
 
 void
@@ -1053,8 +1694,10 @@ ChoCG::dt()
 // Compute time step size
 // *****************************************************************************
 {
-  tk::real mindt = std::numeric_limits< tk::real >::max();
+  auto d = Disc();
+  const auto& vol = d->Vol();
 
+  tk::real mindt = std::numeric_limits< tk::real >::max();
   auto const_dt = g_cfg.get< tag::dt >();
   auto eps = std::numeric_limits< tk::real >::epsilon();
 
@@ -1066,8 +1709,6 @@ ChoCG::dt()
 
   } else {
 
-    auto d = Disc();
-    const auto& vol = d->Vol();
     auto cfl = g_cfg.get< tag::cfl >();
 
     if (g_cfg.get< tag::steady >()) {
@@ -1078,7 +1719,7 @@ ChoCG::dt()
         auto w = m_u(i,2);
         auto vel = std::sqrt( u*u + v*v + w*w );
         auto L = std::cbrt( vol[i] );
-        m_dtp[i] = L / std::max( vel, 1.0e-8 ) * cfl;
+        m_dtp[i] = L / std::max( vel, 1.0e-2 ) * cfl;
       }
       mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
 
@@ -1101,8 +1742,11 @@ ChoCG::dt()
 
   // Actiavate SDAG waits for next time step stage
   thisProxy[ thisIndex ].wait4rhs();
+  thisProxy[ thisIndex ].wait4aec();
+  thisProxy[ thisIndex ].wait4alw();
+  thisProxy[ thisIndex ].wait4sol();
   thisProxy[ thisIndex ].wait4div();
-  thisProxy[ thisIndex ].wait4grad();
+  thisProxy[ thisIndex ].wait4sgrad();
   thisProxy[ thisIndex ].wait4step();
 
   // Contribute to minimum dt across all chares and advance to next step
@@ -1120,6 +1764,7 @@ ChoCG::advance( tk::real newdt )
   // Set new time step size
   Disc()->setdt( newdt );
 
+  // Compute momentum rhs
   rhs();
 }
 
@@ -1131,16 +1776,10 @@ ChoCG::rhs()
 {
   auto d = Disc();
   const auto& lid = d->Lid();
-  const auto steady = g_cfg.get< tag::steady >();
 
   // Compute own portion of right-hand side for all equations
-  if (steady) for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] += m_dtp[p];
-
-  m_rhs.fill( 0.0 );
-  //chorin::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_besym,
-  //             m_u, m_p, d->T(), d->Dt(), m_tp, m_dtp, m_rhs );
-
-  if (steady) for (std::size_t p=0; p<m_tp.size(); ++p) m_tp[p] -= m_dtp[p];
+  chorin::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel,
+               d->Dt(), m_dtp, m_pr, m_u, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
@@ -1166,7 +1805,7 @@ ChoCG::comrhs(
 //!   right hand side vector at mesh nodes. While m_rhs stores own
 //!   contributions, m_rhsc collects the neighbor chare contributions during
 //!   communication. This way work on m_rhs and m_rhsc is overlapped. The two
-//!   are combined in solve().
+//!   are combined in fct().
 // *****************************************************************************
 {
   using tk::operator+=;
@@ -1180,6 +1819,23 @@ ChoCG::comrhs(
 }
 
 void
+ChoCG::fct()
+// *****************************************************************************
+// Continue with flux-corrected transport if enabled
+// *****************************************************************************
+{
+  // Combine own and communicated contributions to rhs
+  const auto lid = Disc()->Lid();
+  for (const auto& [g,r] : m_rhsc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c) += r[c];
+  }
+  tk::destroy(m_rhsc);
+
+  if (g_cfg.get< tag::fct >()) aec(); else solve();
+}
+
+void
 // cppcheck-suppress unusedFunction
 ChoCG::solve()
 // *****************************************************************************
@@ -1187,36 +1843,51 @@ ChoCG::solve()
 // *****************************************************************************
 {
   auto d = Disc();
+  const auto npoin = m_u.nunk();
+  const auto ncomp = m_u.nprop();
+  const auto& vol = d->Vol();
 
-  // Combine own and communicated contributions to rhs
-  const auto lid = d->Lid();
-  for (const auto& [g,r] : m_rhsc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c) += r[c];
+  // Combine own and communicated contributions to limited antidiffusive
+  // contributions
+  for (const auto& [g,a] : m_ac) {
+    auto i = tk::cref_find( d->Lid(), g );
+    for (std::size_t c=0; c<a.size(); ++c) m_a(i,c) += a[c];
   }
-  tk::destroy(m_rhsc);
+  tk::destroy(m_ac);
 
-  // Save previous solution
   m_un = m_u;
 
-  // Advance solution
-  auto dt = d->Dt();
-  const auto& vol = d->Vol();
-  auto ncomp = m_u.nprop();
-  for (std::size_t i=0; i<m_u.nunk(); ++i) {
-    if (g_cfg.get< tag::steady >()) dt = m_dtp[i];
-    for (std::size_t c=0; c<ncomp; ++c) m_u(i,c) += dt*m_rhs(i,c)/vol[i];
+  if (g_cfg.get< tag::fct >()) {
+    // Apply limited antidiffusive contributions to low-order solution
+    for (std::size_t i=0; i<npoin; ++i) {
+      for (std::size_t c=0; c<ncomp; ++c) {
+        m_a(i,c) = m_rhs(i,c) + m_a(i,c) / vol[i];
+      }
+    }
+  } else {
+    // Apply rhs
+    auto dt = d->Dt();
+    for (std::size_t i=0; i<npoin; ++i) {
+      if (g_cfg.get< tag::steady >()) dt = m_dtp[i];
+      for (std::size_t c=0; c<ncomp; ++c) {
+        m_a(i,c) = m_un(i,c) - dt * m_rhs(i,c) / vol[i];
+      }
+    }
   }
 
   // Configure and apply scalar source to solution (if defined)
   auto src = problems::PHYS_SRC();
-  if (src) src( d->Coord(), d->T(), m_u );
+  if (src) src( d->Coord(), d->T(), m_a );
 
   // Enforce boundary conditions
-  BC( d->T() + d->Dt() );
+  BC( m_a, d->T() + d->Dt() );
 
-  // Compute velocity divergence
-  div();
+  // Update solution
+  m_u = m_a;
+  m_a.fill( 0.0 );
+
+  // Compute projection
+  div( m_u );
 }
 
 void
@@ -1227,18 +1898,13 @@ ChoCG::diag()
 {
   auto d = Disc();
 
-  // Compute diagnostics, e.g., residuals
-  auto diag_iter = g_cfg.get< tag::diag_iter >();
-  auto diagnostics = m_diag.precompute( *d, m_u, m_un, m_p, diag_iter );
-
   // Increase number of iterations and physical time
   d->next();
 
-  // Advance physical time for local time stepping
-  if (g_cfg.get< tag::steady >()) {
-    using tk::operator+=;
-    m_tp += m_dtp;
-  }
+  // Compute diagnostics, e.g., residuals
+  auto diag_iter = g_cfg.get< tag::diag_iter >();
+  const auto& dp = m_cgpre[ thisIndex ].ckLocal()->solution();
+  auto diagnostics = m_diag.precompute( *d, m_u, m_un, m_pr, dp, diag_iter );
 
   // Evaluate residuals
   if (!diagnostics) evalres( std::vector< tk::real >( m_u.nprop(), 1.0 ) );
@@ -1255,6 +1921,7 @@ ChoCG::evalres( const std::vector< tk::real >& l2res )
   if (g_cfg.get< tag::steady >()) {
     const auto rc = g_cfg.get< tag::rescomp >() - 1;
     Disc()->residual( l2res[rc] );
+    if (l2res[rc] < g_cfg.get< tag::fctfreeze >()) m_fctfreeze = 1;
   }
 
   refine();
@@ -1335,13 +2002,13 @@ ChoCG::resizePostAMR(
 
   // Remove newly removed nodes from solution vectors
   m_u.rm( removedNodes );
-  //m_p.rm( removedNodes );
+  //m_pr.rm( removedNodes );
   m_rhs.rm( removedNodes );
 
   // Resize auxiliary solution vectors
   auto npoin = coord[0].size();
   m_u.resize( npoin );
-  m_p.resize( npoin );
+  m_pr.resize( npoin );
   m_rhs.resize( npoin );
 
   // Update solution on new mesh
@@ -1377,15 +2044,27 @@ ChoCG::writeFields( CkCallback cb )
   // Field output
 
   std::vector< std::string > nodefieldnames{
-    "velocityx", "velocityy", "velocityz", "div", "pressure" };
+    "velocityx", "velocityy", "velocityz", "divergence", "pressure" };
 
   std::vector< std::vector< tk::real > > nodefields;
 
   nodefields.push_back( m_u.extract(0) );
   nodefields.push_back( m_u.extract(1) );
   nodefields.push_back( m_u.extract(2) );
+
+  // Divide weak result by nodal volume
+  const auto& vol = d->Vol();
+  for (std::size_t i=0; i<m_div.size(); ++i) m_div[i] /= vol[i];
   nodefields.push_back( m_div );
-  nodefields.push_back( m_p ) ;
+
+  nodefields.push_back( m_pr ) ;
+
+  //nodefieldnames.push_back( "dp/dx" );
+  //nodefieldnames.push_back( "dp/dy" );
+  //nodefieldnames.push_back( "dp/dz" );
+  //nodefields.push_back( m_pgrad.extract(0) );
+  //nodefields.push_back( m_pgrad.extract(1) );
+  //nodefields.push_back( m_pgrad.extract(2) );
 
   // also output analytic pressure (if defined)
   auto pressure_sol = problems::PRESSURE_SOL();
@@ -1394,7 +2073,7 @@ ChoCG::writeFields( CkCallback cb )
     const auto& x = coord[0];
     const auto& y = coord[1];
     const auto& z = coord[2];
-    auto ap = m_p;
+    auto ap = m_pr;
     for (std::size_t i=0; i<ap.size(); ++i) {
       ap[i] = pressure_sol( x[i], y[i], z[i] );
     }
@@ -1409,54 +2088,38 @@ ChoCG::writeFields( CkCallback cb )
   std::vector< std::string > nodesurfnames;
   std::vector< std::vector< tk::real > > nodesurfs;
 
-//  const auto& f = g_cfg.get< tag::fieldout >();
-//
-//  if (!f.empty()) {
-//    nodesurfnames.push_back( "density" );
-//    nodesurfnames.push_back( "velocityx" );
-//    nodesurfnames.push_back( "velocityy" );
-//    nodesurfnames.push_back( "velocityz" );
-//    nodesurfnames.push_back( "energy" );
-//    nodesurfnames.push_back( "pressure" );
-//
-//    for (std::size_t c=0; c<ncomp-5; ++c) {
-//      nodesurfnames.push_back( "c" + std::to_string(c) );
-//    }
-//
-//    if (steady) nodesurfnames.push_back( "mach" );
-//
-//    auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
-//    std::set< int > outsets( begin(f), end(f) );
-//    for (auto sideset : outsets) {
-//      auto b = bnode.find(sideset);
-//      if (b == end(bnode)) continue;
-//      const auto& nodes = b->second;
-//      auto i = nodesurfs.size();
-//      auto ns = ncomp + 1;
-//      if (steady) ++ns;
-//      nodesurfs.insert( end(nodesurfs), ns,
-//                        std::vector< tk::real >( nodes.size() ) );
-//      std::size_t j = 0;
-//      for (auto n : nodes) {
-//        const auto s = m_u[n];
-//        std::size_t p = 0;
-//        nodesurfs[i+(p++)][j] = s[0];
-//        nodesurfs[i+(p++)][j] = s[1]/s[0];
-//        nodesurfs[i+(p++)][j] = s[2]/s[0];
-//        nodesurfs[i+(p++)][j] = s[3]/s[0];
-//        nodesurfs[i+(p++)][j] = s[4]/s[0];
-//        auto vv = (s[1]*s[1] + s[2]*s[2] + s[3]*s[3])/s[0]/s[0];
-//        auto ei = s[4]/s[0] - 0.5*vv;
-//        auto sp = eos::pressure( s[0]*ei );
-//        nodesurfs[i+(p++)][j] = sp;
-//        for (std::size_t c=0; c<ncomp-5; ++c) nodesurfs[i+(p++)+c][j] = s[5+c];
-//        if (steady) {
-//          nodesurfs[i+(p++)][j] = std::sqrt(vv) / eos::soundspeed( s[0], sp );
-//        }
-//        ++j;
-//      }
-//    }
-//  }
+  const auto& f = g_cfg.get< tag::fieldout >();
+
+  if (!f.empty()) {
+    std::size_t ncomp = 5;
+    nodesurfnames.push_back( "velocityx" );
+    nodesurfnames.push_back( "velocityy" );
+    nodesurfnames.push_back( "velocityz" );
+    nodesurfnames.push_back( "divergence" );
+    nodesurfnames.push_back( "pressure" );
+
+    auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
+    std::set< int > outsets( begin(f), end(f) );
+    for (auto sideset : outsets) {
+      auto b = bnode.find(sideset);
+      if (b == end(bnode)) continue;
+      const auto& nodes = b->second;
+      auto i = nodesurfs.size();
+      nodesurfs.insert( end(nodesurfs), ncomp,
+                        std::vector< tk::real >( nodes.size() ) );
+      std::size_t j = 0;
+      for (auto n : nodes) {
+        const auto s = m_u[n];
+        std::size_t p = 0;
+        nodesurfs[i+(p++)][j] = s[0];
+        nodesurfs[i+(p++)][j] = s[1];
+        nodesurfs[i+(p++)][j] = s[2];
+        nodesurfs[i+(p++)][j] = m_div[n];
+        nodesurfs[i+(p++)][j] = m_pr[n];
+        ++j;
+      }
+    }
+  }
 
   // Send mesh and fields data (solution dump) for output to file
   d->write( d->Inpoel(), d->Coord(), m_bface, tk::remap(m_bnode,d->Lid()),

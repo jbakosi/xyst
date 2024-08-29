@@ -973,6 +973,16 @@ Discretization::lb() const
 }
 
 void
+Discretization::pit( std::size_t it )
+// *****************************************************************************
+//  Update number of pressure linear solve iterations taken
+//! \param[in] it Number of pressure linear solve iterations taken
+// *****************************************************************************
+{
+  m_pit = it;
+}
+
+void
 Discretization::status()
 // *****************************************************************************
 // Output one-liner status report
@@ -997,6 +1007,7 @@ Discretization::status()
     const auto rsfreq = g_cfg.get< tag::rsfreq >();
     const auto benchmark = g_cfg.get< tag::benchmark >();
     const auto residual = g_cfg.get< tag::residual >();
+    const auto pre = g_cfg.get< tag::solver >() == "chocg" ? 1 : 0;
 
     // estimate time elapsed and time for accomplishment
     tk::Timer::Watch ete, eta;
@@ -1031,6 +1042,7 @@ Discretization::status()
     if (m_deastarted and deactivate()) {
       print << "\te:" << m_dea << '/' << m_nchare;
     }
+    if (pre) print << "\tp:" << m_pit;
 
     print << '\n';
   }

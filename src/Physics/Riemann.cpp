@@ -175,7 +175,7 @@ muscl( std::size_t p, std::size_t q, const tk::UnsMesh::Coords& coord,
 
   tk::real delta1[ns], delta2[ns], delta3[ns];
 
-  // MUSCL reconstruction of edge-end-point primitive variables
+  // MUSCL reconstruction of edge-end-point of primitive variables
   for (std::size_t c=0; c<ns; ++c) {
     auto g = (5+c)*3;
     auto g1 = G(p,g+0)*vw[0] + G(p,g+1)*vw[1] + G(p,g+2)*vw[2];
@@ -649,33 +649,6 @@ hllc( const tk::UnsMesh::Coords& coord,
   #endif
 }
 
-static
-std::function< void( const tk::UnsMesh::Coords&,
-                     const tk::Fields&,
-                     const tk::real[],
-                     std::size_t,
-                     std::size_t,
-                     const tk::real[],
-                     const tk::real[],
-                     tk::real[],
-                     std::size_t,
-                     std::size_t ) >
-FLUX()
-// *****************************************************************************
-//! Configure flux function to use
-//! \return Function to call to compute flux between two edge-end points
-// *****************************************************************************
-{
-  const auto& flux = g_cfg.get< tag::flux >();
-
-  if (flux == "rusanov")
-    return rusanov;
-  else if (flux == "hllc")
-    return hllc;
-  else
-    Throw( "Flux not configured" );
-}
-
 static void
 advdom( const tk::UnsMesh::Coords& coord,
         const std::array< std::vector< std::size_t >, 3 >& dsupedge,
@@ -698,7 +671,17 @@ advdom( const tk::UnsMesh::Coords& coord,
   auto ncomp = U.nprop();
 
   // configure flux function
-  auto flux = FLUX();
+  auto cfgflux = [](){
+    const auto& cfg = g_cfg.get< tag::flux >();
+    if (cfg == "rusanov")
+      return rusanov;
+    else if (cfg == "hllc")
+      return hllc;
+    else
+      Throw( "Flux not configured" );
+  };
+
+  auto flux = cfgflux();
 
   #if defined(__clang__)
     #pragma clang diagnostic push

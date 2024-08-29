@@ -21,17 +21,31 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const std::vector< std::size_t >& triinpoel,
+     tk::real dt,
+     const std::vector< tk::real >& dtp,
+     const std::vector< tk::real >& P,
+     const tk::Fields& G,
      const tk::Fields& U,
-     std::vector< tk::real >& D );
+     std::vector< tk::real >& D,
+     bool stab );
 
-//! Compute nodal gradients of a scalar in all points
+//! Compute gradient of scalar in all points
 void
 grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
       const std::array< std::vector< tk::real >, 3 >& dsupint,
       const std::array< std::vector< tk::real >, 3 >& coord,
       const std::vector< std::size_t >& triinpoel,
-      const std::vector< tk::real >& u,
+      const std::vector< tk::real >& U,
       tk::Fields& G );
+
+//! Compute momentum flux in all points
+void
+flux( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+      const std::array< std::vector< tk::real >, 3 >& dsupint,
+      const std::array< std::vector< tk::real >, 3 >& coord,
+      const std::vector< std::size_t >& triinpoel,
+      const tk::Fields& U,
+      tk::Fields& F );
 
 //! Compute right hand side
 void
@@ -39,13 +53,10 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const std::vector< std::size_t >& triinpoel,
-     const std::vector< std::uint8_t >& besym,
-     const tk::Fields& U,
-     const std::vector< tk::real >& P,
-     tk::real t,
      tk::real dt,
-     const std::vector< tk::real >& tp,
      const std::vector< tk::real >& dtp,
+     const std::vector< tk::real >& P,
+     const tk::Fields& U,
      tk::Fields& R );
 
 } // chorin::

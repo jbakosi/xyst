@@ -77,9 +77,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_pgrad( m_u.nunk(), 3UL ),
   m_flux( m_u.nunk(), 3UL ),
   m_div( m_u.nunk() ),
-  m_dtp( m_u.nunk(), 0.0 ),
-  m_finished( 0 ),
-  m_fctfreeze( 0 )
+  m_finished( 0 )
 // *****************************************************************************
 //  Constructor
 //! \param[in] disc Discretization proxy
@@ -819,7 +817,7 @@ ChoCG::div( const tk::Fields& u )
   // Compute divergence
   std::fill( begin(m_div), end(m_div), 0.0 );
   chorin::div( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel,
-               d->Dt(), m_dtp, m_pr, m_pgrad, u, m_div, m_np>1 );
+               d->Dt(), m_pr, m_pgrad, u, m_div, m_np>1 );
 
   // Communicate velocity divergence to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
@@ -926,11 +924,7 @@ ChoCG::pinit()
   if (m_np == 1) {
     for (auto& div : m_div) div *= -1.0;
   } else if (m_np > 1) {
-    if (g_cfg.get< tag::steady >()) {
-      for (std::size_t i=0; i<m_div.size(); ++i) m_div[i] /= m_dtp[i];
-    } else {
-      for (auto& div : m_div) div /= d->Dt();
-    }
+    for (auto& div : m_div) div /= d->Dt();
   }
 
   // Configure Dirichlet BCs
@@ -1077,9 +1071,9 @@ ChoCG::psolved()
     // Finalize gradient communications
     fingrad( m_sgrad, m_sgradc );
     // Project velocity to divergence-free subspace
-    const auto steady = g_cfg.get< tag::steady >();
+    auto dt = m_np > 1 ? d->Dt() : 1.0;
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
-      auto dt = m_np > 1 ? (steady ? m_dtp[i] : d->Dt()) : 1.0;
+      //auto dt = d->Dt();
       m_u(i,0) -= dt * m_sgrad(i,0);
       m_u(i,1) -= dt * m_sgrad(i,1);
       m_u(i,2) -= dt * m_sgrad(i,2);
@@ -1331,7 +1325,6 @@ ChoCG::alw()
 // *****************************************************************************
 {
   auto d = Disc();
-  const auto steady = g_cfg.get< tag::steady >();
   const auto npoin = m_u.nunk();
   const auto ncomp = m_u.nprop();
   const auto& lid = d->Lid();
@@ -1348,7 +1341,6 @@ ChoCG::alw()
   // Finish computing antidiffusive contributions and low-order solution
   auto dt = d->Dt();
   for (std::size_t i=0; i<npoin; ++i) {
-    if (steady) dt = m_dtp[i];
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
       auto b = a+1;
@@ -1563,7 +1555,6 @@ ChoCG::lim()
       tk::real aec[ncomp];
       for (std::size_t c=0; c<ncomp; ++c) {
         aec[c] = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
-        if (m_fctfreeze) continue;
         auto a = c*2;
         auto b = a+1;
         coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a) : m_q(N[p],b),
@@ -1593,7 +1584,6 @@ ChoCG::lim()
       tk::real aec[ncomp];
       for (std::size_t c=0; c<ncomp; ++c) {
         aec[c] = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
-        if (m_fctfreeze) continue;
         auto a = c*2;
         auto b = a+1;
         coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a) : m_q(N[p],b),
@@ -1621,7 +1611,6 @@ ChoCG::lim()
       aec[c] = -dif * ctau * (m_u(N[0],c) - m_u(N[1],c));
       auto a = c*2;
       auto b = a+1;
-      if (m_fctfreeze) continue;
       coef[c] = min( aec[c] < 0.0 ? m_q(N[0],a) : m_q(N[0],b),
                      aec[c] > 0.0 ? m_q(N[1],a) : m_q(N[1],b) );
     }
@@ -1711,32 +1700,16 @@ ChoCG::dt()
 
     auto cfl = g_cfg.get< tag::cfl >();
 
-    if (g_cfg.get< tag::steady >()) {
-
-      for (std::size_t i=0; i<m_u.nunk(); ++i) {
-        auto u = m_u(i,0);
-        auto v = m_u(i,1);
-        auto w = m_u(i,2);
-        auto vel = std::sqrt( u*u + v*v + w*w );
-        auto L = std::cbrt( vol[i] );
-        m_dtp[i] = L / std::max( vel, 1.0e-2 ) * cfl;
-      }
-      mindt = *std::min_element( begin(m_dtp), end(m_dtp) );
-
-    } else {
-
-      for (std::size_t i=0; i<m_u.nunk(); ++i) {
-        auto u = m_u(i,0);
-        auto v = m_u(i,1);
-        auto w = m_u(i,2);
-        auto vel = std::sqrt( u*u + v*v + w*w );
-        auto L = std::cbrt( vol[i] );
-        auto euler_dt = L / std::max( vel, 1.0e-8 );
-        mindt = std::min( mindt, euler_dt );
-      }
-      mindt *= cfl;
-
+    for (std::size_t i=0; i<m_u.nunk(); ++i) {
+      auto u = m_u(i,0);
+      auto v = m_u(i,1);
+      auto w = m_u(i,2);
+      auto vel = std::sqrt( u*u + v*v + w*w );
+      auto L = std::cbrt( vol[i] );
+      auto euler_dt = L / std::max( vel, 1.0e-8 );
+      mindt = std::min( mindt, euler_dt );
     }
+    mindt *= cfl;
 
   }
 
@@ -1779,7 +1752,7 @@ ChoCG::rhs()
 
   // Compute own portion of right-hand side for all equations
   chorin::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel,
-               d->Dt(), m_dtp, m_pr, m_u, m_rhs );
+               d->Dt(), m_pr, m_u, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
@@ -1868,7 +1841,6 @@ ChoCG::solve()
     // Apply rhs
     auto dt = d->Dt();
     for (std::size_t i=0; i<npoin; ++i) {
-      if (g_cfg.get< tag::steady >()) dt = m_dtp[i];
       for (std::size_t c=0; c<ncomp; ++c) {
         m_a(i,c) = m_un(i,c) - dt * m_rhs(i,c) / vol[i];
       }
@@ -1911,19 +1883,11 @@ ChoCG::diag()
 }
 
 void
-ChoCG::evalres( const std::vector< tk::real >& l2res )
+ChoCG::evalres( const std::vector< tk::real >& )
 // *****************************************************************************
 //  Evaluate residuals
-//! \param[in] l2res L2-norms of the residual for each scalar component
-//!   computed across the whole problem
 // *****************************************************************************
 {
-  if (g_cfg.get< tag::steady >()) {
-    const auto rc = g_cfg.get< tag::rescomp >() - 1;
-    Disc()->residual( l2res[rc] );
-    if (l2res[rc] < g_cfg.get< tag::fctfreeze >()) m_fctfreeze = 1;
-  }
-
   refine();
 }
 

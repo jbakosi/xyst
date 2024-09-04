@@ -32,7 +32,6 @@ static tk::real
 div( const std::array< std::vector< tk::real >, 3 >& coord,
      const tk::real d[],
      tk::real dt,
-     const std::vector< tk::real >& dtp,
      const std::vector< tk::real >& P,
      const tk::Fields& G,
      const tk::Fields& U,
@@ -44,7 +43,6 @@ div( const std::array< std::vector< tk::real >, 3 >& coord,
 //! \param[in] coord Mesh node coordinates
 //! \param[in] d Edge integral
 //! \param[in] dt Physical time step size
-//! \param[in] dtp Phisical time step size for each mesh node (if steady state)
 //! \param[in] P Pressure
 //! \param[in] G Gradients
 //! \param[in] U Velocity vector
@@ -65,8 +63,6 @@ div( const std::array< std::vector< tk::real >, 3 >& coord,
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
-
-  if (g_cfg.get< tag::steady >()) dt = (dtp[p] + dtp[q]) / 2.0;
 
   auto dx = x[p] - x[q];
   auto dy = y[p] - y[q];
@@ -90,7 +86,6 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const std::vector< std::size_t >& triinpoel,
      tk::real dt,
-     const std::vector< tk::real >& dtp,
      const std::vector< tk::real >& P,
      const tk::Fields& G,
      const tk::Fields& U,
@@ -103,7 +98,6 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] coord Mesh node coordinates
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] dt Physical time size
-//! \param[in] dtp Time step size for each mesh node (if steady state)
 //! \param[in] P Pressure
 //! \param[in] G Gradients
 //! \param[in] U Vector whose divergence to compute
@@ -128,12 +122,12 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto d = dsupint[0].data();
     // edge fluxes
     tk::real f[] = {
-      div( coord, d+(e*6+0)*4, dt, dtp, P, G, U, N[0], N[1], stab ),
-      div( coord, d+(e*6+1)*4, dt, dtp, P, G, U, N[1], N[2], stab ),
-      div( coord, d+(e*6+2)*4, dt, dtp, P, G, U, N[2], N[0], stab ),
-      div( coord, d+(e*6+3)*4, dt, dtp, P, G, U, N[0], N[3], stab ),
-      div( coord, d+(e*6+4)*4, dt, dtp, P, G, U, N[1], N[3], stab ),
-      div( coord, d+(e*6+5)*4, dt, dtp, P, G, U, N[2], N[3], stab ) };
+      div( coord, d+(e*6+0)*4, dt, P, G, U, N[0], N[1], stab ),
+      div( coord, d+(e*6+1)*4, dt, P, G, U, N[1], N[2], stab ),
+      div( coord, d+(e*6+2)*4, dt, P, G, U, N[2], N[0], stab ),
+      div( coord, d+(e*6+3)*4, dt, P, G, U, N[0], N[3], stab ),
+      div( coord, d+(e*6+4)*4, dt, P, G, U, N[1], N[3], stab ),
+      div( coord, d+(e*6+5)*4, dt, P, G, U, N[2], N[3], stab ) };
     // edge flux contributions
     D[N[0]] = D[N[0]] - f[0] + f[2] - f[3];
     D[N[1]] = D[N[1]] + f[0] - f[1] - f[4];
@@ -147,9 +141,9 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto d = dsupint[1].data();
     // edge fluxes
     tk::real f[] = {
-      div( coord, d+(e*3+0)*4, dt, dtp, P, G, U, N[0], N[1], stab ),
-      div( coord, d+(e*3+1)*4, dt, dtp, P, G, U, N[1], N[2], stab ),
-      div( coord, d+(e*3+2)*4, dt, dtp, P, G, U, N[2], N[0], stab ) };
+      div( coord, d+(e*3+0)*4, dt, P, G, U, N[0], N[1], stab ),
+      div( coord, d+(e*3+1)*4, dt, P, G, U, N[1], N[2], stab ),
+      div( coord, d+(e*3+2)*4, dt, P, G, U, N[2], N[0], stab ) };
     // edge flux contributions
     D[N[0]] = D[N[0]] - f[0] + f[2];
     D[N[1]] = D[N[1]] + f[0] - f[1];
@@ -161,7 +155,7 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[2].data() + e*2;
     const auto d = dsupint[2].data();
     // edge flux
-    tk::real f = div( coord, d+e*4, dt, dtp, P, G, U, N[0], N[1], stab );
+    tk::real f = div( coord, d+e*4, dt, P, G, U, N[0], N[1], stab );
     // edge flux contributions
     D[N[0]] -= f;
     D[N[1]] += f;
@@ -478,7 +472,6 @@ adv_tg( const tk::real supint[],
         const std::vector< tk::real >& P,
         const std::array< std::vector< tk::real >, 3 >& coord,
         tk::real dt,
-        const std::vector< tk::real >& dtp,
         std::size_t p,
         std::size_t q,
         tk::real f[] )
@@ -489,13 +482,11 @@ adv_tg( const tk::real supint[],
 //! \param[in] P Pressure
 //! \param[in] coord Mesh node coordinates
 //! \param[in] dt Physical time step size
-//! \param[in] dtp Time step size for each mesh node (if steady state)
 //! \param[in] p Left node index of edge
 //! \param[in] q Right node index of edge
 //! \param[in,out] f Flux computed
 // *****************************************************************************
 {
-  const auto steady = g_cfg.get< tag::steady >();
   const auto ncomp = U.nprop();
   const auto& x = coord[0];
   const auto& y = coord[1];
@@ -538,8 +529,6 @@ adv_tg( const tk::real supint[],
   #endif
 
   // Taylor-Galerkin first half step
-
-  if (steady) dt = (dtp[p] + dtp[q])/2.0;
 
   tk::real ue[ncomp];
 
@@ -592,7 +581,6 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const std::vector< std::size_t >& triinpoel,
      tk::real dt,
-     const std::vector< tk::real >& dtp,
      const tk::Fields& U,
      const std::vector< tk::real >& P,
      // cppcheck-suppress constParameter
@@ -603,7 +591,6 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] coord Mesh node coordinates
 //! \param[in] dt Physical time step size
-//! \param[in] dtp Time step size for each mesh node (if steady state)
 //! \param[in] U Velocity and transported scalars at recent time step
 //! \param[in] P Pressure
 //! \param[in,out] R Right-hand side vector computed
@@ -627,12 +614,12 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[0].data() + e*4;
     tk::real f[6][ncomp];
     const auto d = dsupint[0].data();
-    adv_tg( d+(e*6+0)*4, U, P, coord, dt, dtp, N[0], N[1], f[0] );
-    adv_tg( d+(e*6+1)*4, U, P, coord, dt, dtp, N[1], N[2], f[1] );
-    adv_tg( d+(e*6+2)*4, U, P, coord, dt, dtp, N[2], N[0], f[2] );
-    adv_tg( d+(e*6+3)*4, U, P, coord, dt, dtp, N[0], N[3], f[3] );
-    adv_tg( d+(e*6+4)*4, U, P, coord, dt, dtp, N[1], N[3], f[4] );
-    adv_tg( d+(e*6+5)*4, U, P, coord, dt, dtp, N[2], N[3], f[5] );
+    adv_tg( d+(e*6+0)*4, U, P, coord, dt, N[0], N[1], f[0] );
+    adv_tg( d+(e*6+1)*4, U, P, coord, dt, N[1], N[2], f[1] );
+    adv_tg( d+(e*6+2)*4, U, P, coord, dt, N[2], N[0], f[2] );
+    adv_tg( d+(e*6+3)*4, U, P, coord, dt, N[0], N[3], f[3] );
+    adv_tg( d+(e*6+4)*4, U, P, coord, dt, N[1], N[3], f[4] );
+    adv_tg( d+(e*6+5)*4, U, P, coord, dt, N[2], N[3], f[5] );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c] - f[3][c];
       R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c] - f[4][c];
@@ -646,9 +633,9 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[1].data() + e*3;
     tk::real f[3][ncomp];
     const auto d = dsupint[1].data();
-    adv_tg( d+(e*3+0)*4, U, P, coord, dt, dtp, N[0], N[1], f[0] );
-    adv_tg( d+(e*3+1)*4, U, P, coord, dt, dtp, N[1], N[2], f[1] );
-    adv_tg( d+(e*3+2)*4, U, P, coord, dt, dtp, N[2], N[0], f[2] );
+    adv_tg( d+(e*3+0)*4, U, P, coord, dt, N[0], N[1], f[0] );
+    adv_tg( d+(e*3+1)*4, U, P, coord, dt, N[1], N[2], f[1] );
+    adv_tg( d+(e*3+2)*4, U, P, coord, dt, N[2], N[0], f[2] );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
       R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c];
@@ -661,7 +648,7 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[2].data() + e*2;
     tk::real f[ncomp];
     const auto d = dsupint[2].data();
-    adv_tg( d+e*4, U, P, coord, dt, dtp, N[0], N[1], f );
+    adv_tg( d+e*4, U, P, coord, dt, N[0], N[1], f );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) -= f[c];
       R(N[1],c) += f[c];
@@ -732,7 +719,6 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const std::vector< std::size_t >& triinpoel,
      tk::real dt,
-     const std::vector< tk::real >& dtp,
      const std::vector< tk::real >& P,
      const tk::Fields& U,
      tk::Fields& R )
@@ -743,7 +729,6 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] coord Mesh node coordinates
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] dt Physical time step size
-//! \param[in] dtp Time step size for each mesh node (if steady state)
 //! \param[in] P Pressure
 //! \param[in] U Solution vector of primitive variables at recent time step
 //! \param[in,out] R Right-hand side vector computed
@@ -756,7 +741,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
           "side vector incorrect" );
 
   R.fill( 0.0 );
-  adv( dsupedge, dsupint, coord, triinpoel, dt, dtp, U, P, R );
+  adv( dsupedge, dsupint, coord, triinpoel, dt, U, P, R );
 }
 
 } // chorin::

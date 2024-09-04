@@ -231,9 +231,7 @@ class ChoCG : public CBase_ChoCG {
       p | m_symbcnodes;
       p | m_symbcnorms;
       p | m_surfint;
-      p | m_dtp;
       p | m_finished;
-      p | m_fctfreeze;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -364,12 +362,8 @@ class ChoCG : public CBase_ChoCG {
     //! Streamable surface integral nodes and normals * dA on surfaces
     std::map< int, std::pair< std::vector< std::size_t >,
                               std::vector< tk::real > > > m_surfint;
-    //! Time step size for each mesh node
-    std::vector< tk::real > m_dtp;
     //! True in the last time step
     int m_finished;
-    //! Freeze FCT limiter if 1, 0 FCT as usual
-    int m_fctfreeze;
 
     //! Access bound Discretization class pointer
     Discretization* Disc() const {

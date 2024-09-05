@@ -231,6 +231,7 @@ class ChoCG : public CBase_ChoCG {
       p | m_symbcnodes;
       p | m_symbcnorms;
       p | m_surfint;
+      p | m_stage;
       p | m_finished;
     }
     //! \brief Pack/Unpack serialize operator|
@@ -362,6 +363,8 @@ class ChoCG : public CBase_ChoCG {
     //! Streamable surface integral nodes and normals * dA on surfaces
     std::map< int, std::pair< std::vector< std::size_t >,
                               std::vector< tk::real > > > m_surfint;
+    //! Runge-Kutta stage counter
+    std::size_t m_stage;
     //! True in the last time step
     int m_finished;
 

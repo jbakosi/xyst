@@ -38,6 +38,10 @@ extern ctr::Config g_cfg;
 
 static CkReduction::reducerType IntegralsMerger;
 
+//! Runge-Kutta coefficients
+//static const std::array< tk::real, 3 > rkcoef{{ 1.0/3.0, 1.0/2.0, 1.0 }};
+static const std::array< tk::real, 1 > rkcoef{{ 1.0 }};
+
 } // inciter::
 
 using inciter::g_cfg;
@@ -77,6 +81,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_pgrad( m_u.nunk(), 3UL ),
   m_flux( m_u.nunk(), 3UL ),
   m_div( m_u.nunk() ),
+  m_stage( 0 ),
   m_finished( 0 )
 // *****************************************************************************
 //  Constructor
@@ -841,8 +846,7 @@ ChoCG::comdiv( const std::unordered_map< std::size_t, tk::real >& indiv )
 //! \details This function receives contributions to m_div, which stores the
 //!   velocity divergence at mesh nodes. While m_div stores own contributions,
 //!   m_divc collects the neighbor chare contributions during communication.
-//!   This way work on m_div and m_divc is overlapped. The two are combined in
-//!   pinit().
+//!   This way work on m_div and m_divc is overlapped.
 // *****************************************************************************
 {
   for (const auto& [g,r] : indiv) m_divc[g] += r;
@@ -890,8 +894,7 @@ ChoCG::comflux(
 //! \details This function receives contributions to m_flux, which stores the
 //!   momentum flux at mesh nodes. While m_flux stores own contributions,
 //!   m_fluxc collects the neighbor chare contributions during communication.
-//!   This way work on m_flux and m_fluxc is overlapped. The two are combined in
-//!   div().
+//!   This way work on m_flux and m_fluxc is overlapped.
 // *****************************************************************************
 {
   using tk::operator+=;
@@ -1043,8 +1046,7 @@ ChoCG::comsgrad(
 //! \details This function receives contributions to m_sgrad, which stores the
 //!   gradients at mesh nodes. While m_sgrad stores own contributions, m_sgradc
 //!   collects the neighbor chare contributions during communication. This way
-//!   work on m_sgrad and m_sgradc is overlapped. The two are combined in
-//!   psolved().
+//!   work on m_sgrad and m_sgradc is overlapped.
 // *****************************************************************************
 {
   using tk::operator+=;
@@ -1073,7 +1075,6 @@ ChoCG::psolved()
     // Project velocity to divergence-free subspace
     auto dt = m_np > 1 ? d->Dt() : 1.0;
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
-      //auto dt = d->Dt();
       m_u(i,0) -= dt * m_sgrad(i,0);
       m_u(i,1) -= dt * m_sgrad(i,1);
       m_u(i,2) -= dt * m_sgrad(i,2);
@@ -1153,8 +1154,7 @@ ChoCG::compgrad(
 //! \details This function receives contributions to m_pgrad, which stores the
 //!   gradients at mesh nodes. While m_pgrad stores own contributions, m_pgradc
 //!   collects the neighbor chare contributions during communication. This way
-//!   work on m_pgrad and m_pgradc is overlapped. The two are combined in
-//!   rhs().
+//!   work on m_pgrad and m_pgradc is overlapped.
 // *****************************************************************************
 {
   using tk::operator+=;
@@ -1269,21 +1269,19 @@ ChoCG::aec()
     }
   }
 
-  //// Apply symmetry BCs on AEC
-  //for (std::size_t i=0; i<m_symbcnodes.size(); ++i) {
-  //  auto p = m_symbcnodes[i];
-  //  auto nx = m_symbcnorms[i*3+0];
-  //  auto ny = m_symbcnorms[i*3+1];
-  //  auto nz = m_symbcnorms[i*3+2];
-  //  auto rvnp = m_p(p,0)*nx + m_p(p,2)*ny + m_p(p,4)*nz;
-  //  auto rvnn = m_p(p,1)*nx + m_p(p,3)*ny + m_p(p,5)*nz;
-  //  m_p(p,0) -= rvnp * nx;
-  //  m_p(p,1) -= rvnn * nx;
-  //  m_p(p,2) -= rvnp * ny;
-  //  m_p(p,3) -= rvnn * ny;
-  //  m_p(p,4) -= rvnp * nz;
-  //  m_p(p,5) -= rvnn * nz;
-  //}
+  // Apply symmetry BCs on AEC
+  for (std::size_t i=0; i<m_symbcnodes.size(); ++i) {
+    auto p = m_symbcnodes[i];
+    auto n = m_symbcnorms.data() + i*3;
+    auto rvnp = m_p(p,0)*n[0] + m_p(p,2)*n[1] + m_p(p,4)*n[2];
+    auto rvnn = m_p(p,1)*n[0] + m_p(p,3)*n[1] + m_p(p,5)*n[2];
+    m_p(p,0) -= rvnp * n[0];
+    m_p(p,1) -= rvnn * n[0];
+    m_p(p,2) -= rvnp * n[1];
+    m_p(p,3) -= rvnn * n[1];
+    m_p(p,4) -= rvnp * n[2];
+    m_p(p,5) -= rvnn * n[2];
+  }
 
   // Communicate antidiffusive edge and low-order solution contributions
   if (d->NodeCommMap().empty()) {
@@ -1339,7 +1337,7 @@ ChoCG::alw()
   tk::destroy(m_pc);
 
   // Finish computing antidiffusive contributions and low-order solution
-  auto dt = d->Dt();
+  auto dt = rkcoef[m_stage] * d->Dt();
   for (std::size_t i=0; i<npoin; ++i) {
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
@@ -1751,8 +1749,9 @@ ChoCG::rhs()
   const auto& lid = d->Lid();
 
   // Compute own portion of right-hand side for all equations
+  auto dt = rkcoef[m_stage] * d->Dt();
   chorin::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel,
-               d->Dt(), m_pr, m_u, m_rhs );
+               dt, m_pr, m_u, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
@@ -1777,8 +1776,7 @@ ChoCG::comrhs(
 //! \details This function receives contributions to m_rhs, which stores the
 //!   right hand side vector at mesh nodes. While m_rhs stores own
 //!   contributions, m_rhsc collects the neighbor chare contributions during
-//!   communication. This way work on m_rhs and m_rhsc is overlapped. The two
-//!   are combined in fct().
+//!   communication. This way work on m_rhs and m_rhsc is overlapped.
 // *****************************************************************************
 {
   using tk::operator+=;
@@ -1828,7 +1826,7 @@ ChoCG::solve()
   }
   tk::destroy(m_ac);
 
-  m_un = m_u;
+  if (m_stage == 0) m_un = m_u;
 
   if (g_cfg.get< tag::fct >()) {
     // Apply limited antidiffusive contributions to low-order solution
@@ -1839,7 +1837,7 @@ ChoCG::solve()
     }
   } else {
     // Apply rhs
-    auto dt = d->Dt();
+    auto dt = rkcoef[m_stage] * d->Dt();
     for (std::size_t i=0; i<npoin; ++i) {
       for (std::size_t c=0; c<ncomp; ++c) {
         m_a(i,c) = m_un(i,c) - dt * m_rhs(i,c) / vol[i];
@@ -1852,14 +1850,27 @@ ChoCG::solve()
   if (src) src( d->Coord(), d->T(), m_a );
 
   // Enforce boundary conditions
-  BC( m_a, d->T() + d->Dt() );
+  BC( m_a, d->T() + rkcoef[m_stage] * d->Dt() );
 
   // Update solution
   m_u = m_a;
   m_a.fill( 0.0 );
 
-  // Compute projection
-  div( m_u );
+  if (++m_stage < rkcoef.size()) {
+
+    // Activate SDAG wait for next time step stage
+    thisProxy[ thisIndex ].wait4rhs();
+    // Continue to next time stage
+    rhs();
+
+  } else {
+
+    // Reset Runge-Kutta stage counter
+    m_stage = 0;
+    // Continue to projection
+    div( m_u );
+
+  }
 }
 
 void

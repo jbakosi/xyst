@@ -5,6 +5,12 @@ This page collects peer-reviewed journal papers related to the algorithms
 implemented in Xyst.
 
 - @m_div{m-text m-strong}
+  J. Bakosi, **[Partition deactivation with load balancing for parallel flow simulations](https://doi.org/10.1016/j.jcp.2024.113387)**, Journal of Computational Physics, Volume 519(113387), 2024.
+  @m_enddiv
+
+  This paper discusses the algorithm implemented in Xyst as @ref inciter_zalcg "ZalCG" and demonstrates saving CPU time by dynamically deactivating partitions of the computational domain combined with automatic load-balancing during parallel simulations of propagating phenomena.
+
+- @m_div{m-text m-strong}
   J. Bakosi, **[Open-source complex-geometry 3D fluid dynamics for applications with
 unpredictable heterogeneous dynamic high-performance-computing loads](https://doi.org/10.1016/j.cma.2023.116586)**, Computer Methods in Applied Mechanics and Engineering, Volume 418, Part B, 2024.
   @m_enddiv

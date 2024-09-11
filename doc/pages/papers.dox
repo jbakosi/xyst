@@ -27,7 +27,7 @@ unpredictable heterogeneous dynamic high-performance-computing loads](https://do
   J. Bakosi, R. Bird, F.Gonzalez, C. Junghans, W. Li, H. Luo, A. Pandare, J. Waltz, **[Asynchronous distributed-memory task-parallel algorithm for compressible flows on unstructured 3D Eulerian grids](https://doi.org/10.1016/j.advengsoft.2020.102962)**, Advances in Engineering Software, 102962, 2021.
   @m_enddiv
 
-  This paper describes the hydro scheme implemented in Quinoa as _DiagCG_, re-implemented in Xyst as @ref inciter_kozcg "KozCG". The discussion details program setup, mesh partitioning, Charm++-related concepts, etc.
+  This paper describes the hydro scheme implemented in [Quinoa](https://quinoacomputing.github.io/archive) as [DiagCG](https://quinoacomputing.github.io/archive/inciter_diagcg.html), re-implemented in Xyst as @ref inciter_kozcg "KozCG". The discussion details program setup, mesh partitioning, Charm++-related concepts, etc.
 
 - @m_div{m-text m-strong}
   J. Waltz, N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, **[A three-dimensional finite element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured grids](https://doi.org/10.1016/j.compfluid.2013.12.021)**, Computers & Fluids, 92: 172-187, 2014.

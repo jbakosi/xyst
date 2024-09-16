@@ -339,6 +339,8 @@ ExodusIIMeshReader::readElemBlockIDs()
       "Failed to read element block information from ExodusII file: " +
       m_filename );
 
+    if (!nnpe) continue;        // ignore nnpe == 0
+
     // Store ExodusII element block ID
     m_blockid.push_back( id );
 

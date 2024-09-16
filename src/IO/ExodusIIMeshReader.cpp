@@ -361,6 +361,10 @@ ExodusIIMeshReader::readElemBlockIDs()
       m_nel[ e ].push_back( nel );
       Assert( m_blockid_by_type[e].size() == m_nel[e].size(), "Size mismatch" );
 
+    } else {
+
+      Throw( "Exodus mesh must only contain TRI and/or TETRA element blocks" );
+
     }
   }
 

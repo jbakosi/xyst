@@ -15,7 +15,7 @@
     ISBN 9780898718003, 2003.
 
     Algorithm 'Preconditioned Conjugate Gradient':
-
+    ```
     Compute r0 := b - A x0, z0 := M^{-1} r0, p0 := z0
     For j=0,1,..., until convergence, do
       alpha_j := (r_j,z_j) / (A p_j,p_j)
@@ -25,7 +25,7 @@
       beta_j  := (r_{j+1},z_{j+1}) / (r_j,z_j)
       p_{j+1} := z_{j+1} + beta_j p_j
     end
-
+    ```
 */
 // *****************************************************************************
 
@@ -757,7 +757,7 @@ ConjugateGradients::comx( const std::vector< std::size_t >& gid,
 void
 ConjugateGradients::x()
 // *****************************************************************************
-//  Assemble solution on chare boundaries
+//  Assemble solution on chare boundaries and decide what's next
 // *****************************************************************************
 {
   // Assemble solution on chare boundaries by averaging
@@ -783,7 +783,7 @@ ConjugateGradients::x()
       if (m_converged) {
         c << " < " << m_tol << ", converged";
       } else {
-        c << " > " << m_tol << ", not converged, ||r|| / ||b|| = "
+        c << " > " << m_tol << ", not converged, ||r||/||b|| = "
           << normr << '/' << normb;
       }
       tk::Print() << "Xyst> Conjugate gradients it " << m_it

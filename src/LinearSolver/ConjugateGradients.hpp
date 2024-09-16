@@ -310,7 +310,7 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     //! Start next linear solver iteration
     void next();
 
-    //! Assemble solution on chare boundaries
+    //! Assemble solution on chare boundaries and decide what's next
     void x();
 };
 

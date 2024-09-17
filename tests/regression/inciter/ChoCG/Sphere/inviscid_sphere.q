@@ -9,7 +9,7 @@ ttyi = 1
 cfl = 0.5
 
 solver = "chocg"
-
+part = "phg"
 fct = false
 
 pressure = {

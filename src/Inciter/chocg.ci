@@ -34,6 +34,8 @@ module chocg {
       entry [reductiontarget] void advance( tk::real newdt );
       entry void comnorm( const std::unordered_map< int,
         std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& inbnd );
+      entry void comvgrad( const std::unordered_map< std::size_t,
+                                   std::vector< tk::real > >& ingrad );
       entry void comflux( const std::unordered_map< std::size_t,
                                   std::vector< tk::real > >& influx );
       entry void comsgrad( const std::unordered_map< std::size_t,
@@ -65,6 +67,9 @@ module chocg {
 
       entry void wait4div() {
         when owndiv_complete(), comdiv_complete() serial { pinit(); } }
+
+      entry void wait4vgrad() {
+        when ownvgrad_complete(), comvgrad_complete() serial { flux(); } }
 
       entry void wait4flux() {
         when ownflux_complete(), comflux_complete() serial { div( m_flux ); } }
@@ -98,6 +103,8 @@ module chocg {
       entry void comsgrad_complete();
       entry void ownpgrad_complete();
       entry void compgrad_complete();
+      entry void ownvgrad_complete();
+      entry void comvgrad_complete();
       entry void ownflux_complete();
       entry void comflux_complete();
       entry void ownrhs_complete();

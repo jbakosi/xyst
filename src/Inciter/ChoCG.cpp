@@ -61,6 +61,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_nlim( 0 ),
   m_nsgrad( 0 ),
   m_npgrad( 0 ),
+  m_nvgrad( 0 ),
   m_nflux( 0 ),
   m_ndiv( 0 ),
   m_nbpint( 0 ),
@@ -79,6 +80,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_rhs( m_u.nunk(), m_u.nprop() ),
   m_sgrad( m_u.nunk(), 3UL ),
   m_pgrad( m_u.nunk(), 3UL ),
+  m_vgrad( m_u.nunk(), 9UL ),
   m_flux( m_u.nunk(), 3UL ),
   m_div( m_u.nunk() ),
   m_stage( 0 ),
@@ -181,7 +183,8 @@ ChoCG::setupDirBC( const std::vector< std::vector< int > >& cfgmask,
                    std::vector< double >& val )
 // *****************************************************************************
 //  Prepare Dirichlet boundary condition data structures
-//! \param[in] cfgmask Boundary condition config data to use
+//! \param[in] cfgmask Boundary condition mask config data to use
+//! \param[in] cfgval Boundary condition values config data to use
 //! \param[in] ncomp Number of scalar component BCs expected per mesh node
 //! \param[in,out] mask Mesh nodes and their Dirichlet BC masks
 //! \param[in,out] val Mesh nodes and their Dirichlet BC values
@@ -391,7 +394,6 @@ ChoCG::domint()
     grad[3] = tk::cross( ba, ca );
     for (std::size_t i=0; i<3; ++i)
       grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
-    auto J120 = J/120.0;
     for (const auto& [p,q] : tk::lpoed) {
       tk::UnsMesh::Edge ed{ gid[N[p]], gid[N[q]] };
       tk::real sig = 1.0;
@@ -403,7 +405,8 @@ ChoCG::domint()
       n[0] += sig * (grad[p][0] - grad[q][0]) / 48.0;
       n[1] += sig * (grad[p][1] - grad[q][1]) / 48.0;
       n[2] += sig * (grad[p][2] - grad[q][2]) / 48.0;
-      n[3] += J120;
+      n[3] += J / 120.0;
+      n[4] += tk::dot( grad[p], grad[q] ) / J / 6.0;
     }
   }
 }
@@ -619,6 +622,32 @@ ChoCG::streamable()
     }
   }
   tk::destroy( m_bnorm );
+
+  //  Prepare noslip boundary condition data structures
+
+  // Query noslip BC nodes associated to side sets
+  std::unordered_map< int, std::unordered_set< std::size_t > > noslip;
+  for (auto s : g_cfg.get< tag::bc_noslip >()) {
+    auto k = m_bface.find(s);
+    if (k != end(m_bface)) {
+      auto& n = noslip[ k->first ];
+      for (auto f : k->second) {
+        const auto& t = m_triinpoel.data() + f*3;
+        n.insert( t[0] );
+        n.insert( t[1] );
+        n.insert( t[2] );
+      }
+    }
+  }
+
+  // Generate unique set of noslip BC nodes of all noslip BC side sets
+  std::set< std::size_t > noslipbcnodeset;
+  for (const auto& [s,n] : noslip) noslipbcnodeset.insert( begin(n), end(n) );
+
+  // Generate noslip BC data as streamable data structures
+  tk::destroy( m_noslipbcnodes );
+  m_noslipbcnodes.insert( m_noslipbcnodes.end(),
+                          begin(noslipbcnodeset), end(noslipbcnodeset) );
 }
 
 void
@@ -678,6 +707,7 @@ ChoCG::domsuped()
         m_dsupint[0].push_back( sig[ed] * ded[1] );
         m_dsupint[0].push_back( sig[ed] * ded[2] );
         m_dsupint[0].push_back( ded[3] );
+        m_dsupint[0].push_back( ded[4] );
         m_domedgeint.erase( d[ed] );
       }
     }
@@ -703,23 +733,25 @@ ChoCG::domsuped()
         m_dsupint[1].push_back( sig[ed] * ded[1] );
         m_dsupint[1].push_back( sig[ed] * ded[2] );
         m_dsupint[1].push_back( ded[3] );
+        m_dsupint[1].push_back( ded[4] );
         m_domedgeint.erase( d[ed] );
       }
     }
   }
 
   m_dsupedge[2].resize( m_domedgeint.size()*2 );
-  m_dsupint[2].resize( m_domedgeint.size()*4 );
+  m_dsupint[2].resize( m_domedgeint.size()*5 );
   std::size_t k = 0;
   for (const auto& [ed,d] : m_domedgeint) {
     auto e = m_dsupedge[2].data() + k*2;
     e[0] = tk::cref_find( lid, ed[0] );
     e[1] = tk::cref_find( lid, ed[1] );
-    auto i = m_dsupint[2].data() + k*4;
+    auto i = m_dsupint[2].data() + k*5;
     i[0] = d[0];
     i[1] = d[1];
     i[2] = d[2];
     i[3] = d[3];
+    i[4] = d[4];
     ++k;
   }
 
@@ -801,9 +833,6 @@ ChoCG::fingrad( tk::Fields& grad,
       grad(p,c) /= vol[p];
     }
   }
-
-  // Apply symmetry BCs
-  physics::symbc( grad, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
 }
 
 void
@@ -816,8 +845,11 @@ ChoCG::div( const tk::Fields& u )
   auto d = Disc();
   const auto lid = d->Lid();
 
-  // Finalize momentum flux gradient communications if needed
-  if (m_np == 1) fingrad( m_pgrad, m_pgradc );
+  // Finalize momentum flux communications if needed
+  if (m_np == 1) {
+    fingrad( m_flux, m_fluxc );
+    physics::symbc( m_flux, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
+  }
 
   // Compute divergence
   std::fill( begin(m_div), end(m_div), 0.0 );
@@ -859,6 +891,55 @@ ChoCG::comdiv( const std::unordered_map< std::size_t, tk::real >& indiv )
 }
 
 void
+ChoCG::velgrad()
+// *****************************************************************************
+//  Start computing velocity gradient
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  // Compute momentum flux
+  m_vgrad.fill( 0.0 );
+  chorin::vgrad( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_vgrad );
+
+  // Communicate velocity divergence to other chares on chare-boundary
+  const auto& lid = d->Lid();
+  if (d->NodeCommMap().empty()) {
+    comvgrad_complete();
+  } else {
+    for (const auto& [c,n] : d->NodeCommMap()) {
+      decltype(m_vgradc) exp;
+      for (auto g : n) exp[g] = m_vgrad[ tk::cref_find(lid,g) ];
+      thisProxy[c].comvgrad( exp );
+    }
+  }
+  ownvgrad_complete();
+}
+
+void
+ChoCG::comvgrad(
+  const std::unordered_map< std::size_t, std::vector< tk::real > >& ingrad )
+// *****************************************************************************
+//  Receive contributions to velocity gradients on chare-boundaries
+//! \param[in] ingrad Partial contributions of momentum flux to
+//!   chare-boundary nodes. Key: global mesh node IDs, values: contributions.
+//! \details This function receives contributions to m_vgrad, which stores the
+//!   velocity gradients at mesh nodes. While m_vgrad stores own contributions,
+//!   m_vgradc collects the neighbor chare contributions during communication.
+//!   This way work on m_vgrad and m_vgradc is overlapped.
+// *****************************************************************************
+{
+  using tk::operator+=;
+  for (const auto& [g,r] : ingrad) m_vgradc[g] += r;
+
+  // When we have heard from all chares we communicate with, this chare is done
+  if (++m_nvgrad == Disc()->NodeCommMap().size()) {
+    m_nvgrad = 0;
+    comvgrad_complete();
+  }
+}
+
+void
 ChoCG::flux()
 // *****************************************************************************
 //  Start computing momentum flux
@@ -866,9 +947,13 @@ ChoCG::flux()
 {
   auto d = Disc();
 
+  // Finalize computing velocity gradients
+  fingrad( m_vgrad, m_vgradc );
+
   // Compute momentum flux
   m_flux.fill( 0.0 );
-  chorin::flux( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_flux );
+  chorin::flux( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_vgrad,
+                m_flux );
 
   // Communicate velocity divergence to other chares on chare-boundary
   const auto& lid = d->Lid();
@@ -924,11 +1009,7 @@ ChoCG::pinit()
   for (const auto& [g,r] : m_divc) m_div[ tk::cref_find(lid,g) ] += r;
   tk::destroy(m_divc);
 
-  if (m_np == 1) {
-    for (auto& div : m_div) div *= -1.0;
-  } else if (m_np > 1) {
-    for (auto& div : m_div) div /= d->Dt();
-  }
+  if (m_np > 1) for (auto& div : m_div) div /= d->Dt();
 
   // Configure Dirichlet BCs
   std::unordered_map< std::size_t,
@@ -939,12 +1020,13 @@ ChoCG::pinit()
     Assert( m_dirbcmaskp.size() % nmask == 0, "Size mismatch" );
     for (std::size_t i=0; i<m_dirbcmaskp.size()/nmask; ++i) {
       auto p = m_dirbcmaskp[i*nmask+0];     // local node id
-      m_div[p] = 0.0;
       auto mask = m_dirbcmaskp[i*nmask+1];
       if (mask == 1) {                                  // mask == 1: IC value
-        dirbc[p] = {{ { 1, ic( x[p], y[p], z[p] ) } }};
+        auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
+        dirbc[p] = {{ { 1, val } }};
       } else if (mask == 2 && !m_dirbcvalp.empty()) {   // mask == 2: BC value
-        dirbc[p] = {{ { 1, m_dirbcvalp[i*nmask+1] } }};
+        auto val = m_np>1 ? 0.0 : m_dirbcvalp[i*nmask+1];
+        dirbc[p] = {{ { 1, val } }};
       }
     }
   }
@@ -1095,10 +1177,10 @@ ChoCG::psolved()
 
       if (++m_np < 2) {
         // Compute momentum flux for initial pressure-Poisson rhs
+        thisProxy[ thisIndex ].wait4vgrad();
         thisProxy[ thisIndex ].wait4flux();
         thisProxy[ thisIndex ].wait4div();
-        thisProxy[ thisIndex ].wait4sgrad();
-        flux();
+        velgrad();
       } else {
         // Assign initial pressure and compute its gradient
         m_pr = m_cgpre[ thisIndex ].ckLocal()->solution();
@@ -1223,7 +1305,7 @@ ChoCG::aec()
     const auto D = m_dsupint[0].data();
     std::size_t i = 0;
     for (const auto& [p,q] : tk::lpoed) {
-      auto dif = D[(e*6+i)*4+3];
+      auto dif = D[(e*6+i)*5+3];
       for (std::size_t c=0; c<ncomp; ++c) {
         auto aec = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
         auto a = c*2;
@@ -1242,7 +1324,7 @@ ChoCG::aec()
     const auto D = m_dsupint[1].data();
     std::size_t i = 0;
     for (const auto& [p,q] : tk::lpoet) {
-      auto dif = D[(e*3+i)*4+3];
+      auto dif = D[(e*3+i)*5+3];
       for (std::size_t c=0; c<ncomp; ++c) {
         auto aec = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
         auto a = c*2;
@@ -1258,7 +1340,7 @@ ChoCG::aec()
   // edges
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
     const auto N = m_dsupedge[2].data() + e*2;
-    const auto dif = m_dsupint[2][e*4+3];
+    const auto dif = m_dsupint[2][e*5+3];
     for (std::size_t c=0; c<ncomp; ++c) {
       auto aec = -dif * ctau * (m_u(N[0],c) - m_u(N[1],c));
       auto a = c*2;
@@ -1548,7 +1630,7 @@ ChoCG::lim()
     auto C = m_dsuplim[0].data();
     std::size_t i = 0;
     for (const auto& [p,q] : tk::lpoed) {
-      auto dif = D[(e*6+i)*4+3];
+      auto dif = D[(e*6+i)*5+3];
       auto coef = C + (e*6+i)*ncomp;
       tk::real aec[ncomp];
       for (std::size_t c=0; c<ncomp; ++c) {
@@ -1577,7 +1659,7 @@ ChoCG::lim()
     auto C = m_dsuplim[0].data();
     std::size_t i = 0;
     for (const auto& [p,q] : tk::lpoet) {
-      auto dif = D[(e*3+i)*4+3];
+      auto dif = D[(e*3+i)*5+3];
       auto coef = C + (e*3+i)*ncomp;
       tk::real aec[ncomp];
       for (std::size_t c=0; c<ncomp; ++c) {
@@ -1602,7 +1684,7 @@ ChoCG::lim()
   // edges
   for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
     const auto N = m_dsupedge[2].data() + e*2;
-    const auto dif = m_dsupint[2][e*4+3];
+    const auto dif = m_dsupint[2][e*5+3];
     auto coef = m_dsuplim[2].data() + e*ncomp;
     tk::real aec[ncomp];
     for (std::size_t c=0; c<ncomp; ++c) {
@@ -1673,6 +1755,7 @@ ChoCG::BC( tk::Fields& u, tk::real t )
 
   physics::dirbc( u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
   physics::symbc( u, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
+  physics::noslipbc( u, m_noslipbcnodes );
 }
 
 void
@@ -1697,6 +1780,8 @@ ChoCG::dt()
   } else {
 
     auto cfl = g_cfg.get< tag::cfl >();
+    auto nu = g_cfg.get< tag::mat_dyn_viscosity >();
+    auto large = std::numeric_limits< tk::real >::max();
 
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
       auto u = m_u(i,0);
@@ -1706,6 +1791,8 @@ ChoCG::dt()
       auto L = std::cbrt( vol[i] );
       auto euler_dt = L / std::max( vel, 1.0e-8 );
       mindt = std::min( mindt, euler_dt );
+      auto visc_dt = nu > eps ? L * L / nu : large;
+      mindt = std::min( mindt, visc_dt );
     }
     mindt *= cfl;
 
@@ -1832,7 +1919,7 @@ ChoCG::solve()
     // Apply limited antidiffusive contributions to low-order solution
     for (std::size_t i=0; i<npoin; ++i) {
       for (std::size_t c=0; c<ncomp; ++c) {
-        m_a(i,c) = m_rhs(i,c) + m_a(i,c) / vol[i];
+        m_a(i,c) = m_rhs(i,c) + m_a(i,c)/vol[i];
       }
     }
   } else {
@@ -1840,7 +1927,7 @@ ChoCG::solve()
     auto dt = rkcoef[m_stage] * d->Dt();
     for (std::size_t i=0; i<npoin; ++i) {
       for (std::size_t c=0; c<ncomp; ++c) {
-        m_a(i,c) = m_un(i,c) - dt * m_rhs(i,c) / vol[i];
+        m_a(i,c) = m_un(i,c) - dt*m_rhs(i,c)/vol[i];
       }
     }
   }
@@ -2040,6 +2127,32 @@ ChoCG::writeFields( CkCallback cb )
   //nodefields.push_back( m_pgrad.extract(0) );
   //nodefields.push_back( m_pgrad.extract(1) );
   //nodefields.push_back( m_pgrad.extract(2) );
+
+  //nodefieldnames.push_back( "fx" );
+  //nodefieldnames.push_back( "fy" );
+  //nodefieldnames.push_back( "fz" );
+  //nodefields.push_back( m_flux.extract(0) );
+  //nodefields.push_back( m_flux.extract(1) );
+  //nodefields.push_back( m_flux.extract(2) );
+
+  //nodefieldnames.push_back( "du/dx" );
+  //nodefieldnames.push_back( "du/dy" );
+  //nodefieldnames.push_back( "du/dz" );
+  //nodefieldnames.push_back( "dv/dx" );
+  //nodefieldnames.push_back( "dv/dy" );
+  //nodefieldnames.push_back( "dv/dz" );
+  //nodefieldnames.push_back( "dw/dx" );
+  //nodefieldnames.push_back( "dw/dy" );
+  //nodefieldnames.push_back( "dw/dz" );
+  //nodefields.push_back( m_vgrad.extract(0) );
+  //nodefields.push_back( m_vgrad.extract(1) );
+  //nodefields.push_back( m_vgrad.extract(2) );
+  //nodefields.push_back( m_vgrad.extract(3) );
+  //nodefields.push_back( m_vgrad.extract(4) );
+  //nodefields.push_back( m_vgrad.extract(5) );
+  //nodefields.push_back( m_vgrad.extract(6) );
+  //nodefields.push_back( m_vgrad.extract(7) );
+  //nodefields.push_back( m_vgrad.extract(8) );
 
   // also output analytic pressure (if defined)
   auto pressure_sol = problems::PRESSURE_SOL();

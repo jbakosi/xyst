@@ -102,6 +102,22 @@ symbc( tk::Fields& U,
 }
 
 void
+noslipbc( tk::Fields& U, const std::vector< std::size_t >& noslipbcnodes )
+// *****************************************************************************
+//  Set noslip boundary conditions at nodes
+//! \param[in] U Solution vector at recent time step
+//! \param[in] noslipbcnodes Node ids at which to set noslip BCs
+// *****************************************************************************
+{
+  if (g_cfg.get< tag::bc_noslip >().empty()) return;
+
+  for (std::size_t i=0; i<noslipbcnodes.size(); ++i) {
+    auto p = noslipbcnodes[i];
+    U(p,0) = U(p,1) = U(p,2) = 0.0;
+  }
+}
+
+void
 farbc( tk::Fields& U,
        const std::vector< std::size_t >& farbcnodes,
        const std::vector< tk::real >& farbcnorms )

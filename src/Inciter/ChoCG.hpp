@@ -105,6 +105,10 @@ class ChoCG : public CBase_ChoCG {
     void comnorm( const std::unordered_map< int,
       std::unordered_map< std::size_t, std::array<tk::real,4> > >& inbnd );
 
+    //! Receive contributions to velocity gradients
+    void comvgrad( const std::unordered_map< std::size_t,
+                           std::vector< tk::real > >& ingrad );
+
     //! Receive contributions to momentum flux on chare-boundaries
     void comflux( const std::unordered_map< std::size_t,
                           std::vector< tk::real > >& influx );
@@ -184,6 +188,7 @@ class ChoCG : public CBase_ChoCG {
       p | m_nlim;
       p | m_nsgrad;
       p | m_npgrad;
+      p | m_nvgrad;
       p | m_nflux;
       p | m_ndiv;
       p | m_nbpint;
@@ -207,11 +212,13 @@ class ChoCG : public CBase_ChoCG {
         m_rhs.resize( m_u.nunk(), m_u.nprop() );
         m_sgrad.resize( m_u.nunk(), 3UL );
         m_pgrad.resize( m_u.nunk(), 3UL );
+        m_vgrad.resize( m_u.nunk(), 9UL );
         m_flux.resize( m_u.nunk(), 3UL );
       }
       p | m_rhsc;
       p | m_sgradc;
       p | m_pgradc;
+      p | m_vgradc;
       p | m_fluxc;
       p | m_div;
       p | m_divc;
@@ -230,6 +237,7 @@ class ChoCG : public CBase_ChoCG {
       p | m_dirbcvalp;
       p | m_symbcnodes;
       p | m_symbcnorms;
+      p | m_noslipbcnodes;
       p | m_surfint;
       p | m_stage;
       p | m_finished;
@@ -259,6 +267,8 @@ class ChoCG : public CBase_ChoCG {
     std::size_t m_nsgrad;
     //! Counter for receiving pressure gradient
     std::size_t m_npgrad;
+    //! Counter for receiving velocity gradient
+    std::size_t m_nvgrad;
     //! Counter for receiving momentum flux
     std::size_t m_nflux;
     //! Counter for receiving boundary velocity divergences
@@ -309,6 +319,10 @@ class ChoCG : public CBase_ChoCG {
     tk::Fields m_pgrad;
     //! Pressure gradient receive buffer
     std::unordered_map< std::size_t, std::vector< tk::real > > m_pgradc;
+    //! Velocity gradient in mesh nodes
+    tk::Fields m_vgrad;
+    //! Velocity gradient receive buffer
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_vgradc;
     //! Momentum flux in mesh nodes
     tk::Fields m_flux;
     //! Momentum flux receive buffer
@@ -338,7 +352,7 @@ class ChoCG : public CBase_ChoCG {
     //!   integral contributions.
     std::unordered_map< std::size_t, std::array<tk::real,3> > m_bndpoinint;
     //! Domain edge integrals
-    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 4 >,
+    std::unordered_map< tk::UnsMesh::Edge, std::array< tk::real, 5 >,
       tk::UnsMesh::Hash<2>, tk::UnsMesh::Eq<2> > m_domedgeint;
     //! Streamable boundary point integrals
     std::vector< tk::real > m_bpint;
@@ -360,6 +374,8 @@ class ChoCG : public CBase_ChoCG {
     std::vector< std::size_t > m_symbcnodes;
     //! Streamable normals at nodes at which symmetry BCs are set
     std::vector< tk::real > m_symbcnorms;
+    //! Streamable nodes at which noslip BCs are set
+    std::vector< std::size_t > m_noslipbcnodes;
     //! Streamable surface integral nodes and normals * dA on surfaces
     std::map< int, std::pair< std::vector< std::size_t >,
                               std::vector< tk::real > > > m_surfint;
@@ -383,6 +399,9 @@ class ChoCG : public CBase_ChoCG {
 
     //! Start computing velocity divergence
     void div( const tk::Fields& u );
+
+    //! Start computing velocity gradient
+    void velgrad();
 
     //! Start computing momentum flux
     void flux();

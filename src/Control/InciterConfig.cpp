@@ -743,6 +743,28 @@ bc_sym( lua_State* L, std::vector< int >& s, bool global = false )
 }
 
 static void
+bc_noslip( lua_State* L, std::vector< int >& s, bool global = false )
+// *****************************************************************************
+// Parse bc_noslip table
+//! \param[in,out] L Lua state
+//! \param[in] global True to parse from global scope, false from table on stack
+//! \param[in,out] s Config state
+// *****************************************************************************
+{
+  if (global) {
+    lua_getglobal( L, "bc_noslip" );
+  } else {
+    if (lua_istable( L, -1 )) lua_getfield( L, -1, "bc_noslip" ); else return;
+  }
+
+  if (!lua_isnil( L, -1 )) {
+    s = sideset( L );
+  }
+
+  lua_pop( L, 1 );
+}
+
+static void
 bc_far( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse bc_far table
@@ -862,6 +884,7 @@ mat( lua_State* L, Config& cfg )
   cfg.get< tag::mat_spec_heat_const_vol >() = real( L, "spec_heat_const_vol" );
   cfg.get< tag::mat_spec_gas_const >() = real(L, "spec_gas_const", 287.052874);
   cfg.get< tag::mat_heat_conductivity >() = real( L, "heat_conductivity" );
+  cfg.get< tag::mat_dyn_viscosity >() = real( L, "dyn_viscosity", 0.0 );
 
   lua_pop( L, 1 );
 }
@@ -1037,6 +1060,7 @@ Config::control()
     bc_dir( L, get< tag::bc_dir >(), true );
     bc_dirval( L, get< tag::bc_dirval >(), true );
     bc_sym( L, get< tag::bc_sym >(), true );
+    bc_noslip( L, get< tag::bc_noslip >(), true );
     bc_far( L, *this );
     bc_pre( L, *this );
     problem( L, *this );

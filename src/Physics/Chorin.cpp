@@ -105,6 +105,9 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] stab True to stabilize
 // *****************************************************************************
 {
+  Assert( G.nunk() == U.nunk(), "Size mismatch" );
+  Assert( G.nprop() > 2, "Size mismatch" );
+
   #if defined(__clang__)
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wvla"
@@ -122,12 +125,12 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto d = dsupint[0].data();
     // edge fluxes
     tk::real f[] = {
-      div( coord, d+(e*6+0)*4, dt, P, G, U, N[0], N[1], stab ),
-      div( coord, d+(e*6+1)*4, dt, P, G, U, N[1], N[2], stab ),
-      div( coord, d+(e*6+2)*4, dt, P, G, U, N[2], N[0], stab ),
-      div( coord, d+(e*6+3)*4, dt, P, G, U, N[0], N[3], stab ),
-      div( coord, d+(e*6+4)*4, dt, P, G, U, N[1], N[3], stab ),
-      div( coord, d+(e*6+5)*4, dt, P, G, U, N[2], N[3], stab ) };
+      div( coord, d+(e*6+0)*5, dt, P, G, U, N[0], N[1], stab ),
+      div( coord, d+(e*6+1)*5, dt, P, G, U, N[1], N[2], stab ),
+      div( coord, d+(e*6+2)*5, dt, P, G, U, N[2], N[0], stab ),
+      div( coord, d+(e*6+3)*5, dt, P, G, U, N[0], N[3], stab ),
+      div( coord, d+(e*6+4)*5, dt, P, G, U, N[1], N[3], stab ),
+      div( coord, d+(e*6+5)*5, dt, P, G, U, N[2], N[3], stab ) };
     // edge flux contributions
     D[N[0]] = D[N[0]] - f[0] + f[2] - f[3];
     D[N[1]] = D[N[1]] + f[0] - f[1] - f[4];
@@ -141,9 +144,9 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto d = dsupint[1].data();
     // edge fluxes
     tk::real f[] = {
-      div( coord, d+(e*3+0)*4, dt, P, G, U, N[0], N[1], stab ),
-      div( coord, d+(e*3+1)*4, dt, P, G, U, N[1], N[2], stab ),
-      div( coord, d+(e*3+2)*4, dt, P, G, U, N[2], N[0], stab ) };
+      div( coord, d+(e*3+0)*5, dt, P, G, U, N[0], N[1], stab ),
+      div( coord, d+(e*3+1)*5, dt, P, G, U, N[1], N[2], stab ),
+      div( coord, d+(e*3+2)*5, dt, P, G, U, N[2], N[0], stab ) };
     // edge flux contributions
     D[N[0]] = D[N[0]] - f[0] + f[2];
     D[N[1]] = D[N[1]] + f[0] - f[1];
@@ -155,7 +158,7 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[2].data() + e*2;
     const auto d = dsupint[2].data();
     // edge flux
-    tk::real f = div( coord, d+e*4, dt, P, G, U, N[0], N[1], stab );
+    tk::real f = div( coord, d+e*5, dt, P, G, U, N[0], N[1], stab );
     // edge flux contributions
     D[N[0]] -= f;
     D[N[1]] += f;
@@ -204,6 +207,141 @@ div( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 }
 
 void
+vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+       const std::array< std::vector< tk::real >, 3 >& dsupint,
+       const std::array< std::vector< tk::real >, 3 >& coord,
+       const std::vector< std::size_t >& triinpoel,
+       const tk::Fields& U,
+       tk::Fields& G )
+// *****************************************************************************
+//  Compute velocity gradients in all points
+//! \param[in] dsupedge Domain superedges
+//! \param[in] dsupint Domain superedge integrals
+//! \param[in] coord Mesh node coordinates
+//! \param[in] triinpoel Boundary face connectivity
+//! \param[in] U Velocity whose gradient to compute
+//! \param[in,out] G Nodal velocity gradients (9 components) in all points
+// *****************************************************************************
+{
+  Assert( G.nunk() == U.nunk(), "Size mismatch" );
+  Assert( G.nprop() == 9, "Size mismatch" );
+
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
+  // domain integral
+
+  // domain edge contributions: tetrahedron superedges
+  for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
+    const auto N = dsupedge[0].data() + e*4;
+    const auto d = dsupint[0].data();
+    tk::real u[][4] = { { U(N[0],0), U(N[1],0), U(N[2],0), U(N[3],0) },
+                        { U(N[0],1), U(N[1],1), U(N[2],1), U(N[3],1) },
+                        { U(N[0],2), U(N[1],2), U(N[2],2), U(N[3],2) } };
+    for (std::size_t i=0; i<3; ++i) {
+      auto ui = u[i];
+      auto i3 = i*3;
+      for (std::size_t j=0; j<3; ++j) {
+        tk::real f[] = { d[(e*6+0)*5+j] * (ui[1] + ui[0]),
+                         d[(e*6+1)*5+j] * (ui[2] + ui[1]),
+                         d[(e*6+2)*5+j] * (ui[0] + ui[2]),
+                         d[(e*6+3)*5+j] * (ui[3] + ui[0]),
+                         d[(e*6+4)*5+j] * (ui[3] + ui[1]),
+                         d[(e*6+5)*5+j] * (ui[3] + ui[2]) };
+        G(N[0],i3+j) = G(N[0],i3+j) - f[0] + f[2] - f[3];
+        G(N[1],i3+j) = G(N[1],i3+j) + f[0] - f[1] - f[4];
+        G(N[2],i3+j) = G(N[2],i3+j) + f[1] - f[2] - f[5];
+        G(N[3],i3+j) = G(N[3],i3+j) + f[3] + f[4] + f[5];
+      }
+    }
+  }
+
+  // domain edge contributions: triangle superedges
+  for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
+    const auto N = dsupedge[1].data() + e*3;
+    const auto d = dsupint[1].data();
+    tk::real u[][3] = { { U(N[0],0), U(N[1],0), U(N[2],0) },
+                        { U(N[0],1), U(N[1],1), U(N[2],1) },
+                        { U(N[0],2), U(N[1],2), U(N[2],2) } };
+    for (std::size_t i=0; i<3; ++i) {
+      auto ui = u[i];
+      auto i3 = i*3;
+      for (std::size_t j=0; j<3; ++j) {
+        tk::real f[] = { d[(e*3+0)*5+j] * (ui[1] + ui[0]),
+                         d[(e*3+1)*5+j] * (ui[2] + ui[1]),
+                         d[(e*3+2)*5+j] * (ui[0] + ui[2]) };
+        G(N[0],i3+j) = G(N[0],i3+j) - f[0] + f[2];
+        G(N[1],i3+j) = G(N[1],i3+j) + f[0] - f[1];
+        G(N[2],i3+j) = G(N[2],i3+j) + f[1] - f[2];
+      }
+    }
+  }
+
+  // domain edge contributions: edges
+  for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
+    const auto N = dsupedge[2].data() + e*2;
+    const auto d = dsupint[2].data() + e*5;
+    tk::real u[][2] = { { U(N[0],0), U(N[1],0) },
+                        { U(N[0],1), U(N[1],1) },
+                        { U(N[0],2), U(N[1],2) } };
+    for (std::size_t i=0; i<3; ++i) {
+      auto ui = u[i];
+      auto i3 = i*3;
+      for (std::size_t j=0; j<3; ++j) {
+        tk::real f = d[j] * (ui[1] + ui[0]);
+        G(N[0],i3+j) -= f;
+        G(N[1],i3+j) += f;
+      }
+    }
+  }
+
+  // boundary integral
+
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  for (std::size_t e=0; e<triinpoel.size()/3; ++e) {
+    const auto N = triinpoel.data() + e*3;
+    tk::real n[3];
+    tk::crossdiv( x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]],
+                  x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]], 6.0,
+                  n[0], n[1], n[2] );
+    tk::real u[][3] = { { U(N[0],0), U(N[1],0), U(N[2],0) },
+                        { U(N[0],1), U(N[1],1), U(N[2],1) },
+                        { U(N[0],2), U(N[1],2), U(N[2],2) } };
+    for (std::size_t i=0; i<3; ++i) {
+      auto ui = u[i];
+      auto i3 = i*3;
+      auto f = (6.0*ui[0] + ui[1] + ui[2])/8.0;
+      G(N[0],i3+0) += f * n[0];
+      G(N[0],i3+1) += f * n[1];
+      G(N[0],i3+2) += f * n[2];
+      f = (ui[0] + 6.0*ui[1] + ui[2])/8.0;
+      G(N[1],i3+0) += f * n[0];
+      G(N[1],i3+1) += f * n[1];
+      G(N[1],i3+2) += f * n[2];
+      f = (ui[0] + ui[1] + 6.0*ui[2])/8.0;
+      G(N[2],i3+0) += f * n[0];
+      G(N[2],i3+1) += f * n[1];
+      G(N[2],i3+2) += f * n[2];
+    }
+  }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
+}
+
+void
 grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
       const std::array< std::vector< tk::real >, 3 >& dsupint,
       const std::array< std::vector< tk::real >, 3 >& coord,
@@ -241,12 +379,12 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     tk::real u[] = { U[N[0]], U[N[1]], U[N[2]], U[N[3]] };
     for (std::size_t j=0; j<3; ++j) {
       tk::real f[] = {
-        d[(e*6+0)*4+j] * (u[1] + u[0]),
-        d[(e*6+1)*4+j] * (u[2] + u[1]),
-        d[(e*6+2)*4+j] * (u[0] + u[2]),
-        d[(e*6+3)*4+j] * (u[3] + u[0]),
-        d[(e*6+4)*4+j] * (u[3] + u[1]),
-        d[(e*6+5)*4+j] * (u[3] + u[2]) };
+        d[(e*6+0)*5+j] * (u[1] + u[0]),
+        d[(e*6+1)*5+j] * (u[2] + u[1]),
+        d[(e*6+2)*5+j] * (u[0] + u[2]),
+        d[(e*6+3)*5+j] * (u[3] + u[0]),
+        d[(e*6+4)*5+j] * (u[3] + u[1]),
+        d[(e*6+5)*5+j] * (u[3] + u[2]) };
       G(N[0],j) = G(N[0],j) - f[0] + f[2] - f[3];
       G(N[1],j) = G(N[1],j) + f[0] - f[1] - f[4];
       G(N[2],j) = G(N[2],j) + f[1] - f[2] - f[5];
@@ -261,9 +399,9 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     tk::real u[] = { U[N[0]], U[N[1]], U[N[2]] };
     for (std::size_t j=0; j<3; ++j) {
       tk::real f[] = {
-        d[(e*3+0)*4+j] * (u[1] + u[0]),
-        d[(e*3+1)*4+j] * (u[2] + u[1]),
-        d[(e*3+2)*4+j] * (u[0] + u[2]) };
+        d[(e*3+0)*5+j] * (u[1] + u[0]),
+        d[(e*3+1)*5+j] * (u[2] + u[1]),
+        d[(e*3+2)*5+j] * (u[0] + u[2]) };
       G(N[0],j) = G(N[0],j) - f[0] + f[2];
       G(N[1],j) = G(N[1],j) + f[0] - f[1];
       G(N[2],j) = G(N[2],j) + f[1] - f[2];
@@ -273,7 +411,7 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   // domain edge contributions: edges
   for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
     const auto N = dsupedge[2].data() + e*2;
-    const auto d = dsupint[2].data() + e*4;
+    const auto d = dsupint[2].data() + e*5;
     tk::real u[] = { U[N[0]], U[N[1]] };
     for (std::size_t j=0; j<3; ++j) {
       tk::real f = d[j] * (u[1] + u[0]);
@@ -318,12 +456,73 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   #endif
 }
 
+static tk::real
+flux( const tk::Fields& U,
+      const tk::Fields& G,
+      std::size_t i,
+      std::size_t j,
+      std::size_t p,
+      std::size_t q )
+// *****************************************************************************
+//! Compute momentum flux over edge of points p-q
+//! \param[in] U Velocity vector
+//! \param[in] G Velocity gradients
+//! \param[in] i Tensor component, 1st index
+//! \param[in] j Tensor component, 2nd index
+//! \param[in] p Left node index of edge
+//! \param[in] q Right node index of edge
+//! \return Momentum flux contribution for edge p-q
+// *****************************************************************************
+{
+  auto inv = U(p,i)*U(p,j) + U(q,i)*U(q,j);
+
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
+  if (mu < eps) return -inv;
+
+  auto vis = G(p,i*3+j) + G(p,j*3+i) + G(q,i*3+j) + G(q,j*3+i);
+  if (i == j) {
+    vis -= 2.0/3.0 * ( G(p,0) + G(p,4) + G(p,8) + G(q,0) + G(q,4) + G(q,8) );
+  }
+  return mu*vis - inv;
+}
+
+static tk::real
+flux( const tk::Fields& U,
+      const tk::Fields& G,
+      std::size_t i,
+      std::size_t j,
+      std::size_t p )
+// *****************************************************************************
+//! Compute momentum flux in point p
+//! \param[in] U Velocity vector
+//! \param[in] G Velocity gradients
+//! \param[in] i Tensor component, 1st index
+//! \param[in] j Tensor component, 2nd index
+//! \param[in] p Node index of point
+//! \return Momentum flux contribution for point p
+// *****************************************************************************
+{
+  auto inv = U(p,i)*U(p,j);
+
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
+  if (mu < eps) return -inv;
+
+  auto vis = G(p,i*3+j) + G(p,j*3+i);
+  if (i == j) {
+    vis -= 2.0/3.0 * ( G(p,0) + G(p,4) + G(p,8) );
+  }
+  return mu*vis - inv;
+}
+
 void
 flux( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
       const std::array< std::vector< tk::real >, 3 >& dsupint,
       const std::array< std::vector< tk::real >, 3 >& coord,
       const std::vector< std::size_t >& triinpoel,
       const tk::Fields& U,
+      const tk::Fields& G,
       tk::Fields& F )
 // *****************************************************************************
 //  Compute momentum flux in all points
@@ -332,11 +531,15 @@ flux( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] coord Mesh node coordinates
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] U Velocity field
-//! \param[in,out] F Momentum flux, d(uiuj)/dxj, in all points
+//! \param[in] G Velocity gradients, dui/dxj, 9 components
+//! \param[in,out] F Momentum flux, Fi = d[ sij - uiuj ] / dxj, where
+//!    s_ij = mu[ dui/dxj + duj/dxi - 2/3 duk/dxk delta_ij ]
 // *****************************************************************************
 {
   Assert( F.nunk() == U.nunk(), "Size mismatch" );
-  Assert( F.nprop() > 2, "Size mismatch" );
+  Assert( F.nprop() == 3, "Size mismatch" );
+  Assert( G.nunk() == U.nunk(), "Size mismatch" );
+  Assert( G.nprop() == 9, "Size mismatch" );
 
   #if defined(__clang__)
     #pragma clang diagnostic push
@@ -353,20 +556,14 @@ flux( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
     const auto N = dsupedge[0].data() + e*4;
     const auto d = dsupint[0].data();
-    tk::real u[][4] = { { U(N[0],0), U(N[1],0), U(N[2],0), U(N[3],0) },
-                        { U(N[0],1), U(N[1],1), U(N[2],1), U(N[3],1) },
-                        { U(N[0],2), U(N[1],2), U(N[2],2), U(N[3],2) } };
     for (std::size_t i=0; i<3; ++i) {
-      auto ui = u[i];
       for (std::size_t j=0; j<3; ++j) {
-        auto uj = u[j];
-        tk::real f[] = {
-          d[(e*6+0)*4+j] * (ui[1]*uj[1] + ui[0]*uj[0]),
-          d[(e*6+1)*4+j] * (ui[2]*uj[2] + ui[1]*uj[1]),
-          d[(e*6+2)*4+j] * (ui[0]*uj[0] + ui[2]*uj[2]),
-          d[(e*6+3)*4+j] * (ui[3]*uj[3] + ui[0]*uj[0]),
-          d[(e*6+4)*4+j] * (ui[3]*uj[3] + ui[1]*uj[1]),
-          d[(e*6+5)*4+j] * (ui[3]*uj[3] + ui[2]*uj[2]) };
+        tk::real f[] = { d[(e*6+0)*5+j] * flux(U,G,i,j,N[1],N[0]),
+                         d[(e*6+1)*5+j] * flux(U,G,i,j,N[2],N[1]),
+                         d[(e*6+2)*5+j] * flux(U,G,i,j,N[0],N[2]),
+                         d[(e*6+3)*5+j] * flux(U,G,i,j,N[3],N[0]),
+                         d[(e*6+4)*5+j] * flux(U,G,i,j,N[3],N[1]),
+                         d[(e*6+5)*5+j] * flux(U,G,i,j,N[3],N[2]) };
         F(N[0],i) = F(N[0],i) - f[0] + f[2] - f[3];
         F(N[1],i) = F(N[1],i) + f[0] - f[1] - f[4];
         F(N[2],i) = F(N[2],i) + f[1] - f[2] - f[5];
@@ -379,17 +576,11 @@ flux( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
     const auto N = dsupedge[1].data() + e*3;
     const auto d = dsupint[1].data();
-    tk::real u[][3] = { { U(N[0],0), U(N[1],0), U(N[2],0) },
-                        { U(N[0],1), U(N[1],1), U(N[2],1) },
-                        { U(N[0],2), U(N[1],2), U(N[2],2) } };
     for (std::size_t i=0; i<3; ++i) {
-      auto ui = u[i];
       for (std::size_t j=0; j<3; ++j) {
-        auto uj = u[j];
-        tk::real f[] = {
-          d[(e*3+0)*4+j] * (ui[1]*uj[1] + ui[0]*uj[0]),
-          d[(e*3+1)*4+j] * (ui[2]*uj[2] + ui[1]*uj[1]),
-          d[(e*3+2)*4+j] * (ui[0]*uj[0] + ui[2]*uj[2]) };
+        tk::real f[] = { d[(e*3+0)*5+j] * flux(U,G,i,j,N[1],N[0]),
+                         d[(e*3+1)*5+j] * flux(U,G,i,j,N[2],N[1]),
+                         d[(e*3+2)*5+j] * flux(U,G,i,j,N[0],N[2]), };
         F(N[0],i) = F(N[0],i) - f[0] + f[2];
         F(N[1],i) = F(N[1],i) + f[0] - f[1];
         F(N[2],i) = F(N[2],i) + f[1] - f[2];
@@ -400,15 +591,10 @@ flux( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   // domain edge contributions: edges
   for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
     const auto N = dsupedge[2].data() + e*2;
-    const auto d = dsupint[2].data() + e*4;
-    tk::real u[][2] = { { U(N[0],0), U(N[1],0) },
-                        { U(N[0],1), U(N[1],1) },
-                        { U(N[0],2), U(N[1],2) } };
+    const auto d = dsupint[2].data() + e*5;
     for (std::size_t i=0; i<3; ++i) {
-      auto ui = u[i];
       for (std::size_t j=0; j<3; ++j) {
-        auto uj = u[j];
-        tk::real f = d[j] * (ui[1]*uj[1] + ui[0]*uj[0]);
+        tk::real f = d[j] * flux(U,G,i,j,N[1],N[0]);
         F(N[0],i) -= f;
         F(N[1],i) += f;
       }
@@ -427,36 +613,29 @@ flux( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     tk::crossdiv( x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]],
                   x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]], 6.0,
                   n[0], n[1], n[2] );
-    auto uxA = U(N[0],0);
-    auto uyA = U(N[0],1);
-    auto uzA = U(N[0],2);
-    auto uxB = U(N[1],0);
-    auto uyB = U(N[1],1);
-    auto uzB = U(N[1],2);
-    auto uxC = U(N[2],0);
-    auto uyC = U(N[2],1);
-    auto uzC = U(N[2],2);
-    auto ux = (6.0*uxA + uxB + uxC)/8.0;
-    auto uy = (6.0*uyA + uyB + uyC)/8.0;
-    auto uz = (6.0*uzA + uzB + uzC)/8.0;
-    auto d = ux*n[0] + uy*n[1] + uz*n[2];
-    F(N[0],0) += ux*d;
-    F(N[0],1) += uy*d;
-    F(N[0],2) += uz*d;
-    ux = (uxA + 6.0*uxB + uxC)/8.0;
-    uy = (uyA + 6.0*uyB + uyC)/8.0;
-    uz = (uzA + 6.0*uzB + uzC)/8.0;
-    d = ux*n[0] + uy*n[1] + uz*n[2];
-    F(N[1],0) += ux*d;
-    F(N[1],1) += uy*d;
-    F(N[1],2) += uz*d;
-    ux = (uxA + uxB + 6.0*uxC)/8.0;
-    uy = (uyA + uyB + 6.0*uyC)/8.0;
-    uz = (uzA + uzB + 6.0*uzC)/8.0;
-    d = ux*n[0] + uy*n[1] + uz*n[2];
-    F(N[2],0) += ux*d;
-    F(N[2],1) += uy*d;
-    F(N[2],2) += uz*d;
+    for (std::size_t i=0; i<3; ++i) {
+      auto fxA = flux(U,G,i,0,N[0]);
+      auto fyA = flux(U,G,i,1,N[0]);
+      auto fzA = flux(U,G,i,2,N[0]);
+      auto fxB = flux(U,G,i,0,N[1]);
+      auto fyB = flux(U,G,i,1,N[1]);
+      auto fzB = flux(U,G,i,2,N[1]);
+      auto fxC = flux(U,G,i,0,N[2]);
+      auto fyC = flux(U,G,i,1,N[2]);
+      auto fzC = flux(U,G,i,2,N[2]);
+      auto fx = (6.0*fxA + fxB + fxC)/8.0;
+      auto fy = (6.0*fyA + fyB + fyC)/8.0;
+      auto fz = (6.0*fzA + fzB + fzC)/8.0;
+      F(N[0],i) += fx*n[0] + fy*n[1] + fz*n[2];
+      fx = (fxA + 6.0*fxB + fxC)/8.0;
+      fy = (fyA + 6.0*fyB + fyC)/8.0;
+      fz = (fzA + 6.0*fzB + fzC)/8.0;
+      F(N[1],i) += fx*n[0] + fy*n[1] + fz*n[2];
+      fx = (fxA + fxB + 6.0*fxC)/8.0;
+      fy = (fyA + fyB + 6.0*fyC)/8.0;
+      fz = (fzA + fzB + 6.0*fzC)/8.0;
+      F(N[2],i) += fx*n[0] + fy*n[1] + fz*n[2];
+    }
   }
 
   #if defined(__clang__)
@@ -586,14 +765,15 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      // cppcheck-suppress constParameter
      tk::Fields& R )
 // *****************************************************************************
-//! Compute domain integral for advection
+//! Add advection to rhs
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] coord Mesh node coordinates
+//! \param[in] triinpoel Boundary face connectivity
 //! \param[in] dt Physical time step size
 //! \param[in] U Velocity and transported scalars at recent time step
 //! \param[in] P Pressure
-//! \param[in,out] R Right-hand side vector computed
+//! \param[in,out] R Right-hand side vector added to
 // *****************************************************************************
 {
   auto ncomp = U.nprop();
@@ -614,12 +794,12 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[0].data() + e*4;
     tk::real f[6][ncomp];
     const auto d = dsupint[0].data();
-    adv_tg( d+(e*6+0)*4, U, P, coord, dt, N[0], N[1], f[0] );
-    adv_tg( d+(e*6+1)*4, U, P, coord, dt, N[1], N[2], f[1] );
-    adv_tg( d+(e*6+2)*4, U, P, coord, dt, N[2], N[0], f[2] );
-    adv_tg( d+(e*6+3)*4, U, P, coord, dt, N[0], N[3], f[3] );
-    adv_tg( d+(e*6+4)*4, U, P, coord, dt, N[1], N[3], f[4] );
-    adv_tg( d+(e*6+5)*4, U, P, coord, dt, N[2], N[3], f[5] );
+    adv_tg( d+(e*6+0)*5, U, P, coord, dt, N[0], N[1], f[0] );
+    adv_tg( d+(e*6+1)*5, U, P, coord, dt, N[1], N[2], f[1] );
+    adv_tg( d+(e*6+2)*5, U, P, coord, dt, N[2], N[0], f[2] );
+    adv_tg( d+(e*6+3)*5, U, P, coord, dt, N[0], N[3], f[3] );
+    adv_tg( d+(e*6+4)*5, U, P, coord, dt, N[1], N[3], f[4] );
+    adv_tg( d+(e*6+5)*5, U, P, coord, dt, N[2], N[3], f[5] );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c] - f[3][c];
       R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c] - f[4][c];
@@ -633,9 +813,9 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[1].data() + e*3;
     tk::real f[3][ncomp];
     const auto d = dsupint[1].data();
-    adv_tg( d+(e*3+0)*4, U, P, coord, dt, N[0], N[1], f[0] );
-    adv_tg( d+(e*3+1)*4, U, P, coord, dt, N[1], N[2], f[1] );
-    adv_tg( d+(e*3+2)*4, U, P, coord, dt, N[2], N[0], f[2] );
+    adv_tg( d+(e*3+0)*5, U, P, coord, dt, N[0], N[1], f[0] );
+    adv_tg( d+(e*3+1)*5, U, P, coord, dt, N[1], N[2], f[1] );
+    adv_tg( d+(e*3+2)*5, U, P, coord, dt, N[2], N[0], f[2] );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
       R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c];
@@ -648,7 +828,7 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[2].data() + e*2;
     tk::real f[ncomp];
     const auto d = dsupint[2].data();
-    adv_tg( d+e*4, U, P, coord, dt, N[0], N[1], f );
+    adv_tg( d+e*5, U, P, coord, dt, N[0], N[1], f );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) -= f[c];
       R(N[1],c) += f[c];
@@ -713,6 +893,86 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   #endif
 }
 
+static void
+vis( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
+     const std::array< std::vector< tk::real >, 3 >& dsupint,
+     const tk::Fields& U,
+     // cppcheck-suppress constParameter
+     tk::Fields& R )
+// *****************************************************************************
+//! Add viscosity to rhs
+//! \param[in] dsupedge Domain superedges
+//! \param[in] dsupint Domain superedge integrals
+//! \param[in] U Velocity and transported scalars at recent time step
+//! \param[in,out] R Right-hand side vector added to
+// *****************************************************************************
+{
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
+  if (mu < eps) return;
+
+  #if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wvla"
+    #pragma clang diagnostic ignored "-Wvla-extension"
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wvla"
+  #endif
+
+  // domain edge contributions: tetrahedron superedges
+  for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
+    const auto N = dsupedge[0].data() + e*4;
+    const auto d = dsupint[0].data();
+    for (std::size_t c=0; c<3; ++c) {
+      tk::real u[] = { U(N[0],c), U(N[1],c), U(N[2],c), U(N[3],c) };
+      tk::real f[] = { d[(e*6+0)*5+4] * mu * (u[0] - u[1]),
+                       d[(e*6+1)*5+4] * mu * (u[1] - u[2]),
+                       d[(e*6+2)*5+4] * mu * (u[2] - u[0]),
+                       d[(e*6+3)*5+4] * mu * (u[0] - u[3]),
+                       d[(e*6+4)*5+4] * mu * (u[1] - u[3]),
+                       d[(e*6+5)*5+4] * mu * (u[2] - u[3]) };
+      R(N[0],c) = R(N[0],c) - f[0] + f[2] - f[3];
+      R(N[1],c) = R(N[1],c) + f[0] - f[1] - f[4];
+      R(N[2],c) = R(N[2],c) + f[1] - f[2] - f[5];
+      R(N[3],c) = R(N[3],c) + f[3] + f[4] + f[5];
+    }
+  }
+
+  // domain edge contributions: triangle superedges
+  for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
+    const auto N = dsupedge[1].data() + e*3;
+    const auto d = dsupint[1].data();
+    for (std::size_t c=0; c<3; ++c) {
+      tk::real u[] = { U(N[0],c), U(N[1],c), U(N[2],c) };
+      tk::real f[] = { d[(e*3+0)*5+4] * mu * (u[0] - u[1]),
+                       d[(e*3+1)*5+4] * mu * (u[1] - u[2]),
+                       d[(e*3+2)*5+4] * mu * (u[2] - u[0]) };
+      R(N[0],c) = R(N[0],c) - f[0] + f[2];
+      R(N[1],c) = R(N[1],c) + f[0] - f[1];
+      R(N[2],c) = R(N[2],c) + f[1] - f[2];
+    }
+  }
+
+  // domain edge contributions: edges
+  for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
+    const auto N = dsupedge[2].data() + e*2;
+    const auto d = dsupint[2].data() + e*5;
+    for (std::size_t c=0; c<3; ++c) {
+      tk::real u[] = { U(N[0],c), U(N[1],c) };
+      tk::real f = d[4] * mu * (u[0] - u[1]);
+      R(N[0],c) -= f;
+      R(N[1],c) += f;
+    }
+  }
+
+  #if defined(__clang__)
+    #pragma clang diagnostic pop
+  #elif defined(STRICT_GNUC)
+    #pragma GCC diagnostic pop
+  #endif
+}
+
 void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
@@ -742,6 +1002,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 
   R.fill( 0.0 );
   adv( dsupedge, dsupint, coord, triinpoel, dt, U, P, R );
+  vis( dsupedge, dsupint, U, R );
 }
 
 } // chorin::

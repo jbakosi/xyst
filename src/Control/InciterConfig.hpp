@@ -111,6 +111,7 @@ DEFTAG( ic_velocity );
 DEFTAG( bc_dir );
 DEFTAG( bc_dirval );
 DEFTAG( bc_sym );
+DEFTAG( bc_noslip );
 DEFTAG( bc_far );
 DEFTAG( bc_far_density );
 DEFTAG( bc_far_pressure );
@@ -122,6 +123,7 @@ DEFTAG( mat_spec_heat_ratio );
 DEFTAG( mat_spec_heat_const_vol );
 DEFTAG( mat_spec_gas_const );
 DEFTAG( mat_heat_conductivity );
+DEFTAG( mat_dyn_viscosity );
 DEFTAG( href_t0 );
 DEFTAG( href_dt );
 DEFTAG( href_dtfreq );
@@ -241,6 +243,7 @@ using ConfigMembers = brigand::list<
   , tag::bc_dir, std::vector< std::vector< int > >
   , tag::bc_dirval, std::vector< std::vector< double > >
   , tag::bc_sym, std::vector< int >
+  , tag::bc_noslip, std::vector< int >
   , tag::bc_far, std::vector< int >
   , tag::bc_far_density, double
   , tag::bc_far_pressure, double
@@ -252,6 +255,7 @@ using ConfigMembers = brigand::list<
   , tag::mat_spec_heat_const_vol, double
   , tag::mat_spec_gas_const, double
   , tag::mat_heat_conductivity, double
+  , tag::mat_dyn_viscosity, double
   , tag::href_t0, bool
   , tag::href_dt, bool
   , tag::href_dtfreq, uint64_t

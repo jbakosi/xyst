@@ -32,6 +32,10 @@ symbc( tk::Fields& U,
        const std::vector< tk::real >& symbcnorms,
        std::size_t pos );
 
+//! Set noslip boundary conditions at nodes
+void
+noslipbc( tk::Fields& U, const std::vector< std::size_t >& noslipbcnodes );
+
 //! Set farfield boundary conditions
 void
 farbc( tk::Fields& U,

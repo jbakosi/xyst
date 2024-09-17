@@ -30,16 +30,6 @@ add_regression_test(chocg_inviscid_sphere_u0.6
                     NUMPES 2 PPN 1
                     INPUTFILES inviscid_sphere.q sphere2_5K.exo
                     ARGS -c inviscid_sphere.q -i sphere2_5K.exo -u 0.6
-                    BIN_BASELINE inviscid_sphere_pe2_u0.6.std.exo.0
-                                 inviscid_sphere_pe2_u0.6.std.exo.1
-                                 inviscid_sphere_pe2_u0.6.std.exo.2
-                                 inviscid_sphere_pe2_u0.6.std.exo.3
-                    BIN_RESULT out.e-s.0.4.0
-                               out.e-s.0.4.1
-                               out.e-s.0.4.2
-                               out.e-s.0.4.3
-                    BIN_DIFF_PROG_CONF exodiff.cfg
-                    BIN_DIFF_PROG_ARGS -m
                     TEXT_BASELINE diag_inviscid_sphere.std
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg

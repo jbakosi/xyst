@@ -62,10 +62,12 @@ Here are the important classes that interoperate within inciter:
    parallel)
  - `Refiner` (chare _array_, mesh refiner)
  - `Sorter` (chare _array_, performs distributed mesh-node reordering)
- - `Discretization` (chare _array_, generic PDE solver base class)
-   - `RieCG` (chare _array_, PDE solver child class, specialized to the
-     particular solver 'RieCG'),
-   - ... (more solvers to be added in the future)
+ - `Discretization` (chare _array_, generic solver base class)
+   - `RieCG` (chare _array_, solver child class, specialized to @ref inciter_riecg),
+   - `KozCG` (chare _array_, solver child class, specialized to @ref inciter_kozcg),
+   - `ZalCG` (chare _array_, solver child class, specialized to @ref inciter_zalcg),
+   - `LaxCG` (chare _array_, solver child class, specialized to @ref inciter_laxcg),
+   - ... (more solvers may be added in the future)
 
 _Chare_ above means a single Charm++ chare. There is a single instance of this
 class. By design, `Transporter` is a single chare and is used as a driver that

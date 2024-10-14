@@ -59,20 +59,22 @@ All executables will be under `build/Main/`.
 
 @section mainpage_history History
 
-Xyst is forked from [Quinoa](https://quinoacomputing.github.io/archive).
-Compared to Quinoa, Xyst
+Xyst was forked in 2022 from
+[Quinoa](https://quinoacomputing.github.io/archive) which was started from
+scratch in 2012. Compared to Quinoa, Xyst
 
 1. Removes the stochastic differential equation solver
 ([walker](https://wlkr.cc)),
 
-2. Implements different solvers,
+2. Implements different @ref inciter_solvers "solvers",
 
 3. Uses [Lua](https://www.lua.org) for input files, and
 
 4. Simplifies Quinoa's code and its build system.
 
 Development on [Quinoa](https://github.com/quinoacomputing/quinoa) and
-[Xyst](https://codeberg.org/xyst/xyst) continues on different forks.
+[Xyst](https://codeberg.org/xyst/xyst) continues on different forks, targeting
+different families of problems.
 
 @section funding Funding
 

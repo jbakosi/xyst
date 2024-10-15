@@ -21,6 +21,7 @@
 #include "DerivedData.hpp"
 #include "NodeDiagnostics.hpp"
 #include "PUPUtil.hpp"
+#include "ConjugateGradients.hpp"
 
 #include "NoWarning/chocg.decl.h"
 
@@ -56,6 +57,7 @@ class ChoCG : public CBase_ChoCG {
     //! Constructor
     explicit ChoCG( const CProxy_Discretization& disc,
                     const tk::CProxy_ConjugateGradients& cgpre,
+                    const tk::CProxy_ConjugateGradients& cgmom,
                     const std::map< int, std::vector< std::size_t > >& bface,
                     const std::map< int, std::vector< std::size_t > >& bnode,
                     const std::vector< std::size_t >& triinpoel );
@@ -88,6 +90,12 @@ class ChoCG : public CBase_ChoCG {
 
     //! Continue after Poisson solve
     void psolved();
+
+    //! Solve momentum/transport equations
+    void msolve();
+
+    //! Continue after momentum/transport ssolve
+    void msolved();
 
     // Start time stepping
     void start();
@@ -181,6 +189,7 @@ class ChoCG : public CBase_ChoCG {
     void pup( PUP::er &p ) override {
       p | m_disc;
       p | m_cgpre;
+      p | m_cgmom;
       p | m_nrhs;
       p | m_nnorm;
       p | m_naec;
@@ -253,6 +262,8 @@ class ChoCG : public CBase_ChoCG {
     CProxy_Discretization m_disc;
     //! Conjugate Gradients Charm++ proxy for pressure solve
     tk::CProxy_ConjugateGradients m_cgpre;
+    //! Conjugate Gradients Charm++ proxy for momentum solve
+    tk::CProxy_ConjugateGradients m_cgmom;
     //! Counter for right-hand side vector nodes updated
     std::size_t m_nrhs;
     //! Counter for receiving boundary point normals
@@ -390,6 +401,12 @@ class ChoCG : public CBase_ChoCG {
       return m_disc[ thisIndex ].ckLocal();
     }
 
+    //! Access bound momentum solve matrix
+    tk::CSR& Lhs() {
+      Assert( m_cgmom[ thisIndex ].ckLocal() != nullptr, "ckLocal() null" );
+      return m_cgmom[ thisIndex ].ckLocal()->lhs();
+    }
+
    //! Prepare Dirichlet boundary condition data structures
    void setupDirBC( const std::vector< std::vector< int > >& cfgmask,
                     const std::vector< std::vector< double > >& cfgval,
@@ -419,9 +436,15 @@ class ChoCG : public CBase_ChoCG {
     //! Compute local contributions to domain edge integrals
     void domint();
 
-    //! Setup pressure solve
+    //! Setup lhs matrix for pressure solve
     std::tuple< tk::CSR, std::vector< tk::real >, std::vector< tk::real > >
-    laplacian();
+    prelhs( const std::pair< std::vector< std::size_t >,
+                             std::vector< std::size_t > >& psup );
+
+    //! Setup empty lhs matrix for momentum solve
+    std::tuple< tk::CSR, std::vector< tk::real >, std::vector< tk::real > >
+    momlhs( const std::pair< std::vector< std::size_t >,
+                             std::vector< std::size_t > >& psup );
 
     //! Compute chare-boundary edges
     void bndEdges();
@@ -447,6 +470,9 @@ class ChoCG : public CBase_ChoCG {
     //! Combine own and communicated portions of the integrals
     void merge();
 
+    //! Fill lhs matrix of transport equations
+    void lhs();
+
     //! Compute righ-hand side vector of transport equations
     void rhs();
 
@@ -464,6 +490,12 @@ class ChoCG : public CBase_ChoCG {
 
     //! Advance systems of equations
     void solve();
+
+    //! Compute advective-diffusive prediction of momentum/transport
+    void pred();
+
+    //! Compute pressure correction
+    void corr();
 
     //! Optionally refine/derefine mesh
     void refine();

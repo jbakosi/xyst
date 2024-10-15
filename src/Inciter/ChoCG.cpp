@@ -30,7 +30,6 @@
 #include "Problems.hpp"
 #include "EOS.hpp"
 #include "BC.hpp"
-#include "ConjugateGradients.hpp"
 
 namespace inciter {
 
@@ -49,11 +48,13 @@ using inciter::ChoCG;
 
 ChoCG::ChoCG( const CProxy_Discretization& disc,
               const tk::CProxy_ConjugateGradients& cgpre,
+              const tk::CProxy_ConjugateGradients& cgmom,
               const std::map< int, std::vector< std::size_t > >& bface,
               const std::map< int, std::vector< std::size_t > >& bnode,
               const std::vector< std::size_t >& triinpoel ) :
   m_disc( disc ),
   m_cgpre( cgpre ),
+  m_cgmom( cgmom ),
   m_nrhs( 0 ),
   m_nnorm( 0 ),
   m_naec( 0 ),
@@ -89,6 +90,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
 //  Constructor
 //! \param[in] disc Discretization proxy
 //! \param[in] cgpre ConjugateGradients Charm++ proxy for pressure solve
+//! \param[in] cgmom ConjugateGradients Charm++ proxy for momentum solve
 //! \param[in] bface Boundary-faces mapped to side sets used in the input file
 //! \param[in] bnode Boundary-node lists mapped to side sets used in input file
 //! \param[in] triinpoel Boundary-face connectivity where BCs set (global ids)
@@ -117,24 +119,36 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   d->remap( map );
   // Remap boundary triangle face connectivity
   tk::remap( m_triinpoel, map );
+  // Recompute points surrounding points
+  psup = tk::genPsup( d->Inpoel(), 4, tk::genEsup( d->Inpoel(), 4 ) );
 
   // Compute total box IC volume
   d->boxvol();
 
-  // Setup LHS for pressure solve
-  m_cgpre[ thisIndex ].insert( laplacian(),
+  // Setup LHS matrix for pressure solve
+  m_cgpre[ thisIndex ].insert( prelhs( psup ),
                                d->Gid(),
                                d->Lid(),
                                d->NodeCommMap() );
+
+  // Setup empty LHS matrix for momentum solve if needed
+  if (g_cfg.get< tag::theta >() > std::numeric_limits< tk::real >::epsilon()) {
+    m_cgmom[ thisIndex ].insert( momlhs( psup ),
+                                 d->Gid(),
+                                 d->Lid(),
+                                 d->NodeCommMap() );
+  }
 
   // Activate SDAG waits for setup
   thisProxy[ thisIndex ].wait4int();
 }
 
 std::tuple< tk::CSR, std::vector< tk::real >, std::vector< tk::real > >
-ChoCG::laplacian()
+ChoCG::prelhs( const std::pair< std::vector< std::size_t >,
+                                std::vector< std::size_t > >& psup )
 // *****************************************************************************
-//  Setup matrix for pressure solve
+//  Setup lhs matrix for pressure solve
+//! \param[in] psup Points surrounding points
 //! \return { A, x, b } in linear system A * x = b to solve for pressure
 // *****************************************************************************
 {
@@ -145,8 +159,8 @@ ChoCG::laplacian()
   const auto& Y = coord[1];
   const auto& Z = coord[2];
 
-  // Matrix with Compressed spares row storage
-  tk::CSR A( /*DOF=*/ 1, tk::genPsup(inpoel,4,tk::genEsup(inpoel,4)) );
+  // Matrix with compressed sparse row storage
+  tk::CSR A( /*DOF=*/ 1, psup );
 
   // fill matrix with Laplacian
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
@@ -169,8 +183,28 @@ ChoCG::laplacian()
            A(N[a],N[b]) -= J/6.0 * grad[a][k] * grad[b][k];
   }
 
-  auto npoin = X.size();
-  std::vector< tk::real > x( npoin, 0.0 ), b( npoin, 0.0 );
+  auto nunk = X.size();
+  std::vector< tk::real > x( nunk, 0.0 ), b( nunk, 0.0 );
+
+  return { std::move(A), std::move(x), std::move(b) };
+}
+
+std::tuple< tk::CSR, std::vector< tk::real >, std::vector< tk::real > >
+ChoCG::momlhs( const std::pair< std::vector< std::size_t >,
+                                std::vector< std::size_t > >& psup )
+// *****************************************************************************
+//  Setup empty lhs matrix for momentum solve
+//! \param[in] psup Points surrounding points
+//! \return { A, x, b } in linear system A * x = b to solve for momentum
+// *****************************************************************************
+{
+  auto ncomp = m_u.nprop();
+
+  // Matrix with compressed sparse row storage
+  tk::CSR A( /*DOF=*/ ncomp, psup );
+
+  auto nunk = (psup.second.size() - 1) * ncomp;
+  std::vector< tk::real > x( nunk, 0.0 ), b( nunk, 0.0 );
 
   return { std::move(A), std::move(x), std::move(b) };
 }
@@ -1780,7 +1814,7 @@ ChoCG::dt()
   } else {
 
     auto cfl = g_cfg.get< tag::cfl >();
-    auto nu = g_cfg.get< tag::mat_dyn_viscosity >();
+    auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
     auto large = std::numeric_limits< tk::real >::max();
 
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
@@ -1791,7 +1825,7 @@ ChoCG::dt()
       auto L = std::cbrt( vol[i] );
       auto euler_dt = L / std::max( vel, 1.0e-8 );
       mindt = std::min( mindt, euler_dt );
-      auto visc_dt = nu > eps ? L * L / nu : large;
+      auto visc_dt = mu > eps ? L * L / mu : large;
       mindt = std::min( mindt, visc_dt );
     }
     mindt *= cfl;
@@ -1822,8 +1856,56 @@ ChoCG::advance( tk::real newdt )
   // Set new time step size
   Disc()->setdt( newdt );
 
-  // Compute momentum rhs
+  // Compute lhs and rhs of transport equations
+  lhs();
   rhs();
+}
+
+void
+ChoCG::lhs()
+// *****************************************************************************
+// Fill lhs matrix of transport equations
+// *****************************************************************************
+{
+  auto theta = g_cfg.get< tag::theta >();
+  if (theta < std::numeric_limits< tk::real >::epsilon()) return;
+
+  auto d = Disc();
+  const auto& inpoel = d->Inpoel();
+  const auto& coord = d->Coord();
+  const auto& X = coord[0];
+  const auto& Y = coord[1];
+  const auto& Z = coord[2];
+  const auto ncomp = m_u.nprop();
+  const auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
+
+  auto dt = rkcoef[m_stage] * d->Dt();
+  auto& A = Lhs();
+  A.zero();
+
+  for (std::size_t e=0; e<inpoel.size()/4; ++e) {
+    const auto N = inpoel.data() + e*4;
+    const std::array< tk::real, 3 >
+      ba{{ X[N[1]]-X[N[0]], Y[N[1]]-Y[N[0]], Z[N[1]]-Z[N[0]] }},
+      ca{{ X[N[2]]-X[N[0]], Y[N[2]]-Y[N[0]], Z[N[2]]-Z[N[0]] }},
+      da{{ X[N[3]]-X[N[0]], Y[N[3]]-Y[N[0]], Z[N[3]]-Z[N[0]] }};
+    const auto J = tk::triple( ba, ca, da );        // J = 6V
+    Assert( J > 0, "Element Jacobian non-positive" );
+    std::array< std::array< tk::real, 3 >, 4 > grad;
+    grad[1] = tk::cross( ca, da );
+    grad[2] = tk::cross( da, ba );
+    grad[3] = tk::cross( ba, ca );
+    for (std::size_t i=0; i<3; ++i)
+      grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
+    for (std::size_t a=0; a<4; ++a) {
+      for (std::size_t b=0; b<4; ++b) {
+        auto v = J/dt/120.0 * ((a == b) ? 2.0 : 1.0);
+        v += theta * mu * tk::dot(grad[a],grad[b]) / J / 6.0;
+        for (std::size_t c=0; c<ncomp; ++c) A(N[a],N[b],c) -= v;
+      }
+      //for (std::size_t c=0; c<ncomp; ++c) A(N[a],N[a],c) -= J/dt/24.0;
+    }
+  }
 }
 
 void
@@ -1838,7 +1920,7 @@ ChoCG::rhs()
   // Compute own portion of right-hand side for all equations
   auto dt = rkcoef[m_stage] * d->Dt();
   chorin::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel,
-               dt, m_pr, m_u, m_rhs );
+               dt, m_pr, m_pgrad, m_u, m_vgrad, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
@@ -1890,7 +1972,11 @@ ChoCG::fct()
   }
   tk::destroy(m_rhsc);
 
-  if (g_cfg.get< tag::fct >()) aec(); else solve();
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  if (g_cfg.get< tag::theta >() < eps and g_cfg.get< tag::fct >())
+    aec();
+  else
+    solve();
 }
 
 void
@@ -1916,21 +2002,108 @@ ChoCG::solve()
   if (m_stage == 0) m_un = m_u;
 
   if (g_cfg.get< tag::fct >()) {
+
     // Apply limited antidiffusive contributions to low-order solution
     for (std::size_t i=0; i<npoin; ++i) {
       for (std::size_t c=0; c<ncomp; ++c) {
         m_a(i,c) = m_rhs(i,c) + m_a(i,c)/vol[i];
       }
     }
+    // Continue to advective-diffusive prediction
+    pred();
+
   } else {
-    // Apply rhs
-    auto dt = rkcoef[m_stage] * d->Dt();
-    for (std::size_t i=0; i<npoin; ++i) {
-      for (std::size_t c=0; c<ncomp; ++c) {
-        m_a(i,c) = m_un(i,c) - dt*m_rhs(i,c)/vol[i];
+
+    if (g_cfg.get< tag::theta >() < std::numeric_limits<tk::real>::epsilon()) {
+
+      // Apply rhs in explicit solve
+      auto dt = rkcoef[m_stage] * d->Dt();
+      for (std::size_t i=0; i<npoin; ++i) {
+        for (std::size_t c=0; c<ncomp; ++c) {
+          m_a(i,c) = m_un(i,c) - dt*m_rhs(i,c)/vol[i];
+        }
       }
+      // Continue to advective-diffusive prediction
+      pred();
+
+    } else {
+
+      // Configure Dirichlet BCs
+      std::unordered_map< std::size_t,
+        std::vector< std::pair< int, tk::real > > > dirbc;
+      std::size_t nmask = ncomp + 1;
+      Assert( m_dirbcmask.size() % nmask == 0, "Size mismatch" );
+      for (std::size_t i=0; i<m_dirbcmask.size()/nmask; ++i) {
+        auto p = m_dirbcmask[i*nmask+0];     // local node id
+        auto& bc = dirbc[p];
+        bc.resize( ncomp );
+        for (std::size_t c=0; c<ncomp; ++c) {
+          bc[c] = { m_dirbcmask[i*nmask+1+c], 0.0 };
+        }
+      }
+      for (auto p : m_noslipbcnodes) {
+        auto& bc = dirbc[p];
+        bc.resize( ncomp );
+        for (std::size_t c=0; c<ncomp; ++c) {
+          bc[c] = { 1, 0.0 };
+        }
+      }
+
+      // Initialize semi-implicit momentum/transport solve
+      const auto& pc = g_cfg.get< tag::mom_pc >();
+      m_cgmom[ thisIndex ].ckLocal()->init( {}, m_rhs.vec(), {}, dirbc, pc,
+      CkCallback( CkIndex_ChoCG::msolve(), thisProxy[thisIndex] ) );
+
+    }
+
+  }
+}
+
+void
+ChoCG::msolve()
+// *****************************************************************************
+//  Solve for momentum/transport system of equations
+// *****************************************************************************
+{
+  auto iter = g_cfg.get< tag::mom_iter >();
+  auto tol = g_cfg.get< tag::mom_tol >();
+  auto verbose = g_cfg.get< tag::mom_verbose >();
+
+  m_cgmom[ thisIndex ].ckLocal()->solve( iter, tol, thisIndex, verbose,
+    CkCallback( CkIndex_ChoCG::msolved(), thisProxy[thisIndex] ) );
+}
+
+void
+ChoCG::msolved()
+// *****************************************************************************
+// Continue after momentum/transport solve in semi-implcit solve
+// *****************************************************************************
+{
+  auto d = Disc();
+  const auto npoin = m_u.nunk();
+  const auto ncomp = m_u.nprop();
+
+  if (thisIndex == 0) d->mit( m_cgmom[ thisIndex ].ckLocal()->it() );
+
+  // Update momentum/transport solution in semi-implicit solve
+  auto& du = m_cgmom[ thisIndex ].ckLocal()->solution();
+  for (std::size_t i=0; i<npoin; ++i) {
+    for (std::size_t c=0; c<ncomp; ++c) {
+      m_a(i,c) = m_un(i,c) + du[i*ncomp+c];
     }
   }
+
+  // Continue to advective-diffusive prediction
+  pred();
+}
+
+void
+ChoCG::pred()
+// *****************************************************************************
+//  Compute advective-diffusive prediction of momentum/transport
+// *****************************************************************************
+{
+  auto d = Disc();
 
   // Configure and apply scalar source to solution (if defined)
   auto src = problems::PHYS_SRC();
@@ -1939,22 +2112,40 @@ ChoCG::solve()
   // Enforce boundary conditions
   BC( m_a, d->T() + rkcoef[m_stage] * d->Dt() );
 
-  // Update solution
+  // Update momentum/transport solution
   m_u = m_a;
   m_a.fill( 0.0 );
+
+  // Compute velocity gradients if needed
+  if (g_cfg.get< tag::flux >() == "damp4") {
+    thisProxy[ thisIndex ].wait4vgrad();
+    velgrad();
+  } else {
+    corr();
+  }
+}
+
+void
+ChoCG::corr()
+// *****************************************************************************
+//  Compute pressure correction
+// *****************************************************************************
+{
+  // Finalize computing velocity gradients
+  if (g_cfg.get< tag::flux >() == "damp4") fingrad( m_vgrad, m_vgradc );
 
   if (++m_stage < rkcoef.size()) {
 
     // Activate SDAG wait for next time step stage
     thisProxy[ thisIndex ].wait4rhs();
-    // Continue to next time stage
+    // Continue to next time stage of momentum/transport prediction
     rhs();
 
   } else {
 
     // Reset Runge-Kutta stage counter
     m_stage = 0;
-    // Continue to projection
+    // Continue to pressure correction and projection
     div( m_u );
 
   }

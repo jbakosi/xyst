@@ -69,6 +69,7 @@ class Sorter : public CBase_Sorter {
                      const CProxy_KozCG& kozcg,
                      const CProxy_ChoCG& chocg,
                      const tk::CProxy_ConjugateGradients& cgpre,
+                     const tk::CProxy_ConjugateGradients& cgmom,
                      CkCallback reorderRefiner,
                      const std::vector< std::size_t >& ginpoel,
                      const tk::UnsMesh::CoordMap& coordmap,
@@ -149,6 +150,7 @@ class Sorter : public CBase_Sorter {
       p | m_kozcg;
       p | m_chocg;
       p | m_cgpre;
+      p | m_cgmom;
       p | m_reorderRefiner;
       p | m_ginpoel;
       p | m_coordmap;
@@ -200,6 +202,8 @@ class Sorter : public CBase_Sorter {
     CProxy_ChoCG m_chocg;
     //! Conjugate Gradients Charm++ proxy for pressure solve
     tk::CProxy_ConjugateGradients m_cgpre;
+    //! Conjugate Gradients Charm++ proxy for momentum solve
+    tk::CProxy_ConjugateGradients m_cgmom;
     //! Callback to use to send reordered mesh to Refiner
     CkCallback m_reorderRefiner;
     //! Tetrtahedron element connectivity of our chunk of the mesh (global ids)

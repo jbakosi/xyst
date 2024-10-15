@@ -38,6 +38,7 @@ module sorter {
                     const CProxy_KozCG& kozcg,
                     const CProxy_ChoCG& chocg,
                     const tk::CProxy_ConjugateGradients& cgpre,
+                    const tk::CProxy_ConjugateGradients& cgmom,
                     CkCallback reorderRefiner,
                     const std::vector< std::size_t >& ginpoel,
                     const tk::UnsMesh::CoordMap& coordmap,

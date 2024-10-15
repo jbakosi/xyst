@@ -43,6 +43,7 @@ module partitioner {
         const CProxy_KozCG& kozcg,
         const CProxy_ChoCG& chocg,
         const tk::CProxy_ConjugateGradients& cgpre,
+        const tk::CProxy_ConjugateGradients& cgmom,
         const std::map< int, std::vector< std::size_t > >& belem,
         const std::map< int, std::vector< std::size_t > >& faces,
         const std::map< int, std::vector< std::size_t > >& bnode );

@@ -261,7 +261,7 @@ Transporter::createPartitioner()
     CProxy_ZalCG zalcg;
     CProxy_KozCG kozcg;
     CProxy_ChoCG chocg;
-    tk::CProxy_ConjugateGradients cgpre;
+    tk::CProxy_ConjugateGradients cgpre, cgmom;
     const auto& solver = g_cfg.get< tag::solver >();
     if (solver == "riecg") {
       m_riecg.push_back( CProxy_RieCG::ckNew(opt) );
@@ -284,6 +284,8 @@ Transporter::createPartitioner()
       chocg = m_chocg.back();
       m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
       cgpre = m_cgpre.back();
+      m_cgmom.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
+      cgmom = m_cgmom.back();
     }
     else {
       Throw( "Unknown solver: " + solver );
@@ -304,7 +306,7 @@ Transporter::createPartitioner()
       CProxy_Partitioner::ckNew( meshid, filename, cbp, cbr, cbs,
         thisProxy, m_refiner.back(), m_sorter.back(), m_meshwriter.back(),
         m_discretization.back(), riecg, laxcg, zalcg, kozcg, chocg, cgpre,
-        bface, faces, bnode ) );
+        cgmom, bface, faces, bnode ) );
 
     ++meshid;
   }
@@ -739,6 +741,7 @@ Transporter::workinserted( std::size_t meshid )
   else if (solver == "chocg") {
     m_chocg[ meshid ].doneInserting();
     m_cgpre[ meshid ].doneInserting();
+    m_cgmom[ meshid ].doneInserting();
   }
   else {
     Throw( "Unknown solver: " + solver );
@@ -1119,8 +1122,12 @@ Transporter::inthead( const tk::Print& print )
 //! \param[in] print Pretty printer object to use for printing
 // *****************************************************************************
 {
-  auto dea = g_cfg.get< tag::deactivate >();
-  auto pre = g_cfg.get< tag::solver >() == "chocg" ? 1 : 0;
+  const auto dea = g_cfg.get< tag::deactivate >();
+  const auto solver = g_cfg.get< tag::solver >();
+  const auto pre = solver == "chocg" ? 1 : 0;
+  const auto theta = g_cfg.get< tag::theta >();
+  const auto eps = std::numeric_limits< tk::real >::epsilon();
+  const auto mom = solver == "chocg" and theta > eps ? 1 : 0;
 
   print.section( "Time integration" );
   print <<
@@ -1139,7 +1146,8 @@ Transporter::inthead( const tk::Print& print )
   "             l - load balancing\n"
   "             c - checkpoint\n" << (dea ?
   "             e:x/y - x of y work units deactivated\n" : "") << (pre ?
-  "             p:it - number of linear solve iterations taken\n" : "") <<
+  "             p:it - pressure linear solve iterations\n" : "") << (mom ?
+  "             m:it - momentum/transport linear solve iterations\n" : "") <<
   "\n      it             t            dt        ETE        ETA        EGT  flg\n"
     "--------------------------------------------------------------------------\n";
 }

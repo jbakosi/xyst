@@ -57,6 +57,7 @@ Partitioner::Partitioner(
   const CProxy_KozCG& kozcg,
   const CProxy_ChoCG& chocg,
   const tk::CProxy_ConjugateGradients& cgpre,
+  const tk::CProxy_ConjugateGradients& cgmom,
   const std::map< int, std::vector< std::size_t > >& bface,
   const std::map< int, std::vector< std::size_t > >& faces,
   const std::map< int, std::vector< std::size_t > >& bnode ) :
@@ -75,6 +76,7 @@ Partitioner::Partitioner(
   m_kozcg( kozcg ),
   m_chocg( chocg ),
   m_cgpre( cgpre ),
+  m_cgmom( cgmom ),
   m_ndist( 0 ),
   m_nchare( 0 ),
   m_bface( bface ),
@@ -97,6 +99,7 @@ Partitioner::Partitioner(
 //! \param[in] kozcg Discretization scheme
 //! \param[in] chocg Discretization scheme
 //! \param[in] cgpre ConjugateGradients Charm++ proxy for pressure solve
+//! \param[in] cgmom ConjugateGradients Charm++ proxy for momentum solve
 //! \param[in] bface File-internal elem ids of side sets (whole mesh)
 //! \param[in] faces Elem-relative face ids of side sets (whole mesh)
 //! \param[in] bnode Node lists of side sets (whole mesh)
@@ -398,6 +401,7 @@ Partitioner::refine()
                                m_kozcg,
                                m_chocg,
                                m_cgpre,
+                               m_cgmom,
                                m_cbr,
                                m_cbs,
                                tk::cref_find(m_chinpoel,cid),

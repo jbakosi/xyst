@@ -156,6 +156,9 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     //! Return number of iterations taken
     std::size_t it() const { return m_it; }
 
+    //! Non-const-ref access to lhs matrix
+    tk::CSR& lhs() { return m_A; }
+
     /** @name Pack/unpack (Charm++ serialization) routines */
     ///@{
     //! \brief Pack/Unpack serialize member function

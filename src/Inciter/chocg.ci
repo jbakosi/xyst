@@ -24,6 +24,7 @@ module chocg {
     array [1D] ChoCG {
       entry ChoCG( const CProxy_Discretization& disc,
                    const tk::CProxy_ConjugateGradients& cgpre,
+                   const tk::CProxy_ConjugateGradients& cgmom,
                    const std::map< int, std::vector< std::size_t > >& bface,
                    const std::map< int, std::vector< std::size_t > >& bnode,
                    const std::vector< std::size_t >& triinpoel );
@@ -55,6 +56,8 @@ module chocg {
       entry void pinit();
       entry void psolve();
       entry void psolved();
+      entry void msolve();
+      entry void msolved();
       entry void feop();
       entry void step();
       entry void sgrad();
@@ -69,7 +72,10 @@ module chocg {
         when owndiv_complete(), comdiv_complete() serial { pinit(); } }
 
       entry void wait4vgrad() {
-        when ownvgrad_complete(), comvgrad_complete() serial { flux(); } }
+        when ownvgrad_complete(), comvgrad_complete() serial { 
+          if (Disc()->Initial()) flux(); else corr();
+        }
+      }
 
       entry void wait4flux() {
         when ownflux_complete(), comflux_complete() serial { div( m_flux ); } }

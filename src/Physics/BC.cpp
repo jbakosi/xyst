@@ -111,10 +111,7 @@ noslipbc( tk::Fields& U, const std::vector< std::size_t >& noslipbcnodes )
 {
   if (g_cfg.get< tag::bc_noslip >().empty()) return;
 
-  for (std::size_t i=0; i<noslipbcnodes.size(); ++i) {
-    auto p = noslipbcnodes[i];
-    U(p,0) = U(p,1) = U(p,2) = 0.0;
-  }
+  for (auto p : noslipbcnodes) U(p,0) = U(p,1) = U(p,2) = 0.0;
 }
 
 void

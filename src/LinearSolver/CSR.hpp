@@ -59,6 +59,9 @@ class CSR {
     //! Multiply CSR matrix with vector from the right: r = A * x
     void mult( const std::vector< real >& x, std::vector< real >& r ) const;
 
+    //! Zero matrix values
+    void zero();
+
     //! Access real size of matrix
     std::size_t rsize() const { return rnz.size()*ncomp; }
 

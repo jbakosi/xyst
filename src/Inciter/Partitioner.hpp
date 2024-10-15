@@ -66,6 +66,7 @@ class Partitioner : public CBase_Partitioner {
                  const CProxy_KozCG& kozcg,
                  const CProxy_ChoCG& chocg,
                  const tk::CProxy_ConjugateGradients& cgpre,
+                 const tk::CProxy_ConjugateGradients& cgmom,
                  const std::map< int, std::vector< std::size_t > >& bface,
                  const std::map< int, std::vector< std::size_t > >& faces,
                  const std::map< int, std::vector< std::size_t > >& bnode );
@@ -131,6 +132,7 @@ class Partitioner : public CBase_Partitioner {
       p | m_kozcg;
       p | m_chocg;
       p | m_cgpre;
+      p | m_cgmom;
       p | m_ginpoel;
       p | m_graph;
       p | m_coord;
@@ -188,6 +190,8 @@ class Partitioner : public CBase_Partitioner {
     CProxy_ChoCG m_chocg;
     //! Conjugate Gradients Charm++ proxy for pressure solve
     tk::CProxy_ConjugateGradients m_cgpre;
+    //! Conjugate Gradients Charm++ proxy for momentum solve
+    tk::CProxy_ConjugateGradients m_cgmom;
     //! Element connectivity of this compute node's mesh chunk (global ids)
     std::vector< std::size_t > m_ginpoel;
     //! Aggregated mesh graph of owned nodes if graph-based partitioner is used

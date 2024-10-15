@@ -34,6 +34,7 @@ module refiner {
                      const CProxy_KozCG& kozcg,
                      const CProxy_ChoCG& chocg,
                      const tk::CProxy_ConjugateGradients& cgpre,
+                     const tk::CProxy_ConjugateGradients& cgmom,
                      const tk::RefinerCallback& cbr,
                      const tk::SorterCallback& cbs,
                      const std::vector< std::size_t >& ginpoel,

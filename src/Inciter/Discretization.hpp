@@ -297,6 +297,9 @@ class Discretization : public CBase_Discretization {
     //! Update number of pressure linear solve iterations taken
     void pit( std::size_t it );
 
+    //! Update number of momentum/transport linear solve iterations taken
+    void mit( std::size_t it );
+
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{
     //! \brief Pack/Unpack serialize member function
@@ -348,6 +351,7 @@ class Discretization : public CBase_Discretization {
       p | m_dea;
       p | m_deastarted;
       p | m_pit;
+      p | m_mit;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -471,6 +475,8 @@ class Discretization : public CBase_Discretization {
     int m_deastarted;
     //! Numberf of recent pressure solve iterations taken
     std::size_t m_pit;
+    //! Numberf of recent momentum/transport solve iterations taken
+    std::size_t m_mit;
 
     //! Set mesh coordinates based on coordinates map
     tk::UnsMesh::Coords setCoord( const tk::UnsMesh::CoordMap& coordmap );

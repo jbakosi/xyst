@@ -998,6 +998,24 @@ pressure( lua_State* L, Config& cfg )
 }
 
 static void
+momentum( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse momentum table
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  lua_getglobal( L, "momentum" );
+
+  cfg.get< tag::mom_iter >() = unsigint( L, "iter", 10 );
+  cfg.get< tag::mom_tol >() = real( L, "tol", 1.0e-3 );
+  cfg.get< tag::mom_verbose >() = unsigint( L, "verbose", 0 );
+  cfg.get< tag::mom_pc >() = string( L, "pc", "none" );
+
+  lua_pop( L, 1 );
+}
+
+static void
 lb( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse lb (load balancing configuration) table
@@ -1034,6 +1052,7 @@ Config::control()
     get< tag::term >() = real( L, "term", largereal, true );
     get< tag::ttyi >() = unsigint( L, "ttyi", 1, true );
     get< tag::cfl >() = real( L, "cfl", 0.0, true );
+    get< tag::theta >() = real( L, "theta", 0.0, true );
     get< tag::dt >() = real( L, "dt", 0.0, true );
     get< tag::turkel >() = real( L, "turkel", 0.5, true );
     get< tag::velinf >() = vector( L, "velinf", 1.0, true );
@@ -1072,6 +1091,7 @@ Config::control()
     href( L, *this );
     deactivate( L, *this );
     pressure( L, *this );
+    momentum( L, *this );
     lb( L, *this );
 
     print << "Solver: " << get< tag::solver >() << '\n';

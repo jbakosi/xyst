@@ -37,6 +37,7 @@ DEFTAG( nstep );
 DEFTAG( ttyi );
 DEFTAG( term );
 DEFTAG( cfl );
+DEFTAG( theta );
 DEFTAG( t0 );
 DEFTAG( dt );
 DEFTAG( turkel );
@@ -48,6 +49,10 @@ DEFTAG( pre_pc );
 DEFTAG( pre_bc_dir );
 DEFTAG( pre_bc_dirval );
 DEFTAG( pre_bc_sym );
+DEFTAG( mom_iter );
+DEFTAG( mom_tol );
+DEFTAG( mom_verbose );
+DEFTAG( mom_pc );
 DEFTAG( reorder );
 DEFTAG( part );
 DEFTAG( zoltan_params );
@@ -160,6 +165,7 @@ using ConfigMembers = brigand::list<
   , tag::ttyi, uint64_t
   , tag::term, double
   , tag::cfl, double
+  , tag::theta, double
   , tag::t0, double
   , tag::dt, double
   , tag::turkel, double
@@ -171,6 +177,10 @@ using ConfigMembers = brigand::list<
   , tag::pre_bc_dir, std::vector< std::vector< int > >
   , tag::pre_bc_dirval, std::vector< std::vector< double > >
   , tag::pre_bc_sym, std::vector< int >
+  , tag::mom_iter, uint64_t
+  , tag::mom_tol, double
+  , tag::mom_verbose, uint64_t
+  , tag::mom_pc, std::string
   , tag::reorder, bool
   , tag::part, std::string
   , tag::zoltan_params, std::vector< std::string >

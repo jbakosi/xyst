@@ -38,6 +38,7 @@ Sorter::Sorter( std::size_t meshid,
                 const CProxy_KozCG& kozcg,
                 const CProxy_ChoCG& chocg,
                 const tk::CProxy_ConjugateGradients& cgpre,
+                const tk::CProxy_ConjugateGradients& cgmom,
                 CkCallback reorderRefiner,
                 const std::vector< std::size_t >& ginpoel,
                 const tk::UnsMesh::CoordMap& coordmap,
@@ -57,6 +58,7 @@ Sorter::Sorter( std::size_t meshid,
   m_kozcg( kozcg ),
   m_chocg( chocg ),
   m_cgpre( cgpre ),
+  m_cgmom( cgmom ),
   m_reorderRefiner( reorderRefiner ),
   m_ginpoel( ginpoel ),
   m_coordmap( coordmap ),
@@ -91,6 +93,7 @@ Sorter::Sorter( std::size_t meshid,
 //! \param[in] kozcg KozCG Charm++ proxy
 //! \param[in] chocg KozCG Charm++ proxy
 //! \param[in] cgpre ConjugateGradients Charm++ proxy for pressure solve
+//! \param[in] cgmom ConjugateGradients Charm++ proxy for momentum solve
 //! \param[in] reorderRefiner Callback to use to send reordered mesh to Refiner
 //! \param[in] ginpoel Mesh connectivity (this chare) using global node IDs
 //! \param[in] coordmap Mesh node coordinates (this chare) for global node IDs
@@ -578,8 +581,8 @@ Sorter::createWorkers()
                                  m_triinpoel );
   }
   else if (solver == "chocg") {
-    m_chocg[ thisIndex ].insert( m_discretization, m_cgpre, m_bface, m_bnode,
-                                 m_triinpoel );
+    m_chocg[ thisIndex ].insert( m_discretization, m_cgpre, m_cgmom, m_bface,
+                                 m_bnode, m_triinpoel );
   }
   else {
     Throw( "Unknown solver: " + solver );

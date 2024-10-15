@@ -73,7 +73,9 @@ Discretization::Discretization(
   m_res0( 0.0 ),
   m_res1( 0.0 ),
   m_dea( 0 ),
-  m_deastarted( 0 )
+  m_deastarted( 0 ),
+  m_pit( 0 ),
+  m_mit( 0 )
 // *****************************************************************************
 //  Constructor
 //! \param[in] meshid Mesh ID
@@ -983,6 +985,16 @@ Discretization::pit( std::size_t it )
 }
 
 void
+Discretization::mit( std::size_t it )
+// *****************************************************************************
+//  Update number of momentum/transport linear solve iterations taken
+//! \param[in] it Number of momentum/transport linear solve iterations taken
+// *****************************************************************************
+{
+  m_mit = it;
+}
+
+void
 Discretization::status()
 // *****************************************************************************
 // Output one-liner status report
@@ -1007,7 +1019,11 @@ Discretization::status()
     const auto rsfreq = g_cfg.get< tag::rsfreq >();
     const auto benchmark = g_cfg.get< tag::benchmark >();
     const auto residual = g_cfg.get< tag::residual >();
-    const auto pre = g_cfg.get< tag::solver >() == "chocg" ? 1 : 0;
+    const auto solver = g_cfg.get< tag::solver >();
+    const auto pre = solver == "chocg" ? 1 : 0;
+    const auto theta = g_cfg.get< tag::theta >();
+    const auto eps = std::numeric_limits< tk::real >::epsilon();
+    const auto mom = solver == "chocg" and theta > eps ? 1 : 0;
 
     // estimate time elapsed and time for accomplishment
     tk::Timer::Watch ete, eta;
@@ -1043,6 +1059,7 @@ Discretization::status()
       print << "\te:" << m_dea << '/' << m_nchare;
     }
     if (pre) print << "\tp:" << m_pit;
+    if (mom) print << "\tm:" << m_mit;
 
     print << '\n';
   }

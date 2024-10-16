@@ -395,9 +395,9 @@ Discretization::stat( tk::real mesh_volume )
 
   auto MIN = -std::numeric_limits< tk::real >::max();
   auto MAX = std::numeric_limits< tk::real >::max();
-  std::vector< tk::real > min{ MAX, MAX, MAX, MAX, MAX };
-  std::vector< tk::real > max{ MIN, MIN, MIN, MIN, MIN };
-  std::vector< tk::real > sum{ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  std::vector< tk::real > min( 6, MAX );
+  std::vector< tk::real > max( 6, MIN );
+  std::vector< tk::real > sum( 9, 0.0 );
   tk::UniPDF edgePDF( 1e-4 );
   tk::UniPDF volPDF( 1e-4 );
   tk::UniPDF ntetPDF( 1e-4 );
@@ -454,6 +454,9 @@ Discretization::stat( tk::real mesh_volume )
   min[2] = max[2] = sum[5] = static_cast< tk::real >( m_inpoel.size() / 4 );
   min[3] = max[3] = sum[6] = static_cast< tk::real >( m_gid.size() );
   min[4] = max[4] = sum[7] = static_cast< tk::real >( edges.size() );
+  min[5] = max[5] = sum[8] =
+    static_cast< tk::real >( tk::sumvalsize(m_nodeCommMap) ) /
+    static_cast< tk::real >( m_gid.size() );
   ntetPDF.add( min[2] );
 
   min.push_back( static_cast<tk::real>(m_meshid) );

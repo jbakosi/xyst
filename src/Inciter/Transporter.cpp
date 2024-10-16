@@ -339,15 +339,18 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
   Assert( meshid < m_nelem.size(), "MeshId indexing out" );
 
   // Partition first mesh
-  if (meshid == 0) m_partitioner[0].partition( m_nchare[0] );
+  if (meshid == 0) {
+    m_timer[ TimerTag::MESH_PART ];  // start timer measuring mesh partitioning
+    m_partitioner[0].partition( m_nchare[0] );
+  }
 
   if (++m_nload == m_nelem.size()) {     // all meshes have been loaded
     m_nload = 0;
     auto print = tk::Print();
 
-    // Start timer measuring preparation of the mesh for partitioning
-    const auto& timer = tk::cref_find( m_timer, TimerTag::MESH_READ );
-    print << "Mesh read time: " + std::to_string( timer.dsec() ) + " sec\n";
+    auto& timer = tk::ref_find( m_timer, TimerTag::MESH_READ );
+    timer.second = timer.first.dsec();
+    print << "Mesh read time: " + std::to_string( timer.second ) + " sec\n";
 
     // Print out mesh partitioning configuration
     print.section( "Partitioning mesh" );
@@ -384,6 +387,9 @@ Transporter::partitioned( std::size_t meshid )
 {
   if (++m_npart == m_nelem.size()) {     // all meshes have been partitioned
     m_npart = 0;
+    auto& timer = tk::ref_find( m_timer, TimerTag::MESH_PART );
+    timer.second = timer.first.dsec();
+    m_timer[ TimerTag::MESH_DIST ];  // start timer measuring mesh distribution
   } else { // partition next mesh
     m_partitioner[meshid+1].partition( m_nchare[meshid+1] );
   }
@@ -398,6 +404,8 @@ Transporter::distributed( std::size_t meshid )
 // *****************************************************************************
 {
   m_partitioner[meshid].refine();
+  auto& timer = tk::ref_find( m_timer, TimerTag::MESH_DIST );
+  timer.second = timer.first.dsec();
 }
 
 void
@@ -1036,6 +1044,13 @@ Transporter::stat()
 
   if (++m_nstat == m_nelem.size()) {     // stats from all meshes have arrived
     m_nstat = 0;
+
+    auto& t = tk::ref_find( m_timer, TimerTag::MESH_PART );
+    print << "Mesh partitioning time: " + std::to_string(t.second) + " sec\n";
+    t = tk::ref_find( m_timer, TimerTag::MESH_DIST );
+    print << "Mesh distribution time: " + std::to_string(t.second) + " sec\n";
+
+
     for (std::size_t i=0; i<m_nelem.size(); ++i) {
       if (m_nelem.size() > 1) {
         print.section("Mesh " + std::to_string(i) + " distribution statistics");

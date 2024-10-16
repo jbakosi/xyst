@@ -9,6 +9,8 @@ ttyi = 1
 cfl = 0.5
 
 solver = "chocg"
+flux = "tg"
+
 part = "phg"
 fct = false
 

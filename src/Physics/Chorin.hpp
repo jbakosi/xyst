@@ -64,7 +64,6 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::vector< std::size_t >& triinpoel,
      tk::real dt,
      const std::vector< tk::real >& P,
-     const tk::Fields& PG,
      const tk::Fields& U,
      const tk::Fields& G,
      tk::Fields& R );

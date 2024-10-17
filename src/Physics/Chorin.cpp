@@ -652,7 +652,6 @@ adv_tg( const tk::real supint[],
         const tk::Fields& U,
         const tk::Fields&,
         const std::vector< tk::real >& P,
-        const tk::Fields&,
         const std::array< std::vector< tk::real >, 3 >& coord,
         tk::real dt,
         std::size_t p,
@@ -763,7 +762,6 @@ adv_damp2( const tk::real supint[],
            const tk::Fields& U,
            const tk::Fields&,
            const std::vector< tk::real >& P,
-           const tk::Fields&,
            const std::array< std::vector< tk::real >, 3 >&,
            tk::real,
            std::size_t p,
@@ -810,7 +808,6 @@ adv_damp4( const tk::real supint[],
            const tk::Fields& U,
            const tk::Fields& G,
            const std::vector< tk::real >& P,
-           const tk::Fields& PG,
            const std::array< std::vector< tk::real >, 3 >& coord,
            tk::real,
            std::size_t p,
@@ -822,15 +819,12 @@ adv_damp4( const tk::real supint[],
 //! \param[in] U Velocity and transported scalars at recent time step
 //! \param[in] G Gradients of velocity and transported scalars
 //! \param[in] P Pressure
-//! \param[in] PG Pressure gradient
 //! \param[in] coord Mesh node coordinates
 //! \param[in] p Left node index of edge
 //! \param[in] q Right node index of edge
 //! \param[in,out] f Flux computed
 // *****************************************************************************
 {
-  auto ncomp = U.nprop();
-
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
@@ -849,37 +843,14 @@ adv_damp4( const tk::real supint[],
     #pragma GCC diagnostic ignored "-Wvla"
   #endif
 
-  // left state
-  tk::real uL[ncomp+1], gL[(ncomp+1)*3];
-  uL[0] = P[p];
-  gL[0] = PG(p,0);
-  gL[1] = PG(p,1);
-  gL[2] = PG(p,2);
-  for (std::size_t c=0; c<ncomp; ++c) {
-    uL[c+1] = U(p,c);
-    gL[(c+1)*3+0] = G(p,c*3+0);
-    gL[(c+1)*3+1] = G(p,c*3+1);
-    gL[(c+1)*3+2] = G(p,c*3+2);
-  }
-
-  // right state
-  tk::real uR[ncomp+1], gR[(ncomp+1)*3];
-  uR[0] = P[q];
-  gR[0] = PG(q,0);
-  gR[1] = PG(q,1);
-  gR[2] = PG(q,2);
-  for (std::size_t c=0; c<ncomp; ++c) {
-    uR[c+1] = U(q,c);
-    gR[(c+1)*3+0] = G(q,c*3+0);
-    gR[(c+1)*3+1] = G(q,c*3+1);
-    gR[(c+1)*3+2] = G(q,c*3+2);
-  }
+  tk::real uL[] = { U(p,0), U(p,1), U(p,2) };
+  tk::real uR[] = { U(q,0), U(q,1), U(q,2) };
 
   // MUSCL reconstruction in edge-end points
-  for (std::size_t c=0; c<ncomp+1; ++c) {
+  for (std::size_t c=0; c<3; ++c) {
     auto g = c*3;
-    auto g1 = gL[g+0]*dx + gL[g+1]*dy + gL[g+2]*dz;
-    auto g2 = gR[g+0]*dx + gR[g+1]*dy + gR[g+2]*dz;
+    auto g1 = G(p,g+0)*dx + G(p,g+1)*dy + G(p,g+2)*dz;
+    auto g2 = G(q,g+0)*dx + G(q,g+1)*dy + G(q,g+2)*dz;
     auto delta2 = uR[c] - uL[c];
     auto delta1 = 2.0 * g1 - delta2;
     auto delta3 = 2.0 * g2 - delta2;
@@ -898,17 +869,6 @@ adv_damp4( const tk::real supint[],
                    delta2*(1.0+muscl_const)*phi_L_inv);
     uR[c] -= 0.25*(delta3*(1.0-muscl_const)*phiR +
                    delta2*(1.0+muscl_const)*phi_R_inv);
-
-    //// van Albada limiter
-    //auto sL = std::max(0.0, (2.0*delta1*delta2 + muscl_eps)
-    //  /(delta1*delta1 + delta2*delta2 + muscl_eps));
-    //auto sR = std::max(0.0, (2.0*delta3*delta2 + muscl_eps)
-    //  /(delta3*delta3 + delta2*delta2 + muscl_eps));
-    //// update unknowns with reconstructed unknowns
-    //uL[c] += 0.25*sL*(delta1*(1.0 - muscl_const*sL)
-    //                + delta2*(1.0 + muscl_const*sL));
-    //uR[c] -= 0.25*sR*(delta3*(1.0 - muscl_const*sR)
-    //                + delta2*(1.0 + muscl_const*sR));
   }
 
   auto nx = supint[0];
@@ -916,18 +876,17 @@ adv_damp4( const tk::real supint[],
   auto nz = supint[2];
 
   // normal velocities
-  auto vnL = uL[1]*nx + uL[2]*ny + uL[3]*nz;
-  auto vnR = uR[1]*nx + uR[2]*ny + uR[3]*nz;
+  auto vnL = uL[0]*nx + uL[1]*ny + uL[2]*nz;
+  auto vnR = uR[0]*nx + uR[1]*ny + uR[2]*nz;
 
   // stabilization
   auto aw = std::abs( vnL + vnR ) / 2.0 * tk::length( nx, ny, nz );
 
   // flow
-  auto pf = uL[0] + uR[0];
-  //auto pf = P[p] + P[q];
-  f[0] = uL[1]*vnL + uR[1]*vnR + pf*nx + aw*(uR[1]-uL[1]);
-  f[1] = uL[2]*vnL + uR[2]*vnR + pf*ny + aw*(uR[2]-uL[2]);
-  f[2] = uL[3]*vnL + uR[3]*vnR + pf*nz + aw*(uR[3]-uL[3]);
+  auto pf = P[p] + P[q];  // no recon, more stable, larger dt
+  f[0] = uL[0]*vnL + uR[0]*vnR + pf*nx + aw*(uR[0]-uL[0]);
+  f[1] = uL[1]*vnL + uR[1]*vnR + pf*ny + aw*(uR[1]-uL[1]);
+  f[2] = uL[2]*vnL + uR[2]*vnR + pf*nz + aw*(uR[2]-uL[2]);
 
   #if defined(__clang__)
     #pragma clang diagnostic pop
@@ -945,7 +904,6 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const tk::Fields& U,
      const tk::Fields& G,
      const std::vector< tk::real >& P,
-     const tk::Fields& PG,
      // cppcheck-suppress constParameter
      tk::Fields& R )
 // *****************************************************************************
@@ -958,7 +916,6 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] U Velocity and transported scalars at recent time step
 //! \param[in] G Gradients of velocity and transported scalars
 //! \param[in] P Pressure
-//! \param[in] PG Pressure gradients
 //! \param[in,out] R Right-hand side vector added to
 // *****************************************************************************
 {
@@ -989,12 +946,12 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[0].data() + e*4;
     tk::real f[6][ncomp];
     const auto d = dsupint[0].data();
-    adv( d+(e*6+0)*5, U, G, P, PG, coord, dt, N[0], N[1], f[0] );
-    adv( d+(e*6+1)*5, U, G, P, PG, coord, dt, N[1], N[2], f[1] );
-    adv( d+(e*6+2)*5, U, G, P, PG, coord, dt, N[2], N[0], f[2] );
-    adv( d+(e*6+3)*5, U, G, P, PG, coord, dt, N[0], N[3], f[3] );
-    adv( d+(e*6+4)*5, U, G, P, PG, coord, dt, N[1], N[3], f[4] );
-    adv( d+(e*6+5)*5, U, G, P, PG, coord, dt, N[2], N[3], f[5] );
+    adv( d+(e*6+0)*5, U, G, P, coord, dt, N[0], N[1], f[0] );
+    adv( d+(e*6+1)*5, U, G, P, coord, dt, N[1], N[2], f[1] );
+    adv( d+(e*6+2)*5, U, G, P, coord, dt, N[2], N[0], f[2] );
+    adv( d+(e*6+3)*5, U, G, P, coord, dt, N[0], N[3], f[3] );
+    adv( d+(e*6+4)*5, U, G, P, coord, dt, N[1], N[3], f[4] );
+    adv( d+(e*6+5)*5, U, G, P, coord, dt, N[2], N[3], f[5] );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c] - f[3][c];
       R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c] - f[4][c];
@@ -1008,9 +965,9 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[1].data() + e*3;
     tk::real f[3][ncomp];
     const auto d = dsupint[1].data();
-    adv( d+(e*3+0)*5, U, G, P, PG, coord, dt, N[0], N[1], f[0] );
-    adv( d+(e*3+1)*5, U, G, P, PG, coord, dt, N[1], N[2], f[1] );
-    adv( d+(e*3+2)*5, U, G, P, PG, coord, dt, N[2], N[0], f[2] );
+    adv( d+(e*3+0)*5, U, G, P, coord, dt, N[0], N[1], f[0] );
+    adv( d+(e*3+1)*5, U, G, P, coord, dt, N[1], N[2], f[1] );
+    adv( d+(e*3+2)*5, U, G, P, coord, dt, N[2], N[0], f[2] );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
       R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c];
@@ -1023,7 +980,7 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[2].data() + e*2;
     tk::real f[ncomp];
     const auto d = dsupint[2].data();
-    adv( d+e*5, U, G, P, PG, coord, dt, N[0], N[1], f );
+    adv( d+e*5, U, G, P, coord, dt, N[0], N[1], f );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) -= f[c];
       R(N[1],c) += f[c];
@@ -1175,7 +1132,6 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::vector< std::size_t >& triinpoel,
      tk::real dt,
      const std::vector< tk::real >& P,
-     const tk::Fields& PG,
      const tk::Fields& U,
      const tk::Fields& G,
      tk::Fields& R )
@@ -1187,7 +1143,6 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] dt Physical time step size
 //! \param[in] P Pressure
-//! \param[in] PG Pressure gradients
 //! \param[in] U Solution vector of primitive variables at recent time step
 //! \param[in] G Gradients of velocity and transported scalars
 //! \param[in,out] R Right-hand side vector computed
@@ -1200,7 +1155,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
           "side vector incorrect" );
 
   R.fill( 0.0 );
-  adv( dsupedge, dsupint, coord, triinpoel, dt, U, G, P, PG, R );
+  adv( dsupedge, dsupint, coord, triinpoel, dt, U, G, P, R );
   vis( dsupedge, dsupint, U, R );
 }
 

@@ -1923,7 +1923,7 @@ ChoCG::rhs()
   // Compute own portion of right-hand side for all equations
   auto dt = m_rkcoef[m_stage] * d->Dt();
   chorin::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel,
-               dt, m_pr, m_pgrad, m_u, m_vgrad, m_rhs );
+               dt, m_pr, m_u, m_vgrad, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {

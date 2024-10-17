@@ -1097,6 +1097,12 @@ ChoCG::pinit()
     }
   }
 
+  // Set hydrostat
+  auto h = g_cfg.get< tag::pre_hydrostat >();
+  if (h != std::numeric_limits< uint64_t >::max()) {
+    dirbc[ h ] = {{ { 1, 0.0 }} };
+  }
+
   // Configure right hand side
   auto pr = problems::PRESSURE_RHS();
   if (pr) {

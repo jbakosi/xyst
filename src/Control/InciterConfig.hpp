@@ -46,6 +46,7 @@ DEFTAG( velinf );
 DEFTAG( pre_iter );
 DEFTAG( pre_tol );
 DEFTAG( pre_verbose );
+DEFTAG( pre_hydrostat );
 DEFTAG( pre_pc );
 DEFTAG( pre_bc_dir );
 DEFTAG( pre_bc_dirval );
@@ -175,6 +176,7 @@ using ConfigMembers = brigand::list<
   , tag::pre_iter, uint64_t
   , tag::pre_tol, double
   , tag::pre_verbose, uint64_t
+  , tag::pre_hydrostat, uint64_t
   , tag::pre_pc, std::string
   , tag::pre_bc_dir, std::vector< std::vector< int > >
   , tag::pre_bc_dirval, std::vector< std::vector< double > >

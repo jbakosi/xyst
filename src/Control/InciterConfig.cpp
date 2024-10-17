@@ -989,6 +989,7 @@ pressure( lua_State* L, Config& cfg )
   cfg.get< tag::pre_iter >() = unsigint( L, "iter", 10 );
   cfg.get< tag::pre_tol >() = real( L, "tol", 1.0e-3 );
   cfg.get< tag::pre_verbose >() = unsigint( L, "verbose", 0 );
+  cfg.get< tag::pre_hydrostat >() = unsigint( L, "hydrostat" );
   cfg.get< tag::pre_pc >() = string( L, "pc", "none" );
   bc_dir( L, cfg.get< tag::pre_bc_dir >() );
   bc_dirval( L, cfg.get< tag::pre_bc_dirval >() );

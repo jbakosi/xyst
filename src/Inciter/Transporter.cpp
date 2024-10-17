@@ -1052,6 +1052,7 @@ Transporter::stat()
     m_nstat = 0;
 
     auto& t = tk::ref_find( m_timer, TimerTag::MESH_PART );
+    print << '\n';
     print << "Mesh partitioning time: " + std::to_string(t.second) + " sec\n";
     t = tk::ref_find( m_timer, TimerTag::MESH_DIST );
     print << "Mesh distribution time: " + std::to_string(t.second) + " sec\n";

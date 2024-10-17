@@ -37,6 +37,7 @@ DEFTAG( nstep );
 DEFTAG( ttyi );
 DEFTAG( term );
 DEFTAG( cfl );
+DEFTAG( rk );
 DEFTAG( theta );
 DEFTAG( t0 );
 DEFTAG( dt );
@@ -165,6 +166,7 @@ using ConfigMembers = brigand::list<
   , tag::ttyi, uint64_t
   , tag::term, double
   , tag::cfl, double
+  , tag::rk, uint64_t
   , tag::theta, double
   , tag::t0, double
   , tag::dt, double

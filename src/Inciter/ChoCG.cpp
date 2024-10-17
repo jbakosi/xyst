@@ -38,8 +38,10 @@ extern ctr::Config g_cfg;
 static CkReduction::reducerType IntegralsMerger;
 
 //! Runge-Kutta coefficients
-//static const std::array< tk::real, 3 > rkcoef{{ 1.0/3.0, 1.0/2.0, 1.0 }};
-static const std::array< tk::real, 1 > rkcoef{{ 1.0 }};
+static const std::array< std::vector< tk::real >, 2 > rkcoef{{
+  { 1.0 },
+  { 1.0/3.0, 1.0/2.0, 1.0 }
+}};
 
 } // inciter::
 
@@ -85,7 +87,8 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_flux( m_u.nunk(), 3UL ),
   m_div( m_u.nunk() ),
   m_stage( 0 ),
-  m_finished( 0 )
+  m_finished( 0 ),
+  m_rkcoef( g_cfg.get< tag::rk >() == 3 ? rkcoef[1] : rkcoef[0] )
 // *****************************************************************************
 //  Constructor
 //! \param[in] disc Discretization proxy
@@ -1453,7 +1456,7 @@ ChoCG::alw()
   tk::destroy(m_pc);
 
   // Finish computing antidiffusive contributions and low-order solution
-  auto dt = rkcoef[m_stage] * d->Dt();
+  auto dt = m_rkcoef[m_stage] * d->Dt();
   for (std::size_t i=0; i<npoin; ++i) {
     for (std::size_t c=0; c<ncomp; ++c) {
       auto a = c*2;
@@ -1879,7 +1882,7 @@ ChoCG::lhs()
   const auto ncomp = m_u.nprop();
   const auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
 
-  auto dt = rkcoef[m_stage] * d->Dt();
+  auto dt = m_rkcoef[m_stage] * d->Dt();
   auto& A = Lhs();
   A.zero();
 
@@ -1918,7 +1921,7 @@ ChoCG::rhs()
   const auto& lid = d->Lid();
 
   // Compute own portion of right-hand side for all equations
-  auto dt = rkcoef[m_stage] * d->Dt();
+  auto dt = m_rkcoef[m_stage] * d->Dt();
   chorin::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel,
                dt, m_pr, m_pgrad, m_u, m_vgrad, m_rhs );
 
@@ -2017,7 +2020,7 @@ ChoCG::solve()
     if (g_cfg.get< tag::theta >() < std::numeric_limits<tk::real>::epsilon()) {
 
       // Apply rhs in explicit solve
-      auto dt = rkcoef[m_stage] * d->Dt();
+      auto dt = m_rkcoef[m_stage] * d->Dt();
       for (std::size_t i=0; i<npoin; ++i) {
         for (std::size_t c=0; c<ncomp; ++c) {
           m_a(i,c) = m_un(i,c) - dt*m_rhs(i,c)/vol[i];
@@ -2110,7 +2113,7 @@ ChoCG::pred()
   if (src) src( d->Coord(), d->T(), m_a );
 
   // Enforce boundary conditions
-  BC( m_a, d->T() + rkcoef[m_stage] * d->Dt() );
+  BC( m_a, d->T() + m_rkcoef[m_stage] * d->Dt() );
 
   // Update momentum/transport solution
   m_u = m_a;
@@ -2134,7 +2137,7 @@ ChoCG::corr()
   // Finalize computing velocity gradients
   if (g_cfg.get< tag::flux >() == "damp4") fingrad( m_vgrad, m_vgradc );
 
-  if (++m_stage < rkcoef.size()) {
+  if (++m_stage < m_rkcoef.size()) {
 
     // Activate SDAG wait for next time step stage
     thisProxy[ thisIndex ].wait4rhs();

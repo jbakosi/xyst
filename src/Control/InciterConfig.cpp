@@ -1052,6 +1052,7 @@ Config::control()
     get< tag::term >() = real( L, "term", largereal, true );
     get< tag::ttyi >() = unsigint( L, "ttyi", 1, true );
     get< tag::cfl >() = real( L, "cfl", 0.0, true );
+    get< tag::rk >() = unsigint( L, "rk", 1, true );
     get< tag::theta >() = real( L, "theta", 0.0, true );
     get< tag::dt >() = real( L, "dt", 0.0, true );
     get< tag::turkel >() = real( L, "turkel", 0.5, true );

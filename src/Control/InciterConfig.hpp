@@ -42,6 +42,7 @@ DEFTAG( theta );
 DEFTAG( t0 );
 DEFTAG( dt );
 DEFTAG( turkel );
+DEFTAG( soundspeed );
 DEFTAG( velinf );
 DEFTAG( pre_iter );
 DEFTAG( pre_tol );
@@ -172,6 +173,7 @@ using ConfigMembers = brigand::list<
   , tag::t0, double
   , tag::dt, double
   , tag::turkel, double
+  , tag::soundspeed, double
   , tag::velinf, std::vector< double >
   , tag::pre_iter, uint64_t
   , tag::pre_tol, double

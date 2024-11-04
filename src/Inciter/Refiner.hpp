@@ -32,6 +32,7 @@
 #include "ZalCG.hpp"
 #include "KozCG.hpp"
 #include "ChoCG.hpp"
+#include "LohCG.hpp"
 
 #include "NoWarning/transporter.decl.h"
 #include "NoWarning/refiner.decl.h"
@@ -75,6 +76,7 @@ class Refiner : public CBase_Refiner {
                       const CProxy_ZalCG& zalcg,
                       const CProxy_KozCG& kozcg,
                       const CProxy_ChoCG& chocg,
+                      const CProxy_LohCG& lohcg,
                       const tk::CProxy_ConjugateGradients& cgpre,
                       const tk::CProxy_ConjugateGradients& cgmom,
                       const tk::RefinerCallback& cbr,
@@ -166,6 +168,7 @@ class Refiner : public CBase_Refiner {
       p | m_zalcg;
       p | m_kozcg;
       p | m_chocg;
+      p | m_lohcg;
       p | m_cgpre;
       p | m_cgmom;
       p | m_cbr;
@@ -241,6 +244,8 @@ class Refiner : public CBase_Refiner {
     CProxy_KozCG m_kozcg;
     //! Discretization scheme proxy
     CProxy_ChoCG m_chocg;
+    //! Discretization scheme proxy
+    CProxy_LohCG m_lohcg;
     //! Conjugate Gradients Charm++ proxy for pressure solve
     tk::CProxy_ConjugateGradients m_cgpre;
     //! Conjugate Gradients Charm++ proxy for momentum solve

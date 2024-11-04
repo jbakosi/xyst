@@ -39,6 +39,12 @@ class NodeDiagnostics {
                      const std::vector< tk::real >& dp,
                      uint64_t diag_iter ) const;
 
+    //! Compute diagnostics for artificial compressibility solvers
+    bool accompute( Discretization& d,
+                    const tk::Fields& u,
+                    const tk::Fields& un,
+                    uint64_t diag_iter ) const;
+
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{
     //! \brief Pack/Unpack serialize member function

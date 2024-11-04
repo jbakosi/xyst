@@ -21,6 +21,7 @@ module sorter {
   extern module zalcg;
   extern module kozcg;
   extern module chocg;
+  extern module lohcg;
   extern module meshwriter;
   extern module conjugategradients;
 
@@ -37,6 +38,7 @@ module sorter {
                     const CProxy_ZalCG& zalcg,
                     const CProxy_KozCG& kozcg,
                     const CProxy_ChoCG& chocg,
+                    const CProxy_LohCG& lohcg,
                     const tk::CProxy_ConjugateGradients& cgpre,
                     const tk::CProxy_ConjugateGradients& cgmom,
                     CkCallback reorderRefiner,

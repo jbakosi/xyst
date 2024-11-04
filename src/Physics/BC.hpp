@@ -15,7 +15,7 @@
 
 namespace physics {
 
-//! Set Dirichlet boundary conditions
+//! Set Dirichlet boundary conditions at nodes
 void
 dirbc(
   tk::Fields& U,
@@ -25,7 +25,15 @@ dirbc(
   const std::vector< std::size_t >& dirbcmask,
   const std::vector< double >& dirbcval = {} );
 
-//! Set symmetry boundary conditions
+//! Set pressure Dirichlet boundary conditions at nodes
+void
+dirbcp(
+  tk::Fields& U,
+  const std::array< std::vector< tk::real >, 3 >& coord,
+  const std::vector< std::size_t >& dirbcmaskp,
+  const std::vector< double >& dirbcvalp = {} );
+
+//! Set symmetry boundary conditions at nodes
 void
 symbc( tk::Fields& U,
        const std::vector< std::size_t >& symbcnodes,
@@ -34,9 +42,11 @@ symbc( tk::Fields& U,
 
 //! Set noslip boundary conditions at nodes
 void
-noslipbc( tk::Fields& U, const std::vector< std::size_t >& noslipbcnodes );
+noslipbc( tk::Fields& U,
+          const std::vector< std::size_t >& noslipbcnodes,
+          std::size_t pos );
 
-//! Set farfield boundary conditions
+//! Set farfield boundary conditions at nodes
 void
 farbc( tk::Fields& U,
        const std::vector< std::size_t >& farbcnodes,

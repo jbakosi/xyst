@@ -177,6 +177,10 @@ class Transporter : public CBase_Transporter {
     //! Reduction target collecting diagnostics from pressure-based solvers
     void prediagnostics( CkReductionMsg* msg );
 
+    //! \brief Reduction target collecting diagnostics from artifical
+    //!   compressibility solvers
+    void acdiagnostics( CkReductionMsg* msg );
+
     //! \brief Reduction target optionally collecting integrals
     void integrals( CkReductionMsg* msg );
 
@@ -216,6 +220,7 @@ class Transporter : public CBase_Transporter {
       p | m_zalcg;
       p | m_kozcg;
       p | m_chocg;
+      p | m_lohcg;
       p | m_cgpre;
       p | m_cgmom;
       p | m_partitioner;
@@ -279,6 +284,8 @@ class Transporter : public CBase_Transporter {
     std::vector< CProxy_KozCG > m_kozcg;
     //! Discretization scheme proxies (one per mesh)
     std::vector< CProxy_ChoCG > m_chocg;
+    //! Discretization scheme proxies (one per mesh)
+    std::vector< CProxy_LohCG > m_lohcg;
     //! Conjugate gradients solver proxies for pressure solve (one per mesh)
     std::vector< tk::CProxy_ConjugateGradients > m_cgpre;
     //! Conjugate gradients solver proxies for momentum solve (one per mesh)

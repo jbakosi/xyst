@@ -926,10 +926,8 @@ problem( lua_State* L, Config& cfg )
   n = 5;
   if (problem == "slot_cyl" || problem == "point_src") ++n;
 
-  if (solver == "chocg") {
-    n -= 2;
-    //if (problem.find("poisson") != std::string::npos) n = 1;
-  }
+       if (solver == "chocg") n -= 2;
+  else if (solver == "lohcg") n -= 1;
 
   lua_pop( L, 1 );
 }
@@ -1057,6 +1055,7 @@ Config::control()
     get< tag::theta >() = real( L, "theta", 0.0, true );
     get< tag::dt >() = real( L, "dt", 0.0, true );
     get< tag::turkel >() = real( L, "turkel", 0.5, true );
+    get< tag::soundspeed >() = real( L, "soundspeed", 1.0, true );
     get< tag::velinf >() = vector( L, "velinf", 1.0, true );
     get< tag::t0 >() = real( L, "t0", 0.0, true );
     get< tag::reorder >() = boolean( L, "reorder", false, true );

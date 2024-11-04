@@ -34,7 +34,7 @@ dirbc( tk::Fields& U,
        const std::vector< std::size_t >& dirbcmask,
        const std::vector< double >& dirbcval )
 // *****************************************************************************
-//  Set symmetry boundary conditions at nodes
+//  Set Dirichlet boundary conditions at nodes
 //! \param[in] t Physical time at which to evaluate BCs
 //! \param[in] U Solution vector at recent time step
 //! \param[in] coord Mesh node coordinates
@@ -72,6 +72,42 @@ dirbc( tk::Fields& U,
 }
 
 void
+dirbcp( tk::Fields& U,
+        const std::array< std::vector< tk::real >, 3 >& coord,
+        const std::vector< std::size_t >& dirbcmaskp,
+        const std::vector< double >& dirbcvalp )
+// *****************************************************************************
+//  Set pressure Dirichlet boundary conditions at nodes
+//! \param[in] U Solution vector at recent time step
+//! \param[in] coord Mesh node coordinates
+//! \param[in] dirbcmaskp Nodes and component masks for Dirichlet BCs
+//! \param[in] dirbcvalp Nodes and component values for Dirichlet BCs
+// *****************************************************************************
+{
+  if (g_cfg.get< tag::pre_bc_dir >().empty()) return;
+
+  std::size_t nmask = 1 + 1;
+
+  Assert( dirbcmaskp.size() % nmask == 0, "Size mismatch" );
+  Assert( dirbcvalp.size() % nmask == 0, "Size mismatch" );
+
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+  auto ic = problems::PRESSURE_IC();
+
+  for (std::size_t i=0; i<dirbcmaskp.size()/nmask; ++i) {
+    auto p = dirbcmaskp[i*nmask+0];      // local node id
+    auto mask = dirbcmaskp[i*nmask+1];
+    if (mask == 1) {                               // mask == 1: IC value
+      U(p,0) = ic( x[p], y[p], z[p] );
+    } else if (mask == 2 && !dirbcvalp.empty()) {  // mask == 2: BC value
+      U(p,0) = dirbcvalp[i*nmask+1];
+    }
+  }
+}
+
+void
 symbc( tk::Fields& U,
        const std::vector< std::size_t >& symbcnodes,
        const std::vector< tk::real >& symbcnorms,
@@ -102,16 +138,19 @@ symbc( tk::Fields& U,
 }
 
 void
-noslipbc( tk::Fields& U, const std::vector< std::size_t >& noslipbcnodes )
+noslipbc( tk::Fields& U,
+          const std::vector< std::size_t >& noslipbcnodes,
+          std::size_t pos )
 // *****************************************************************************
 //  Set noslip boundary conditions at nodes
 //! \param[in] U Solution vector at recent time step
 //! \param[in] noslipbcnodes Node ids at which to set noslip BCs
+//! \param[in] pos Position at which the three velocity components are in U
 // *****************************************************************************
 {
   if (g_cfg.get< tag::bc_noslip >().empty()) return;
 
-  for (auto p : noslipbcnodes) U(p,0) = U(p,1) = U(p,2) = 0.0;
+  for (auto p : noslipbcnodes) U(p,pos+0) = U(p,pos+1) = U(p,pos+2) = 0.0;
 }
 
 void

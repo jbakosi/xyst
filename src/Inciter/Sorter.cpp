@@ -37,6 +37,7 @@ Sorter::Sorter( std::size_t meshid,
                 const CProxy_ZalCG& zalcg,
                 const CProxy_KozCG& kozcg,
                 const CProxy_ChoCG& chocg,
+                const CProxy_LohCG& lohcg,
                 const tk::CProxy_ConjugateGradients& cgpre,
                 const tk::CProxy_ConjugateGradients& cgmom,
                 CkCallback reorderRefiner,
@@ -57,6 +58,7 @@ Sorter::Sorter( std::size_t meshid,
   m_zalcg( zalcg ),
   m_kozcg( kozcg ),
   m_chocg( chocg ),
+  m_lohcg( lohcg ),
   m_cgpre( cgpre ),
   m_cgmom( cgmom ),
   m_reorderRefiner( reorderRefiner ),
@@ -91,7 +93,8 @@ Sorter::Sorter( std::size_t meshid,
 //! \param[in] laxcg RieCG Charm++ proxy
 //! \param[in] zalcg ZalCG Charm++ proxy
 //! \param[in] kozcg KozCG Charm++ proxy
-//! \param[in] chocg KozCG Charm++ proxy
+//! \param[in] chocg ChoCG Charm++ proxy
+//! \param[in] lohcg LohCG Charm++ proxy
 //! \param[in] cgpre ConjugateGradients Charm++ proxy for pressure solve
 //! \param[in] cgmom ConjugateGradients Charm++ proxy for momentum solve
 //! \param[in] reorderRefiner Callback to use to send reordered mesh to Refiner
@@ -583,6 +586,10 @@ Sorter::createWorkers()
   else if (solver == "chocg") {
     m_chocg[ thisIndex ].insert( m_discretization, m_cgpre, m_cgmom, m_bface,
                                  m_bnode, m_triinpoel );
+  }
+  else if (solver == "lohcg") {
+    m_lohcg[ thisIndex ].insert( m_discretization, m_cgpre, m_bface, m_bnode,
+                                 m_triinpoel );
   }
   else {
     Throw( "Unknown solver: " + solver );

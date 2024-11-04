@@ -42,6 +42,7 @@ module partitioner {
         const CProxy_ZalCG& zalcg,
         const CProxy_KozCG& kozcg,
         const CProxy_ChoCG& chocg,
+        const CProxy_LohCG& lohcg,
         const tk::CProxy_ConjugateGradients& cgpre,
         const tk::CProxy_ConjugateGradients& cgmom,
         const std::map< int, std::vector< std::size_t > >& belem,

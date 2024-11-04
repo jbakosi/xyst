@@ -9,6 +9,7 @@ add_library(Physics
             Zalesak.cpp
             Lax.cpp
             Chorin.cpp
+            Lohner.cpp
 )
 
 target_include_directories(Physics PUBLIC

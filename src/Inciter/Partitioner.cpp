@@ -56,6 +56,7 @@ Partitioner::Partitioner(
   const CProxy_ZalCG& zalcg,
   const CProxy_KozCG& kozcg,
   const CProxy_ChoCG& chocg,
+  const CProxy_LohCG& lohcg,
   const tk::CProxy_ConjugateGradients& cgpre,
   const tk::CProxy_ConjugateGradients& cgmom,
   const std::map< int, std::vector< std::size_t > >& bface,
@@ -75,6 +76,7 @@ Partitioner::Partitioner(
   m_zalcg( zalcg ),
   m_kozcg( kozcg ),
   m_chocg( chocg ),
+  m_lohcg( lohcg ),
   m_cgpre( cgpre ),
   m_cgmom( cgmom ),
   m_ndist( 0 ),
@@ -98,6 +100,7 @@ Partitioner::Partitioner(
 //! \param[in] zalcg Discretization scheme
 //! \param[in] kozcg Discretization scheme
 //! \param[in] chocg Discretization scheme
+//! \param[in] lohcg Discretization scheme
 //! \param[in] cgpre ConjugateGradients Charm++ proxy for pressure solve
 //! \param[in] cgmom ConjugateGradients Charm++ proxy for momentum solve
 //! \param[in] bface File-internal elem ids of side sets (whole mesh)
@@ -400,6 +403,7 @@ Partitioner::refine()
                                m_zalcg,
                                m_kozcg,
                                m_chocg,
+                               m_lohcg,
                                m_cgpre,
                                m_cgmom,
                                m_cbr,

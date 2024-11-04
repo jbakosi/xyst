@@ -47,6 +47,16 @@ ic( tk::real, tk::real, tk::real, tk::real )
     if (std::abs(ic_velocity[2] - large) > 1.0e-12) u[2] = ic_velocity[2];
     return u;
   }
+  else if (solver == "lohcg") {
+    const auto& ncomp = g_cfg.get< tag::problem_ncomp >();
+    std::vector< tk::real > u( ncomp, 0.0 );
+    auto ic_velocity = g_cfg.get< tag::ic_velocity >();
+    auto large = std::numeric_limits< double >::max();
+    if (std::abs(ic_velocity[0] - large) > 1.0e-12) u[1] = ic_velocity[0];
+    if (std::abs(ic_velocity[1] - large) > 1.0e-12) u[2] = ic_velocity[1];
+    if (std::abs(ic_velocity[2] - large) > 1.0e-12) u[3] = ic_velocity[2];
+    return u;
+  }
 
   // density-based solvers
 

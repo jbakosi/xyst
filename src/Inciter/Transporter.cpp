@@ -261,6 +261,7 @@ Transporter::createPartitioner()
     CProxy_ZalCG zalcg;
     CProxy_KozCG kozcg;
     CProxy_ChoCG chocg;
+    CProxy_LohCG lohcg;
     tk::CProxy_ConjugateGradients cgpre, cgmom;
     const auto& solver = g_cfg.get< tag::solver >();
     if (solver == "riecg") {
@@ -287,6 +288,12 @@ Transporter::createPartitioner()
       m_cgmom.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
       cgmom = m_cgmom.back();
     }
+    else if (solver == "lohcg") {
+      m_lohcg.push_back( CProxy_ChoCG::ckNew(opt) );
+      lohcg = m_lohcg.back();
+      m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
+      cgpre = m_cgpre.back();
+    }
     else {
       Throw( "Unknown solver: " + solver );
     }
@@ -305,8 +312,8 @@ Transporter::createPartitioner()
     m_partitioner.push_back(
       CProxy_Partitioner::ckNew( meshid, filename, cbp, cbr, cbs,
         thisProxy, m_refiner.back(), m_sorter.back(), m_meshwriter.back(),
-        m_discretization.back(), riecg, laxcg, zalcg, kozcg, chocg, cgpre,
-        cgmom, bface, faces, bnode ) );
+        m_discretization.back(), riecg, laxcg, zalcg, kozcg, chocg, lohcg,
+        cgpre, cgmom, bface, faces, bnode ) );
 
     ++meshid;
   }
@@ -657,6 +664,9 @@ Transporter::resized( std::size_t meshid )
   else if (solver == "chocg") {
     m_chocg[ meshid ].feop();
   }
+  else if (solver == "lohcg") {
+    m_lohcg[ meshid ].feop();
+  }
   else {
     Throw( "Unknown solver: " + solver  );
   }
@@ -751,6 +761,10 @@ Transporter::workinserted( std::size_t meshid )
     m_cgpre[ meshid ].doneInserting();
     m_cgmom[ meshid ].doneInserting();
   }
+  else if (solver == "lohcg") {
+    m_lohcg[ meshid ].doneInserting();
+    m_cgpre[ meshid ].doneInserting();
+  }
   else {
     Throw( "Unknown solver: " + solver );
   }
@@ -810,8 +824,7 @@ Transporter::diagHeader()
     }
 
   }
-  else if (solver == "chocg")
-  {
+  else if (solver == "chocg") {
 
     // query function to evaluate analytic solution (if defined)
     auto pressure_sol = problems::PRESSURE_SOL();
@@ -837,6 +850,23 @@ Transporter::diagHeader()
       d.push_back( "L2(err:p)" );
       d.push_back( "L1(err:p)" );
     }
+
+  }
+  else if (solver == "lohcg") {
+
+    // Collect variables names for integral/diagnostics output
+    std::vector< std::string > var{ "p" };
+    var.push_back( "u" );
+    var.push_back( "v" );
+    var.push_back( "w" );
+
+    auto nv = var.size();
+
+    // Add 'L2(var)' for all variables
+    for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(" + var[i] + ')' );
+
+    // Add L2-norm of the residuals
+    for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(d" + var[i] + ')' );
 
   }
   else {
@@ -906,6 +936,9 @@ Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
     }
     else if (solver == "chocg") {
       m_chocg[ meshid ].resize_complete();
+    }
+    else if (solver == "lohcg") {
+      m_lohcg[ meshid ].resize_complete();
     }
     else {
       Throw( "Unknown solver: " + solver );
@@ -1128,6 +1161,9 @@ Transporter::boxvol( tk::real v, tk::real summeshid )
   else if (solver == "chocg") {
     m_chocg[ meshid ].setup( v );
   }
+  else if (solver == "lohcg") {
+    m_lohcg[ meshid ].setup( v );
+  }
   else {
     Throw( "Unknown solver: " + solver );
   }
@@ -1221,7 +1257,7 @@ Transporter::rhodiagnostics( CkReductionMsg* msg )
     diag[i] = sqrt( d[L2SOL][i] / m_meshvol[meshid] );
   }
  
-  // Finish computing the L2 norm of the residuals of conserverd variables
+  // Finish computing the L2 norm of the residuals
   std::vector< tk::real > l2res( d[L2RES].size(), 0.0 );
   for (std::size_t i=0; i<d[L2RES].size(); ++i) {
     // cppcheck-suppress uninitvar
@@ -1318,7 +1354,7 @@ Transporter::prediagnostics( CkReductionMsg* msg )
     diag[i] = sqrt( d[L2SOL][i] / m_meshvol[meshid] );
   }
 
-  // Finish computing the L2 norm of the residuals of conserverd variables
+  // Finish computing the L2 norm of the residuals
   std::vector< tk::real > l2res( d[L2RES].size(), 0.0 );
   for (std::size_t i=0; i<d[L2RES].size(); ++i) {
     // cppcheck-suppress uninitvar
@@ -1351,6 +1387,77 @@ Transporter::prediagnostics( CkReductionMsg* msg )
   if (solver == "chocg") {
     // cppcheck-suppress uninitvar
     m_chocg[ meshid ].evalres( l2res );
+  }
+  else {
+    Throw( "Unknown solver: " + solver );
+  }
+}
+
+void
+Transporter::acdiagnostics( CkReductionMsg* msg )
+// *****************************************************************************
+//  Reduction target collecting diagnostics from artificial compressibility
+//  solvers
+//! \param[in] msg Serialized diagnostics vector aggregated across all PEs
+// *****************************************************************************
+{
+  using namespace diagnostics;
+
+  std::size_t meshid;
+  std::size_t ncomp;
+  std::vector< std::vector< tk::real > > d;
+
+  // Deserialize diagnostics vector
+  PUP::fromMem creator( msg->getData() );
+  // cppcheck-suppress uninitvar
+  creator | meshid;
+  creator | ncomp;
+  creator | d;
+  delete msg;
+
+  // cppcheck-suppress uninitvar
+  // cppcheck-suppress unreadVariable
+  auto id = std::to_string(meshid);
+
+  Assert( ncomp > 0, "Number of scalar components must be positive");
+  Assert( d.size() == NUMDIAG, "Diagnostics vector size mismatch" );
+
+  // cppcheck-suppress unsignedLessThanZero
+  for (std::size_t i=0; i<d.size(); ++i) {
+     Assert( d[i].size() == ncomp, "Size mismatch at final stage of "
+             "diagnostics aggregation for mesh " + id );
+  }
+
+  // Allocate storage for those diagnostics that are always computed
+  std::vector< tk::real > diag( ncomp, 0.0 );
+
+  // Finish computing the L2 norm of conserved variables
+  for (std::size_t i=0; i<d[L2SOL].size(); ++i) {
+    // cppcheck-suppress uninitvar
+    diag[i] = sqrt( d[L2SOL][i] / m_meshvol[meshid] );
+  }
+
+  // Finish computing the L2 norm of the residuals
+  std::vector< tk::real > l2res( d[L2RES].size(), 0.0 );
+  for (std::size_t i=0; i<d[L2RES].size(); ++i) {
+    // cppcheck-suppress uninitvar
+    l2res[i] = std::sqrt( d[L2RES][i] / m_meshvol[meshid] );
+    diag.push_back( l2res[i] );
+  }
+
+  // Append diagnostics file at selected times
+  auto filename = g_cfg.get< tag::diag >();
+  if (m_nelem.size() > 1) filename += '.' + id;
+  tk::DiagWriter dw( filename,
+                     g_cfg.get< tag::diag_format >(),
+                     g_cfg.get< tag::diag_precision >(),
+                     std::ios_base::app );
+  dw.write( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
+
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "lohcg") {
+    // cppcheck-suppress uninitvar
+    m_lohcg[ meshid ].evalres( l2res );
   }
   else {
     Throw( "Unknown solver: " + solver );
@@ -1426,6 +1533,10 @@ Transporter::integrals( CkReductionMsg* msg )
     // cppcheck-suppress uninitvar
     m_chocg[ meshid ].step();
   }
+  else if (solver == "lohcg") {
+    // cppcheck-suppress uninitvar
+    m_lohcg[ meshid ].step();
+  }
   else
     Throw( "Unknown solver: " + solver );
 }
@@ -1467,6 +1578,11 @@ Transporter::resume()
     else if ( solver == "chocg") {
       for (std::size_t i=0; i<m_nelem.size(); ++i) {
         m_chocg[i].evalLB( g_nrestart );
+      }
+    }
+    else if ( solver == "lohcg") {
+      for (std::size_t i=0; i<m_nelem.size(); ++i) {
+        m_lohcg[i].evalLB( g_nrestart );
       }
     }
     else {

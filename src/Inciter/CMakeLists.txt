@@ -14,6 +14,7 @@ add_library(Inciter
             ZalCG.cpp
             KozCG.cpp
             ChoCG.cpp
+            LohCG.cpp
             DiagReducer.cpp
             GraphReducer.cpp
             PartsReducer.cpp
@@ -70,6 +71,7 @@ addCharmModule( "laxcg" "Inciter" )
 addCharmModule( "zalcg" "Inciter" )
 addCharmModule( "kozcg" "Inciter" )
 addCharmModule( "chocg" "Inciter" )
+addCharmModule( "lohcg" "Inciter" )
 
 # Add extra dependency of Inciter on inciterCharmModule
 add_dependencies( "Inciter" "inciterCharmModule" )

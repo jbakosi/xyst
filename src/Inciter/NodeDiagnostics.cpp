@@ -239,3 +239,67 @@ NodeDiagnostics::precompute( Discretization& d,
 
   return true;        // diagnostics have been computed
 }
+
+bool
+NodeDiagnostics::accompute( Discretization& d,
+                            const tk::Fields& u,
+                            const tk::Fields& un,
+                            uint64_t diag_iter ) const
+// *****************************************************************************
+//  Compute diagnostics for artificial compressibility solvers
+//! \param[in] d Discretization proxy to read from
+//! \param[in] u Current solution vector
+//! \param[in] un Previous solution vector
+//! \param[in] diag_iter Diagnostics output frequency
+//! \return True if diagnostics have been computed
+//! \details Diagnostics are defined as some norm, e.g., L2 norm, of a quantity,
+//!   computed in mesh nodes, A, as ||A||_2 = sqrt[ sum_i(A_i)^2 V_i ],
+//!   where the sum is taken over all mesh nodes and V_i is the nodal volume.
+//!   We send multiple sets of quantities to the host for aggregation across
+//!   the whole mesh. The final aggregated solution will end up in
+//!   Transporter::diagnostics(). Aggregation of the partially computed
+//!   diagnostics is done via potentially different policies for each field.
+//! \see inciter::mergeDiag(), src/Inciter/Diagnostics.hpp
+// *****************************************************************************
+{
+  using namespace diagnostics;
+
+  // Only compute diagnostics if needed in this time step
+  if ( (d.It()+1) % diag_iter ) return false;
+
+  auto ncomp = u.nprop();
+
+  // Diagnostics vector (of vectors) during aggregation. See
+  // Inciter/Diagnostics.h.
+  std::vector< std::vector< tk::real > >
+    diag( NUMDIAG, std::vector< tk::real >( ncomp, 0.0 ) );
+
+  const auto& v = d.V();  // nodal volumes without contributions from others
+
+  // Put in norms sweeping our mesh chunk
+  for (std::size_t i=0; i<u.nunk(); ++i) {
+    // Compute sum for L2 norm of the numerical solution
+    for (std::size_t c=0; c<ncomp; ++c)
+      diag[L2SOL][c] += u(i,c) * u(i,c) * v[i];
+    // Compute sum for L2 norm of the residual
+    for (std::size_t c=0; c<ncomp; ++c)
+      diag[L2RES][c] += (u(i,c)-un(i,c)) * (u(i,c)-un(i,c)) * v[i];
+    // Compute sum for the total energy over the entire domain
+    diag[TOTALEN][0] += 0.0 * v[i];
+  }
+
+  // Append diagnostics vector with metadata on the current time step
+  // ITER:: Current iteration count (only the first entry is used)
+  // TIME: Current physical time (only the first entry is used)
+  // DT: Current physical time step size (only the first entry is used)
+  diag[ITER][0] = static_cast< tk::real >( d.It() );
+  diag[TIME][0] = d.T();
+  diag[DT][0] = d.Dt();
+
+  // Contribute to diagnostics
+  auto stream = serialize( d.MeshId(), ncomp, diag );
+  d.contribute( stream.first, stream.second.get(), DiagMerger,
+    CkCallback(CkIndex_Transporter::acdiagnostics(nullptr), d.Tr()) );
+
+  return true;        // diagnostics have been computed
+}

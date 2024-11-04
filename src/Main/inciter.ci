@@ -21,6 +21,9 @@ mainmodule inciter {
   extern module riecg;
   extern module zalcg;
   extern module kozcg;
+  extern module laxcg;
+  extern module chocg;
+  extern module lohcg;
   extern module lbswitch;
 
   readonly CProxy_Main mainProxy;

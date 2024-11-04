@@ -64,6 +64,7 @@ module transporter {
       entry [reductiontarget] void boxvol( tk::real v, tk::real summeshid );
       entry [reductiontarget] void rhodiagnostics( CkReductionMsg* msg );
       entry [reductiontarget] void prediagnostics( CkReductionMsg* msg );
+      entry [reductiontarget] void acdiagnostics( CkReductionMsg* msg );
       entry [reductiontarget] void integrals( CkReductionMsg* msg );
       entry void resume();
       entry [reductiontarget] void checkpoint( std::size_t finished,

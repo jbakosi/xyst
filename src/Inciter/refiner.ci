@@ -33,6 +33,7 @@ module refiner {
                      const CProxy_ZalCG& zalcg,
                      const CProxy_KozCG& kozcg,
                      const CProxy_ChoCG& chocg,
+                     const CProxy_LohCG& lohcg,
                      const tk::CProxy_ConjugateGradients& cgpre,
                      const tk::CProxy_ConjugateGradients& cgmom,
                      const tk::RefinerCallback& cbr,

@@ -201,8 +201,6 @@ class ChoCG : public CBase_ChoCG {
       p | m_nflux;
       p | m_ndiv;
       p | m_nbpint;
-      p | m_nbeint;
-      p | m_ndeint;
       p | m_np;
       p | m_bnode;
       p | m_bface;
@@ -216,18 +214,15 @@ class ChoCG : public CBase_ChoCG {
       p | m_qc;
       p | m_a;
       p | m_ac;
-      // do not pup these, will recompute after migration anyway
-      if (p.isUnpacking()) {
-        m_rhs.resize( m_u.nunk(), m_u.nprop() );
-        m_sgrad.resize( m_u.nunk(), 3UL );
-        m_pgrad.resize( m_u.nunk(), 3UL );
-        m_vgrad.resize( m_u.nunk(), 9UL );
-        m_flux.resize( m_u.nunk(), 3UL );
-      }
+      p | m_rhs;
       p | m_rhsc;
+      p | m_sgrad;
       p | m_sgradc;
+      p | m_pgrad;
       p | m_pgradc;
+      p | m_vgrad;
       p | m_vgradc;
+      p | m_flux;
       p | m_fluxc;
       p | m_div;
       p | m_divc;
@@ -287,10 +282,6 @@ class ChoCG : public CBase_ChoCG {
     std::size_t m_ndiv;
     //! Counter for receiving boundary point integrals
     std::size_t m_nbpint;
-    //! Counter for receiving boundary edge integrals
-    std::size_t m_nbeint;
-    //! Counter for receiving domain edge integrals
-    std::size_t m_ndeint;
     //! Count number of Poisson solves during setup
     std::size_t m_np;
     //! Boundary node lists mapped to side set ids used in the input file
@@ -323,6 +314,10 @@ class ChoCG : public CBase_ChoCG {
     std::unordered_map< std::size_t, std::vector< tk::real > > m_ac;
     //! Right-hand side vector (for the high order system)
     tk::Fields m_rhs;
+    //! Receive buffer for communication of the right hand side
+    //! \details Key: global node id, value: rhs for all scalar components per
+    //!   node.
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_rhsc;
     //! Conjugate gradient solution gradient in mesh nodes
     tk::Fields m_sgrad;
     //! Conjugate gradient solution gradient receive buffer
@@ -339,10 +334,6 @@ class ChoCG : public CBase_ChoCG {
     tk::Fields m_flux;
     //! Momentum flux receive buffer
     std::unordered_map< std::size_t, std::vector< tk::real > > m_fluxc;
-    //! Receive buffer for communication of the right hand side
-    //! \details Key: global node id, value: rhs for all scalar components per
-    //!   node.
-    std::unordered_map< std::size_t, std::vector< tk::real > > m_rhsc;
     //! Velocity divergence
     std::vector< tk::real > m_div;
     //! Receive buffer for communication of the velocity divergence

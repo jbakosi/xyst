@@ -68,8 +68,6 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_nflux( 0 ),
   m_ndiv( 0 ),
   m_nbpint( 0 ),
-  m_nbeint( 0 ),
-  m_ndeint( 0 ),
   m_np( 0 ),
   m_bnode( bnode ),
   m_bface( bface ),
@@ -1798,7 +1796,7 @@ ChoCG::BC( tk::Fields& u, tk::real t )
 
   physics::dirbc( u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
   physics::symbc( u, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
-  physics::noslipbc( u, m_noslipbcnodes );
+  physics::noslipbc( u, m_noslipbcnodes, /*pos=*/0 );
 }
 
 void

@@ -38,9 +38,12 @@ extern ctr::Config g_cfg;
 static CkReduction::reducerType IntegralsMerger;
 
 //! Runge-Kutta coefficients
-static const std::array< std::vector< tk::real >, 2 > rkcoef{{
+//! Runge-Kutta coefficients
+static const std::array< std::vector< tk::real >, 4 > rkcoef{{
   { 1.0 },
-  { 1.0/3.0, 1.0/2.0, 1.0 }
+  { 1.0/2.0, 1.0 },
+  { 1.0/3.0, 1.0/2.0, 1.0 },
+  { 1.0/4.0, 1.0/3.0, 1.0/2.0, 1.0 }
 }};
 
 } // inciter::
@@ -86,7 +89,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_div( m_u.nunk() ),
   m_stage( 0 ),
   m_finished( 0 ),
-  m_rkcoef( g_cfg.get< tag::rk >() == 3 ? rkcoef[1] : rkcoef[0] )
+  m_rkcoef( rkcoef[ g_cfg.get< tag::rk >() - 1 ] )
 // *****************************************************************************
 //  Constructor
 //! \param[in] disc Discretization proxy

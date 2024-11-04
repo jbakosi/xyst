@@ -15,6 +15,66 @@ add_regression_test(chocg_poiseuille ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS chocg)
 
+add_regression_test(chocg_poiseuille_damp2 ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES poiseuille_damp2.q poiseuille1tetz.exo
+                    ARGS -c poiseuille_damp2.q -i poiseuille1tetz.exo
+                    BIN_BASELINE poiseuille_damp2.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    TEXT_BASELINE diag_poiseuille_damp2.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS chocg)
+
+add_regression_test(chocg_poiseuille_damp4 ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES poiseuille_damp4.q poiseuille1tetz.exo
+                    ARGS -c poiseuille_damp4.q -i poiseuille1tetz.exo
+                    BIN_BASELINE poiseuille_damp4.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    TEXT_BASELINE diag_poiseuille_damp4.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS chocg)
+
+add_regression_test(chocg_poiseuille_rk2 ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES poiseuille_rk2.q poiseuille1tetz.exo
+                    ARGS -c poiseuille_rk2.q -i poiseuille1tetz.exo
+                    BIN_BASELINE poiseuille_rk2.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    TEXT_BASELINE diag_poiseuille_rk2.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS chocg)
+
+add_regression_test(chocg_poiseuille_rk3 ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES poiseuille_rk3.q poiseuille1tetz.exo
+                    ARGS -c poiseuille_rk3.q -i poiseuille1tetz.exo
+                    BIN_BASELINE poiseuille_rk3.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    TEXT_BASELINE diag_poiseuille_rk3.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS chocg)
+
+add_regression_test(chocg_poiseuille_rk4 ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES poiseuille_rk4.q poiseuille1tetz.exo
+                    ARGS -c poiseuille_rk4.q -i poiseuille1tetz.exo
+                    BIN_BASELINE poiseuille_rk4.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    TEXT_BASELINE diag_poiseuille_rk4.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS chocg)
+
 # Parallel
 
 add_regression_test(chocg_poiseuille
@@ -29,6 +89,22 @@ add_regression_test(chocg_poiseuille
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     BIN_DIFF_PROG_ARGS -m
                     TEXT_BASELINE diag_poiseuille.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS chocg)
+
+add_regression_test(chocg_poiseuille_theta
+                    ${INCITER_EXECUTABLE}
+                    NUMPES 2
+                    INPUTFILES poiseuille_theta.q poiseuille1tetz.exo
+                    ARGS -c poiseuille_theta.q -i poiseuille1tetz.exo
+                    BIN_BASELINE poiseuille_theta_pe2.std.exo.0
+                                 poiseuille_theta_pe2.std.exo.1
+                    BIN_RESULT out.e-s.0.2.0
+                               out.e-s.0.2.1
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    TEXT_BASELINE diag_poiseuille_theta.std
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS chocg)

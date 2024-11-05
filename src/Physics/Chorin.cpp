@@ -728,10 +728,13 @@ adv_tg( const tk::real supint[],
   auto ph = (pL + pR)/2.0;
   auto vn = uh*nx + vh*ny + wh*nz;
 
+  // viscosity
+  auto d = supint[4] * g_cfg.get< tag::mat_dyn_viscosity >();
+
   // flow
-  f[0] = 2.0*(uh*vn + ph*nx);
-  f[1] = 2.0*(vh*vn + ph*ny);
-  f[2] = 2.0*(wh*vn + ph*nz);
+  f[0] = 2.0*(uh*vn + ph*nx) - d*(uR - uL);
+  f[1] = 2.0*(vh*vn + ph*ny) - d*(vR - vL);
+  f[2] = 2.0*(wh*vn + ph*nz) - d*(wR - wL);
 
 //   // artificial viscosity
 // 
@@ -796,11 +799,14 @@ adv_damp2( const tk::real supint[],
   // stabilization
   auto aw = std::abs( vnL + vnR ) / 2.0 * tk::length( nx, ny, nz );
 
+  // viscosity
+  auto d = supint[4] * g_cfg.get< tag::mat_dyn_viscosity >();
+
   // flow
   auto pf = P[p] + P[q];
-  f[0] = uL*vnL + uR*vnR + pf*nx + aw*(uR-uL);
-  f[1] = vL*vnL + vR*vnR + pf*ny + aw*(vR-vL);
-  f[2] = wL*vnL + wR*vnR + pf*nz + aw*(wR-wL);
+  f[0] = uL*vnL + uR*vnR + pf*nx + aw*(uR-uL) - d*(uR - uL);
+  f[1] = vL*vnL + vR*vnR + pf*ny + aw*(vR-vL) - d*(vR - vL);
+  f[2] = wL*vnL + wR*vnR + pf*nz + aw*(wR-wL) - d*(wR - wL);
 }
 
 static void
@@ -882,11 +888,14 @@ adv_damp4( const tk::real supint[],
   // stabilization
   auto aw = std::abs( vnL + vnR ) / 2.0 * tk::length( nx, ny, nz );
 
+  // viscosity
+  auto d = supint[4] * g_cfg.get< tag::mat_dyn_viscosity >();
+
   // flow
   auto pf = P[p] + P[q];  // no recon, more stable, larger dt
-  f[0] = uL[0]*vnL + uR[0]*vnR + pf*nx + aw*(uR[0]-uL[0]);
-  f[1] = uL[1]*vnL + uR[1]*vnR + pf*ny + aw*(uR[1]-uL[1]);
-  f[2] = uL[2]*vnL + uR[2]*vnR + pf*nz + aw*(uR[2]-uL[2]);
+  f[0] = uL[0]*vnL + uR[0]*vnR + pf*nx + aw*(uR[0]-uL[0]) - d*(U(q,0) - U(p,0));
+  f[1] = uL[1]*vnL + uR[1]*vnR + pf*ny + aw*(uR[1]-uL[1]) - d*(U(q,1) - U(p,1));
+  f[2] = uL[2]*vnL + uR[2]*vnR + pf*nz + aw*(uR[2]-uL[2]) - d*(U(q,2) - U(p,2));
 
   #if defined(__clang__)
     #pragma clang diagnostic pop
@@ -1045,86 +1054,6 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   #endif
 }
 
-static void
-vis( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
-     const std::array< std::vector< tk::real >, 3 >& dsupint,
-     const tk::Fields& U,
-     // cppcheck-suppress constParameter
-     tk::Fields& R )
-// *****************************************************************************
-//! Add viscosity to rhs
-//! \param[in] dsupedge Domain superedges
-//! \param[in] dsupint Domain superedge integrals
-//! \param[in] U Velocity and transported scalars at recent time step
-//! \param[in,out] R Right-hand side vector added to
-// *****************************************************************************
-{
-  auto eps = std::numeric_limits< tk::real >::epsilon();
-  auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
-  if (mu < eps) return;
-
-  #if defined(__clang__)
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wvla"
-    #pragma clang diagnostic ignored "-Wvla-extension"
-  #elif defined(STRICT_GNUC)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wvla"
-  #endif
-
-  // domain edge contributions: tetrahedron superedges
-  for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
-    const auto N = dsupedge[0].data() + e*4;
-    const auto d = dsupint[0].data();
-    for (std::size_t c=0; c<3; ++c) {
-      tk::real u[] = { U(N[0],c), U(N[1],c), U(N[2],c), U(N[3],c) };
-      tk::real f[] = { d[(e*6+0)*5+4] * mu * (u[0] - u[1]),
-                       d[(e*6+1)*5+4] * mu * (u[1] - u[2]),
-                       d[(e*6+2)*5+4] * mu * (u[2] - u[0]),
-                       d[(e*6+3)*5+4] * mu * (u[0] - u[3]),
-                       d[(e*6+4)*5+4] * mu * (u[1] - u[3]),
-                       d[(e*6+5)*5+4] * mu * (u[2] - u[3]) };
-      R(N[0],c) = R(N[0],c) - f[0] + f[2] - f[3];
-      R(N[1],c) = R(N[1],c) + f[0] - f[1] - f[4];
-      R(N[2],c) = R(N[2],c) + f[1] - f[2] - f[5];
-      R(N[3],c) = R(N[3],c) + f[3] + f[4] + f[5];
-    }
-  }
-
-  // domain edge contributions: triangle superedges
-  for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
-    const auto N = dsupedge[1].data() + e*3;
-    const auto d = dsupint[1].data();
-    for (std::size_t c=0; c<3; ++c) {
-      tk::real u[] = { U(N[0],c), U(N[1],c), U(N[2],c) };
-      tk::real f[] = { d[(e*3+0)*5+4] * mu * (u[0] - u[1]),
-                       d[(e*3+1)*5+4] * mu * (u[1] - u[2]),
-                       d[(e*3+2)*5+4] * mu * (u[2] - u[0]) };
-      R(N[0],c) = R(N[0],c) - f[0] + f[2];
-      R(N[1],c) = R(N[1],c) + f[0] - f[1];
-      R(N[2],c) = R(N[2],c) + f[1] - f[2];
-    }
-  }
-
-  // domain edge contributions: edges
-  for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
-    const auto N = dsupedge[2].data() + e*2;
-    const auto d = dsupint[2].data() + e*5;
-    for (std::size_t c=0; c<3; ++c) {
-      tk::real u[] = { U(N[0],c), U(N[1],c) };
-      tk::real f = d[4] * mu * (u[0] - u[1]);
-      R(N[0],c) -= f;
-      R(N[1],c) += f;
-    }
-  }
-
-  #if defined(__clang__)
-    #pragma clang diagnostic pop
-  #elif defined(STRICT_GNUC)
-    #pragma GCC diagnostic pop
-  #endif
-}
-
 void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
@@ -1156,7 +1085,6 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 
   R.fill( 0.0 );
   adv( dsupedge, dsupint, coord, triinpoel, dt, U, G, P, R );
-  vis( dsupedge, dsupint, U, R );
 }
 
 } // chorin::

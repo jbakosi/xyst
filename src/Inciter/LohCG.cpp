@@ -773,13 +773,6 @@ LohCG::domsuped()
     ++k;
   }
 
-  if (g_cfg.get< tag::fct >()) {
-    const auto ncomp = m_u.nprop();
-    m_dsuplim[0].resize( m_dsupedge[0].size() * 6 * ncomp );
-    m_dsuplim[1].resize( m_dsupedge[1].size() * 3 * ncomp );
-    m_dsuplim[2].resize( m_dsupedge[2].size() * ncomp );
-  }
-
   tk::destroy( m_domedgeint );
 
   //std::cout << std::setprecision(2)

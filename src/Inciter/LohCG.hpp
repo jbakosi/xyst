@@ -194,7 +194,6 @@ class LohCG : public CBase_LohCG {
       p | m_bpint;
       p | m_dsupedge;
       p | m_dsupint;
-      p | m_dsuplim;
       p | m_dirbcmask;
       p | m_dirbcval;
       p | m_dirbcmaskp;
@@ -297,8 +296,6 @@ class LohCG : public CBase_LohCG {
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals
     std::array< std::vector< tk::real >, 3 > m_dsupint;
-    //! FCT limiter coefficients in domain superedges
-    std::array< std::vector< tk::real >, 3 > m_dsuplim;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmask;
     //! Nodes and their Dirichlet BC values

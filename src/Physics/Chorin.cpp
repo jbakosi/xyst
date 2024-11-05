@@ -243,19 +243,16 @@ vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
     const auto N = dsupedge[0].data() + e*4;
     const auto d = dsupint[0].data();
-    tk::real u[][4] = { { U(N[0],0), U(N[1],0), U(N[2],0), U(N[3],0) },
-                        { U(N[0],1), U(N[1],1), U(N[2],1), U(N[3],1) },
-                        { U(N[0],2), U(N[1],2), U(N[2],2), U(N[3],2) } };
     for (std::size_t i=0; i<3; ++i) {
-      auto ui = u[i];
+      tk::real u[] = { U(N[0],i), U(N[1],i), U(N[2],i), U(N[3],i) };
       auto i3 = i*3;
       for (std::size_t j=0; j<3; ++j) {
-        tk::real f[] = { d[(e*6+0)*5+j] * (ui[1] + ui[0]),
-                         d[(e*6+1)*5+j] * (ui[2] + ui[1]),
-                         d[(e*6+2)*5+j] * (ui[0] + ui[2]),
-                         d[(e*6+3)*5+j] * (ui[3] + ui[0]),
-                         d[(e*6+4)*5+j] * (ui[3] + ui[1]),
-                         d[(e*6+5)*5+j] * (ui[3] + ui[2]) };
+        tk::real f[] = { d[(e*6+0)*5+j] * (u[1] + u[0]),
+                         d[(e*6+1)*5+j] * (u[2] + u[1]),
+                         d[(e*6+2)*5+j] * (u[0] + u[2]),
+                         d[(e*6+3)*5+j] * (u[3] + u[0]),
+                         d[(e*6+4)*5+j] * (u[3] + u[1]),
+                         d[(e*6+5)*5+j] * (u[3] + u[2]) };
         G(N[0],i3+j) = G(N[0],i3+j) - f[0] + f[2] - f[3];
         G(N[1],i3+j) = G(N[1],i3+j) + f[0] - f[1] - f[4];
         G(N[2],i3+j) = G(N[2],i3+j) + f[1] - f[2] - f[5];
@@ -268,16 +265,13 @@ vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
     const auto N = dsupedge[1].data() + e*3;
     const auto d = dsupint[1].data();
-    tk::real u[][3] = { { U(N[0],0), U(N[1],0), U(N[2],0) },
-                        { U(N[0],1), U(N[1],1), U(N[2],1) },
-                        { U(N[0],2), U(N[1],2), U(N[2],2) } };
     for (std::size_t i=0; i<3; ++i) {
-      auto ui = u[i];
+      tk::real u[] = { U(N[0],i), U(N[1],i), U(N[2],i) };
       auto i3 = i*3;
       for (std::size_t j=0; j<3; ++j) {
-        tk::real f[] = { d[(e*3+0)*5+j] * (ui[1] + ui[0]),
-                         d[(e*3+1)*5+j] * (ui[2] + ui[1]),
-                         d[(e*3+2)*5+j] * (ui[0] + ui[2]) };
+        tk::real f[] = { d[(e*3+0)*5+j] * (u[1] + u[0]),
+                         d[(e*3+1)*5+j] * (u[2] + u[1]),
+                         d[(e*3+2)*5+j] * (u[0] + u[2]) };
         G(N[0],i3+j) = G(N[0],i3+j) - f[0] + f[2];
         G(N[1],i3+j) = G(N[1],i3+j) + f[0] - f[1];
         G(N[2],i3+j) = G(N[2],i3+j) + f[1] - f[2];
@@ -289,14 +283,11 @@ vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
     const auto N = dsupedge[2].data() + e*2;
     const auto d = dsupint[2].data() + e*5;
-    tk::real u[][2] = { { U(N[0],0), U(N[1],0) },
-                        { U(N[0],1), U(N[1],1) },
-                        { U(N[0],2), U(N[1],2) } };
     for (std::size_t i=0; i<3; ++i) {
-      auto ui = u[i];
+      tk::real u[] = { U(N[0],i), U(N[1],i) };
       auto i3 = i*3;
       for (std::size_t j=0; j<3; ++j) {
-        tk::real f = d[j] * (ui[1] + ui[0]);
+        tk::real f = d[j] * (u[1] + u[0]);
         G(N[0],i3+j) -= f;
         G(N[1],i3+j) += f;
       }
@@ -315,21 +306,18 @@ vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     tk::crossdiv( x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]],
                   x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]], 6.0,
                   n[0], n[1], n[2] );
-    tk::real u[][3] = { { U(N[0],0), U(N[1],0), U(N[2],0) },
-                        { U(N[0],1), U(N[1],1), U(N[2],1) },
-                        { U(N[0],2), U(N[1],2), U(N[2],2) } };
     for (std::size_t i=0; i<3; ++i) {
-      auto ui = u[i];
+      tk::real u[] = { U(N[0],i), U(N[1],i), U(N[2],i) };
       auto i3 = i*3;
-      auto f = (6.0*ui[0] + ui[1] + ui[2])/8.0;
+      auto f = (6.0*u[0] + u[1] + u[2])/8.0;
       G(N[0],i3+0) += f * n[0];
       G(N[0],i3+1) += f * n[1];
       G(N[0],i3+2) += f * n[2];
-      f = (ui[0] + 6.0*ui[1] + ui[2])/8.0;
+      f = (u[0] + 6.0*u[1] + u[2])/8.0;
       G(N[1],i3+0) += f * n[0];
       G(N[1],i3+1) += f * n[1];
       G(N[1],i3+2) += f * n[2];
-      f = (ui[0] + ui[1] + 6.0*ui[2])/8.0;
+      f = (u[0] + u[1] + 6.0*u[2])/8.0;
       G(N[2],i3+0) += f * n[0];
       G(N[2],i3+1) += f * n[1];
       G(N[2],i3+2) += f * n[2];

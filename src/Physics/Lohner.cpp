@@ -952,7 +952,7 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto d = dsupint[1].data();
     adv( d+(e*3+0)*4, U, G, coord, N[0], N[1], f[0] );
     adv( d+(e*3+1)*4, U, G, coord, N[1], N[2], f[1] );
-    adv( d+(e*3+2)*5, U, G, coord, N[2], N[0], f[2] );
+    adv( d+(e*3+2)*4, U, G, coord, N[2], N[0], f[2] );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
       R(N[1],c) = R(N[1],c) + f[0][c] - f[1][c];
@@ -965,7 +965,7 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     const auto N = dsupedge[2].data() + e*2;
     tk::real f[ncomp];
     const auto d = dsupint[2].data();
-    adv( d+e*5, U, G, coord, N[0], N[1], f );
+    adv( d+e*4, U, G, coord, N[0], N[1], f );
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) -= f[c];
       R(N[1],c) += f[c];

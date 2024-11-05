@@ -733,6 +733,9 @@ Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
 
   m_refiner[ meshid ].sendProxy();
   m_discretization[ meshid ].vol();
+
+  m_discretization[0][0].npoin(
+    std::accumulate( begin(m_npoin), end(m_npoin), 0UL ) );
 }
 
 void
@@ -1199,6 +1202,8 @@ Transporter::inthead( const tk::Print& print )
   "       ETE - estimated wall-clock time elapsed (h:m:s)\n"
   "       ETA - estimated wall-clock time for accomplishment (h:m:s)\n"
   "       EGT - estimated grind wall-clock time (ms/timestep)\n"
+  "       EGP - estimated grind performance: wall-clock time "
+                "(ms/DOF/timestep)\n"
   "       flg - status flags, legend:\n"
   "             f - field (volume and surface) output\n"
   "             i - integral output\n"
@@ -1210,8 +1215,10 @@ Transporter::inthead( const tk::Print& print )
   "             e:x/y - x of y work units deactivated\n" : "") << (pre ?
   "             p:it - pressure linear solve iterations\n" : "") << (mom ?
   "             m:it - momentum/transport linear solve iterations\n" : "") <<
-  "\n      it             t            dt        ETE        ETA        EGT  flg\n"
-    "--------------------------------------------------------------------------\n";
+  "\n      it             t            dt        ETE        ETA        EGT"
+  "           EGP  flg\n"
+  "-----------------------------------------------------------------------"
+  "-----------------\n";
 }
 
 void

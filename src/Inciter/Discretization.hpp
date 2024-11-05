@@ -300,11 +300,15 @@ class Discretization : public CBase_Discretization {
     //! Update number of momentum/transport linear solve iterations taken
     void mit( std::size_t it );
 
+    //! Set number of mesh points (across all meshes)
+    void npoin( std::size_t n );
+
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{
     //! \brief Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
     void pup( PUP::er &p ) override {
+      p | m_npoin;
       p | m_meshid;
       p | m_nchare;
       p | m_it;
@@ -363,6 +367,8 @@ class Discretization : public CBase_Discretization {
     // Shorthand for clock, setting an internal clock type
     using Clock = std::chrono::high_resolution_clock;
 
+    //! Total number of mesh points (across all meshes)
+    std::size_t m_npoin;
     //! Mesh ID
     std::size_t m_meshid;
     //! Total number of Discretization chares

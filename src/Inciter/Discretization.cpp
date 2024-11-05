@@ -998,6 +998,16 @@ Discretization::mit( std::size_t it )
 }
 
 void
+Discretization::npoin( std::size_t n )
+// *****************************************************************************
+//  Set number of mesh points (across all meshes)
+//! \param[in] it Number of mesh points
+// *****************************************************************************
+{
+  m_npoin = n;
+}
+
+void
 Discretization::status()
 // *****************************************************************************
 // Output one-liner status report
@@ -1013,6 +1023,8 @@ Discretization::status()
     using clock = std::chrono::high_resolution_clock;
     auto grind_time = duration_cast< ms >(clock::now() - m_prevstatus).count()
                       / static_cast< long >( ttyi );
+    auto grind_perf = static_cast<tk::real>(grind_time)
+                      / static_cast<tk::real>(m_npoin);
     m_prevstatus = clock::now();
 
     const auto term = g_cfg.get< tag::term >();
@@ -1048,7 +1060,8 @@ Discretization::status()
           << std::setw(2) << eta.min.count() << ":"
           << std::setw(2) << eta.sec.count() << "  "
           << std::scientific << std::setprecision(6) << std::setfill(' ')
-          << std::setw(9) << grind_time << "  ";
+          << std::setw(9) << grind_time << "  "
+          << std::setw(9) << grind_perf << "  ";
 
     // Augment one-liner status with output indicators
     if (fielditer() or fieldtime() or fieldrange()) print << 'f';

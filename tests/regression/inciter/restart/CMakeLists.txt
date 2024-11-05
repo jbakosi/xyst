@@ -81,6 +81,32 @@ add_regression_test(zalcg_restart ${INCITER_EXECUTABLE}
                     CHECKPOINT zalcg_checkpoint
                     LABELS zalcg restart)
 
+add_regression_test(chocg_checkpoint ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES ldc_chocg.q unitcube_1k.exo
+                    ARGS -c ldc_chocg.q -i unitcube_1k.exo
+                    BIN_BASELINE ldc_chocg_checkpoint.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff_chocg.cfg
+                    TEXT_BASELINE ldc_chocg_checkpoint.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.chocg.cfg
+                    LABELS chocg restart)
+
+add_regression_test(chocg_restart ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES ldc_chocg_restart.q unitcube_1k.exo
+                    ARGS -c ldc_chocg_restart.q -i unitcube_1k.exo
+                         +restart restart
+                    BIN_BASELINE ldc_chocg.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff_chocg.cfg
+                    TEXT_BASELINE ldc_chocg.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.chocg.cfg
+                    CHECKPOINT chocg_checkpoint
+                    LABELS chocg restart)
+
 # Parallel, checkpoint on 4 PEs, restart on 4 PEs
 
 add_regression_test(riecg_checkpoint ${INCITER_EXECUTABLE}

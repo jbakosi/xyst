@@ -228,3 +228,43 @@ add_regression_test(zalcg_restart ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.zalcg.cfg
                     CHECKPOINT zalcg_checkpoint
                     LABELS zalcg restart)
+
+add_regression_test(chocg_checkpoint ${INCITER_EXECUTABLE}
+                    NUMPES 4 PPN 1
+                    INPUTFILES ldc_chocg.q unitcube_1k.exo
+                    ARGS -c ldc_chocg.q -i unitcube_1k.exo
+                    BIN_BASELINE ldc_chocg_checkpoint.std.exo.0
+                                 ldc_chocg_checkpoint.std.exo.1
+                                 ldc_chocg_checkpoint.std.exo.2
+                                 ldc_chocg_checkpoint.std.exo.3
+                    BIN_RESULT out.e-s.0.4.0
+                               out.e-s.0.4.1
+                               out.e-s.0.4.2
+                               out.e-s.0.4.3
+                    BIN_DIFF_PROG_CONF exodiff_chocg.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    TEXT_BASELINE ldc_chocg_checkpoint.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.chocg.cfg
+                    LABELS chocg restart)
+
+add_regression_test(chocg_restart ${INCITER_EXECUTABLE}
+                    NUMPES 4 PPN 1
+                    INPUTFILES ldc_chocg_restart.q unitcube_1k.exo
+                    ARGS -c ldc_chocg_restart.q -i unitcube_1k.exo
+                         +restart restart
+                    BIN_BASELINE ldc_chocg.std.exo.0
+                                 ldc_chocg.std.exo.1
+                                 ldc_chocg.std.exo.2
+                                 ldc_chocg.std.exo.3
+                    BIN_RESULT out.e-s.0.4.0
+                               out.e-s.0.4.1
+                               out.e-s.0.4.2
+                               out.e-s.0.4.3
+                    BIN_DIFF_PROG_CONF exodiff_chocg.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    TEXT_BASELINE ldc_chocg.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.chocg.cfg
+                    CHECKPOINT chocg_checkpoint
+                    LABELS chocg restart)

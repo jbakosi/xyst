@@ -66,6 +66,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::vector< tk::real >& P,
      const tk::Fields& U,
      const tk::Fields& G,
+     const tk::Fields& W,
      tk::Fields& R );
 
 } // chorin::

@@ -1075,7 +1075,8 @@ LohCG::pinit()
   // Set hydrostat
   auto h = g_cfg.get< tag::pre_hydrostat >();
   if (h != std::numeric_limits< uint64_t >::max()) {
-    dirbc[ h ] = {{ { 1, 0.0 }} };
+    auto g = lid.find( 1 );
+    if (g != end(lid)) dirbc[ h ] = {{ { g->second, 0.0 }} };
   }
 
   // Configure right hand side

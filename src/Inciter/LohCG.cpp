@@ -153,25 +153,23 @@ LohCG::prelhs( const std::pair< std::vector< std::size_t >,
   // Matrix with compressed sparse row storage
   tk::CSR A( /*DOF=*/ 1, psup );
 
-  // fill matrix with Laplacian
+  // Fill matrix with Laplacian
   for (std::size_t e=0; e<inpoel.size()/4; ++e) {
     const auto N = inpoel.data() + e*4;
     const std::array< tk::real, 3 >
       ba{{ X[N[1]]-X[N[0]], Y[N[1]]-Y[N[0]], Z[N[1]]-Z[N[0]] }},
       ca{{ X[N[2]]-X[N[0]], Y[N[2]]-Y[N[0]], Z[N[2]]-Z[N[0]] }},
       da{{ X[N[3]]-X[N[0]], Y[N[3]]-Y[N[0]], Z[N[3]]-Z[N[0]] }};
-    const auto J = tk::triple( ba, ca, da );        // J = 6V
-    Assert( J > 0, "Element Jacobian non-positive" );
+    const auto J = tk::triple( ba, ca, da ) * 6.0;
     std::array< std::array< tk::real, 3 >, 4 > grad;
-    grad[1] = tk::crossdiv( ca, da, J );
-    grad[2] = tk::crossdiv( da, ba, J );
-    grad[3] = tk::crossdiv( ba, ca, J );
+    grad[1] = tk::cross( ca, da );
+    grad[2] = tk::cross( da, ba );
+    grad[3] = tk::cross( ba, ca );
     for (std::size_t i=0; i<3; ++i)
       grad[0][i] = -grad[1][i]-grad[2][i]-grad[3][i];
     for (std::size_t a=0; a<4; ++a)
       for (std::size_t b=0; b<4; ++b)
-         for (std::size_t k=0; k<3; ++k)
-           A(N[a],N[b]) -= J/6.0 * grad[a][k] * grad[b][k];
+          A(N[a],N[b]) -= tk::dot( grad[a], grad[b] ) / J;
   }
 
   auto nunk = X.size();

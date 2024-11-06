@@ -289,7 +289,7 @@ Transporter::createPartitioner()
       cgmom = m_cgmom.back();
     }
     else if (solver == "lohcg") {
-      m_lohcg.push_back( CProxy_ChoCG::ckNew(opt) );
+      m_lohcg.push_back( CProxy_LohCG::ckNew(opt) );
       lohcg = m_lohcg.back();
       m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
       cgpre = m_cgpre.back();

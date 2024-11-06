@@ -609,8 +609,9 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   Assert( G.nunk() == U.nunk(), "Size mismatch" );
   Assert( G.nprop() > 2, "Size mismatch" );
   Assert( G.nprop() % 3 == 0, "Size mismatch" );
+  Assert( G.nprop() == U.nprop()*3, "Size mismatch" );
 
-  auto ngrad = G.nprop() / 3;
+  const auto ncomp = U.nprop();
 
   #if defined(__clang__)
     #pragma clang diagnostic push
@@ -627,7 +628,7 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
     const auto N = dsupedge[0].data() + e*4;
     const auto d = dsupint[0].data();
-    for (std::size_t c=0; c<ngrad; ++c) {
+    for (std::size_t c=0; c<ncomp; ++c) {
       tk::real u[] = { U(N[0],c), U(N[1],c), U(N[2],c), U(N[3],c) };
       auto g = c*3;
       for (std::size_t j=0; j<3; ++j) {
@@ -650,7 +651,7 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
     const auto N = dsupedge[1].data() + e*3;
     const auto d = dsupint[1].data();
-    for (std::size_t c=0; c<ngrad; ++c) {
+    for (std::size_t c=0; c<ncomp; ++c) {
       tk::real u[] = { U(N[0],c), U(N[1],c), U(N[2],c) };
       auto g = c*3;
       for (std::size_t j=0; j<3; ++j) {
@@ -669,7 +670,7 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
     const auto N = dsupedge[2].data() + e*2;
     const auto d = dsupint[2].data() + e*4;
-    for (std::size_t c=0; c<ngrad; ++c) {
+    for (std::size_t c=0; c<ncomp; ++c) {
       tk::real u[] = { U(N[0],c), U(N[1],c) };
       auto g = c*3;
       for (std::size_t j=0; j<3; ++j) {
@@ -692,7 +693,7 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     tk::crossdiv( x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]],
                   x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]], 6.0,
                   n[0], n[1], n[2] );
-    for (std::size_t c=0; c<ngrad; ++c) {
+    for (std::size_t c=0; c<ncomp; ++c) {
       auto g = c*3;
       auto uA = U(N[0],c);
       auto uB = U(N[1],c);

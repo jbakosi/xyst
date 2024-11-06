@@ -187,7 +187,7 @@ LohCG::ngradcomp() const
 {
   std::size_t n = 0;
 
-  if (g_cfg.get< tag::flux >() == "damp4") n += 9;
+  if (g_cfg.get< tag::flux >() == "damp4") n += 12;     // (p,u,v,w) x 3
 
   return n;
 }
@@ -1337,7 +1337,7 @@ LohCG::grad()
   }
 
   // Send gradient contributions to neighbor chares
-  if (d->NodeCommMap().empty() or !m_grad.nprop()) {
+  if (d->NodeCommMap().empty()) {
     comgrad_complete();
   } else {
     const auto& lid = d->Lid();

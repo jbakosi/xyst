@@ -3,19 +3,7 @@
 
 # Serial
 
-add_regression_test(chocg_poiseuille ${INCITER_EXECUTABLE}
-                    NUMPES 1
-                    INPUTFILES poiseuille.q poiseuille1tetz.exo
-                    ARGS -c poiseuille.q -i poiseuille1tetz.exo
-                    BIN_BASELINE poiseuille.std.exo
-                    BIN_RESULT out.e-s.0.1.0
-                    BIN_DIFF_PROG_CONF exodiff.cfg
-                    TEXT_BASELINE diag_poiseuille.std
-                    TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
-                    LABELS chocg)
-
-add_regression_test(chocg_poiseuille_damp2 ${INCITER_EXECUTABLE}
+add_regression_test(lohcg_poiseuille_damp2 ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES poiseuille_damp2.q poiseuille1tetz.exo
                     ARGS -c poiseuille_damp2.q -i poiseuille1tetz.exo
@@ -25,9 +13,9 @@ add_regression_test(chocg_poiseuille_damp2 ${INCITER_EXECUTABLE}
                     TEXT_BASELINE diag_poiseuille_damp2.std
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
-                    LABELS chocg)
+                    LABELS lohcg)
 
-add_regression_test(chocg_poiseuille_damp4 ${INCITER_EXECUTABLE}
+add_regression_test(lohcg_poiseuille_damp4 ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES poiseuille_damp4.q poiseuille1tetz.exo
                     ARGS -c poiseuille_damp4.q -i poiseuille1tetz.exo
@@ -37,33 +25,9 @@ add_regression_test(chocg_poiseuille_damp4 ${INCITER_EXECUTABLE}
                     TEXT_BASELINE diag_poiseuille_damp4.std
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
-                    LABELS chocg)
+                    LABELS lohcg)
 
-add_regression_test(chocg_poiseuille_rk2 ${INCITER_EXECUTABLE}
-                    NUMPES 1
-                    INPUTFILES poiseuille_rk2.q poiseuille1tetz.exo
-                    ARGS -c poiseuille_rk2.q -i poiseuille1tetz.exo
-                    BIN_BASELINE poiseuille_rk2.std.exo
-                    BIN_RESULT out.e-s.0.1.0
-                    BIN_DIFF_PROG_CONF exodiff.cfg
-                    TEXT_BASELINE diag_poiseuille_rk2.std
-                    TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
-                    LABELS chocg)
-
-add_regression_test(chocg_poiseuille_rk3 ${INCITER_EXECUTABLE}
-                    NUMPES 1
-                    INPUTFILES poiseuille_rk3.q poiseuille1tetz.exo
-                    ARGS -c poiseuille_rk3.q -i poiseuille1tetz.exo
-                    BIN_BASELINE poiseuille_rk3.std.exo
-                    BIN_RESULT out.e-s.0.1.0
-                    BIN_DIFF_PROG_CONF exodiff.cfg
-                    TEXT_BASELINE diag_poiseuille_rk3.std
-                    TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
-                    LABELS chocg)
-
-add_regression_test(chocg_poiseuille_rk4 ${INCITER_EXECUTABLE}
+add_regression_test(lohcg_poiseuille_rk4 ${INCITER_EXECUTABLE}
                     NUMPES 1
                     INPUTFILES poiseuille_rk4.q poiseuille1tetz.exo
                     ARGS -c poiseuille_rk4.q -i poiseuille1tetz.exo
@@ -73,49 +37,33 @@ add_regression_test(chocg_poiseuille_rk4 ${INCITER_EXECUTABLE}
                     TEXT_BASELINE diag_poiseuille_rk4.std
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
-                    LABELS chocg)
+                    LABELS lohcg)
 
 # Parallel
 
-add_regression_test(chocg_poiseuille
+add_regression_test(lohcg_poiseuille
                     ${INCITER_EXECUTABLE}
                     NUMPES 2
-                    INPUTFILES poiseuille.q poiseuille1tetz.exo
-                    ARGS -c poiseuille.q -i poiseuille1tetz.exo
+                    INPUTFILES poiseuille_damp2.q poiseuille1tetz.exo
+                    ARGS -c poiseuille_damp2.q -i poiseuille1tetz.exo
                     BIN_BASELINE poiseuille_pe2.std.exo.0
                                  poiseuille_pe2.std.exo.1
                     BIN_RESULT out.e-s.0.2.0
                                out.e-s.0.2.1
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     BIN_DIFF_PROG_ARGS -m
-                    TEXT_BASELINE diag_poiseuille.std
+                    TEXT_BASELINE diag_poiseuille_damp2.std
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
-                    LABELS chocg)
-
-add_regression_test(chocg_poiseuille_theta
-                    ${INCITER_EXECUTABLE}
-                    NUMPES 2
-                    INPUTFILES poiseuille_theta.q poiseuille1tetz.exo
-                    ARGS -c poiseuille_theta.q -i poiseuille1tetz.exo
-                    BIN_BASELINE poiseuille_theta_pe2.std.exo.0
-                                 poiseuille_theta_pe2.std.exo.1
-                    BIN_RESULT out.e-s.0.2.0
-                               out.e-s.0.2.1
-                    BIN_DIFF_PROG_CONF exodiff.cfg
-                    BIN_DIFF_PROG_ARGS -m
-                    TEXT_BASELINE diag_poiseuille_theta.std
-                    TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
-                    LABELS chocg)
+                    LABELS lohcg)
 
 # Parallel + virtualization
 
-add_regression_test(chocg_poiseuille_u0.8
+add_regression_test(lohcg_poiseuille_u0.8
                     ${INCITER_EXECUTABLE}
                     NUMPES 2
-                    INPUTFILES poiseuille.q poiseuille1tetz.exo
-                    ARGS -c poiseuille.q -i poiseuille1tetz.exo -u 0.8
+                    INPUTFILES poiseuille_damp2.q poiseuille1tetz.exo
+                    ARGS -c poiseuille_damp2.q -i poiseuille1tetz.exo -u 0.8
                     BIN_BASELINE poiseuille_pe2_u0.8.std.exo.0
                                  poiseuille_pe2_u0.8.std.exo.1
                                  poiseuille_pe2_u0.8.std.exo.2
@@ -138,18 +86,18 @@ add_regression_test(chocg_poiseuille_u0.8
                                out.e-s.0.10.9
                     BIN_DIFF_PROG_CONF exodiff.cfg
                     BIN_DIFF_PROG_ARGS -m
-                    TEXT_BASELINE diag_poiseuille.std
+                    TEXT_BASELINE diag_poiseuille_damp2.std
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
-                    LABELS chocg)
+                    LABELS lohcg)
 
 # Parallel + virtualization + migration
 
-add_regression_test(chocg_poiseuille_u0.8_migr
+add_regression_test(lohcg_poiseuille_u0.8_migr
                     ${INCITER_EXECUTABLE}
                     NUMPES 2
-                    INPUTFILES poiseuille.q poiseuille1tetz.exo
-                    ARGS -c poiseuille.q -i poiseuille1tetz.exo -u 0.8
+                    INPUTFILES poiseuille_damp2.q poiseuille1tetz.exo
+                    ARGS -c poiseuille_damp2.q -i poiseuille1tetz.exo -u 0.8
                          +balancer RecBipartLB +LBDebug 1 -l 4
                     BIN_BASELINE poiseuille_pe2_u0.8.std.exo.0
                                  poiseuille_pe2_u0.8.std.exo.1
@@ -171,9 +119,9 @@ add_regression_test(chocg_poiseuille_u0.8_migr
                                out.e-s.0.10.7
                                out.e-s.0.10.8
                                out.e-s.0.10.9
-                    BIN_DIFF_PROG_CONF exodiff_migr.cfg
+                    BIN_DIFF_PROG_CONF exodiff.cfg
                     BIN_DIFF_PROG_ARGS -m
-                    TEXT_BASELINE diag_poiseuille_migr.std
+                    TEXT_BASELINE diag_poiseuille_damp2.std
                     TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF diag_migr.ndiff.cfg
-                    LABELS chocg migration)
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS lohcg migration)

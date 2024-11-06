@@ -138,7 +138,7 @@ std::vector< T, Allocator >&
 operator+=( std::vector< T, Allocator >& dst,
             const std::vector< T, Allocator >& src )
 {
-  Assert( !src.empty(), "src empty in std::vector<T,Allocator>::operator+=()" );
+  if (src.empty()) return dst;
   Assert( src.size() >= dst.size(), "src.size() < dst.size() would loose data "
           "in std::vector<T,Allocator>::operator+=()" );
   dst.resize( src.size() );
@@ -160,7 +160,7 @@ std::vector< T, Allocator >&
 operator-=( std::vector< T, Allocator >& dst,
             const std::vector< T, Allocator >& src )
 {
-  Assert( !src.empty(), "src empty in std::vector<T,Allocator>::operator-=()" );
+  if (src.empty()) return dst;
   Assert( src.size() >= dst.size(), "src.size() < dst.size() would loose data "
           "in std::vector<T,Allocator>::operator-=()" );
   dst.resize( src.size() );
@@ -182,7 +182,7 @@ std::vector< T, Allocator >&
 operator/=( std::vector< T, Allocator >& dst,
             const std::vector< T, Allocator >& src )
 {
-  Assert( !src.empty(), "src empty in std::vector<T,Allocator>::operator/=()" );
+  if (src.empty()) return dst;
   Assert( src.size() >= dst.size(), "src.size() < dst.size() would loose data "
           "in std::vector<T,Allocator>::operator/=()" );
   dst.resize( src.size() );

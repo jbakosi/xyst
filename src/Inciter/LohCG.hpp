@@ -182,13 +182,21 @@ class LohCG : public CBase_LohCG {
       p | m_triinpoel;
       p | m_u;
       p | m_un;
-      // do not pup these, will recompute after migration anyway
-      if (p.isUnpacking()) {
-        m_grad.resize( m_u.nunk(), ngradcomp() );
-        m_rhs.resize( m_u.nunk(), m_u.nprop() );
-      }
+      p | m_grad;
+      p | m_gradc;
+      p | m_vgrad;
+      p | m_vgradc;
+      p | m_flux;
+      p | m_fluxc;
+      p | m_div;
+      p | m_divc;
+      p | m_sgrad;
+      p | m_sgradc;
+      p | m_rhs;
+      p | m_rhsc;
       p | m_diag;
       p | m_bnorm;
+      p | m_bnormc;
       p | m_bndpoinint;
       p | m_domedgeint;
       p | m_bpint;

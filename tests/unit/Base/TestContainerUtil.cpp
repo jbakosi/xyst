@@ -186,31 +186,22 @@ void ContainerUtil_object::test< 6 >() {
   ensure_equals( "add non-empty vector to empty one, src[2]==dst[2], incorrect",
                  v1[2], v2[2], precision );
 
-  // add empty vector to non-empty one: throw in DEBUG to warn on no-op
-  // skipped in RELEASE mode, would yield segmentation fault
-  #ifndef NDEBUG        // exception only thrown in DEBUG mode
-  try {
-    std::vector< tk::real > r1{{ 4.0, 9.0, 2.0 }}, r2;
-    r1 += r2;
-    fail( "should throw exception in DEBUG mode" );
-  }
-  catch ( tk::Exception& ) {
-    // exception thrown in DEBUG mode, test ok
-  }
-  #endif
+  // add empty vector to non-empty one
+  std::vector< tk::real > r1{{ 4.0, 9.0, 2.0 }}, r2;
+  r1 += r2;
+  ensure_equals( "add empty vector to non-empty one: no change in dst",
+                 r1[0], 4.0, precision );
+  ensure_equals( "add empty vector to non-empty one: no change in dst",
+                 r1[1], 9.0, precision );
+  ensure_equals( "add empty vector to non-empty one: no change in dst",
+                 r1[2], 2.0, precision );
 
-  // add empty vector to empty one: throw in DEBUG to warn on no-op
-  // skipped in RELEASE mode, would yield segmentation fault
-  #ifndef NDEBUG        // exception only thrown in DEBUG mode
-  try {
-    std::vector< tk::real > q1, q2;
-    q1 += q2;
-    fail( "should throw exception in DEBUG mode" );
-  }
-  catch ( tk::Exception& ) {
-    // exception thrown in DEBUG mode, test ok
-  }
-  #endif
+  // add empty vector to empty one
+  std::vector< tk::real > q1, q2;
+  q1 += q2;
+  //fail( "should throw exception in DEBUG mode" );
+  ensure( "add empty vector to empty one, no change in src and dst",
+          q1.size() == q2.size() );
 
   // add non-empty vector to non-empty one with src.size() == dst.size():
   // dst += src for all components, leave src unchanged
@@ -415,31 +406,21 @@ void ContainerUtil_object::test< 13 >() {
     "subtract non-empty vector from empty one, src[2]==dst[2], incorrect",
     v1[2], -v2[2], precision );
 
-  // subtract empty vector from non-empty one: throw in DEBUG to warn on no-op
-  // skipped in RELEASE mode, would yield segmentation fault
-  #ifndef NDEBUG        // exception only thrown in DEBUG mode
-  try {
-    std::vector< tk::real > r1{{ 4.0, 9.0, 2.0 }}, r2;
-    r1 -= r2;
-    fail( "should throw exception in DEBUG mode" );
-  }
-  catch ( tk::Exception& ) {
-    // exception thrown in DEBUG mode, test ok
-  }
-  #endif
+  // subtract empty vector from non-empty one
+  std::vector< tk::real > r1{{ 4.0, 9.0, 2.0 }}, r2;
+  r1 -= r2;
+  ensure_equals( "subtract empty vector to non-empty one: no change in dst",
+                 r1[0], 4.0, precision );
+  ensure_equals( "subtract empty vector to non-empty one: no change in dst",
+                 r1[1], 9.0, precision );
+  ensure_equals( "subtract empty vector to non-empty one: no change in dst",
+                 r1[2], 2.0, precision );
 
-  // subtract empty vector from empty one: throw in DEBUG to warn on no-op
-  // skipped in RELEASE mode, would yield segmentation fault
-  #ifndef NDEBUG        // exception only thrown in DEBUG mode
-  try {
-    std::vector< tk::real > q1, q2;
-    q1 -= q2;
-    fail( "should throw exception in DEBUG mode" );
-  }
-  catch ( tk::Exception& ) {
-    // exception thrown in DEBUG mode, test ok
-  }
-  #endif
+  // subtract empty vector from empty one
+  std::vector< tk::real > q1, q2;
+  q1 -= q2;
+  ensure( "subtract empty vector from empty one, no change in src and dst",
+          q1.size() == q2.size() );
 
   // subtract non-empty vector from non-empty one with src.size() == dst.size():
   // dst -= src for all components, leave src unchanged

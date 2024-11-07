@@ -30,6 +30,7 @@
 #include "Problems.hpp"
 #include "EOS.hpp"
 #include "BC.hpp"
+#include "Print.hpp"
 
 namespace inciter {
 
@@ -837,6 +838,9 @@ ChoCG::merge()
   // Enforce boundary conditions on initial conditions
   BC( m_u, Disc()->T() );
 
+  // Start measuring initial div-free time
+  m_timer.emplace_back();
+
   // Compute initial momentum flux
   thisProxy[ thisIndex ].wait4div();
   thisProxy[ thisIndex ].wait4sgrad();
@@ -1225,6 +1229,10 @@ ChoCG::psolved()
         thisProxy[ thisIndex ].wait4div();
         velgrad();
       } else {
+        if (thisIndex == 0) {
+          tk::Print() << "Initial div-free time: " << m_timer[0].dsec()
+                      << " sec\n";
+        }
         // Assign initial pressure and compute its gradient
         m_pr = m_cgpre[ thisIndex ].ckLocal()->solution();
         pgrad();

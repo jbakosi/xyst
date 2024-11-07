@@ -246,6 +246,7 @@ class ChoCG : public CBase_ChoCG {
       p | m_stage;
       p | m_finished;
       p | m_rkcoef;
+      p | m_timer;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -388,6 +389,8 @@ class ChoCG : public CBase_ChoCG {
     int m_finished;
     //! Runge-Kutta coefficients
     std::vector< tk::real > m_rkcoef;
+    //! Timer
+    std::vector< tk::Timer > m_timer;
 
     //! Access bound Discretization class pointer
     Discretization* Disc() const {

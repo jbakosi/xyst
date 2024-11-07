@@ -1019,9 +1019,9 @@ Discretization::status()
 
     // estimate grind time (taken between this and the previous time step)
     using std::chrono::duration_cast;
-    using ms = std::chrono::milliseconds;
+    using us = std::chrono::microseconds;
     using clock = std::chrono::high_resolution_clock;
-    auto grind_time = duration_cast< ms >(clock::now() - m_prevstatus).count()
+    auto grind_time = duration_cast< us >(clock::now() - m_prevstatus).count()
                       / static_cast< long >( ttyi );
     auto grind_perf = static_cast<tk::real>(grind_time)
                       / static_cast<tk::real>(m_npoin);

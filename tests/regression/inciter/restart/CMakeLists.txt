@@ -107,6 +107,32 @@ add_regression_test(chocg_restart ${INCITER_EXECUTABLE}
                     CHECKPOINT chocg_checkpoint
                     LABELS chocg restart)
 
+add_regression_test(lohcg_checkpoint ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES ldc_lohcg.q unitcube_1k.exo
+                    ARGS -c ldc_lohcg.q -i unitcube_1k.exo
+                    BIN_BASELINE ldc_lohcg_checkpoint.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff_lohcg.cfg
+                    TEXT_BASELINE ldc_lohcg_checkpoint.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.lohcg.cfg
+                    LABELS lohcg restart)
+
+add_regression_test(lohcg_restart ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES ldc_lohcg_restart.q unitcube_1k.exo
+                    ARGS -c ldc_lohcg_restart.q -i unitcube_1k.exo
+                         +restart restart
+                    BIN_BASELINE ldc_lohcg.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff_lohcg.cfg
+                    TEXT_BASELINE ldc_lohcg.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.lohcg.cfg
+                    CHECKPOINT lohcg_checkpoint
+                    LABELS lohcg restart)
+
 # Parallel, checkpoint on 4 PEs, restart on 4 PEs
 
 add_regression_test(riecg_checkpoint ${INCITER_EXECUTABLE}
@@ -268,3 +294,43 @@ add_regression_test(chocg_restart ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.chocg.cfg
                     CHECKPOINT chocg_checkpoint
                     LABELS chocg restart)
+
+add_regression_test(lohcg_checkpoint ${INCITER_EXECUTABLE}
+                    NUMPES 4 PPN 1
+                    INPUTFILES ldc_lohcg.q unitcube_1k.exo
+                    ARGS -c ldc_lohcg.q -i unitcube_1k.exo
+                    BIN_BASELINE ldc_lohcg_checkpoint.std.exo.0
+                                 ldc_lohcg_checkpoint.std.exo.1
+                                 ldc_lohcg_checkpoint.std.exo.2
+                                 ldc_lohcg_checkpoint.std.exo.3
+                    BIN_RESULT out.e-s.0.4.0
+                               out.e-s.0.4.1
+                               out.e-s.0.4.2
+                               out.e-s.0.4.3
+                    BIN_DIFF_PROG_CONF exodiff_lohcg.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    TEXT_BASELINE ldc_lohcg_checkpoint.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.lohcg.cfg
+                    LABELS lohcg restart)
+
+add_regression_test(lohcg_restart ${INCITER_EXECUTABLE}
+                    NUMPES 4 PPN 1
+                    INPUTFILES ldc_lohcg_restart.q unitcube_1k.exo
+                    ARGS -c ldc_lohcg_restart.q -i unitcube_1k.exo
+                         +restart restart
+                    BIN_BASELINE ldc_lohcg.std.exo.0
+                                 ldc_lohcg.std.exo.1
+                                 ldc_lohcg.std.exo.2
+                                 ldc_lohcg.std.exo.3
+                    BIN_RESULT out.e-s.0.4.0
+                               out.e-s.0.4.1
+                               out.e-s.0.4.2
+                               out.e-s.0.4.3
+                    BIN_DIFF_PROG_CONF exodiff_lohcg.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    TEXT_BASELINE ldc_lohcg.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.lohcg.cfg
+                    CHECKPOINT lohcg_checkpoint
+                    LABELS lohcg restart)

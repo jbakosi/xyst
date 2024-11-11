@@ -188,7 +188,7 @@ LohCG::ngradcomp() const
 {
   std::size_t n = 0;
 
-  if (g_cfg.get< tag::flux >() == "damp4") n += 12;     // (p,u,v,w) x 3
+  if (g_cfg.get< tag::flux >() == "damp4") n += 9;     // (u,v,w) x 3
 
   return n;
 }
@@ -816,6 +816,7 @@ LohCG::merge()
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
   physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
 
+  // Start measuring initial div-free time
   m_timer.emplace_back();
 
   // Compute initial momentum flux

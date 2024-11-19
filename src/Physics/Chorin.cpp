@@ -794,9 +794,9 @@ adv_damp2( const tk::real supint[],
 
   // flow
   auto pf = P[p] + P[q];
-  f[0] = uL*vnL + uR*vnR + pf*nx + aw*(uR-uL) - d*(uR - uL);
-  f[1] = vL*vnL + vR*vnR + pf*ny + aw*(vR-vL) - d*(vR - vL);
-  f[2] = wL*vnL + wR*vnR + pf*nz + aw*(wR-wL) - d*(wR - wL);
+  f[0] = uL*vnL + uR*vnR + pf*nx + (aw-d)*(uR-uL);
+  f[1] = vL*vnL + vR*vnR + pf*ny + (aw-d)*(vR-vL);
+  f[2] = wL*vnL + wR*vnR + pf*nz + (aw-d)*(wR-wL);
 }
 
 static void
@@ -893,9 +893,9 @@ adv_damp4( const tk::real supint[],
 
   // flow
   auto pf = uL[3] + uR[3];
-  f[0] = uL[0]*vnL + uR[0]*vnR + pf*nx + aw*(uR[0]-uL[0]) - d*(U(q,0) - U(p,0));
-  f[1] = uL[1]*vnL + uR[1]*vnR + pf*ny + aw*(uR[1]-uL[1]) - d*(U(q,1) - U(p,1));
-  f[2] = uL[2]*vnL + uR[2]*vnR + pf*nz + aw*(uR[2]-uL[2]) - d*(U(q,2) - U(p,2));
+  f[0] = uL[0]*vnL + uR[0]*vnR + pf*nx + aw*(uR[0]-uL[0]) - d*(U(q,0)-U(p,0));
+  f[1] = uL[1]*vnL + uR[1]*vnR + pf*ny + aw*(uR[1]-uL[1]) - d*(U(q,1)-U(p,1));
+  f[2] = uL[2]*vnL + uR[2]*vnR + pf*nz + aw*(uR[2]-uL[2]) - d*(U(q,2)-U(p,2));
 
   #if defined(__clang__)
     #pragma clang diagnostic pop

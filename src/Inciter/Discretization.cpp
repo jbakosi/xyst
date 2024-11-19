@@ -1001,7 +1001,7 @@ void
 Discretization::npoin( std::size_t n )
 // *****************************************************************************
 //  Set number of mesh points (across all meshes)
-//! \param[in] it Number of mesh points
+//! \param[in] n Number of mesh points
 // *****************************************************************************
 {
   m_npoin = n;

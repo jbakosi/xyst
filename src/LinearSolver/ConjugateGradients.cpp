@@ -102,15 +102,15 @@ ConjugateGradients::ConjugateGradients(
 }
 
 void
-ConjugateGradients::setup( CkCallback cb )
+ConjugateGradients::setup( CkCallback c )
 // *****************************************************************************
 //  Setup solver
-//! \param[in] cb Call to continue with
+//! \param[in] c Call to continue with
 //! \details This function initiates computing the residual (r=b-A*x), its dot
 //!   product, and the rhs norm.
 // *****************************************************************************
 {
-  m_initres = cb;
+  m_initres = c;
   m_converged = false;
   m_finished = false;
 

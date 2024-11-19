@@ -85,6 +85,7 @@ try :
 // *****************************************************************************
 //  Constructor
 //! \param[in] disc Discretization proxy
+//! \param[in] cgpre ConjugateGradients Charm++ proxy for initial pressure solve
 //! \param[in] bface Boundary-faces mapped to side sets used in the input file
 //! \param[in] bnode Boundary-node lists mapped to side sets used in input file
 //! \param[in] triinpoel Boundary-face connectivity where BCs set (global ids)
@@ -857,7 +858,7 @@ void
 LohCG::div( const tk::Fields& u, std::size_t pos )
 // *****************************************************************************
 //  Start computing divergence
-// \para[in] u Vector field whose divergence to compute
+//! \param[in] u Vector field whose divergence to compute
 //! \param[in] pos Position at which the three vector components are in u
 // *****************************************************************************
 {

@@ -26,7 +26,7 @@ failure, and supports power-, and energy-aware computation.
 
 Xyst consists of the following tools:
 
-@ref inciter_main --- __Navier-Stokes solver for engineering flows__ \n
+@ref inciter_main --- __Euler and Navier-Stokes solvers for engineering flows__ \n
 Implements multiple flow solvers for complex engineering geometries.
 
 @ref meshconv_main --- __Tetrahedron-mesh converter__ \n

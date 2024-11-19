@@ -37,10 +37,16 @@ unpredictable heterogeneous dynamic high-performance-computing loads](https://do
   @ref inciter_riecg "RieCG".
 
 - @m_div{m-text m-strong}
+  R. Lohner, C. Yang, J. Cebral, F. Camelli, O. Soto, J. Waltz, **[Improving the speed and accuracy of projection-type incompressible flow solvers](https://doi.org/10.1016/j.cma.2004.07.058)**, Computer methods in applied mechanics and engineering, 195(23), pp.3087-3109, 2006.
+  @m_enddiv
+
+  This paper describes the algorithm implemented in the @ref inciter_chocg solver.
+
+- @m_div{m-text m-strong}
   H. Luo, J.D. Baum, R. Lohner, **[Extension of Harten-Lax-van Leer Scheme for Flows at All Speeds](https://doi.org/10.2514/1.7567)**,  AIAA Journal, 43:6, 1160-1166, 2005.
   @m_enddiv
 
-  This paper describes the @ref inciter_laxcg algorithm implemented in @ref inciter_main.
+  This paper describes the algorithm implemented in the @ref inciter_laxcg solver.
 
 - @m_div{m-text m-strong}
   J. Waltz, **[Parallel adaptive refinement for unsteady flow calculations on 3D unstructured grids](http://dx.doi.org/10.1002/fld.674)**, International Journal for Numerical Methods in Fluids, 46: 37–57, 2004.

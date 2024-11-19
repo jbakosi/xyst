@@ -1098,34 +1098,33 @@ Refiner::endt0ref()
     meshdata{ m_meshid, m_ginpoel.size()/4, m_coord[0].size() };
   contribute( meshdata, CkReduction::sum_ulong, m_cbr.get< tag::refined >() );
 
-  // // Free up memory if no dtref
-  // if (!g_cfg.get< tag::href_dt >()) {
-  //   tk::destroy( m_ginpoel );
-  //   tk::destroy( m_el );
-  //   tk::destroy( m_coordmap );
-  //   tk::destroy( m_coord );
-  //   tk::destroy( m_bface );
-  //   tk::destroy( m_bnode );
-  //   tk::destroy( m_triinpoel );
-  //   tk::destroy( m_initref );
-  //   tk::destroy( m_ch );
-  //   tk::destroy( m_edgech );
-  //   tk::destroy( m_chedge );
-  //   tk::destroy( m_localEdgeData );
-  //   tk::destroy( m_remoteEdgeData );
-  //   tk::destroy( m_remoteEdges );
-  //   tk::destroy( m_intermediates );
-  //   tk::destroy( m_nodeCommMap );
-  //   tk::destroy( m_oldTets );
-  //   tk::destroy( m_addedNodes );
-  //   tk::destroy( m_addedTets );
-  //   tk::destroy( m_coarseBndFaces );
-  //   tk::destroy( m_coarseBndNodes );
-  //   tk::destroy( m_rid );
-  //   tk::destroy( m_oldrid );
-  //   tk::destroy( m_lref );
-  //   tk::destroy( m_parent );
-  // }
+  // Free up memory if no dtref
+  if (!g_cfg.get< tag::href_dt >()) {
+    tk::destroy( m_ginpoel );
+    tk::destroy( m_el );
+    tk::destroy( m_coordmap );
+    tk::destroy( m_coord );
+    tk::destroy( m_bface );
+    tk::destroy( m_bnode );
+    tk::destroy( m_triinpoel );
+    tk::destroy( m_initref );
+    tk::destroy( m_ch );
+    tk::destroy( m_edgech );
+    tk::destroy( m_chedge );
+    tk::destroy( m_localEdgeData );
+    tk::destroy( m_remoteEdgeData );
+    tk::destroy( m_remoteEdges );
+    tk::destroy( m_intermediates );
+    tk::destroy( m_nodeCommMap );
+    tk::destroy( m_oldTets );
+    tk::destroy( m_addedNodes );
+    tk::destroy( m_addedTets );
+    tk::destroy( m_coarseBndFaces );
+    tk::destroy( m_coarseBndNodes );
+    tk::destroy( m_rid );
+    //tk::destroy( m_oldrid );
+    tk::destroy( m_lref );
+  }
 }
 
 void

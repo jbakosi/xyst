@@ -725,22 +725,22 @@ adv_tg( const tk::real supint[],
   f[1] = 2.0*(vh*vn + ph*ny) - d*(vR - vL);
   f[2] = 2.0*(wh*vn + ph*nz) - d*(wR - wL);
 
-//   // artificial viscosity
-// 
-//   const auto stab2 = g_cfg.get< tag::stab2 >();
-//   if (!stab2) return;
-// 
-//   auto stab2coef = g_cfg.get< tag::stab2coef >();
-//   auto vnL = uL*nx + vL*ny + wL*nz;
-//   auto vnR = uR*nx + vR*ny + wR*nz;
-//   auto sl = std::abs(vnL);
-//   auto sr = std::abs(vnR);
-//   auto fw = stab2coef * std::max( sl, sr );
-// 
-//   // flow
-//   f[0] -= fw*(uL - uR);
-//   f[1] -= fw*(vL - vR);
-//   f[2] -= fw*(wL - wR);
+  // artificial viscosity
+
+  const auto stab2 = g_cfg.get< tag::stab2 >();
+  if (!stab2) return;
+
+  auto stab2coef = g_cfg.get< tag::stab2coef >();
+  auto vnL = uL*nx + vL*ny + wL*nz;
+  auto vnR = uR*nx + vR*ny + wR*nz;
+  auto sl = std::abs(vnL);
+  auto sr = std::abs(vnR);
+  auto fw = stab2coef * std::max( sl, sr );
+
+  // flow
+  f[0] += fw*(uR - uL);
+  f[1] += fw*(vR - vL);
+  f[2] += fw*(wR - wL);
 
   #if defined(__clang__)
     #pragma clang diagnostic pop

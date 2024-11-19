@@ -7,7 +7,7 @@ namespace inciter {
 This page describes the numerical method in `ZalCG` method at a high level, for
 more details, see @ref papers.
 
-@note In ZalCG, _Zal_ stands for [Steven Zalesak](https://www.researchgate.net/profile/Steven-Zalesak), a pioneer of FCT, and _CG_ for continuous Galerkin.
+@note In ZalCG, _Zal_ stands for [Steven Zalesak](https://www.researchgate.net/profile/Steven-Zalesak), and _CG_ for continuous Galerkin.
 
 The numerical method in ZalCG is an edge-based implementation of a finite element method for unstructured meshes, composed of tetrahedral cells. The solver is intended for the computing of high-speed compressible flows. A good reference for the finite element method itself is Lohner's book [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746) and on Flux Corrected Transport [Lohner, Morgan, Peraire, Vahdati, Finite element flux-corrected transport (FEM-FCT) for the Euler and Navier--Stokes equations](http://dx.doi.org/10.1002/fld.1650071007). The implementation of the method uses an asynchronous-by-default, distributed-memory, task-parallel programming paradigm using the Charm++ runtime system.
 

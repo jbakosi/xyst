@@ -1896,7 +1896,7 @@ ChoCG::lhs()
   const auto ncomp = m_u.nprop();
   const auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
 
-  auto dt = m_rkcoef[m_stage] * d->Dt();
+  auto dt = d->Dt();
   auto& A = Lhs();
   A.zero();
 
@@ -2031,7 +2031,8 @@ ChoCG::solve()
 
   } else {
 
-    if (g_cfg.get< tag::theta >() < std::numeric_limits<tk::real>::epsilon()) {
+    auto eps = std::numeric_limits<tk::real>::epsilon();
+    if (g_cfg.get< tag::theta >() < eps || m_stage+1 < m_rkcoef.size()) {
 
       // Apply rhs in explicit solve
       auto dt = m_rkcoef[m_stage] * d->Dt();

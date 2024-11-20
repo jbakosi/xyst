@@ -9,7 +9,14 @@ details, see @ref papers.
 
 @note In RieCG, _Rie_ stands for [Bernhard Riemann](https://en.wikipedia.org/wiki/Bernhard_Riemann) and _CG_ for continuous Galerkin.
 
-The numerical method in RieCG is an edge-based finite element method for unstructured meshes, composed of tetrahedral cells, intended for the mathematical modelling of energetic, high-speed, compressible flows. This is an implementation of the method, originally developed by [Luo, Baum, and Lohner, Edge-based finite element scheme for the Euler equations, AIAA Journal,1994](https://doi.org/10.2514/3.12118) to use an asynchronous-by-default, distributed-memory, task-parallel programming paradigm using the Charm++ runtime system. The [super-edge](https://doi.org/10.1016/0045-7825(94)90133-3)-based implementation of the finite element operators help reduce indirect addressing and increases performance.
+The numerical method in RieCG is an edge-based finite element method for
+unstructured meshes, composed of tetrahedral cells, intended for the
+mathematical modelling of energetic, high-speed, compressible flows. This is an
+implementation of the method originally developed in [1] to use an
+asynchronous-by-default, distributed-memory, task-parallel programming paradigm
+using the Charm++ runtime system. The super-edge-based implementation of the
+finite element operators help reduce indirect addressing and increases
+performance [2].
 
 Note that the RieCG algorithm can be viewed as either an edge-based finite
 element method on tetrahedron meshes or a node-centered finite volume method
@@ -99,7 +106,7 @@ defined as
   \Gamma
 \end{split} \f]
 
-For the derivation of the above and other details, see @ref papers.
+For the derivation of the above and other details, see [3] and [4].
 
 @section riecg_flux Numerical flux
 
@@ -116,8 +123,8 @@ defined as
 \f[ \begin{split}
   \lambda_v = \left| u_j \frac{D^{vw}_j}{\left|D^{vw}_j\right|} \right| + c^v
 \end{split} \f]
-where \f$c^v\f$ is the speed of sound at vertex
-\f$v\f$.
+where \f$c^v\f$ is the speed of sound at vertex \f$v\f$.  Another option is to
+use the Harten-Lax-van Leer-Contact (HLLC) flux [3].
 
 @section riecg_reconstruction Solution reconstruction
 
@@ -159,26 +166,38 @@ all edges \f$vw \in \Omega_h\f$ that contribute to point v.
 
 The solution is advanced using a multi-stage explicit scheme of the form:
 \f[ \begin{split}
-  U^{v,k} = U^{v,0} + \alpha^k \Delta t r^{v,k-1}
+  U^k = U^n + \alpha^k \Delta t r^{k-1}
 \end{split} \f]
-where \f$r\f$ is the right hand side of the discretized
-governing equations, \f$k\f$ is the current stage,
-\f$m\f$ is the total number of stages,
-\f$\Delta t\f$ is the time step, and
-\f[ \begin{split}
-  \alpha^k = \frac{1} {1+m-k}
-\end{split} \f]
-The explicit Euler time marching scheme is obtained for
-\f$m=1\f$ and the classical 2nd-order Runge-Kutta method is
-obtained with \f$m=2\f$.
-The time step size is adaptive and obtained by finding the minimum value for
-all mesh points at every time step as
-\f[ \begin{split}
+where \f$r\f$ is the right hand side of the discretized governing equations,
+\f$k\f$ is the current stage, \f$m\f$ is the total number of stages, \f$\Delta
+t\f$ is the time step, and \f$ \alpha^k = 1/(1+m-k) \f$. The explicit Euler
+time marching scheme is obtained for \f$m=1\f$ and the classical 2nd-order
+Runge-Kutta method is obtained with \f$m=2\f$.  The time step size is adaptive
+and obtained by finding the minimum value for all mesh points at every time
+step as
+\f[
 \Delta t = \text{C} \min_{\forall v} \frac{(V^v)^{1/3}}{\lambda^{v}}
-\end{split} \f]
-where \f$\text{C} \leq 1\f$ is the Courant number, and
-\f$V^{v}\f$ is the nodal volume of the dual-mesh associated
-to point \f$v\f$.
+\f]
+where \f$\text{C} \leq 1\f$ is the Courant number, and \f$V^{v}\f$ is the nodal
+volume of the dual-mesh associated to point \f$v\f$.
+
+@section riecg_refs References
+
+@m_div{m-text m-noindent}
+[1] H. Luo, J. Baum, and R. Lohner, [Edge-based finite element scheme for the Euler equations](https://doi.org/10.2514/3.12118), AIAA Journal, 32(6), 1183-1190, 1994.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[2] R. Löhner, [Edges, stars, superedges and chains](https://doi.org/10.1016/0045-7825(94)90133-3), Computer Methods in Applied Mechanics and Engineering, 111, 3-4, 255-263, 1994.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[3] J. Waltz, N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, [A three-dimensional finite element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured grids](https://doi.org/10.1016/j.compfluid.2013.12.021), Computers & Fluids, 92: 172-187, 2014.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[4] R. Löhner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746), Wiley, 2008.
+@m_enddiv
 
 */
 } // inciter::

@@ -6,8 +6,7 @@ simulations exercrising the solvers in @ref inciter_main.
 
 \section riecg_vnv RieCG V&V
 
-The pages below discuss example calculations using the @ref inciter_riecg
-"RieCG hydrodynamics" solver.
+The pages below discuss example calculations using the @ref inciter_riecg solver.
 
   - \subpage riecg_example_vortical_flow
   - \subpage riecg_example_taylor_green
@@ -23,8 +22,7 @@ The pages below discuss example calculations using the @ref inciter_riecg
 
 \section kozcg_vnv KozCG V&V
 
-The pages below discuss example calculations using the @ref inciter_kozcg
-"KozCG hydrodynamics" solver.
+The pages below discuss example calculations using the @ref inciter_kozcg solver.
 
   - \subpage kozcg_example_vortical_flow
   - \subpage kozcg_example_taylor_green
@@ -35,8 +33,7 @@ The pages below discuss example calculations using the @ref inciter_kozcg
 
 \section zalcg_vnv ZalCG V&V
 
-The pages below discuss example calculations using the @ref inciter_zalcg
-"ZalCG hydrodynamics" solver.
+The pages below discuss example calculations using the @ref inciter_zalcg solver.
 
   - \subpage zalcg_example_sedov
   - \subpage zalcg_example_sedov_dea
@@ -50,12 +47,19 @@ The pages below discuss example calculations using the @ref inciter_zalcg
 
 \section laxcg_vnv LaxCG V&V
 
-The pages below discuss example calculations using the @ref inciter_laxcg
-"LaxCG hydrodynamics" solver.
+The pages below discuss example calculations using the @ref inciter_laxcg solver.
 
   - \subpage laxcg_example_bump
   - \subpage laxcg_example_sphere
   - \subpage laxcg_example_onera
+
+\section chocg_vnv ChoCG V&V
+
+The pages below discuss example calculations using the @ref inciter_chocg solver.
+
+\section lohcg_vnv LohCG V&V
+
+The pages below discuss example calculations using the @ref inciter_lohcg solver.
 
 See @ref papers for more documentation and more examples.
 

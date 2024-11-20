@@ -1,0 +1,38 @@
+/*!
+  \page      lohcg_performance LohCG computational performance
+
+This page discusses the computational performance of the @ref inciter_lohcg
+solver. The timings demonstrate that there scalability is ideal up to 65K CPUs.
+
+@section lohcg_strong_scaling Strong scaling of computation
+
+Using increasing number of compute cores with the same problem measures _strong
+scaling_, characteristic of the algorithm and its parallel implementation.
+Strong scalability helps answer questions, such as _How much faster one can
+obtain a given result (at a given level of numerical error) if larger
+computational resources were available_. To measure strong scaling we ran the
+@ref lohcg_example_ldc "Lid-driven cavity" using a 794M-cell mesh (133M points)
+on varying number of CPUs for a few time steps and measured the average
+wall-clock time it takes to advance a single time step. The figure below
+depicts timings measured on the
+[LUMI](https://www.lumi-supercomputer.eu/lumi_supercomputer) computer.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/xyst_lohcg_strong.png"/>
+@m_enddiv
+
+The figure shows that the @ref inciter_lohcg solver scales ideally up to 65K
+CPU cores.
+
+@note One practical result from this figure is that as the number of
+computational elements (and points) per CPU core decreases with more resources
+available for a fixed-size problem, this solver implementation (on this
+machine) is scalable at least as low as approximately 3K mesh points per CPU
+core. This can be used to estimate effective compute resources based on problem
+size.
+
+Comparing the same data on @ref chocg_performance "ChoCG" shows that the @ref
+inciter_lohcg solver is approximately 100-200x faster for the same problem size
+using the same resources.
+
+*/

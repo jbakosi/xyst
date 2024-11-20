@@ -1,19 +1,19 @@
 /*!
   \page      inciter_main Inciter
 
-__Navier-Stokes solver for engineering flows__
+__Euler and Navier-Stokes solvers for engineering flows__
 
-Inciter contains distributed-memory-parallel fluid solvers for complex 3D
-engineering geometries. The software implementation facilitates effective use
-of any multi-CPU computer from a laptop to the largest distributed-memory
-machines, combining data-, and task-parallelism on top of the
-[Charm++](http://charmplusplus.org) runtime system. Charm++'s execution model
-is asynchronous by default, allowing arbitrary overlap of computation and
-communication. Built-in automatic load balancing enables redistribution of
-arbitrarily heterogeneous computational load based on real-time CPU load
-measurement at negligible cost. The runtime system also features automatic
-checkpointing, fault tolerance, resilience against hardware failure, and
-supports power-, and energy-aware computation.
+Inciter contains multiple flow solvers for complex 3D engineering geometries
+specialized to different families of problems. The software implementation
+facilitates effective use of any multi-CPU computer from a laptop to the
+largest distributed-memory machines, combining data-, and task-parallelism on
+top of the [Charm++](http://charmplusplus.org) runtime system. Charm++'s
+execution model is asynchronous by default, allowing arbitrary overlap of
+computation and communication. Built-in automatic load balancing enables
+redistribution of arbitrarily heterogeneous computational load based on
+real-time CPU load measurement at negligible cost. The runtime system also
+features automatic checkpointing, fault tolerance, resilience against hardware
+failure, and supports power-, and energy-aware computation.
 
 Computational domains of arbitrary shapes are discretized into tetrahedron
 elements and decomposed into small chunks assigned to different CPUs. The
@@ -23,29 +23,87 @@ balancing. The solution along partition boundaries, that exists on multiple
 processing elements, is made consistent with _asynchronous_ communication which
 hides latencies by enabling overlapping of computation and communication.
 
-Inciter contains multiple solvers. The numerical methods belong to the family
-of continuous Galerkin finite element methods storing solution values at nodes
-of the computational mesh. See the links below for more details.
-
 @section inciter_solvers Solvers
 
-- @m_class{no-background} <strong><tt>RieCG:</tt></strong>
-  @ref inciter_riecg "method",
-  @ref riecg_vnv "V&V",
-  @ref riecg_performance "performance"
+Inciter contains the following solvers. The numerical methods all belong to the
+family of continuous Galerkin finite element methods storing solution values at
+nodes of the computational mesh. See below for more details on how the various
+solvers are specialized.
 
-- @m_class{no-background} <strong><tt>KozCG:</tt></strong>
-  @ref inciter_kozcg "method",
-  @ref kozcg_vnv "V&V"
+@subsection inciter_solvers_riecg RieCG: for accurate simulation of energetic, high-speed, compressible, inviscid flows
+Solves the Euler equations modeling highly compressible inviscid flows.
+Compared to <strong>KozCG</strong>, <strong>RieCG</strong> uses a
+super-edge-based implementation of the finite element operators to reduce
+indirect addressing and thus to increase performance. It also contains a
+Riemann solver with a configurable numerical flux and piecewise limited
+solution reconstruction to ensure second order numerical accuracy.
+<strong>RieCG</strong> uses explicit three-stage Runge-Kutta time integration.
+More details:
+@ref inciter_riecg "method",
+@ref riecg_vnv "V&V",
+@ref riecg_performance "performance".
 
-- @m_class{no-background} <strong><tt>ZalCG:</tt></strong>
-  @ref inciter_zalcg "method",
-  @ref zalcg_vnv "V&V",
-  @ref zalcg_performance "performance"
+@subsection inciter_solvers_kozcg KozCG: a simple implementation of a finite element method for compressible flows
+Solves the Euler equations modeling highly compressible inviscid flows.
+Compared to <strong>RieCG</strong>, <strong>KozCG</strong> contains a simpler,
+element-based implementation of the continuous Galerkin finite element
+operators. This is combined with Taylor-Galerkin stabilization and explicit
+single-step Euler time marching. The solver employs flux-corrected transport to
+ensure oscillation-free solutions with second order numerical accuracy.
+Compared to <strong>RieCG</strong>, <strong>KozCG</strong> does not require a
+Riemann solver or explicit gradient computations. More details:
+@ref inciter_kozcg "method",
+@ref kozcg_vnv "V&V".
 
-- @m_class{no-background} <strong><tt>LaxCG:</tt></strong>
-  @ref inciter_laxcg "method",
-  @ref laxcg_vnv "V&V"
+@subsection inciter_solvers_zalcg ZalCG: for fast simulation of energetic, high-speed, compressible, inviscid flows
+Solves the Euler equations modeling highly compressible inviscid flows. Similar
+to <strong>RieCG</strong>, <strong>ZalCG</strong> also employs a
+super-edge-based implementation of the finite element operators to reduce
+indirect addressing compared to element-based loops, but uses the cheaper
+Taylor-Galerkin numerical flux to stabilize advection. This is combined with
+flux-corrected transport (implemented over edges, compared to the element-based
+loops in <strong>KozCG</strong>) to avoid unphysical numerical oscillations.
+Since this solver does not require Riemann solvers or gradient computations it
+is generally faster than <strong>RieCG</strong> and <strong>KozCG</strong>.
+<strong>ZalCG</strong> can further save CPU time by dynamically deactivating
+inactive partitions of the computational mesh during parallel flow simulations
+of propagation phenomena, e.g., detonations or scalar transport. The parallel
+imbalance is then homogenized by Charm++'s built-in load balancers. More
+details:
+@ref inciter_zalcg "method",
+@ref zalcg_vnv "V&V",
+@ref zalcg_performance "performance".
+
+@subsection inciter_solvers_laxcg LaxCG: for energetic, high-speed, compressible, inviscid flows at all Mach numbers
+Solves the Euler equations modeling compressible inviscid flows. The solver in
+<strong>LaxCG</strong> is very similar to <strong>RieCG</strong>, but
+<strong>LaxCG</strong> applies a time-derivative preconditioning technique to
+enable computation of flows and flow regions at all Mach numbers. More details:
+@ref inciter_laxcg "method",
+@ref laxcg_vnv "V&V".
+
+@subsection inciter_solvers_chocg ChoCG: for accurate simulation of constant-density, inviscid or viscous flows
+Solving the Navier-Stokes equation modeling constant-density viscous flows,
+<strong>ChoCG</strong> enforces the divergence-free constraint by solving a
+Poisson equation for the pressure increment in time and projecting the velocity
+field to a divergence-free subspace. The advection and divergence operators,
+resulting from the continuous Galerkin finite element discretization, are
+stabilized by edge-based consistent numerical fluxes. More details:
+@ref inciter_chocg "method",
+@ref chocg_vnv "V&V",
+@ref chocg_performance "performance".
+
+@subsection inciter_solvers_lohcg LohCG: for fast simulation of constant-density, inviscid or viscous flows
+Solving the Navier-Stokes equation modeling constant-density viscous flows,
+<strong>LohCG</strong> is similar to <strong>ChoCG</strong>, but enforces the
+divergence-free constraint by recasting the elliptic problem of the Poisson
+equation to a hyperbolic/parabolic system using an artificial compressibility
+technique. The method is stabilized by artificial viscosity. This yields a
+numerical method that can be 100x faster than <strong>ChoCG</strong> and also
+scales better to larger problems and larger resources. More details:
+@ref inciter_lohcg "method",
+@ref lohcg_vnv "V&V",
+@ref lohcg_performance "performance".
 
 @section inciter_pages Related pages
 - @ref howtos "Howto pages"

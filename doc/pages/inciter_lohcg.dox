@@ -1,0 +1,198 @@
+namespace inciter {
+/*!
+  \page      inciter_lohcg LohCG
+
+@tableofcontents{xml}
+
+This page describes the numerical method in `LohCG` at a high level, for more
+details, see @ref papers.
+
+@note In LohCG, _Loh_ stands for [Rainald Löhner](https://science.gmu.edu/directory/rainald-lohner) and _CG_ for continuous Galerkin.
+
+LohCG solves the constant-density (incompressible) Navier-Stokes equation
+modeling inviscid or viscous flows at low Mach numbers. The numerical method
+employs continuous Galerkin finite elements with linear shapefunctions and
+stores the unknowns at nodes of a tetrahedron-only mesh. The finite element
+operators are formulated over edges [1] and implemented using tetrahedron and
+triangle super-edges [2]. The algorithm is implemented using an
+asynchronous-by-default, distributed-memory, task-parallel programming paradigm
+on top of the Charm++ runtime system.
+
+@section lohcg_gov The equations of constant-density flow
+
+The equations solved are the 3D unsteady Navier-Stokes equation, governing
+Newtonian incompressible flows,
+
+\f[\begin{split}
+\frac{\partial\mbox{\boldmath$v$}}{\partial t} +
+\mbox{\boldmath$v$}\cdot\nabla\mbox{\boldmath$v$} + \nabla p & =
+\nabla\mu\nabla\mbox{\boldmath$v$} \\
+\nabla\cdot\mbox{\boldmath$v$} & = 0
+\end{split}\f]
+where \f$\mbox{\boldmath$v$}\f$ is the velocity vector, \f$p\f$ is the pressure,
+and both the pressure and the viscosity \f$\mu\f$ have been normalized by the
+(constant) density.
+
+@section lohcg_method The numerical method
+
+The method casts the above system of governing equations into a
+hyperbolic/parabolic system as
+\f[\begin{split}
+\frac{\partial\mbox{\boldmath$v$}}{\partial t} +
+\mbox{\boldmath$v$}\cdot\nabla\mbox{\boldmath$v$} + \nabla p & =
+\nabla\mu\nabla\mbox{\boldmath$v$} \\
+\frac{1}{c^2}\frac{\partial p}{\partial t} + \nabla\cdot\mbox{\boldmath$v$} &=0
+\end{split}\f]
+where \f$c\f$ is the (constant) speed of sound.
+
+@section lohcg_momentum Discretization of momentum transport
+
+The above system is discretized in space using an edge-based finite-element
+method with linear tetrahedra. Using this approach, the velocity vector and
+pressure are located at the nodes of the mesh. The numerical solution at any
+point within the computational domain is represented as
+\f[
+  v_l(\mbox{\boldmath$x$}) = \sum_{i \in \Omega_h} N^i(\mbox{\boldmath$x$})v^i_l
+  \quad\mbox{and}\quad
+  p(\mbox{\boldmath$x$}) = \sum_{i \in \Omega_h} N^i(\mbox{\boldmath$x$}) p^i
+\f]
+where \f$\Omega_h\f$ is a tetrahedron containing the spatial point
+\f$\mbox{\boldmath$x$}\f$, superscript \f$i\f$ denotes the discrete numerical
+solution at vertex \f$i\f$, and \f$N^i(\mbox{\boldmath$x$})\f$ is a linear
+basis function associated with vertex \f$i\f$ and element \f$\Omega_h\f$.
+Applying a Galerkin lumped-mass approximation to the momentum equation yields
+the following semi-discrete form for a vertex \f$i\f$:
+\f[
+  \frac{\text{d}v^i_l}{\text{d}t} = - \frac{1}{V^i}
+  \left[ \sum_{ ij\in i} D^{ij}_k F^{ij}_{kl} +  \sum_{ij\in i} B^{ij}_k \left(
+  F^i_{kl} + F^j_{kl}\right) + B^i_k F^i_{kl} \right] - \frac{1}{V^i} \sum_{
+  ij\in i} K^{ij} \left( v^i_l - v^j_l \right)
+\f]
+where \f$ij\in i\f$ represent all edges \f$ij\f$ connected to vertex \f$i\f$ and
+\f$V^i\f$ is the volume surrounding \f$i\f$. \f$F^{ij}_{kl}\f$ denotes the
+numerical flux between vertices \f$i\f$ and \f$j\f$ while \f$F^i_{kl}\f$ the
+boundary flux. Note that summation is implied on the repeated indices \f$k\f$
+and \f$l\f$ representing spatial directions. The terms \f$D^{ij}_k\f$,
+\f$B^{ij}_k\f$, \f$B^i_k\f$, and \f$K^{ij}\f$ are defined as
+\f[ \begin{split}
+  D^{ij}_k &= \frac{1}{2} \sum_{\Omega_h \in ij} \int_{\Omega_h} \left( N^i
+  \frac{\partial N^j}{\partial x_k} - N^j \frac{\partial N^i}{\partial x_k}
+  \right) \, \text{d} \Omega \\
+  B^{ij}_k &= \frac{1}{2} \sum_{\Gamma_h \in ij} \int_{\Gamma_h} N^i N^j n_k
+  \, \text{d} \Gamma \\
+  B^i_k &= \sum_{\Gamma_h \in i} \int_{\Gamma_h} N^i N^i n_k  \, \text{d}
+  \Gamma \\
+  K^{ij} &= \sum_{\Omega_h \in ij} \int_{\Omega_h} \mu \frac{\partial
+  N^i}{\partial x_k} \frac{\partial N^j}{\partial x_k} \mathrm{d}\Omega
+\end{split} \f]
+where \f$\Omega_h \in ij\f$ represents all domain elements attached to edge
+\f$ij\f$, while \f$\Gamma_h \in ij\f$ all boundary elements attached to edge
+\f$ij\f$, and \f$\Gamma_h \in i\f$ all boundary elements surrounding boundary
+point \f$i\f$. For the derivation of the above and other details see [3] and
+[4]. The numerical flux \f$F^{ij}_{kl}\f$ above is evaluated on each edge
+connecting mesh points \f$i\f$ and \f$j\f$. In the LohCG solver this is given
+by a Galerkin approximation stabilized by artificial viscosity:
+\f[
+  D^{ij}_k F^{ij}_{kl} = D^{ij}_k \left( F^i_{kl} + F^j_{kl} \right) + c_d
+  \lambda^{ij} \left| D^{ij}_k \right| \left( v^j_l - v^i_l \right)
+\f]
+where the flux at mesh point \f$i\f$ is
+\f[
+  F^i_{kl} = v^i_k v^i_l + p^i\delta_{kl}
+\f]
+while \f$c_d\f$ is the artificial viscosity (damping) coefficient, and
+\f$\lambda^{ij}=\max(\lambda^i, \lambda^j)\f$ is the maximum wavespeed across
+edge \f$ij\f$ with
+\f[
+  \lambda^i = \left| v^i_k \frac{D^{ij}_k}{\left|D^{ij}_k\right|} \right| + c
+\f]
+
+Instead of the above second-order damping term, another, less diffusive, option
+in LohCG is to stabilize the advection term via solution reconstruction and
+limited extrapolation, similar to that of implemented in \ref inciter_riecg,
+applied to the velocity components.
+
+@section lohcg_pressure Discretization of pressure transport
+
+The evolution equation governing the pressure is discretized in a similar
+fashion to the above using the Galerkin finite element operator over edges:
+\f[
+  \frac{\text{d}p^i}{\text{d}t} = - \frac{c^2}{V^i}
+  \left[ \sum_{ ij\in i} D^{ij}_k F^{ij}_k + \sum_{ij\in i} B^{ij}_k \left(
+  F^i_k + F^j_k\right) + B^i_k F^i_k \right]
+\f]
+with the flux specifying the velocity divergence. The numerical flux
+\f$F^{ij}_k\f$ is evaluated on each edge connecting mesh points \f$i\f$ and
+\f$j\f$. Similar to the advection term the Galerkin approximation is stabilized
+by artificial viscosity:
+\f[
+  D^{ij}_k F^{ij}_k = D^{ij}_k \left( F^i_k + F^j_k \right) + c_d
+  \lambda^{ij} \left| D^{ij}_k \right| \left( p^j - p^i \right)
+\f]
+where the flux at mesh point \f$i\f$ is
+\f[
+  F^i_k = v^i_k
+\f]
+
+@section lohcg_start Startup procedure
+
+The boundary and initial conditions for the velocity, prescribed by the user
+for a given problem, are not assumed to yield  a divergence-free vector field
+and the initial pressure with its boundary conditions is not assumed to be
+consistent with the initial velocity, i.e., the velocity and pressure are
+allowed to be specified independently. To ensure consistency of the initial and
+boundary conditions with the governing equations, the user-given velocity field,
+\f$\mbox{\boldmath$v$}^*\f$, is decomposed into div-free and curl-free parts as
+\f$ \mbox{\boldmath$v$}^* = \mbox{\boldmath$v$} + \nabla\phi \f$ which,
+taking the divergence, yields the Poisson equation
+\f[
+\nabla^2 \phi = \nabla \cdot \mbox{\boldmath$v$}^*
+\f]
+This is solved for \f$\phi\f$ which is then used to project the velocity
+field onto a divergence-free subspace as
+\f[
+\mbox{\boldmath$v$} = \mbox{\boldmath$v$}^* - \nabla \phi
+\f]
+This divergence-free velocity field is then used to compute the initial
+pressure, satisfying the initial and boundary conditions, by solving the
+Poisson equation
+\f[
+\nabla^2p = -\nabla\cdot\mbox{\boldmath$v$}\nabla\mbox{\boldmath$v$}
+\f]
+Time stepping starts after the above startup procedure.
+
+@section lohcg_time Time integration
+
+The solution is advanced using an explicit \f$m\f$-stage Runge-Kutta scheme:
+\f[
+  \mbox{\boldmath$u$}^k = \mbox{\boldmath$u$}^n + \alpha^k \Delta t
+  \mbox{\boldmath$r$}^{k-1}
+\f]
+where \f$\mbox{\boldmath$u$}=(\mbox{\boldmath$v$},p)\f$, \f$r\f$ is the right
+hand side, \f$k\f$ is the current stage, \f$\alpha^k = 1/(1+m-k)\f$, and the
+time step size is obtained by finding the minimum value over all mesh points as
+\f[
+\Delta t = \text{C} \min_{\forall i} \frac{(V^i)^{1/3}}{\lambda^{i}}
+\f]
+where \f$\text{C} \leq 1\f$ is the Courant number.
+
+@section lohcg_refs References
+
+@m_div{m-text m-noindent}
+[1] H. Luo, J. Baum, and R. Lohner, [Edge-based finite element scheme for the Euler equations](https://doi.org/10.2514/3.12118), AIAA Journal, 32(6), 1183-1190, 1994.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[2] R. Löhner, [Edges, stars, superedges and chains](https://doi.org/10.1016/0045-7825(94)90133-3), Computer Methods in Applied Mechanics and Engineering, 111, 3-4, 255-263, 1994.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[3] J. Waltz, N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, [A three-dimensional finite element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured grids](https://doi.org/10.1016/j.compfluid.2013.12.021), Computers & Fluids, 92: 172-187, 2014.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[4] R. Löhner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746), Wiley, 2008.
+@m_enddiv
+
+*/
+} // inciter:

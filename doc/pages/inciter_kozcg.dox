@@ -9,7 +9,13 @@ more details, see @ref papers.
 
 @note In KozCG, _Koz_ stands for [Imre Kozák](https://mta.hu/mta_hirei/elhunyt-kozak-imre-az-mta-rendes-tagja-107144) and _CG_ for continuous Galerkin.
 
-The numerical method in KozCG is an element-based implementation of a finite element method for unstructured meshes, composed of tetrahedral cells. The solver is intended for the computing of compressible flows. A good reference for the finite element method itself is Lohner's book [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746) and on Flux Corrected Transport [Lohner, Morgan, Peraire, Vahdati, Finite element flux-corrected transport (FEM-FCT) for the Euler and Navier--Stokes equations](http://dx.doi.org/10.1002/fld.1650071007). The implementation of the method uses an asynchronous-by-default, distributed-memory, task-parallel programming paradigm using the Charm++ runtime system.
+The numerical method in KozCG is an element-based implementation of a finite
+element method for unstructured meshes, composed of tetrahedral cells. The
+solver is intended for the computing of compressible flows. A good reference
+for the finite element method itself is [1] and on flux-corrected transport is
+[2]. The implementation of the method uses an asynchronous-by-default,
+distributed-memory, task-parallel programming paradigm using the Charm++
+runtime system.
 
 @section kozcg_euler The equations of compressible flow
 
@@ -279,6 +285,16 @@ can be used for each scalar in a system of equations. This works well for
 independent scalars, but for coupled system of equations additional techniques
 have been developed to reflect the coupled nature of the equations in the
 limiting procedure.
+
+@section kozcg_refs References
+
+@m_div{m-text m-noindent}
+[1] R. Löhner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746), Wiley, 2008.
+@m_enddiv
+
+@m_div{m-text m-noindent}
+[2] Lohner, Morgan, Peraire, Vahdati, [Finite element flux-corrected transport (FEM-FCT) for the Euler and Navier--Stokes equations](http://dx.doi.org/10.1002/fld.1650071007), International Journal for Numerical Methods in Fluids, 7, 1093-1109, 1987.
+@m_enddiv
 
 */
 } // inciter::

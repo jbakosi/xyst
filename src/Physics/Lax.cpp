@@ -914,7 +914,7 @@ advbnd( const std::vector< std::size_t >& triinpoel,
     const std::array< tk::real, 3 >
       ba{ x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]] },
       ca{ x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]] };
-    auto [nx,ny,nz] = tk::cross( ba, ca );
+    auto [nx,ny,nz] = tk::cross( ba, ca );      // 2A
     nx /= 12.0;
     ny /= 12.0;
     nz /= 12.0;

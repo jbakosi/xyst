@@ -1,0 +1,114 @@
+/*!
+  \page      chocg_example_sphere_quarter ChoCG: Inviscid flow past a sphere
+
+This example uses @ref inciter_chocg in @ref inciter_main to compute the
+inviscid constant-density (incompressible) flow past a sphere. Since the
+analytic solution of this problem is known from potential flow theory, we can
+use it to verify the correctness of the software implementation of the method.
+
+@section chocg_example_sphere_quarter_setup Problem setup
+
+Due to the spatial symmetry of the problem, only quarter of the sphere is
+represented. The computational mesh consists of 73,397 tetrahedra connecting
+14,281 points, whose surface mesh is depicted below. The initial conditions
+prescribe the free-stream velocity of \f$\mbox{\boldmath$v$}=(1,0,0)\f$. As
+boundary conditions, the pressure is set to zero at the outflow and the
+velocity is set to \f$\mbox{\boldmath$v$}=(1,0,0)\f$ at the inflow. Symmetry
+(free-slip) conditions are applied on the sphere, the symmetry and farfield
+surfaces.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sphere_mesh.png"/>
+@m_enddiv
+
+@note For the mesh, contact us using the link at the bottom of the page.
+
+@section chocg_example_sphere_quarter_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [291b6f1](https://codeberg.org/xyst/xyst/commit/291b6f1ea70bb089e46d7a47a6ff5c06ee931042) and the control file below.
+
+@section chocg_example_sphere_quarter_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Inviscid quarter sphere"
+
+-- mesh: sphere_quarter.exo
+
+term = 0.2
+ttyi = 1
+cfl = 0.3
+
+solver = "chocg"
+flux = "damp4"
+rk = 4
+fct = false
+
+part = "phg"
+
+pressure = {
+  iter = 300,
+  tol = 1.0e-4,
+  --verbose = 1,
+  pc = "jacobi",
+  bc_dir = {
+    { 7, 1 }
+  }
+}
+
+ic = {
+  velocity = { 1.0, 0.0, 0.0 }
+}
+
+bc_dir = {
+  { 6, 2, 2, 2 }
+}
+
+bc_dirval = {
+  { 6, 1.0, 0.0, 0.0 }
+}
+
+bc_sym = {
+  sideset = { 1, 2, 3, 4, 5 }
+}
+
+fieldout = {
+  iter = 100,
+  sideset = { 1, 2, 3 }
+}
+
+diag = {
+  iter = 1,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section chocg_example_sphere_quarter_run Run on a single CPU
+
+@code{.bash}
+Main/inciter -i sphere_quarter.exo -c sphere_chocg_inviscid_quarter.q
+@endcode
+
+@section chocg_example_sphere_quarter_fieldvis Visualization and numerical results
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.1.0
+@endcode
+
+The velocity magnitude along the X axis following the sphere surface is
+depicted below.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/sphere_chocg_inviscid_quarter_vis.png"/>
+@m_enddiv
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/sphere_chocg_inviscid_quarter.png"/>
+@m_enddiv
+
+*/

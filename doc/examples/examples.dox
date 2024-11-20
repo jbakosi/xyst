@@ -57,6 +57,8 @@ The pages below discuss example calculations using the @ref inciter_laxcg solver
 
 The pages below discuss example calculations using the @ref inciter_chocg solver.
 
+  - \subpage chocg_example_poiseuille
+
 \section lohcg_vnv LohCG V&V
 
 The pages below discuss example calculations using the @ref inciter_lohcg solver.

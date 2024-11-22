@@ -224,17 +224,11 @@ limiting procedure.
 
 @section zalcg_refs References
 
-@m_div{m-text m-noindent}
-[1] R. Löhner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746), Wiley, 2008.
-@m_enddiv
+1. R. Löhner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746), Wiley, 2008.
 
-@m_div{m-text m-noindent}
-[2] Lohner, Morgan, Peraire, Vahdati, [Finite element flux-corrected transport (FEM-FCT) for the Euler and Navier--Stokes equations](http://dx.doi.org/10.1002/fld.1650071007), International Journal for Numerical Methods in Fluids, 7, 1093-1109, 1987.
-@m_enddiv
+2. Lohner, Morgan, Peraire, Vahdati, [Finite element flux-corrected transport (FEM-FCT) for the Euler and Navier--Stokes equations](http://dx.doi.org/10.1002/fld.1650071007), International Journal for Numerical Methods in Fluids, 7, 1093-1109, 1987.
 
-@m_div{m-text m-noindent}
-[3] J. Waltz, N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, [A three-dimensional finite element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured grids](https://doi.org/10.1016/j.compfluid.2013.12.021), Computers & Fluids, 92: 172-187, 2014.
-@m_enddiv
+3. J. Waltz, N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, [A three-dimensional finite element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured grids](https://doi.org/10.1016/j.compfluid.2013.12.021), Computers & Fluids, 92: 172-187, 2014.
 
 */
 } // inciter::

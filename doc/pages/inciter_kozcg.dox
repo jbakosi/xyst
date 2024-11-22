@@ -288,13 +288,9 @@ limiting procedure.
 
 @section kozcg_refs References
 
-@m_div{m-text m-noindent}
-[1] R. Löhner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746), Wiley, 2008.
-@m_enddiv
+1. R. Löhner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746), Wiley, 2008.
 
-@m_div{m-text m-noindent}
-[2] Lohner, Morgan, Peraire, Vahdati, [Finite element flux-corrected transport (FEM-FCT) for the Euler and Navier--Stokes equations](http://dx.doi.org/10.1002/fld.1650071007), International Journal for Numerical Methods in Fluids, 7, 1093-1109, 1987.
-@m_enddiv
+2. Lohner, Morgan, Peraire, Vahdati, [Finite element flux-corrected transport (FEM-FCT) for the Euler and Navier--Stokes equations](http://dx.doi.org/10.1002/fld.1650071007), International Journal for Numerical Methods in Fluids, 7, 1093-1109, 1987.
 
 */
 } // inciter::

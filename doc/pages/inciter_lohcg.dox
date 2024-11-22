@@ -178,21 +178,13 @@ where \f$\text{C} \leq 1\f$ is the Courant number.
 
 @section lohcg_refs References
 
-@m_div{m-text m-noindent}
-[1] H. Luo, J. Baum, and R. Lohner, [Edge-based finite element scheme for the Euler equations](https://doi.org/10.2514/3.12118), AIAA Journal, 32(6), 1183-1190, 1994.
-@m_enddiv
+1. H. Luo, J. Baum, and R. Lohner, [Edge-based finite element scheme for the Euler equations](https://doi.org/10.2514/3.12118), AIAA Journal, 32(6), 1183-1190, 1994.
 
-@m_div{m-text m-noindent}
-[2] R. Löhner, [Edges, stars, superedges and chains](https://doi.org/10.1016/0045-7825(94)90133-3), Computer Methods in Applied Mechanics and Engineering, 111, 3-4, 255-263, 1994.
-@m_enddiv
+2. R. Löhner, [Edges, stars, superedges and chains](https://doi.org/10.1016/0045-7825(94)90133-3), Computer Methods in Applied Mechanics and Engineering, 111, 3-4, 255-263, 1994.
 
-@m_div{m-text m-noindent}
-[3] J. Waltz, N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, [A three-dimensional finite element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured grids](https://doi.org/10.1016/j.compfluid.2013.12.021), Computers & Fluids, 92: 172-187, 2014.
-@m_enddiv
+3. J. Waltz, N.R. Morgan, T.R. Canfield, M.R.J. Charest, L.D. Risinger, J.G. Wohlbier, [A three-dimensional finite element arbitrary Lagrangian–Eulerian method for shock hydrodynamics on unstructured grids](https://doi.org/10.1016/j.compfluid.2013.12.021), Computers & Fluids, 92: 172-187, 2014.
 
-@m_div{m-text m-noindent}
-[4] R. Löhner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746), Wiley, 2008.
-@m_enddiv
+4. R. Löhner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470989746), Wiley, 2008.
 
 */
 } // inciter:

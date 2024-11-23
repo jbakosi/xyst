@@ -185,14 +185,20 @@ endif()
 
 find_package(Charm)
 if(NOT CHARM_FOUND)
+  set(CHARM_LOCAL "${PROJECT_SOURCE_DIR}/../charm")
+  if(EXISTS ${CHARM_LOCAL})
+    set(CHARM_REPOSITORY "${CHARM_LOCAL}")
+  else()
+    set(CHARM_REPOSITORY "https://github.com/charmplusplus/charm")
+  endif()
+  message(STATUS "Will build charm++ from: ${CHARM_REPOSITORY}")
   build_external_project(charm "
     cmake_minimum_required(VERSION 3.0)
     project(charm CXX)
     include(ExternalProject)
     ExternalProject_add(charm
       PREFIX charm
-      GIT_REPOSITORY https://github.com/charmplusplus/charm
-      #GIT_REPOSITORY ${PROJECT_SOURCE_DIR}/../../charm
+      GIT_REPOSITORY ${CHARM_REPOSITORY}
       GIT_TAG v7.0.0-rc2
       PATCH_COMMAND patch -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch
       CMAKE_ARGS -D TARGET=${CHARM_TARGET}

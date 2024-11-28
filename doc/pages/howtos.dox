@@ -3,6 +3,7 @@
 
 This page contains links to useful information regarding Xyst.
 
+- @ref contributing "How to contribute"
 - @ref howto_dbg
 - @ref howto_doc
 - @ref howto_coverage

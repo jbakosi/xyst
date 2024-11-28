@@ -57,6 +57,10 @@ All executables will be under `build/Main/`.
 
 [GPL v3](https://codeberg.org/xyst/xyst/src/branch/master/LICENSE).
 
+@section mainpage_contributing Contributing
+
+See @ref contributing.
+
 @section mainpage_history History
 
 Xyst was forked in 2022 from

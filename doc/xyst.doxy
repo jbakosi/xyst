@@ -2362,7 +2362,7 @@ HTML_EXTRA_STYLESHEET = \
 ##!      "vnv <a href=\"vnv.html#riecg_vnv\">RieCG</a> <a href=\"vnv.html#kozcg_vnv\">KozCG</a> <a href=\"vnv.html#zalcg_vnv\">ZalCG</a> <a href=\"vnv.html#laxcg_vnv\">LaxCG</a> <a href=\"vnv.html#chocg_vnv\">ChoCG</a> <a href=\"vnv.html#lohcg_vnv\">LohCG</a>" \
 ##!       howtos \
 ##!       papers \
-##!      "<a href=\"https://codeberg.org/xyst/xyst\">Source</a> namespaces annotated files licenses coverage"
+##!      "<a href=\"https://codeberg.org/xyst/xyst\">Source</a> namespaces annotated files licenses coverage contributing"
 
 ##! M_LINKS_NAVBAR2 = ""
 

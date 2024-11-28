@@ -1,0 +1,246 @@
+/*!
+  \page      contributing Contributing
+
+Thank you for considering contributing to Xyst. Please read the information
+below to help make your contribution easy and effective.
+
+Following these guidelines helps communicating that you respect the time of the
+developers managing this project. In return, they will reciprocate that respect
+in addressing your issue, assessing changes, and helping you finalize your pull
+requests.
+
+@tableofcontents{xml}
+
+@section styling Coding style
+
+Here are a few guidelines to keep in mind when contributing to Xyst:
+
+- In general, follow the style of already existing code. In particular,
+- Indentation: if-tests, for-loops, continuation lines, etc. should be
+  indented by *exactly two* spaces. Nested loops/conditions should be indented
+  recursively.
+- Tab-spaces: Do not use tab-spaces for any reason (including indentation).
+  Only regular spaces should be used. In `vim` the tab-key can be mapped to two
+  regular spaces by adding the following to your `.vimrc`:
+
+       set expandtab
+       set tabstop=2
+
+- Whitespaces: Lines should not end in white spaces. Nor should empty lines
+  have white spaces.
+- Code should not exceed 80 columns. If a particular line exceeds 80 columns,
+  add a continuing line, with an indentation to indicate continuity with
+  previous line.
+
+@section contributing_seek Types of contributions we are looking for
+
+There are many ways to contribute, from writing tutorials and @ref howtos
+"howtos", adding @ref vnv "examples", improving the documentation, submitting
+bug reports and feature requests to writing code which can be incorporated into
+Xyst itself.
+
+@subsection contributing_create Create your own tool
+
+One way to contribute to Xyst is to create your own @ref mainpage_tools
+"tool". A tool is the largest unit of interacting components, such as @ref
+inciter_main. Creating a new tool provides the largest degree of freedom in
+what and how the tool should do, what its goals are, what equations it solves,
+the numerical methods of choice, etc.
+
+The main benefit of creating a new tool in Xyst is to be able to build
+something almost entirely new, yet still not having to start it from scratch.
+This can be done by relying on the existing software infrastructure, including
+
+- The Charm++ runtime system and its ecosystem of libraries, allowing
+  distributed-memory-parallel asynchronous programming and providing automatic
+  load balancing, fault tolerance, and many others, to enable high performance
+  for small as well as large problems.
+
+- A CMake build system that already incorporates some necessary third-party
+  libraries and enables integration of Charm++-generated code as well as
+  MPI-only libraries.
+
+- Existing command-line, and input-file parsers, to enable user-friendly
+  configuration of problems.
+
+- Distributed parallel file I/O with mesh partitioning and conversion for
+  tetrahedron meshes, including the possibility of unequal I/O and CPU workers
+  using @ref howto_smp "Charm++'s SMP mode".
+
+- Automated testing infrastructure, capable of testing serial, synchronous
+  (e.g., MPI) parallel, and asynchronous (e.g., Charm++) parallel functions and
+  executables, using multiple compilers, operating systems, libraries, container
+  technology, and code quality analysis.
+
+- Beautiful no-nonsense documentation featuring an expertly-designed,
+  as-you-type search-engine, whose result looks great on any device, including
+  math and figures.
+
+In summary, if you want to start a new tool but do not want to start from
+scratch, yet still want the above features (to start from), you could create a
+new tool in Xyst. If you are interested, contact us using the link at the
+bottom of the page, so we can discuss the best way to go about it.
+
+@subsection contributing_improve Improve an existing tool
+
+Another way to contribute to Xyst is to improve an existing @ref mainpage_tools
+"tool".
+
+@section contributing_issues Using the issue tracker
+
+The issue tracker on Codeberg at https://codeberg.org/xyst/xyst is the preferred channel for @ref contributing_bugs "bug reports", @ref contributing_features "feature requests", and submitting pull requests.
+
+@section contributing_bugs Bug reports
+
+A bug is a problem that can be demonstrated and reproduced. Good bug reports are
+extremely helpful. Thanks in advance for taking the time to produce a useful bug
+report.
+
+Guidelines for bug reports:
+
+1. Use the Codeberg [issue search](https://codeberg.org/xyst/xyst/issues)
+   &mdash; check if the issue has already been reported.
+
+2. Check if the issue has been fixed &mdash; try to reproduce it using the
+   HEAD of the `master` branch.
+
+3. Try to see if the bug can be reproduced by any of the regression tests
+   &mdash; see the @ref mainpage_build "build section" on the main page on how
+   to run them.
+
+4. Try to reproduce the bug in `Debug` mode &mdash; see @ref howto_dbg.
+
+A good bug report shouldn't leave others needing to chase you down for more
+information. Please try to be as detailed as possible in your report. What is
+your environment? What steps will reproduce the issue? What OS environment the
+problem? What would you expect to be the outcome? All these details will help
+us fix any potential bugs.
+
+Example:
+
+> Short and descriptive example bug report title
+>
+> A summary of the issue and the OS environment in which it occurs. If suitable,
+> include the steps required to reproduce the bug:
+>
+> 1. This is the first step.
+> 2. This is the second step.
+> 3. Further steps, etc.
+>
+>
+> Attach the full screen output including those of the steps with cmake, build,
+> and run.
+>
+> Attach the input control and mesh files.
+>
+> Attach the full screen output of the run reproducing the problem, including
+> those of the Charm++ runtime system as well as the call and stack traces.
+>
+> Include any other information you want to share that is relevant to the issue
+> being reported. This might include the lines of code that you have identified
+> as causing the bug, and potential solutions.
+
+@subsection contributing_nondeterministic Non-deterministic bugs
+
+Some bugs may be non-deterministic and thus may only be triggered occasionally
+while some other times the code appears to run just fine, producing correct
+output. If this happens, don't panic! Such bugs are usually due to the fact
+that in Charm++ (and thus in Xyst) execution is asynchronous by default and
+that the runtime system may (and likely will) schedule messages and tasks (and
+thus execution) in a non-deterministic fashion (while still adhering to
+correctness as specified by the programmer). However, if the programmer misses
+even a single path of many possible paths of execution, if it is incorrect, that
+may lead to data races and other bugs and thus may only appear randomly.
+
+Such non-deterministic bugs are a bit a harder to reproduce. Here are some
+techniques that have helped us in the past trigger such bugs sooner rather than
+later:
+
+- If the bug is reproduced in `Release` mode, see if it can also be reproduced
+  in `Debug` mode.
+
+- Build the Charm++ runtime system using @ref howto_rndq "randomized message queues". This mode increases the chances of appearance of such non-deterministic errors.
+
+- Run the case (or a subset of the regression tests) you believe will trigger
+  the problem in an infinite shell loop _and at the same time_ load the CPUs of
+  the machine with something else. For example, do
+
+       while ctest -j8 -R asynclogic -L migration --output-on-failure; do :; done | c++filt
+
+   While the above is running, in another terminal window do
+
+       make clean && make -sj8
+
+   The above will use 8 CPU cores and run all regression tests that contain the
+   string `asynclogic` in their name _and_ also exercise object migration.
+   If/when the problem happens, the test will produce a screen output with
+   demangled traces using the `c++filt` utility.
+
+- You can also turn on Charm++'s quiescence detection feature by passing the
+  `-q` command line argument to any of the executables, which help identify a
+   specific subset of asynchronous-logic bugs. See also @ref howto_runnerargs.
+
+@section contributing_features Feature requests
+
+Feature requests are welcome. Please use the [issue tracker](https://codeberg.org/xyst/xyst/issues). Please provide as much detail and context as possible.
+
+@section contributing_rules Ground rules
+
+Here are the basic rules of contributing.
+
+@subsection contributing_license Consider the license
+
+By contributing code, you agree to license your work under Xyst's
+[license](https://codeberg.org/xyst/xyst/src/branch/master/LICENSE).
+
+@subsection contributing_build Build with all warnings on, using multiple compilers
+
+We routinely work with two compilers: clang and gnu &mdash; this helps catching
+more errors, increases portability, and helps decipher more complex error
+messages. Using multiple compilers is not required but recommended since our
+automated testing exercises these compilers, and it is more time-effective to
+catch errors and warnings earlier than later. By default the build system turns
+on most (if not all) compiler warnings. There are some exceptions to this rule:
+
+- some warnings are turned off _globally_ (these are in `src/CMakeListst.txt`)
+  under `compiler-specific settings` &mdash; a different list for each compiler,
+  and
+
+- we turn off some warnings _locally_, when headers of third-party libraries
+  and Charm++-generated code are included &mdash; these are collected under
+  `src/NoWarning/`.
+
+To ensure good code quality we do not deviate from these settings, and we ask
+all contributors to do the same.
+
+@subsection contributing_test Run unit-, and regression tests
+
+For example, on a workstation with 8 CPUs, run the following in the build
+directory
+
+@code{.sh}
+# Using Charm++'s non-SMP mode:
+./charmrun +p 8 Main/unittest -v -q && ctest -j 8 --output-on-failure
+# in SMP mode:
+./charmrun +p 3 --bind-to none Main/unittest -v -q +ppn 3 && ctest -j 8 --output-on-failure
+@endcode
+
+See the section on @ref howto_smp "building Charm++ in SMP mode" on how to
+build Charm++ in non-SMP and SMP mode.
+
+@section contributing_pr Pull requests
+
+Good pull requests (PR) &mdash; patches, improvements, new features &mdash; are
+a fantastic help. They should remain focused in scope and avoid containing
+unrelated commits.
+
+@ref resources_contact "Please ask first" before embarking on any significant
+PR (e.g. implementing features, refactoring code), otherwise you risk spending
+a lot of time working on something that we might not want to merge in.
+
+If you have never created a pull request for a public open source project, [here](https://egghead.io/courses/how-to-contribute-to-an-open-source-project-on-github) is a great tutorial on how it works.
+
+@note If any of the above is unclear, do not hesitate to contact us using the
+link at the bottom of the page.
+
+*/

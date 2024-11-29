@@ -1101,27 +1101,27 @@ Transporter::stat()
         print.section( "Mesh distribution statistics" );
       }
       print <<
-        "min/max/avg(edgelength) = " +
+        "min/max/avg edgelength = " +
         std::to_string( m_minstat[i][0] ) + " / " +
         std::to_string( m_maxstat[i][0] ) + " / " +
         std::to_string( m_avgstat[i][0] ) + "\n" +
-        "min/max/avg(V^{1/3}) = " +
+        "min/max/avg V^(1/3) = " +
         std::to_string( m_minstat[i][1] ) + " / " +
         std::to_string( m_maxstat[i][1] ) + " / " +
         std::to_string( m_avgstat[i][1] ) + "\n" +
-        "min/max/avg(nelem) = " +
+        "min/max/avg nelem = " +
         std::to_string( static_cast<std::size_t>(m_minstat[i][2]) ) + " / " +
         std::to_string( static_cast<std::size_t>(m_maxstat[i][2]) ) + " / " +
         std::to_string( static_cast<std::size_t>(m_avgstat[i][2]) ) + "\n" +
-        "min/max/avg(npoin) = " +
+        "min/max/avg npoin = " +
         std::to_string( static_cast<std::size_t>(m_minstat[i][3]) ) + " / " +
         std::to_string( static_cast<std::size_t>(m_maxstat[i][3]) ) + " / " +
         std::to_string( static_cast<std::size_t>(m_avgstat[i][3]) ) + "\n" +
-        "min/max/avg(nedge) = " +
+        "min/max/avg nedge = " +
         std::to_string( static_cast<std::size_t>(m_minstat[i][4]) ) + " / " +
         std::to_string( static_cast<std::size_t>(m_maxstat[i][4]) ) + " / " +
         std::to_string( static_cast<std::size_t>(m_avgstat[i][4]) ) + '\n' +
-        "min/max/avg(ncompoin/npoin) = " +
+        "min/max/avg ncompoin/npoin = " +
         std::to_string( m_minstat[i][5] ) + " / " +
         std::to_string( m_maxstat[i][5] ) + " / " +
         std::to_string( m_avgstat[i][5] ) + '\n';

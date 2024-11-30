@@ -60,7 +60,7 @@ following steps
 \f]
 
 Here \f$\theta\f$ denotes the implicitness factor for the viscous term:
-\f$\theta\f$=1: implicit, \f$\theta\f$=0.5: Crank-Nicholson.
+\f$\theta\f$=1: Backward Euler, \f$\theta\f$=0.5: Crank-Nicholson.
 
 @section chocg_adv Discretization of advection and diffusion
 

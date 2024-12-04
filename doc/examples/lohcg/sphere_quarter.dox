@@ -1,0 +1,108 @@
+/*!
+  \page      lohcg_example_sphere_quarter LohCG: Inviscid flow past a sphere
+
+This example uses @ref inciter_lohcg in @ref inciter_main to compute the
+inviscid constant-density (incompressible) flow past a sphere. Since the
+analytic solution of this problem is known from potential flow theory, we can
+use it to verify the correctness of the software implementation of the method.
+
+@section lohcg_example_sphere_quarter_setup Problem setup
+
+Due to the spatial symmetry of the problem, only quarter of the sphere is
+represented. The computational mesh consists of 73,397 tetrahedra connecting
+14,281 points, whose surface mesh is depicted below. The initial conditions
+prescribe the free-stream velocity of \f$\mbox{\boldmath$v$}=(1,0,0)\f$. As
+boundary conditions, the pressure is set to zero at the outflow and the
+velocity is set to \f$\mbox{\boldmath$v$}=(1,0,0)\f$ at the inflow. Symmetry
+(free-slip) conditions are applied on the sphere, the symmetry and farfield
+surfaces.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sphere_mesh.png"/>
+@m_enddiv
+
+@note For the mesh, contact us using the link at the bottom of the page.
+
+@section lohcg_example_sphere_quarter_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [d4d1f48](https://codeberg.org/xyst/xyst/commit/d4d1f48e53d2ef33da2aa133e18c5bd606926ea7) and the control file below.
+
+@section lohcg_example_sphere_quarter_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Inviscid quarter sphere"
+
+-- mesh: sphere_quarter.exo
+
+term = 0.3
+ttyi = 100
+
+cfl = 1.0
+
+solver = "lohcg"
+flux = "damp4"
+stab2 = true
+stab2coef = 0.1
+soundspeed = 50.0
+rk = 4
+
+part = "phg"
+
+pressure = {
+  iter = 300,
+  tol = 1.0e-4,
+  --verbose = 1,
+  pc = "jacobi",
+  bc_dir = { { 7, 1 } }
+}
+
+ic = {
+  velocity = { 1.0, 0.0, 0.0 }
+}
+
+bc_dir = {
+  { 6, 0, 1, 1, 1 },
+  { 7, 1, 0, 0, 0 }
+}
+
+bc_sym = {
+  sideset = { 1, 2, 3, 4, 5 }
+}
+
+fieldout = {
+  iter = 1000,
+  sideset = { 1, 2, 3 }
+}
+
+diag = {
+  iter = 1,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section lohcg_example_sphere_quarter_run Run on a single CPU
+
+@code{.bash}
+Main/inciter -i sphere_quarter.exo -c sphere_lohcg_inviscid_quarter.q
+@endcode
+
+@section lohcg_example_sphere_quarter_fieldvis Visualization and numerical results
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.1.0
+@endcode
+
+The velocity magnitude along the X axis following the sphere surface is
+depicted below.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/sphere_lohcg_inviscid_quarter.png"/>
+@m_enddiv
+
+*/

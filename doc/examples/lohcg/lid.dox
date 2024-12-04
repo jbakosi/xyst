@@ -1,0 +1,120 @@
+/*!
+  \page      lohcg_example_lid LohCG: Lid-driven cavity
+
+This example uses @ref inciter_lohcg in @ref inciter_main to compute the
+stationary viscous constant-density (incompressible) laminar flow field in a
+cubic domain driven by a shearing velocity on one side. The numerical solution
+is compared to those published in [1].
+
+@section lohcg_example_lid_setup Problem setup
+
+The problem domain is a cube with 5 solid walls and a constant shear-velocity
+prescribed on the 6th one. The mesh consts of 750,000 tetrahedra connecting
+132,651 pointsis, displayed below. The initial conditions prescribe a quiescent
+state with \f$\mbox{\boldmath$v$}(\mbox{\boldmath$x$},t=0)=(0,0,0)\f$. The
+boundaries at walls prescribe no-slip/no-penetration with
+\f$\mbox{\boldmath$v$}(t)=(0,0,0)\f$. The shear velocity on top of the cube is
+enforced using a Dirichlet condition as \f$ \mbox{\boldmath$\overline{v}$}(t) =
+(1,0,0) \f$.  The dynamic viscosity is specified as \f$\mu=0.01\f$, which
+yields a Reynolds number of \f$ \text{Re} = \rho \overline{v}_x L / \mu = 100
+\f$, defined based on the fluid density \f$\rho=1\f$, the length of the cube
+\f$L=1\f$, and the imposed shear velocity of \f$ \overline{v}_x = 1 \f$.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/ldc_mesh.png"/>
+Surface mesh for computing lid-driven cavity, nelem=750K, npoin=132K.
+@m_enddiv
+
+@note Contact us using the link at the bottom of the page for the mesh files.
+
+@section lohcg_example_lid_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [4c61fe1](https://codeberg.org/xyst/xyst/commit/4c61fe18dd2ae7661c2c34b9eff6ce3390b0148d) and the control file below.
+
+@section lohcg_example_lid_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Lid-driven cavity"
+
+-- mesh: mms/unitcube_94K.exo
+--       mms/unitcube_750K.exo
+--       mms/unitcube_6M.exo
+--       mms/unitcube_48M.exo
+
+term = 40.0
+ttyi = 1000
+
+cfl = 0.9
+
+solver = "lohcg"
+flux = "damp2"
+stab2 = true
+stab2coef = 0.01
+soundspeed = 1000.0
+rk = 2
+
+part = "rcb"
+
+Re = 100.0
+mat = { dyn_viscosity = 1.0/Re }
+
+pressure = {
+  iter = 500,
+  tol = 1.0e-3,
+  verbose = 1,
+  pc = "jacobi",
+  hydrostat = 0
+}
+
+ic = {
+  velocity = { 0.0, 0.0, 0.0 }
+}
+
+bc_noslip = {
+  sideset = { 1, 2, 3, 5, 6 }
+}
+
+bc_dir = {
+  { 4, 0, 2, 2, 2 }
+}
+
+bc_dirval = {
+  { 4, 0.0, 1.0, 0.0, 0.0 }
+}
+
+fieldout = {
+  iter = 100000
+}
+
+diag = {
+  iter = 100,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section lohcg_example_lid_run Run on 64 CPUs
+
+@code{.bash}
+./charmrun +p64 Main/inciter -i unitcube_750K.exo -c ldc_lohcg.q
+@endcode
+
+@section lohcg_example_lid_sol Numerical solution
+
+Plotted below are the computed velocity profiles sampled in the middle of the
+domain along lines in the X and Y directions, obtained after the solution has
+converged to a stationary state. The numerical solution is compared to those in
+[1].
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/ldc_lohcg_u.png"/>
+<img src="images/ldc_lohcg_v.png"/>
+@m_enddiv
+
+@section lohcg_example_refs References
+
+1. U. Ghia, K.N. Ghia, and C.T. Shin, [High-Re Solutions of Incompressible Flow Using the Navier-Stokes Equations and a Multigrid Method](https://doi.org/10.1016/0021-9991(82)90058-4), Journal of Computational Physics, 48(3), 387-411, 1982.
+
+*/

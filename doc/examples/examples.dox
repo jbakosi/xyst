@@ -63,6 +63,8 @@ The pages below discuss example calculations using the @ref inciter_chocg solver
 
 \section lohcg_vnv LohCG V&V
 
+  - \subpage lohcg_example_lid
+
 The pages below discuss example calculations using the @ref inciter_lohcg solver.
 
 See @ref papers for more documentation and more examples.

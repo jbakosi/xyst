@@ -11,7 +11,7 @@ scaling_, characteristic of the algorithm and its parallel implementation.
 Strong scalability helps answer questions, such as _How much faster one can
 obtain a given result (at a given level of numerical error) if larger
 computational resources were available_. To measure strong scaling we ran the
-@ref lohcg_example_ldc "Lid-driven cavity" using a 794M-cell mesh (133M points)
+@ref lohcg_example_lid "Lid-driven cavity" using a 794M-cell mesh (133M points)
 on varying number of CPUs for a few time steps and measured the average
 wall-clock time it takes to advance a single time step. The figure below
 depicts timings measured on the

@@ -1080,8 +1080,14 @@ LohCG::pinit()
   // Set hydrostat
   auto h = g_cfg.get< tag::pre_hydrostat >();
   if (h != std::numeric_limits< uint64_t >::max()) {
-    auto g = lid.find( 1 );
-    if (g != end(lid)) dirbc[ h ] = {{ { g->second, 0.0 }} };
+    auto pi = lid.find( h );
+    if (pi != end(lid)) {
+      auto p = pi->second;
+      auto ic = problems::PRESSURE_IC();
+      auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
+      auto& d = dirbc[p];
+      if (d.empty()) d = {{ { 1, val }} };
+    }
   }
 
   // Configure right hand side

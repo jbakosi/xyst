@@ -1,0 +1,166 @@
+/*!
+  \page      lohcg_example_poiseuille LohCG: Poiseuille flow
+
+This example uses @ref inciter_lohcg in @ref inciter_main to compute the
+stationary viscous constant-density (incompressible) laminar flow field in a
+channel due to an imposed pressure gradient. Since the analytic solution is
+known the objective is to establish and verify the accuracy of the numerical
+method and the correctness of the software implementation.
+
+@section lohcg_example_poiseuille_setup Problem setup
+
+The problem domain consists of a rectangular channel with an imposed streamwise
+pressure gradient. While the flow field is nominally 2D, we compute it in 3D.
+The length of the channel in the X coordinate direction is 20 units, its height
+in Y is \f$L_y=1\f$, and the width in Z is adjusted to contain a single element
+in the Z direction depending on the mesh resolution.
+
+An example mesh is displayed below. The initial and boundary conditions
+prescribe a pressure gradient of \f$\text{d}p/\text{d}x=-0.12\f$, thus the
+analytic solution for the streamwise velocity is
+\f[
+v_x = \frac{1}{2\mu}\left(-\frac{\text{d}p}{\text{d}x}\right)y\left(L_y-y\right)
+\f]
+where \f$p\f$ is the pressure and \f$\mu=0.01\f$ is the dynamic viscosity which
+yields the laminar Reynolds number as \f$ \text{Re} = \rho \overline{v}_x L_y /
+\mu = 100 \f$, defined based on the fluid density \f$\rho=1\f$ and the average
+streamwise velocity \f$ \overline{v}_x = 1 \f$. The flow starts with quiescent
+initial conditions: \f$\mbox{\boldmath$v$}(\mbox{\boldmath$x$},t=0)=(0,0,0)\f$.
+At the Z extremes of the computational domain Dirichlet boundary conditions are
+set to \f$v_y=v_z=0\f$ and no-slip/no-penetration boundary conditions,
+\f$v_x=v_y=v_z=0\f$, are applied at the Y extremes representing the channel
+walls.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/poiseuille_mesh.png"/>
+Coarse surface mesh for computing Poiseuille flow, nelem=3K, npoin=1.2K.
+@m_enddiv
+
+@note Contact us using the link at the bottom of the page for the mesh files.
+
+@section lohcg_example_poiseuille_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [291b6f1](https://codeberg.org/xyst/xyst/commit/291b6f1ea70bb089e46d7a47a6ff5c06ee931042) and the control file below.
+
+@section lohcg_example_poiseuille_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Poiseuille flow"
+
+-- mesh: poiseuille?tetz.exo
+
+term = 400.0
+ttyi = 1000
+
+cfl = 1.0
+
+solver = "lohcg"
+flux = "damp4"
+stab2 = true
+stab2coef = 0.01
+soundspeed = 100.0
+rk = 4
+
+part = "phg"
+
+mat = { dyn_viscosity = 0.01 }
+
+pressure = {
+  iter = 500,
+  tol = 1.0e-12,
+  --verbose = 1,
+  pc = "jacobi",
+  bc_dir = { { 1, 2 },
+             { 2, 2 } },
+  bc_dirval = { { 1, 2.4 },
+                { 2, 0.0 } }
+}
+
+ic = {
+  velocity = { 0.0, 0.0, 0.0 }
+}
+
+bc_noslip = {
+  sideset = { 3, 4 }
+}
+
+bc_dir = {
+  { 5, 0, 0, 1, 1 }
+}
+
+fieldout = {
+  iter = 100000
+}
+
+diag = {
+  iter = 10,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section lohcg_example_poiseuille_run Run on 32 single CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -i poiseuille3tetz.exo -c poiseuille_lohcg.q -r 10000
+@endcode
+
+@section lohcg_example_poiseuille_errors Numerical solutions and errors
+
+To estimate the order of convergence, the numerical solution is computed using
+three different meshes, whose properties of are tabulated below.
+       Mesh     | Points    | Tetrahedra   | h
+       :------: | --------: | -----------: | --------:
+              1 |     1,212 |      3,000   | 0.25
+              2 |     4,422 |     12,000   | 0.16
+              3 |    16,842 |     48,000   | 0.08
+Here h is the average edge length.
+
+Plotted below are the computed streamwise velocity profiles sampled in the
+middle of the domain along a line in the Y direction using three different
+meshes, obtained after the solution has converged to a stationary state.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/poiseuille_sol_lohcg.png"/>
+@m_enddiv
+
+The L1 and L2 errors are computed as
+\f[ \begin{split}
+\left| \left| \varepsilon \right| \right|_1 & = \frac{\sum_{i=1}^n V^i \left|
+\hat{v}_x^i - v_x^i \right|} {\sum_{i=1}^n V^i} \\
+\left| \left| \varepsilon \right| \right|_2 & = \left[\frac{\sum_{i=1}^n V^i
+\left( \hat{v}_x^i - v_x^i \right)^2} {\sum_{i=1}^n V^i}\right]^{1/2}
+\end{split} \f]
+where \f$n\f$ is the number of points sampled across the channel,
+\f$\hat{v}_x^i\f$ and \f$v_x^i\f$ are the exact and computed solutions at mesh
+point \f$i\f$, and \f$V^i\f$ denotes the volume associated to mesh point
+\f$i\f$.
+
+The tables below display the numerical errors for two different types of
+damping for the advection term. The order of convergence is estimated using the
+two finer meshes as
+\f[
+p = \frac{ \log \left| \left| \varepsilon \right| \right|^{m+1} - \log \left|
+\left| \varepsilon \right| \right|^m}{ \log h^{m+1} - \log h^m}
+\f]
+where \f$m\f$ is a mesh index.
+
+Errors and convergence rates using second-order damping for advection and three-stage Runge-Kutta time stepping.
+       Mesh     | h         | L1(err)      | L2(err)
+       :------: | --------: | -----------: | -----------:
+             1  |      0.25 |    0.0402192 |    0.0438342
+             2  |      0.16 |    0.0097760 |    0.0108168
+             3  |      0.08 |    0.0023641 |    0.0027010
+             p  |           |    **2.048** |   **2.0017**
+
+Errors and convergence rates using fourth-order damping for advection and four-stage Runge-Kutta time stepping.
+       Mesh     | h         | L1(err)      | L2(err)
+       :------: | --------: | -----------: | -----------:
+             1  |      0.25 |     0.097477 |    0.103251
+             2  |      0.16 |     0.022909 |    0.024383
+             3  |      0.08 |     0.004090 |    0.004404
+             p  |           |    **2.485** |    **2.469**
+
+*/

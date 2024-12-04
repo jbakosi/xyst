@@ -154,12 +154,8 @@ without deactivation during the entire physics time, \f$t=1.0\f$, integrated.
 
 @section zalcg_example_sedov_dea_references References
 
-@m_div{m-text m-noindent}
-[1] R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
-@m_enddiv
+1. R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
 
-@m_div{m-text m-noindent}
-[2] L.I. Sedov, [Similarity and Dimensional Methods in Mechanics](https://doi.org/10.1201/9780203739730), 10th ed. CRC Press. 1993.
-@m_enddiv
+2. L.I. Sedov, [Similarity and Dimensional Methods in Mechanics](https://doi.org/10.1201/9780203739730), 10th ed. CRC Press. 1993.
 
 */

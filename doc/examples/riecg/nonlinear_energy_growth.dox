@@ -184,8 +184,6 @@ rate in all variables approaches 2.0, consistent with expectations.
 
 @section riecg_example_nonlinear_energy_growth_refs References
 
-@m_div{m-text m-noindent}
-[1] J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.
-@m_enddiv
+1. J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.
 
 */

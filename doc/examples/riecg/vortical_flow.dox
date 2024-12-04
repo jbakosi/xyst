@@ -193,12 +193,8 @@ computed numerical solution in all variables approaches 2.
 
 @section riecg_example_vortical_flow_refs References
 
-@m_div{m-text m-noindent}
-[1] J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.
-@m_enddiv
+1. J. Waltz and T.R. Canfield and N.R. Morgan and L.D. Risinger and J.G. Wohlbier, [Manufactured solutions for the three-dimensional Euler equations with relevance to Inertial Confinement Fusion](https://doi.org/10.1016/j.jcp.2014.02.040), Journal of Computational Physics, 267, 196--209, 2014.
 
-@m_div{m-text m-noindent}
-[2] J. Waltz, T.R. Canfield, N.R. Morgan, L.D. Risinger, J.G. Wohlbier, [Verification of a three-dimensional unstructured finite element method using analytic and manufactured solutions](https://doi.org/10.1016/j.compfluid.2013.03.025), Computers & Fluids, 81: 57-67, 2013.
-@m_enddiv
+2. J. Waltz, T.R. Canfield, N.R. Morgan, L.D. Risinger, J.G. Wohlbier, [Verification of a three-dimensional unstructured finite element method using analytic and manufactured solutions](https://doi.org/10.1016/j.compfluid.2013.03.025), Computers & Fluids, 81: 57-67, 2013.
 
 */

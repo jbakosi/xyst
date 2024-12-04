@@ -118,8 +118,6 @@ Converged Mach number distribution on the channel surface.
 
 @section zalcg_example_bump_references References
 
-@m_div{m-text m-noindent}
-[1] R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
-@m_enddiv
+1. R. Lohner, [Applied Computational Fluid Dynamics Techniques: An Introduction Based on Finite Element Methods](https://doi.org/10.1002/9780470989746), Wiley, 2008.
 
 */

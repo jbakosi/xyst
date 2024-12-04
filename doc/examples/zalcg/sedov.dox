@@ -110,8 +110,6 @@ distributions using different mesh resolutions at t=1.0s are depicted below.
 
 @section zalcg_example_sedov_references References
 
-@m_div{m-text m-noindent}
-[1] L.I. Sedov, [Similarity and Dimensional Methods in Mechanics](https://doi.org/10.1201/9780203739730), 10th ed. CRC Press. 1993.
-@m_enddiv
+1. L.I. Sedov, [Similarity and Dimensional Methods in Mechanics](https://doi.org/10.1201/9780203739730), 10th ed. CRC Press. 1993.
 
 */

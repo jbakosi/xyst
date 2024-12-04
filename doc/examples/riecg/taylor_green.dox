@@ -172,16 +172,10 @@ convergence of the computed numerical solution in all variables approaches 2.
 
 @section riecg_example_taylor_green_refs References
 
-@m_div{m-text m-noindent}
-[1] J.R. Kamm, [Enhanced verification test suite for phyics simulation codes](https://library.lanl.gov/cgi-bin/getfile?LA-14379.pdf), LA-14379, SAND2008-7813, 2008.
-@m_enddiv
+1. J.R. Kamm, [Enhanced verification test suite for phyics simulation codes](https://library.lanl.gov/cgi-bin/getfile?LA-14379.pdf), LA-14379, SAND2008-7813, 2008.
 
-@m_div{m-text m-noindent}
-[2] J. Waltz, [Microfluidics simulation using adaptive unstructured grids](https://doi.org/10.1002/fld.753), International Journal for Numerical Methods in Fluids, 46, 9, 939-960, 2004.
-@m_enddiv
+2. J. Waltz, [Microfluidics simulation using adaptive unstructured grids](https://doi.org/10.1002/fld.753), International Journal for Numerical Methods in Fluids, 46, 9, 939-960, 2004.
 
-@m_div{m-text m-noindent}
-[3] J. Waltz, T.R. Canfield, N.R. Morgan, L.D. Risinger, J.G. Wohlbier, [Verification of a three-dimensional unstructured finite element method using analytic and manufactured solutions](https://doi.org/10.1016/j.compfluid.2013.03.025), Computers & Fluids, 81: 57-67, 2013.
-@m_enddiv
+3. J. Waltz, T.R. Canfield, N.R. Morgan, L.D. Risinger, J.G. Wohlbier, [Verification of a three-dimensional unstructured finite element method using analytic and manufactured solutions](https://doi.org/10.1016/j.compfluid.2013.03.025), Computers & Fluids, 81: 57-67, 2013.
 
 */

@@ -187,12 +187,8 @@ at various locations so the solution can be compared to the analytic solution.
 
 @section riecg_example_slotcyl_references References
 
-@m_div{m-text m-noindent}
-[1] S.T. Zalesak, [Fully multidimensional flux-corrected transport algorithms for fluids](https://doi.org/10.1016/0021-9991(79)90051-2), J. Comput. Phys. 31,3, p.335-362, 1979.
-@m_enddiv
+1. S.T. Zalesak, [Fully multidimensional flux-corrected transport algorithms for fluids](https://doi.org/10.1016/0021-9991(79)90051-2), J. Comput. Phys. 31,3, p.335-362, 1979.
 
-@m_div{m-text m-noindent}
-[2] R.J. Leveque, [High-resolution conservative algorithms for advection in incompressible flow](https://doi.org/10.1137/0733033), SIAM J. on Numerical Analysis, 33, p.627-665  1996.
-@m_enddiv
+2. R.J. Leveque, [High-resolution conservative algorithms for advection in incompressible flow](https://doi.org/10.1137/0733033), SIAM J. on Numerical Analysis, 33, p.627-665  1996.
 
 */

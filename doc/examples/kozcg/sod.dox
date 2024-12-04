@@ -135,8 +135,6 @@ successively finer meshes together with the analytical solution.
 
 @section kozcg_example_sod_references References
 
-@m_div{m-text m-noindent}
-[1] J.R. Kamm, [Enhanced verification test suite for phyics simulation codes](https://library.lanl.gov/cgi-bin/getfile?LA-14379.pdf), LA-14379, SAND2008-7813, 2008.
-@m_enddiv
+1. J.R. Kamm, [Enhanced verification test suite for phyics simulation codes](https://library.lanl.gov/cgi-bin/getfile?LA-14379.pdf), LA-14379, SAND2008-7813, 2008.
 
 */

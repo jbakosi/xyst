@@ -237,16 +237,10 @@ on both single workstations as well as larger HPC machines.
 
 @section riecg_example_sedov_lb_references References
 
-@m_div{m-text m-noindent}
-[1] J. Bakosi, R. Bird, F.Gonzalez, C. Junghans, W. Li, H. Luo, A. Pandare, J. Waltz, [Asynchronous distributed-memory task-parallel algorithm for compressible flows on unstructured 3D Eulerian grids](https://doi.org/10.1016/j.advengsoft.2020.102962), Advances in Engineering Software, 102962, 2021.
-@m_enddiv
+1. J. Bakosi, R. Bird, F.Gonzalez, C. Junghans, W. Li, H. Luo, A. Pandare, J. Waltz, [Asynchronous distributed-memory task-parallel algorithm for compressible flows on unstructured 3D Eulerian grids](https://doi.org/10.1016/j.advengsoft.2020.102962), Advances in Engineering Software, 102962, 2021.
 
-@m_div{m-text m-noindent}
-[2] W. Li, H. Luo, J. Bakosi, [A p-adaptive Discontinuous Galerkin Method for Compressible Flows using Charm++](https://doi.org/10.2514/6.2020-1565), AIAA Scitech 2020 Forum, Orlando, Florida, 6--10 January, 2020.
-@m_enddiv
+2. W. Li, H. Luo, J. Bakosi, [A p-adaptive Discontinuous Galerkin Method for Compressible Flows using Charm++](https://doi.org/10.2514/6.2020-1565), AIAA Scitech 2020 Forum, Orlando, Florida, 6--10 January, 2020.
 
-@m_div{m-text m-noindent}
-[3] L.I. Sedov, [Similarity and Dimensional Methods in Mechanics](https://doi.org/10.1201/9780203739730), 10th ed. CRC Press. 1993.
-@m_enddiv
+3. L.I. Sedov, [Similarity and Dimensional Methods in Mechanics](https://doi.org/10.1201/9780203739730), 10th ed. CRC Press. 1993.
 
 */

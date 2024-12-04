@@ -234,9 +234,9 @@ Good pull requests (PR) &mdash; patches, improvements, new features &mdash; are
 a fantastic help. They should remain focused in scope and avoid containing
 unrelated commits.
 
-@ref resources_contact "Please ask first" before embarking on any significant
-PR (e.g. implementing features, refactoring code), otherwise you risk spending
-a lot of time working on something that we might not want to merge in.
+Please ask first before embarking on any significant PR (e.g. implementing
+features, refactoring code), otherwise you risk spending a lot of time working
+on something that we might not want to merge in.
 
 If you have never created a pull request for a public open source project, [here](https://egghead.io/courses/how-to-contribute-to-an-open-source-project-on-github) is a great tutorial on how it works.
 

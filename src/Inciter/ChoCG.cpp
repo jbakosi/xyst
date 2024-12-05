@@ -1108,8 +1108,8 @@ ChoCG::pinit()
       auto p = pi->second;
       auto ic = problems::PRESSURE_IC();
       auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
-      auto& d = dirbc[p];
-      if (d.empty()) d = {{ { 1, val }} };
+      auto& b = dirbc[p];
+      if (b.empty()) b = {{ { 1, val }} };
     }
   }
 

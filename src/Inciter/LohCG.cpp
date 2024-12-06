@@ -188,8 +188,13 @@ LohCG::ngradcomp() const
 // *****************************************************************************
 {
   std::size_t n = 0;
+  const auto& req = g_cfg.get< tag::integout_integrals >();
 
-  if (g_cfg.get< tag::flux >() == "damp4") n += 9;     // (u,v,w) x 3
+  if (g_cfg.get< tag::flux >() == "damp4" or
+      std::find( begin(req), end(req), "force") != end(req))
+  {
+    n += 9;     // (u,v,w) x 3
+  }
 
   return n;
 }
@@ -574,9 +579,10 @@ LohCG::streamable()
     if (m != end(m_bface)) {
       auto& n = surfintnodes[ m->first ];       // associate set id
       for (auto f : m->second) {                // face ids on side set
-        n.push_back( m_triinpoel[f*3+0] );      // nodes on side set
-        n.push_back( m_triinpoel[f*3+1] );
-        n.push_back( m_triinpoel[f*3+2] );
+        auto t = m_triinpoel.data() + f*3;
+        n.push_back( t[0] );                    // nodes on side set
+        n.push_back( t[1] );
+        n.push_back( t[2] );
       }
     }
   }
@@ -590,13 +596,13 @@ LohCG::streamable()
     auto& ndA = sint.second;
     nodes = std::move(n);
     ndA.resize( nodes.size()*3 );
-    std::size_t a = 0;
+    auto a = ndA.data();
     for (auto p : nodes) {
       const auto& b = tk::cref_find( m_bndpoinint, gid[p] );
-      ndA[a*3+0] = b[0];        // store ni * dA
-      ndA[a*3+1] = b[1];
-      ndA[a*3+2] = b[2];
-      ++a;
+      a[0] = b[0];      // store ni * dA
+      a[1] = b[1];
+      a[2] = b[2];
+      a += 3;
     }
   }
   tk::destroy( m_bndpoinint );
@@ -1741,24 +1747,51 @@ LohCG::integrals()
 
     using namespace integrals;
     std::vector< std::map< int, tk::real > > ints( NUMINT );
+
     // Prepend integral vector with metadata on the current time step:
     // current iteration count, current physical time, time step size
     ints[ ITER ][ 0 ] = static_cast< tk::real >( d->It() );
     ints[ TIME ][ 0 ] = d->T();
     ints[ DT ][ 0 ] = d->Dt();
-    // Compute mass flow rate for surfaces requested
-    for (const auto& [s,sint] : m_surfint) {
-      // cppcheck-suppress unreadVariable
-      auto& mfr = ints[ MASS_FLOW_RATE ][ s ];
-      const auto& nodes = sint.first;
-      const auto& ndA = sint.second;
-      for (std::size_t i=0; i<nodes.size(); ++i) {
-        auto p = nodes[i];
-        mfr += ndA[i*3+0] * m_u(p,1)
-             + ndA[i*3+1] * m_u(p,2)
-             + ndA[i*3+2] * m_u(p,3);
+
+    // Compute integrals requested for surfaces requested
+    const auto& reqv = g_cfg.get< tag::integout_integrals >();
+    std::unordered_set< std::string > req( begin(reqv), end(reqv) );
+    if (req.count("mass_flow_rate")) {
+      for (const auto& [s,sint] : m_surfint) {
+        auto& mfr = ints[ MASS_FLOW_RATE ][ s ];
+        const auto& nodes = sint.first;
+        const auto& ndA = sint.second;
+        auto n = ndA.data();
+        for (auto p : nodes) {
+          mfr += n[0]*m_u(p,1) + n[1]*m_u(p,2) + n[2]*m_u(p,3);
+          n += 3;
+        }
       }
     }
+    if (req.count("force")) {
+      auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
+      for (const auto& [s,sint] : m_surfint) {
+        auto& fx = ints[ FORCE_X ][ s ];
+        auto& fy = ints[ FORCE_Y ][ s ];
+        auto& fz = ints[ FORCE_Z ][ s ];
+        const auto& nodes = sint.first;
+        const auto& ndA = sint.second;
+        auto n = ndA.data();
+        for (auto p : nodes) {
+          // pressure force
+          fx -= n[0]*m_u(p,0);
+          fy -= n[1]*m_u(p,0);
+          fz -= n[2]*m_u(p,0);
+          // viscous force
+          fx += mu * (m_grad(p,0)*n[0] + m_grad(p,1)*n[1] + m_grad(p,2)*n[2]);
+          fy += mu * (m_grad(p,3)*n[0] + m_grad(p,4)*n[1] + m_grad(p,5)*n[2]);
+          fz += mu * (m_grad(p,6)*n[0] + m_grad(p,7)*n[1] + m_grad(p,8)*n[2]);
+          n += 3;
+        }
+      }
+    }
+
     auto stream = serialize( d->MeshId(), ints );
     d->contribute( stream.first, stream.second.get(), IntegralsMerger,
       CkCallback(CkIndex_Transporter::integrals(nullptr), d->Tr()) );

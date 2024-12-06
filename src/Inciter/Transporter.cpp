@@ -897,8 +897,19 @@ Transporter::integralsHeader()
 
   // Collect variables names for integral output
   std::vector< std::string > var;
-  // cppcheck-suppress useStlAlgorithm
-  for (auto s : sidesets_integral) var.push_back( "|rudA" + std::to_string(s) );
+  const auto& reqv = g_cfg.get< tag::integout_integrals >();
+  std::unordered_set< std::string > req( begin(reqv), end(reqv) );
+  for (auto s : sidesets_integral) {
+    if (req.count( "mass_flow_rate" )) {
+      var.push_back( "mass_flow_rate:" + std::to_string(s) );
+    }
+    if (req.count( "force" )) {
+      auto si = std::to_string( s );
+      var.push_back( "force_x:" + si );
+      var.push_back( "force_y:" + si );
+      var.push_back( "force_z:" + si );
+    }
+  }
 
   // Write integrals header
   dw.header( var );
@@ -1497,12 +1508,12 @@ Transporter::integrals( CkReductionMsg* msg )
 
     Assert( d.size() == NUMINT, "Integrals vector size mismatch" );
 
-    // Allocate storage for integrals final values
-    std::vector< tk::real > ints;
-
     // Collect integrals for output
-    // cppcheck-suppress containerOutOfBounds
+    std::vector< tk::real > ints;
     for (const auto& [s,m] : d[MASS_FLOW_RATE]) ints.push_back( m );
+    for (const auto& [s,m] : d[FORCE_X]) ints.push_back( m );
+    for (const auto& [s,m] : d[FORCE_Y]) ints.push_back( m );
+    for (const auto& [s,m] : d[FORCE_Z]) ints.push_back( m );
 
     // Append integrals file at selected times
     auto filename = g_cfg.get< tag::output >() + ".int";

@@ -621,6 +621,7 @@ integout( lua_State* L, Config& cfg )
   cfg.get< tag::integout_precision >() = sigint( L, "precision", 8 );
   cfg.get< tag::integout_format >() = string( L, "format" );
   cfg.get< tag::integout >() = sideset( L );
+  cfg.get< tag::integout_integrals >() = stringlist( L, "integrals" );
 
   lua_pop( L, 1 );
 }

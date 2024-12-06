@@ -590,9 +590,10 @@ ChoCG::streamable()
     if (m != end(m_bface)) {
       auto& n = surfintnodes[ m->first ];       // associate set id
       for (auto f : m->second) {                // face ids on side set
-        n.push_back( m_triinpoel[f*3+0] );      // nodes on side set
-        n.push_back( m_triinpoel[f*3+1] );
-        n.push_back( m_triinpoel[f*3+2] );
+        auto t = m_triinpoel.data() + f*3;
+        n.push_back( t[0] );                    // nodes on side set
+        n.push_back( t[1] );
+        n.push_back( t[2] );
       }
     }
   }
@@ -606,13 +607,13 @@ ChoCG::streamable()
     auto& ndA = sint.second;
     nodes = std::move(n);
     ndA.resize( nodes.size()*3 );
-    std::size_t a = 0;
+    auto a = ndA.data();
     for (auto p : nodes) {
       const auto& b = tk::cref_find( m_bndpoinint, gid[p] );
-      ndA[a*3+0] = b[0];        // store ni * dA
-      ndA[a*3+1] = b[1];
-      ndA[a*3+2] = b[2];
-      ++a;
+      a[0] = b[0];      // store ni * dA
+      a[1] = b[1];
+      a[2] = b[2];
+      a += 3;
     }
   }
   tk::destroy( m_bndpoinint );
@@ -2489,19 +2490,45 @@ ChoCG::integrals()
     ints[ ITER ][ 0 ] = static_cast< tk::real >( d->It() );
     ints[ TIME ][ 0 ] = d->T();
     ints[ DT ][ 0 ] = d->Dt();
-    // Compute mass flow rate for surfaces requested
-    for (const auto& [s,sint] : m_surfint) {
-      // cppcheck-suppress unreadVariable
-      auto& mfr = ints[ MASS_FLOW_RATE ][ s ];
-      const auto& nodes = sint.first;
-      const auto& ndA = sint.second;
-      for (std::size_t i=0; i<nodes.size(); ++i) {
-        auto p = nodes[i];
-        mfr += ndA[i*3+0] * m_u(p,1)
-             + ndA[i*3+1] * m_u(p,2)
-             + ndA[i*3+2] * m_u(p,3);
+
+    // Compute integrals requested for surfaces requested
+    const auto& reqv = g_cfg.get< tag::integout_integrals >();
+    std::unordered_set< std::string > req( begin(reqv), end(reqv) );
+    if (req.count("mass_flow_rate")) {
+      for (const auto& [s,sint] : m_surfint) {
+        auto& mfr = ints[ MASS_FLOW_RATE ][ s ];
+        const auto& nodes = sint.first;
+        const auto& ndA = sint.second;
+        auto n = ndA.data();
+        for (auto p : nodes) {
+          mfr += n[0]*m_u(p,1) + n[1]*m_u(p,2) + n[2]*m_u(p,3);
+          n += 3;
+        }
       }
     }
+    if (req.count("force")) {
+      auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
+      for (const auto& [s,sint] : m_surfint) {
+        auto& fx = ints[ FORCE_X ][ s ];
+        auto& fy = ints[ FORCE_Y ][ s ];
+        auto& fz = ints[ FORCE_Z ][ s ];
+        const auto& nodes = sint.first;
+        const auto& ndA = sint.second;
+        auto n = ndA.data();
+        for (auto p : nodes) {
+          // pressure force
+          fx -= n[0]*m_pr[p];
+          fy -= n[1]*m_pr[p];
+          fz -= n[2]*m_pr[p];
+          // viscous force
+          fx += mu*(m_vgrad(p,0)*n[0] + m_vgrad(p,1)*n[1] + m_vgrad(p,2)*n[2]);
+          fy += mu*(m_vgrad(p,3)*n[0] + m_vgrad(p,4)*n[1] + m_vgrad(p,5)*n[2]);
+          fz += mu*(m_vgrad(p,6)*n[0] + m_vgrad(p,7)*n[1] + m_vgrad(p,8)*n[2]);
+          n += 3;
+        }
+      }
+    }
+
     auto stream = serialize( d->MeshId(), ints );
     d->contribute( stream.first, stream.second.get(), IntegralsMerger,
       CkCallback(CkIndex_Transporter::integrals(nullptr), d->Tr()) );

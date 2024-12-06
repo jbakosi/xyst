@@ -96,6 +96,9 @@ mergeIntegrals( int nmsg, CkReductionMsg **msgs )
     // Sum integrals
     // cppcheck-suppress containerOutOfBounds
     for (const auto& [s,d] : w[MASS_FLOW_RATE]) v[MASS_FLOW_RATE][s] += d;
+    for (const auto& [s,d] : w[FORCE_X]) v[FORCE_X][s] += d;
+    for (const auto& [s,d] : w[FORCE_Y]) v[FORCE_Y][s] += d;
+    for (const auto& [s,d] : w[FORCE_Z]) v[FORCE_Z][s] += d;
   }
 
   // Serialize concatenated diagnostics vector to raw stream

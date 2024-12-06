@@ -16,13 +16,16 @@ namespace inciter {
 namespace integrals {
 
 //! Number of entries in integrals vector (of vectors)
-const std::size_t NUMINT = 4;
+const std::size_t NUMINT = 7;
 
 //! Integral labels
 enum Ints { ITER=0              //!< Iteration count
           , TIME                //!< Physical time
           , DT                  //!< Time step size
           , MASS_FLOW_RATE      //!< Mass flow rate
+          , FORCE_X             //!< Force in x direction
+          , FORCE_Y             //!< Force in y direction
+          , FORCE_Z             //!< Force in z direction
           };
 
 } // integrals::

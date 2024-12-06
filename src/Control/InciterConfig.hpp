@@ -107,6 +107,7 @@ DEFTAG( integout_time );
 DEFTAG( integout_range );
 DEFTAG( integout_precision );
 DEFTAG( integout_format );
+DEFTAG( integout_integrals );
 DEFTAG( ic );
 DEFTAG( x );
 DEFTAG( y );
@@ -239,6 +240,7 @@ using ConfigMembers = brigand::list<
   , tag::integout_range, std::vector< std::vector< double > >
   , tag::integout_precision, std::streamsize
   , tag::integout_format, std::string
+  , tag::integout_integrals, std::vector< std::string >
   , tag::ic, std::vector<
                tk::TaggedTuple< brigand::list<
                    tag::x,              std::vector< double >

@@ -63,11 +63,11 @@ The pages below discuss example calculations using the @ref inciter_chocg solver
 
 \section lohcg_vnv LohCG V&V
 
+The pages below discuss example calculations using the @ref inciter_lohcg solver.
+
   - \subpage lohcg_example_sphere_quarter
   - \subpage lohcg_example_poiseuille
   - \subpage lohcg_example_lid
-
-The pages below discuss example calculations using the @ref inciter_lohcg solver.
 
 See @ref papers for more documentation and more examples.
 

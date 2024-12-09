@@ -48,6 +48,7 @@ integout = {
   -- range = { 0.05, 0.12, 1.0e-5 },
   sideset = { 1, 3 },
   format = "scientific",
+  integrals = { "mass_flow_rate" },
   -- precision = 12
 }
 

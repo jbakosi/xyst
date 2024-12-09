@@ -133,6 +133,32 @@ add_regression_test(lohcg_restart ${INCITER_EXECUTABLE}
                     CHECKPOINT lohcg_checkpoint
                     LABELS lohcg restart)
 
+add_regression_test(laxcg_checkpoint ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES bump_laxcg.q bump.exo
+                    ARGS -c bump_laxcg.q -i bump.exo
+                    BIN_BASELINE bump_laxcg_checkpoint.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff_laxcg.cfg
+                    TEXT_BASELINE bump_laxcg_checkpoint.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.laxcg.cfg
+                    LABELS laxcg restart)
+
+add_regression_test(laxcg_restart ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES bump_laxcg_restart.q bump.exo
+                    ARGS -c bump_laxcg_restart.q -i bump.exo
+                         +restart restart
+                    BIN_BASELINE bump_laxcg.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff_laxcg.cfg
+                    TEXT_BASELINE bump_laxcg.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.laxcg.cfg
+                    CHECKPOINT laxcg_checkpoint
+                    LABELS laxcg restart)
+
 # Parallel, checkpoint on 4 PEs, restart on 4 PEs
 
 add_regression_test(riecg_checkpoint ${INCITER_EXECUTABLE}
@@ -334,3 +360,43 @@ add_regression_test(lohcg_restart ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.lohcg.cfg
                     CHECKPOINT lohcg_checkpoint
                     LABELS lohcg restart)
+
+add_regression_test(laxcg_checkpoint ${INCITER_EXECUTABLE}
+                    NUMPES 4 PPN 1
+                    INPUTFILES bump_laxcg.q bump.exo
+                    ARGS -c bump_laxcg.q -i bump.exo
+                    BIN_BASELINE bump_laxcg_checkpoint.std.exo.0
+                                 bump_laxcg_checkpoint.std.exo.1
+                                 bump_laxcg_checkpoint.std.exo.2
+                                 bump_laxcg_checkpoint.std.exo.3
+                    BIN_RESULT out.e-s.0.4.0
+                               out.e-s.0.4.1
+                               out.e-s.0.4.2
+                               out.e-s.0.4.3
+                    BIN_DIFF_PROG_CONF exodiff_laxcg.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    TEXT_BASELINE bump_laxcg_checkpoint.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.laxcg.cfg
+                    LABELS laxcg restart)
+
+add_regression_test(laxcg_restart ${INCITER_EXECUTABLE}
+                    NUMPES 4 PPN 1
+                    INPUTFILES bump_laxcg_restart.q bump.exo
+                    ARGS -c bump_laxcg_restart.q -i bump.exo
+                         +restart restart
+                    BIN_BASELINE bump_laxcg.std.exo.0
+                                 bump_laxcg.std.exo.1
+                                 bump_laxcg.std.exo.2
+                                 bump_laxcg.std.exo.3
+                    BIN_RESULT out.e-s.0.4.0
+                               out.e-s.0.4.1
+                               out.e-s.0.4.2
+                               out.e-s.0.4.3
+                    BIN_DIFF_PROG_CONF exodiff_laxcg.cfg
+                    BIN_DIFF_PROG_ARGS -m
+                    TEXT_BASELINE bump_laxcg.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.laxcg.cfg
+                    CHECKPOINT laxcg_checkpoint
+                    LABELS laxcg restart)

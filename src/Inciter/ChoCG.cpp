@@ -2501,7 +2501,7 @@ ChoCG::integrals()
         const auto& ndA = sint.second;
         auto n = ndA.data();
         for (auto p : nodes) {
-          mfr += n[0]*m_u(p,1) + n[1]*m_u(p,2) + n[2]*m_u(p,3);
+          mfr += n[0]*m_u(p,0) + n[1]*m_u(p,1) + n[2]*m_u(p,2);
           n += 3;
         }
       }

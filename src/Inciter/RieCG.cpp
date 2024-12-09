@@ -1365,24 +1365,29 @@ RieCG::integrals()
 
     using namespace integrals;
     std::vector< std::map< int, tk::real > > ints( NUMINT );
+
     // Prepend integral vector with metadata on the current time step:
     // current iteration count, current physical time, time step size
     ints[ ITER ][ 0 ] = static_cast< tk::real >( d->It() );
     ints[ TIME ][ 0 ] = d->T();
     ints[ DT ][ 0 ] = d->Dt();
-    // Compute mass flow rate for surfaces requested
-    for (const auto& [s,sint] : m_surfint) {
-      // cppcheck-suppress unreadVariable
-      auto& mfr = ints[ MASS_FLOW_RATE ][ s ];
-      const auto& nodes = sint.first;
-      const auto& ndA = sint.second;
-      for (std::size_t i=0; i<nodes.size(); ++i) {
-        auto p = nodes[i];
-        mfr += ndA[i*3+0] * m_u(p,1)
-             + ndA[i*3+1] * m_u(p,2)
-             + ndA[i*3+2] * m_u(p,3);
+
+    // Compute integrals requested for surfaces requested
+    const auto& reqv = g_cfg.get< tag::integout_integrals >();
+    std::unordered_set< std::string > req( begin(reqv), end(reqv) );
+    if (req.count("mass_flow_rate")) {
+      for (const auto& [s,sint] : m_surfint) {
+        auto& mfr = ints[ MASS_FLOW_RATE ][ s ];
+        const auto& nodes = sint.first;
+        const auto& ndA = sint.second;
+        auto n = ndA.data();
+        for (auto p : nodes) {
+          mfr += n[0]*m_u(p,1) + n[1]*m_u(p,2) + n[2]*m_u(p,3);
+          n += 3;
+        }
       }
     }
+
     auto stream = serialize( d->MeshId(), ints );
     d->contribute( stream.first, stream.second.get(), IntegralsMerger,
       CkCallback(CkIndex_Transporter::integrals(nullptr), d->Tr()) );

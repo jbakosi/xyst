@@ -1,0 +1,211 @@
+/*!
+  \page      howto_bc How to specify boundary conditions
+
+@tableofcontents{xml}
+
+This page discusses different ways to specify boundary conditions (BC). @ref
+inciter_main contains multiple solvers and each solver can apply multiple
+different types of boundary conditions. Not all BCs make sense for all
+different solvers. The following is a list examples how BCs can be specified
+and how different types of BCs must be understood in their specific context.
+
+Boundary conditions are specified in the input control file. The control file
+is a simple text file, specified via a command line argument to the inciter
+executable and parsed via the [Lua](https://www.lua.org) programming language
+interpreter. See also the doc page discussing @ref howto_iofiles.
+
+@subsection bc_problem_dir Problem-specific Dirichlet BCs
+
+An example of problem-specific Dirichlet boundary conditions is given below
+
+@code{.lua}
+  solver = "riecg"
+
+  problem = {
+    name = "vortical_flow"
+  }
+
+  bc_dir = {
+    { 1, 1, 1, 1, 1, 1 },
+    { 2, 1, 1, 1, 1, 1 }
+  }  
+@endcode
+
+The above example selects the @ref inciter_riecg solver, which solves for the
+variables \f$\{ \rho, \rho u, \rho v, \rho w, \rho E \}\f$. The above block
+configuring Dirichlet BCs contains two blocks with exactly 6 integers.  Of
+these 6 integers the first one is the side set id which specifies the exodus
+side set (given in the input mesh file) to which the given Dirichlet BC should
+be applied -- in this case side sets 1 and 2. In this example, the following 5
+integers are all specified as ones. Since a specific problem type is also
+specified `vortical_flow`, used for verification with a known analytic
+solution, the 5 ones following the side set ids prescribe evaluation of the
+analytic solution specific to this problem at each time step for each of the
+variable solved for. If a zero is given instead of a one for a scalar variable,
+the enforcement of the Dirichlet BC for that scalar is skipped.  Dirichlet BCs
+are enforced in mesh nodes of the side set. For a full control file employing
+problem-specific Dirichlet BCs see @ref riecg_example_vortical_flow.
+
+@subsection bc_user_dir Dirichlet BCs with a user-defined problem
+
+An example of Dirichlet boundary conditions used with a user-defined problem is
+given below
+
+@code{.lua}
+  solver = "lohcg"
+
+  -- Note: a 'problem' block is not specified -> default: 'userdef'
+
+  ic = {
+    velocity = { 1.0, 0.0, 0.0 }
+  }
+
+  bc_dir = {
+    { 6, 0, 1, 1, 1 },
+    { 7, 1, 0, 0, 0 }
+  }  
+@endcode
+
+The above example selects the @ref inciter_lohcg solver, which solves for the
+variables \f$\{ p, u, v, w \}\f$. The above block configuring Dirichlet BCs
+contains two blocks with exactly 5 integers.  Of these 5 integers the first one
+is the side set id which specifies the exodus side set (given in the input mesh
+file) to which the given Dirichlet BC should be applied -- in this case side
+sets 6 and 7. The following 4 integers are specified as zeros and ones. The
+zeros means that those variables do not apply the Dirichlet BCs, while ones
+means apply. According to the above, on side set 6 the pressure is left alone
+and the velocity is set to its initial value, presribed by the preceding `ic`
+block. On side set 7, the velocity is left unmodified and the pressure is set
+to its initial value which is zero by default. Dirichlet BCs are enforced in
+mesh nodes of the side set. For a full control file employing Dirichlet BCs
+with a user-defined problem, see @ref lohcg_example_sphere_quarter.
+
+@subsection bc_inhomogeneous_dir Inhomogeneous Dirichlet BCs
+
+An example of inhomogeneous Dirichlet boundary conditions, specifying constant
+values at a side set, is given below
+
+@code{.lua}
+  pressure = {
+    bc_dir = { { 1, 2 },
+               { 2, 2 } },
+    bc_dirval = { { 1, 2.4 },
+                  { 2, 0.0 } }
+  }
+@endcode
+
+The above example specifies two Dirichlet BC blocks, `bc_dir` and `bc_dirval`
+that together specify inhomgeneous (nonzero) constant values for the pressure.
+The `bc_dir` block contains integers, where the first one specifies the side
+set id and the second one here is given as the integer code 2 for the scalar
+quantity for which the BC is given, in this case pressure. The integer code 2
+in the `bc_dir` block means that a corresponding `bc_dirval` block will specify
+the inhomgeneous value for the BC. The `bc_dirval` block contains an integer in
+the first position, specifying the side set id, followed by real values for the
+pressure BC: on side set 1 the pressure will be set to 2.4, while on side set
+2, it will be set to 0.0.  Dirichlet BCs are enforced in mesh nodes of the side
+set.  For a full control file employing such Dirichlet BCs for the pressure
+solve, see @ref chocg_example_poiseuille.
+
+Another example for specifying inhomogeneous Dirichlet BCs is the following.
+
+@code{.lua}
+solver = "chocg"
+ic = {
+  velocity = { 0.0, 0.0, 0.0 }
+}
+bc_dir = {
+  { 4, 2, 2, 2 }
+}
+bc_dirval = {
+  { 4, 1.0, 0.0, 0.0 }
+}
+@endcode
+
+The above selects the @ref inciter_chocg solver, which solves for the
+prognostic variables \f$ \{ u, v, w \} \f$. It specifies quiescent initial
+conditions via the `ic` block and uses inhomogeneous Dirichlet BCs to prescribe
+the constant values of components of the velocity vector \f$\{1,0,0\}\f$ on
+side set 4.  Dirichlet BCs are enforced in mesh nodes of the side set.  See
+@ref chocg_example_lid for the full example.  See also @ref lohcg_example_lid
+for a similar setup but for @ref inciter_lohcg which skips the pressure as the
+prognostic variable in the first position.
+
+@subsection bc_sym Symmetry BCs
+
+An example specifying symmetry (free-slip) conditions is given below
+
+@code{.lua}
+  bc_sym = {
+    sideset = { 1, 2, 3 }
+  }
+@endcode
+
+The block lists 3 side set ids at which symmetry (free slip) boundary
+conditions are specified. The ids must correspond to those in the input exodus
+file. The symmetry conditions remove the normal component of the velocity at a
+surface. Symmetry BCs are enforced in nodes of triangle surface elements that
+belong to the side set. If a node is shared by multiple side sets, the
+condition is enforced indepently for each surface element the node belongs to
+using the normal vector for the surface element. For a full example, see @ref
+riecg_example_sedov.
+
+@subsection bc_nsolip No-slip BCs
+
+An example specifying no-slip/no-penetration conditions is given below
+
+@code{.lua}
+  bc_noslip = {
+    sideset = { 3, 4 }
+  }
+@endcode
+
+The block lists 2 side set ids at which no-slip/no-penetration boundary
+conditions are specified. The ids must correspond to those in the input exodus
+file. No slip conditions prescribe zero velocity at mesh nodes that belong to a
+side set. For a full example, see @ref chocg_example_poiseuille.
+
+@subsection bc_far Farfield BCs
+
+An example specifying farfield conditions is given below
+
+@code{.lua}
+  bc_far = {
+    pressure = 1.0e+5,
+    density = 1.225,
+    velocity = { 283.57, 15.159, 0.0 },
+    sideset = { 4 }
+  }
+@endcode
+
+The above block specfies explicit values for the flow variables to be applied
+in farfield boundaries for transconic flows. The side set id is also given,
+which is the exodus side set id, appearing in the input mesh file. For a full
+example, see @ref riecg_example_onera.
+
+@subsection bc_pre Pressure BCs
+
+The example below specifies pressure conditions on an inlet and outlet, each
+given by a list of side sets.
+
+@code{.lua}
+  bc_pre = {
+    inlet = {
+      density = 1.996,
+      pressure = 1.005e5,
+      sideset = { 2 }
+    },
+    outlet = {
+      density = 1.1996,
+      pressure = 87200,
+      sideset = { 1 }
+    }
+  }
+@endcode
+
+The above example specifies the fluid density and pressure conditions at an
+inlet and outlet, each given by a list of exodus side set ids that must match
+those in the input mesh file. For a full example, see @ref
+riecg_example_diesel.
+
+*/

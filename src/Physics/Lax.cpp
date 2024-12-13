@@ -722,31 +722,6 @@ hllc( const tk::UnsMesh::Coords& coord,
   #endif
 }
 
-static
-std::function< void( const tk::UnsMesh::Coords&,
-                     const tk::Fields&,
-                     const tk::real[],
-                     std::size_t,
-                     std::size_t,
-                     const tk::real[],
-                     const tk::real[],
-                     tk::real[] ) >
-FLUX()
-// *****************************************************************************
-//! Configure flux function to use
-//! \return Function to call to compute flux between two edge-end points
-// *****************************************************************************
-{
-  const auto& flux = g_cfg.get< tag::flux >();
-
-  if (flux == "rusanov")
-    return rusanov;
-  else if (flux == "hllc")
-    return hllc;
-  else
-    Throw( "Flux not configured" );
-}
-
 static void
 advdom( const tk::UnsMesh::Coords& coord,
         const std::array< std::vector< std::size_t >, 3 >& dsupedge,
@@ -769,7 +744,12 @@ advdom( const tk::UnsMesh::Coords& coord,
   auto ncomp = U.nprop();
 
   // configure flux function
-  auto flux = FLUX();
+  auto flux = [](){
+    const auto& flux = g_cfg.get< tag::flux >();
+         if (flux == "rusanov") return rusanov;
+    else if (flux == "hllc") return hllc;
+    else Throw( "Flux not correctly configured" );
+  }();
 
   #if defined(__clang__)
     #pragma clang diagnostic push

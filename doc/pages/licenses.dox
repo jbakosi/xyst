@@ -3,49 +3,59 @@
 
 @tableofcontents{xml}
 
-This page collects links to full verbatim texts of the licenses of all third-party
-libraries (TPLs) used by Xyst.
+This page collects useful information regarding third-party libraries (TPLs)
+used by Xyst.
 
 \section tpl_licenses Third-party libraries (TPLs)
 
 \subsection charm_license The Charm++ Parallel Programming System
   - Web: http://charm.cs.illinois.edu
   - License: @subpage charm_license_page
+  - Source location: https://github.com/charmplusplus/charm
 
 \subsection openmpi_license OpenMPI for the message passing interface
   - Web: http://www.open-mpi.org
   - License: @subpage openmpi_license_page
+  - Source location: Assumed available on the system
 
 \subsection libstdcpp_license Libstdc++ for standard C++ containers and algorithms
   - Web: https://gcc.gnu.org/libstdc++
   - License: @subpage libstdcpp_license_page
+  - Source location: Assumed available on the system
 
 \subsection minilua_license MiniLua for input file parsing
   - Web: https://github.com/edubart/minilua
   - License: @subpage minilua_license_page
+  - Source location: src/Control/minilua.h
 
 \subsection tut_license C++ Template Unit Test Framework
   - Web: http://mrzechonek.github.io/tut-framework
   - License: @subpage tut_license_page
+  - Source location: src/tut/
 
 \subsection netcdf_license The NetCDF data model, required by Exodus
   - Web: http://www.unidata.ucar.edu/downloads/netcdf/index.jsp
   - License: @subpage netcdf_license_page
+  - Source location: Assumed available on the system
 
 \subsection exodus_license ExodusII for mesh-based I/O
   - Web: https://github.com/sandialabs/seacas
   - License: @subpage exodus_license_page
+  - Source location: src/exodus/
 
 \subsection zoltan_license Zoltan for static mesh partitioning
   - Web: http://www.cs.sandia.gov/Zoltan/Zoltan.html
   - License: @subpage zoltan_license_page
+  - Source location: src/zoltan/
 
 \subsection highwayhash_license HighwayHash for generating hashes
   - Web: https://github.com/google/highwayhash
   - License: @subpage highwayhash_license_page
+  - Source location: src/highwayhash/
 
 \subsection brigand_license Brigand for template meta-programming
   - Web: https://github.com/edouarda/brigand
   - License: @subpage brigand_license_page
+  - Source location: src/brigand/
 
 */

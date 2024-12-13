@@ -33,7 +33,7 @@ with the smaller mesh, indicated by a nonzero angle between the ideal and the
 blue line with filled blue dots (144M on the LUMI machine). The data also shows
 that though non-ideal above 1024 CPUs, parallelism is still effective in
 reducing CPU time with increasing compute resources. Even at the largest run
-with 65,536 CPUs, which correspond to only 2,209 tetrahedra and 642 mesh nodes
+with 65,536 CPUs, which correspond to 2,209 tetrahedra and 642 mesh nodes
 per compute core on average, time-to-solution still largely decreases with
 increasing resources.
 
@@ -46,12 +46,35 @@ determined by the scalability of the algorithm, its implementation, the problem
 size, the efficiency of the underlying runtime system, the hardware (e.g., the
 network interconnect), and their configuration.
 
-@note One practical result from this figure is that as the number of
+@section riecg_strong_scaling2 Strong scaling of computation -- second series
+
+Approximately 17 months after the above data, the same benchmark series has been
+rerun on the same machine, using the same code computing the same problem using
+the same software configuration. The results are depicted below.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/xyst_riecg_strong2.png"/>
+@m_enddiv
+
+This figure shows that though strong scaling is not ideal, using larger number
+of CPUs still significantly improves runtimes up to and including the largest
+run employing 196,608 CPU cores. Considering the mesh with 794,029,446
+tetrahedra connecting 133,375,577 points, this corresponds to approximately
+1K mesh points per CPU core on average. Advancing a single (3-stage) time
+step (rk3) takes 12 milliseconds of wall-clock time on average.
+
+Comparing the series using the larger mesh (nelem=794M, npoin=133M) in the
+two figures also reveals that they differ above approximately 16K CPUs. We
+believe this may be due to different configurations of hardware, operating
+system, the network interconnect and/or it could also be due to different
+background loads between the two series.
+
+@note One practical result from the above figures is that as the number of
 computational elements (and points) per CPU core decreases with more resources
 available for a fixed-size problem, this solver implementation (on these
-machines) is scalable at least as low as 2K elements (or 600 mesh points) per
-CPU core. This can be used to estimate effective compute resources based on
-problem size.
+machines) is scalable at least as low as 1K mesh points (or, considering the
+smaller mesh, approximately 600 mesh points) per CPU core. This can be used to
+estimate effective compute resources based on problem size.
 
 @section riecg_io_performance_read Strong scaling of mesh read
 

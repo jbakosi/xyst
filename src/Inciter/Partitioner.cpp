@@ -146,7 +146,7 @@ Partitioner::Partitioner(
     }
   }
 
-  // Aggregate graph across to all Partitioners
+  // Aggregate graph across all Partitioners
   auto stream = tk::serialize( m_graph );
   contribute( stream.first, stream.second.get(), GraphMerger,
               CkCallback( CkIndex_Partitioner::graph(nullptr), thisProxy ) );

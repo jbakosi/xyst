@@ -2,7 +2,8 @@
   \page      lohcg_performance LohCG computational performance
 
 This page discusses the computational performance of the @ref inciter_lohcg
-solver. The timings demonstrate that there scalability is ideal up to 65K CPUs.
+solver. A first series of timings demonstrate that scalability is ideal up to
+65K CPUs, while a second one shows good strong scaling up to 196K CPU cores.
 
 @section lohcg_strong_scaling Strong scaling of computation
 
@@ -21,18 +22,45 @@ depicts timings measured on the
 <img src="images/xyst_lohcg_strong.png"/>
 @m_enddiv
 
-The figure shows that the @ref inciter_lohcg solver scales ideally up to 65K
-CPU cores.
+The figure above shows that the @ref inciter_lohcg solver scales ideally up to
+65K CPU cores.
 
-@note One practical result from this figure is that as the number of
-computational elements (and points) per CPU core decreases with more resources
-available for a fixed-size problem, this solver implementation (on this
-machine) is scalable at least as low as approximately 3K mesh points per CPU
-core. This can be used to estimate effective compute resources based on problem
-size.
+@note Comparing the same data on @ref chocg_performance "ChoCG" shows that the
+@ref inciter_lohcg solver is approximately 100-200x faster for the same problem
+size using the same resources.
 
-Comparing the same data on @ref chocg_performance "ChoCG" shows that the @ref
-inciter_lohcg solver is approximately 100-200x faster for the same problem size
-using the same resources.
+@section lohcg_strong_scaling2 Strong scaling of computation -- second series
+
+Approximately a month after the above data, the same benchmark series has been
+rerun on the same machine, using the same code computing the same problem using
+the same software configuration. The results are depicted below.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/xyst_lohcg_strong2.png"/>
+@m_enddiv
+
+The above figure depicts two series each combining different types of advection
+stabilization and different number of stages of explicit (Runge-Kutta) time
+stepping. The blue series on both figures are comparable.
+
+This figure shows that though strong scaling is not ideal, using larger number
+of CPUs still significantly improves runtimes up to and including the largest
+run employing 196,608 CPU cores. Considering the mesh with 794,029,446
+tetrahedra connecting 133,375,577 points, this corresponds to approximately
+1,000 mesh points per CPU core on average. Advancing a single (2-stage) time
+step (rk2 with damp2 stabilization) takes 3-4 milliseconds of wall-clock time
+on average.
+
+Comparing the blue series in the two figures also reveals that they differ
+above approximately 16K CPUs. We believe this may be due to different
+configurations of hardware, operating system, the network interconnect and/or it
+could also be due to different background loads between the two series.
+
+@note One practical result from the above figures is that as the number of
+computational elements (and mesh points) per CPU core decreases with more
+resources available for a fixed-size problem, this solver implementation (on
+this machine) is scalable at least as low as approximately 1K mesh points per
+CPU core. This can be used to estimate effective compute resources based on
+problem size.
 
 */

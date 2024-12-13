@@ -2,8 +2,8 @@
   \page      zalcg_performance ZalCG computational performance
 
 This page discusses the computational performance of the @ref inciter_zalcg
-"ZalCG hydrodynamics solver". The timings demonstrate that there is no
-significant scalability bottleneck in computational performance.
+solver. The timings demonstrate that there is no significant scalability
+bottleneck in computational performance.
 
 @section zalcg_strong_scaling Strong scaling of computation
 
@@ -25,12 +25,13 @@ below depicts timings measured for both meshes on the
 The figure shows that the @ref inciter_zalcg solver, while not ideal for all
 runs, scales well into the range of O(10^4) CPU cores. In particular, the
 figure shows that strong scaling is ideal at and below 1024 CPUs using the
-smaller work-load of 144M cells and for the larger mesh at and below 8912 CPUs.
-The departure from ideal is indicated by nonzero angles between the ideal and
-the blue lines. The data also shows that though non-ideal above these points,
-parallelism is still effective in reducing CPU time with increasing compute
-resources for both problem sizes. Even at the largest runs time-to-solution
-still largely decreases with increasing resources.
+smaller work-load of 144M cells and for the larger mesh at and below
+approximately 8912 CPUs.  The departure from ideal is indicated by nonzero
+angles between the ideal and the blue lines. The data also shows that though
+non-ideal above these points, parallelism is still effective in reducing CPU
+time with increasing compute resources for both problem sizes. Even at the
+largest runs time-to-solution still largely decreases with increasing
+resources.
 
 As usual with strong scaling, as more processors are used with the same-size
 problem, communication will eventually overwhelm useful computation and the
@@ -41,14 +42,38 @@ determined by the scalability of the algorithm, its implementation, the problem
 size, the efficiency of the underlying runtime system, the hardware (e.g., the
 network interconnect), and their configuration.
 
-@note One practical result from this figure is that as the number of
-computational elements (and points) per CPU core decreases with more resources
-available for a fixed-size problem, this solver implementation (on this
-machine) is scalable at least as low as 1K mesh points per CPU core. This can
-be used to estimate effective compute resources based on problem size.
+@section zalcg_strong_scaling2 Strong scaling of computation -- second series
 
-Comparing the same data on @ref riecg_performance "RieCG" shows that the @ref
-inciter_zalcg solver is roughly 2x faster for the same problem size using the
-same resources.
+Approximately 10 months after the above data, the same benchmark series has
+been rerun on the same machine, using the same code computing the same problem
+(nelem=794M, npoin=133M) using the same software configuration. The results are
+depicted below.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/xyst_zalcg_strong2.png"/>
+@m_enddiv
+
+This figure shows that though strong scaling is not ideal, using larger number
+of CPUs still significantly improves runtimes up to and including the largest
+run employing 65,536 CPU cores. Considering the mesh with 794,029,446
+tetrahedra connecting 133,375,577 points, this corresponds to approximately 3K
+mesh points per CPU core on average. Advancing a single (one-stage) time step
+takes about 20 milliseconds of wall-clock time on average.
+
+@note One practical result from the above figures is that as the number of
+computational elements (and mesh points) per CPU core decreases with more
+resources available for a fixed-size problem, this solver implementation (on
+this machine) is scalable at least as low as approximately 3K mesh points per
+CPU core. This can be used to estimate effective compute resources based on
+problem size.
+
+Comparing the 133Mpts series in the two figures also reveals that they differ
+around and above approximately 16K CPUs. We believe this may be due to different
+configurations of hardware, operating system, the network interconnect and/or it
+could also be due to different background loads between the two series.
+
+@note Comparing the same data on @ref riecg_performance "RieCG" shows that the
+@ref inciter_zalcg solver is roughly 2x faster for the same problem size using
+the same resources.
 
 */

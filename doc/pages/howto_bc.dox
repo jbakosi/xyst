@@ -40,9 +40,9 @@ be applied -- in this case side sets 1 and 2. In this example, the following 5
 integers are all specified as ones. Since a specific problem type is also
 specified `vortical_flow`, used for verification with a known analytic
 solution, the 5 ones following the side set ids prescribe evaluation of the
-analytic solution specific to this problem at each time step for each of the
-variable solved for. If a zero is given instead of a one for a scalar variable,
-the enforcement of the Dirichlet BC for that scalar is skipped.  Dirichlet BCs
+analytic solution specific to this problem at each time step for each
+variable solved for. If a zero is given instead of a one for a variable,
+the enforcement of the Dirichlet BC for that variable is skipped.  Dirichlet BCs
 are enforced in mesh nodes of the side set. For a full control file employing
 problem-specific Dirichlet BCs see @ref riecg_example_vortical_flow.
 
@@ -71,8 +71,8 @@ variables \f$\{ p, u, v, w \}\f$. The above block configuring Dirichlet BCs
 contains two blocks with exactly 5 integers.  Of these 5 integers the first one
 is the side set id which specifies the exodus side set (given in the input mesh
 file) to which the given Dirichlet BC should be applied -- in this case side
-sets 6 and 7. The following 4 integers are specified as zeros and ones. The
-zeros means that those variables do not apply the Dirichlet BCs, while ones
+sets 6 and 7. The following 4 integers are specified as zeros and ones. A
+zero means that the Dirichlet BC is skipped for that variable, while one
 means apply. According to the above, on side set 6 the pressure is left alone
 and the velocity is set to its initial value, presribed by the preceding `ic`
 block. On side set 7, the velocity is left unmodified and the pressure is set

@@ -743,8 +743,8 @@ advdom( const tk::UnsMesh::Coords& coord,
   // number of transported scalars
   auto ncomp = U.nprop();
 
-  // configure flux function
-  auto flux = [](){
+  // configure advection flux function
+  auto adv = [](){
     const auto& flux = g_cfg.get< tag::flux >();
          if (flux == "rusanov") return rusanov;
     else if (flux == "hllc") return hllc;
@@ -773,12 +773,12 @@ advdom( const tk::UnsMesh::Coords& coord,
     // edge fluxes
     tk::real f[6][ncomp];
     const auto d = dsupint[0].data();
-    flux( coord, G, d+(e*6+0)*3, N[0], N[1], u[0], u[1], f[0] );
-    flux( coord, G, d+(e*6+1)*3, N[1], N[2], u[1], u[2], f[1] );
-    flux( coord, G, d+(e*6+2)*3, N[2], N[0], u[2], u[0], f[2] );
-    flux( coord, G, d+(e*6+3)*3, N[0], N[3], u[0], u[3], f[3] );
-    flux( coord, G, d+(e*6+4)*3, N[1], N[3], u[1], u[3], f[4] );
-    flux( coord, G, d+(e*6+5)*3, N[2], N[3], u[2], u[3], f[5] );
+    adv( coord, G, d+(e*6+0)*3, N[0], N[1], u[0], u[1], f[0] );
+    adv( coord, G, d+(e*6+1)*3, N[1], N[2], u[1], u[2], f[1] );
+    adv( coord, G, d+(e*6+2)*3, N[2], N[0], u[2], u[0], f[2] );
+    adv( coord, G, d+(e*6+3)*3, N[0], N[3], u[0], u[3], f[3] );
+    adv( coord, G, d+(e*6+4)*3, N[1], N[3], u[1], u[3], f[4] );
+    adv( coord, G, d+(e*6+5)*3, N[2], N[3], u[2], u[3], f[5] );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c] - f[3][c];
@@ -800,9 +800,9 @@ advdom( const tk::UnsMesh::Coords& coord,
     // edge fluxes
     tk::real f[3][ncomp];
     const auto d = dsupint[1].data();
-    flux( coord, G, d+(e*3+0)*3, N[0], N[1], u[0], u[1], f[0] );
-    flux( coord, G, d+(e*3+1)*3, N[1], N[2], u[1], u[2], f[1] );
-    flux( coord, G, d+(e*3+2)*3, N[2], N[0], u[2], u[0], f[2] );
+    adv( coord, G, d+(e*3+0)*3, N[0], N[1], u[0], u[1], f[0] );
+    adv( coord, G, d+(e*3+1)*3, N[1], N[2], u[1], u[2], f[1] );
+    adv( coord, G, d+(e*3+2)*3, N[2], N[0], u[2], u[0], f[2] );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) = R(N[0],c) - f[0][c] + f[2][c];
@@ -822,7 +822,7 @@ advdom( const tk::UnsMesh::Coords& coord,
     // edge fluxes
     tk::real f[ncomp];
     const auto d = dsupint[2].data();
-    flux( coord, G, d+e*3, N[0], N[1], u[0], u[1], f );
+    adv( coord, G, d+e*3, N[0], N[1], u[0], u[1], f );
     // edge flux contributions
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) -= f[c];

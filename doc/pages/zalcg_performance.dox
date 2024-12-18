@@ -56,9 +56,10 @@ depicted below.
 This figure shows that though strong scaling is not ideal, using larger number
 of CPUs still significantly improves runtimes up to and including the largest
 run employing 65,536 CPU cores. Considering the mesh with 794,029,446
-tetrahedra connecting 133,375,577 points, this corresponds to approximately 3K
+tetrahedra connecting 133,375,577 points, this corresponds to lower than 3K
 mesh points per CPU core on average. Advancing a single (one-stage) time step
-takes about 20 milliseconds of wall-clock time on average.
+takes about 20 milliseconds of wall-clock time on average with this mesh on 65K
+CPU cores.
 
 @note One practical result from the above figures is that as the number of
 computational elements (and mesh points) per CPU core decreases with more

@@ -61,13 +61,12 @@ of CPUs still significantly improves runtimes up to and including the largest
 run employing 196,608 CPU cores. Considering the mesh with 794,029,446
 tetrahedra connecting 133,375,577 points, this corresponds to approximately
 1K mesh points per CPU core on average. Advancing a single (3-stage) time
-step (rk3) takes 12 milliseconds of wall-clock time on average.
+step takes 12 milliseconds of wall-clock time on average.
 
-Comparing the series using the larger mesh (nelem=794M, npoin=133M) in the
-two figures also reveals that they differ above approximately 16K CPUs. We
-believe this may be due to different configurations of hardware, operating
-system, the network interconnect and/or it could also be due to different
-background loads between the two series.
+Comparing the two series using the larger mesh (nelem=794M, npoin=133M) also
+reveals some differerence. This could be due to different configurations of
+hardware, operating system, the network interconnect and/or it could also be
+due to different background loads between the two series.
 
 @note One practical result from the above figures is that as the number of
 computational elements (and points) per CPU core decreases with more resources

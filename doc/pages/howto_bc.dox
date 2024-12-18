@@ -14,7 +14,7 @@ is a simple text file, specified via a command line argument to the inciter
 executable and parsed via the [Lua](https://www.lua.org) programming language
 interpreter. See also the doc page discussing @ref howto_iofiles.
 
-@subsection bc_problem_dir Problem-specific Dirichlet BCs
+@section bc_problem_dir Problem-specific Dirichlet BCs
 
 An example of problem-specific Dirichlet boundary conditions is given below
 
@@ -46,7 +46,7 @@ the enforcement of the Dirichlet BC for that variable is skipped.  Dirichlet BCs
 are enforced in mesh nodes of the side set. For a full control file employing
 problem-specific Dirichlet BCs see @ref riecg_example_vortical_flow.
 
-@subsection bc_user_dir Dirichlet BCs with a user-defined problem
+@section bc_user_dir Dirichlet BCs with a user-defined problem
 
 An example of Dirichlet boundary conditions used with a user-defined problem is
 given below
@@ -80,7 +80,7 @@ to its initial value which is zero by default. Dirichlet BCs are enforced in
 mesh nodes of the side set. For a full control file employing Dirichlet BCs
 with a user-defined problem, see @ref lohcg_example_sphere_quarter.
 
-@subsection bc_inhomogeneous_dir Inhomogeneous Dirichlet BCs
+@section bc_inhomogeneous_dir Inhomogeneous Dirichlet BCs
 
 An example of inhomogeneous Dirichlet boundary conditions, specifying constant
 values at a side set, is given below
@@ -131,7 +131,7 @@ side set 4.  Dirichlet BCs are enforced in mesh nodes of the side set.  See
 for a similar setup but for @ref inciter_lohcg which skips the pressure as the
 prognostic variable in the first position.
 
-@subsection bc_sym Symmetry BCs
+@section bc_sym Symmetry BCs
 
 An example specifying symmetry (free-slip) conditions is given below
 
@@ -150,7 +150,7 @@ condition is enforced indepently for each surface element the node belongs to
 using the normal vector for the surface element. For a full example, see @ref
 riecg_example_sedov.
 
-@subsection bc_nsolip No-slip BCs
+@section bc_nsolip No-slip BCs
 
 An example specifying no-slip/no-penetration conditions is given below
 
@@ -165,7 +165,7 @@ conditions are specified. The ids must correspond to those in the input exodus
 file. No slip conditions prescribe zero velocity at mesh nodes that belong to a
 side set. For a full example, see @ref chocg_example_poiseuille.
 
-@subsection bc_far Farfield BCs
+@section bc_far Farfield BCs
 
 An example specifying farfield conditions is given below
 
@@ -183,7 +183,7 @@ in farfield boundaries for transconic flows. The side set id is also given,
 which is the exodus side set id, appearing in the input mesh file. For a full
 example, see @ref riecg_example_onera.
 
-@subsection bc_pre Pressure BCs
+@section bc_pre Pressure BCs
 
 The example below specifies pressure conditions on an inlet and outlet, each
 given by a list of side sets.

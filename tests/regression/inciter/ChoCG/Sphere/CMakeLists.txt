@@ -51,7 +51,7 @@ add_regression_test(chocg_inviscid_sphere_u0.6
                     LABELS chocg)
 
 add_regression_test(chocg_viscous_sphere_u0.6 ${INCITER_EXECUTABLE}
-                    NUMPES 4 PPN 2
+                    NUMPES 4 PPN 1
                     INPUTFILES sphere_chocg_viscous_test.q sphere2_5K.exo
                     ARGS -c sphere_chocg_viscous_test.q -i sphere2_5K.exo -u 0.6
                     TEXT_BASELINE diag_sphere_chocg_viscous_test.std

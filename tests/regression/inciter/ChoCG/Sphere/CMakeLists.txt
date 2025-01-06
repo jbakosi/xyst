@@ -23,6 +23,21 @@ add_regression_test(chocg_inviscid_sphere ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS chocg)
 
+add_regression_test(chocg_viscous_sphere ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES sphere_chocg_viscous_test.q sphere2_5K.exo
+                    ARGS -c sphere_chocg_viscous_test.q -i sphere2_5K.exo
+                    BIN_BASELINE sphere_chocg_viscous_test.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    TEXT_BASELINE diag_sphere_chocg_viscous_test.std
+                                  inte_sphere_chocg_viscous_test.std
+                    TEXT_RESULT diag
+                                out.int
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                                        int.ndiff.cfg
+                    LABELS chocg)
+
 # Parallel + virtualization
 
 add_regression_test(chocg_inviscid_sphere_u0.6
@@ -33,4 +48,16 @@ add_regression_test(chocg_inviscid_sphere_u0.6
                     TEXT_BASELINE diag_inviscid_sphere.std
                     TEXT_RESULT diag
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS chocg)
+
+add_regression_test(chocg_viscous_sphere_u0.6 ${INCITER_EXECUTABLE}
+                    NUMPES 4 PPN 2
+                    INPUTFILES sphere_chocg_viscous_test.q sphere2_5K.exo
+                    ARGS -c sphere_chocg_viscous_test.q -i sphere2_5K.exo -u 0.6
+                    TEXT_BASELINE diag_sphere_chocg_viscous_test.std
+                                  inte_sphere_chocg_viscous_test.std
+                    TEXT_RESULT diag
+                                out.int
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                                        int.ndiff.cfg
                     LABELS chocg)

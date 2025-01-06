@@ -1323,6 +1323,10 @@ LohCG::advance( tk::real newdt )
 //! \param[in] newdt The smallest dt across the whole problem
 // *****************************************************************************
 {
+  // Detect blowup
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  if (newdt < eps) m_finished = 1;
+
   // Set new time step size
   Disc()->setdt( newdt );
 

@@ -239,7 +239,7 @@ Sorter::response()
   // maps were computed above for those chares that queried this map from us.
   // This data form a distributed table and we only work on a chunk of it. Note
   // that we only send data back to those chares that have queried us. The
-  // receiving sides do not know in advance if the receive messages or not.
+  // receiving sides do not know in advance if they receive messages or not.
   // Completion is detected by having the receiver respond back and counting
   // the responses on the sender side, i.e., this chare.
   m_nbnd = exp.size();

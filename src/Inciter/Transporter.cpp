@@ -192,7 +192,9 @@ Transporter::createPartitioner()
 
   // Create partitioner callbacks (order important)
   tk::PartitionerCallback cbp {{
-      CkCallback( CkReductionTarget(Transporter,load), thisProxy )
+      CkCallback( CkReductionTarget(Transporter,queriedPart), thisProxy )
+    , CkCallback( CkReductionTarget(Transporter,respondedPart), thisProxy )
+    , CkCallback( CkReductionTarget(Transporter,load), thisProxy )
     , CkCallback( CkReductionTarget(Transporter,partitioned), thisProxy )
     , CkCallback( CkReductionTarget(Transporter,distributed), thisProxy )
     , CkCallback( CkReductionTarget(Transporter,refinserted), thisProxy )
@@ -616,6 +618,26 @@ Transporter::refined( std::size_t summeshid,
 
   m_sorter[meshid].doneInserting();
   m_sorter[meshid].setup( npoin );
+}
+
+void
+Transporter::queriedPart( std::size_t meshid )
+// *****************************************************************************
+// Reduction target: all Partitioner nodes have queried their mesh graphs
+//! \param[in] meshid Mesh id
+// *****************************************************************************
+{
+  m_partitioner[meshid].response();
+}
+
+void
+Transporter::respondedPart( std::size_t meshid )
+// *****************************************************************************
+// Reduction target: all Partitioner nodes have responded with their mesh graphs
+//! \param[in] meshid Mesh id
+// *****************************************************************************
+{
+  m_partitioner[meshid].load();
 }
 
 void

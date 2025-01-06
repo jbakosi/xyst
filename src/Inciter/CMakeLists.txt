@@ -16,7 +16,6 @@ add_library(Inciter
             ChoCG.cpp
             LohCG.cpp
             DiagReducer.cpp
-            GraphReducer.cpp
             PartsReducer.cpp
             NodeDiagnostics.cpp
             IntegralReducer.cpp)

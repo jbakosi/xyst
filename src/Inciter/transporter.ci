@@ -50,6 +50,8 @@ module transporter {
       entry [reductiontarget] void resized( std::size_t meshid );
       entry [reductiontarget] void queried( std::size_t meshid );
       entry [reductiontarget] void responded( std::size_t meshid );
+      entry [reductiontarget] void queriedPart( std::size_t meshid );
+      entry [reductiontarget] void respondedPart( std::size_t meshid );
       entry [reductiontarget] void totalvol( tk::real v,
                                              tk::real initial,
                                              tk::real summeshid );

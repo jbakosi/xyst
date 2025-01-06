@@ -86,8 +86,21 @@ class Partitioner : public CBase_Partitioner {
     //! Configure Charm++ reduction types
     static void registerReducers();
 
-    //! Reduction target to aggregate mesh graphs
-    void graph( CkReductionMsg* msg );
+    //! Aggregate mesh graph for mesh nodes owned
+    void query( int fromnode,
+                const std::unordered_map< std::size_t,
+                        std::unordered_set< std::size_t > >& psup );
+    //! Receive receipt of list of points surrounding points to query
+    void recvquery();
+    //! Respond to graph queries
+    void response();
+    //! Receive mesh graphs for our mesh chunk
+    void psup( int fromnode, const std::unordered_map< std::size_t,
+                                std::unordered_set< std::size_t > >& graph );
+    //! Receive receipt of mesh nodes graphs
+    void recvpsup();
+    // Compute total load across distributed mesh
+    void load();
 
     //! Reduction target to aggregate mesh partition assginments
     void parts( CkReductionMsg* msg );
@@ -119,6 +132,7 @@ class Partitioner : public CBase_Partitioner {
     //!    checkpoint/restart.
     void pup( PUP::er &p ) override {
       p | m_meshid;
+      p | m_npsup;
       p | m_cbp;
       p | m_cbr;
       p | m_cbs;
@@ -137,20 +151,19 @@ class Partitioner : public CBase_Partitioner {
       p | m_cgmom;
       p | m_ginpoel;
       p | m_graph;
+      p | m_graphnode;
       p | m_coord;
       p | m_inpoel;
       p | m_lid;
       p | m_ndist;
       p | m_nchare;
       p | m_nface;
-      p | m_nodech;
       p | m_linnodes;
       p | m_chinpoel;
       p | m_chcoordmap;
       p | m_chbface;
       p | m_chtriinpoel;
       p | m_chbnode;
-      p | m_bnodechares;
       p | m_bface;
       p | m_triinpoel;
       p | m_bnode;
@@ -164,6 +177,8 @@ class Partitioner : public CBase_Partitioner {
   private:
     //! Mesh ID
     std::size_t m_meshid;
+    //! Counter for number of nodes contributing to mesn graphs
+    std::size_t m_npsup;
     //! Charm++ callbacks associated to compile-time tags for partitioner
     tk::PartitionerCallback m_cbp;
     //! Charm++ callbacks associated to compile-time tags for refiner
@@ -200,6 +215,13 @@ class Partitioner : public CBase_Partitioner {
     std::vector< std::size_t > m_ginpoel;
     //! Aggregated mesh graph of owned nodes if graph-based partitioner is used
     std::unordered_map< std::size_t, std::vector< std::size_t > > m_graph;
+    //! Graph->node map used to aggregate mesh graph
+    //! \details Key: global mesh node id, value: 0: list of compute nodes
+    //! contributing partial graph (points surround points) to the global mesh
+    //! node id in key, 1: list of global mesh node ids surrounding node in key
+    std::unordered_map< std::size_t,
+      std::tuple< std::vector< int >,
+                  std::unordered_set< std::size_t > > > m_graphnode;
     //! Coordinates of mesh nodes of this compute node's mesh chunk
     tk::UnsMesh::Coords m_coord;
     //! \brief Element connectivity with local node IDs of this compute node's
@@ -214,10 +236,6 @@ class Partitioner : public CBase_Partitioner {
     int m_nchare;
     //! Counters (for each chare owned) for assigning face ids in parallel
     std::unordered_map< int, std::size_t > m_nface;
-    //! Chare IDs (value) associated to global mesh node IDs (key)
-    //! \details Multiple chares can contribute to a single node, hence vector
-    //!   for map value.
-    std::unordered_map< std::size_t, std::vector< int > > m_nodech;
     //! \brief Map associating new node IDs (as in producing contiguous-row-id
     //!   linear system contributions) as map-values to old node IDs (as in
     //!   file) as map-keys
@@ -234,11 +252,6 @@ class Partitioner : public CBase_Partitioner {
     //! Side set id + boundary nodes for each chare
     std::unordered_map< int,
       std::map< int, std::vector< std::size_t > > > m_chbnode;
-    //! \brief Map associating a list of chare IDs to old (as in file) global
-    //!   mesh node IDs on the chare boundaries
-    //! \details Note that a single global mesh node ID can be associated to
-    //!   multiple chare IDs as multiple chares can contribute to a single node.
-    std::unordered_map< std::size_t, std::vector< int > > m_bnodechares;
     //! Boundary face IDs associated associated to side set IDs
     std::map< int, std::vector< std::size_t > > m_bface;
     //! Boundary face-node connectivity

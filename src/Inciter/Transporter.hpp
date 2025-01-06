@@ -132,6 +132,11 @@ class Transporter : public CBase_Transporter {
     //! Reduction target: all Sorter chares have setup their boundary edges
     void responded( std::size_t meshid );
 
+    //! Reduction target: all Partitioners have queried their mesh graphs
+    void queriedPart( std::size_t meshid );
+    //! Reduction target: all Partitioners have responded with their mesh graphs
+    void respondedPart( std::size_t meshid );
+
     //! Non-reduction target for receiving progress report on partitioning mesh
     void pepartitioned() { m_progMesh.inc< PART >( tk::Print() ); }
     //! Non-reduction target for receiving progress report on distributing mesh

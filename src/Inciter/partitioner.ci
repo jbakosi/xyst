@@ -49,7 +49,15 @@ module partitioner {
         const std::map< int, std::vector< std::size_t > >& faces,
         const std::map< int, std::vector< std::size_t > >& bnode );
       initnode void registerReducers();
-      entry [reductiontarget] void graph( CkReductionMsg* msg );
+      entry void query( int fromnode,
+                        const std::unordered_map< std::size_t,
+                          std::unordered_set< std::size_t > >& psup );
+      entry void recvquery();
+      entry void response();
+      entry void psup( int fromnode, const std::unordered_map< std::size_t,
+                         std::unordered_set< std::size_t > >& graph );
+      entry void recvpsup();
+      entry void load();
       entry [reductiontarget] void parts( CkReductionMsg* msg );
       entry [exclusive] void partition( int nchare );
       entry [exclusive] void addMesh(

@@ -26,13 +26,11 @@
 #include "ZoltanGeom.hpp"
 #include "ZoltanGraph.hpp"
 #include "InciterConfig.hpp"
-#include "GraphReducer.hpp"
 #include "PartsReducer.hpp"
 #include "Around.hpp"
 
 namespace inciter {
 
-static CkReduction::reducerType GraphMerger;
 static CkReduction::reducerType PartsMerger;
 extern ctr::Config g_cfg;
 
@@ -63,6 +61,7 @@ Partitioner::Partitioner(
   const std::map< int, std::vector< std::size_t > >& faces,
   const std::map< int, std::vector< std::size_t > >& bnode ) :
   m_meshid( meshid ),
+  m_npsup( 0 ),
   m_cbp( cbp ),
   m_cbr( cbr ),
   m_cbs( cbs ),
@@ -133,23 +132,42 @@ Partitioner::Partitioner(
   m_bnode = std::move(own_bnode);
 
   // Compute unqiue mesh graph if needed
+  std::unordered_map< int, std::unordered_map< std::size_t,
+                             std::unordered_set< std::size_t > > > graph;
   if ( g_cfg.get< tag::part >() == "phg" ) {
-    // Generate global node ids
-    const auto& [ inpoel, gid, lid ] = tk::global2local( m_ginpoel );
+    // Generate global node ids for the mesh on this compute node
+    const auto gid = tk::uniquecopy( m_ginpoel );
     // Generate points surrounding points of this sub-graph with local node ids
     const auto psup = tk::genPsup( m_inpoel, 4, tk::genEsup(m_inpoel,4) );
+    // Get total number of mesh nodes in mesh file
+    auto npoin = mr.npoin();
+    // Compute the number of nodes (chunksize) a node will build mesh graph for
+    auto N = static_cast< std::size_t >( CkNumNodes() );
+    auto chunksize = npoin / N;
     // Put sub-graph into a map for aggregation
     for (std::size_t p=0; p<gid.size(); ++p) {
-      auto& m = m_graph[ gid[p] ];
-      m.push_back( static_cast< std::size_t >( CkMyNode() ) );
-      for (auto i : tk::Around(psup,p)) m.push_back( gid[i] );
+      auto bin = gid[p] / chunksize;
+      if (bin >= N) bin = N - 1;
+      auto& m = graph[ static_cast< int >( bin ) ][ gid[p] ];
+      for (auto i : tk::Around(psup,p)) m.insert( gid[i] );
     }
   }
 
-  // Aggregate graph across all Partitioners
-  auto stream = tk::serialize( m_graph );
-  contribute( stream.first, stream.second.get(), GraphMerger,
-              CkCallback( CkIndex_Partitioner::graph(nullptr), thisProxy ) );
+  // Send mesh graph (points surrounding points) in bins to nodes that will
+  // aggregate this data in maps for the data in the bin. These bins form a
+  // distributed table. Note that we only send data to those nodes that have
+  // data to work on. The receiving sides do not know in advance if they receive
+  // messages or not. Completion is detected by having the receiver respond back
+  // and counting the responses on the sender side, i.e., this node.
+  m_npsup = graph.size();
+  if (m_npsup == 0) {
+    contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
+                m_cbp.get< tag::queried >() );
+  } else {
+    for (const auto& [ targetnode, psup ] : graph) {
+      thisProxy[ targetnode ].query( thisIndex, psup );
+    }
+  }
 }
 
 void
@@ -164,41 +182,114 @@ Partitioner::registerReducers()
 //!   http://charm.cs.illinois.edu/manuals/html/charm++/manual.html.
 // *****************************************************************************
 {
-  GraphMerger = CkReduction::addReducer( tk::mergeGraph );
   PartsMerger = CkReduction::addReducer( tk::mergeParts );
 }
 
 void
-Partitioner::graph( CkReductionMsg* msg )
+Partitioner::query( int fromnode,
+                    const std::unordered_map< std::size_t,
+                            std::unordered_set< std::size_t > >& psup  )
 // *****************************************************************************
-// Reduction target yielding the aggregated mesh graph on each Partitioner
-//! \param[in] msg Serialized aggregated mesh graph
+// Aggregate mesh graph for mesh nodes owned
+//! \param[in] fromnode Sender node ID
+//! \param[in] psup Points surrounding points data from another compute node
 // *****************************************************************************
 {
-  if (msg) {
-    // Deserialize aggregated mesh graph
-    PUP::fromMem creator( msg->getData() );
-    std::unordered_map< std::size_t, std::vector< std::size_t > > graph;
-    creator | graph;
-    delete msg;
-
-    // Keep owned node graph only
-    for (auto& [g,n] : m_graph) {
-      auto own = graph.find( g );
-      if (own == end(graph)) continue;
-      n.clear();
-      if (own->second[0] == static_cast< std::size_t >( CkMyNode() )) {
-        n.insert( end(n), own->second.begin()+1, own->second.end() );
-      }
-      tk::unique( n );
-    }
-
-    // Remove connectivity of those nodes not owned
-    graph.clear();
-    for (auto&& [g,n] : m_graph) if (!n.empty()) graph[g] = std::move(n);
-    m_graph = std::move( graph );
+  // Aggregate incoming graphs with contributor node ids
+  for (const auto& [g,n] : psup) {
+    auto& t = m_graphnode[g];
+    std::get<0>(t).push_back( fromnode );       // nodes that contribute to g
+    std::get<1>(t).insert( begin(n), end(n) );  // points surrounding g
   }
 
+  // Report back to node message received from
+  thisProxy[ fromnode ].recvquery();
+}
+
+void
+Partitioner::recvquery()
+// *****************************************************************************
+// Receive receipt of list of points surrounding points to query
+// *****************************************************************************
+{
+  if (--m_npsup == 0) {
+    contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
+                m_cbp.get< tag::queried >() );
+  }
+}
+
+void
+Partitioner::response()
+// *****************************************************************************
+// Respond to graph queries
+// *****************************************************************************
+{
+  std::unordered_map< int,
+    std::unordered_map< std::size_t, std::unordered_set< std::size_t > > > exp;
+
+  // Prepare partial graph to be sent back to requesting compute nodes
+  for (const auto& [g,t] : m_graphnode) {
+    const auto& targetnodes = std::get<0>(t);   // requesting compute nodes
+    const auto& psup = std::get<1>(t);          // aggregate sub-graph for g
+    // send answer to all that queried but send data only to owner
+    for (auto n : targetnodes) exp[n];
+    auto owner = *std::min_element( begin(targetnodes), end(targetnodes) );
+    exp[owner][g].insert( begin(psup), end(psup) );
+  }
+
+  // Send partial mesh node graph to compute nodes that issued a query to us.
+  // This data form a distributed table and we only work on a chunk of it. Note
+  // that we only send data back to those compute nodes that have queried us
+  // that owns the mesh node (with the lowest chare id for a shared node). The
+  // receiving sides do not know in advance if they receive messages or not.
+  // Completion is detected by having the receiver respond back and counting
+  // the responses on the sender side, i.e., this compute node.
+  m_npsup = exp.size();
+  if (m_npsup == 0) {
+    contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
+                m_cbp.get< tag::responded >() );
+  } else {
+    for (const auto& [ targetchare, map ] : exp) {
+      thisProxy[ targetchare ].psup( thisIndex, map );
+    }
+  }
+}
+
+void
+Partitioner::psup( int fromnode, const std::unordered_map< std::size_t,
+                                   std::unordered_set< std::size_t > >& graph )
+// *****************************************************************************
+//  Receive aggregated mesh node graph for our mesh chunk
+//! \param[in] fromnode Sender chare ID
+//! \param[in] graph Aggregate mesh node graph assembled by fromnode
+// *****************************************************************************
+{
+  for (const auto& [g,psup] : graph) {
+    auto& nodes = m_graph[g];
+    nodes.insert( end(nodes), begin(psup), end(psup) );
+  }
+
+  // Report back to chare message received from
+  thisProxy[ fromnode ].recvpsup();
+}
+
+void
+Partitioner::recvpsup()
+// *****************************************************************************
+// Receive receipt of mesh nodes graphs
+// *****************************************************************************
+{
+  if (--m_npsup == 0)
+    contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
+                m_cbp.get< tag::responded >() );
+}
+
+void
+Partitioner::load()
+// *****************************************************************************
+// Compute total load across distributed mesh
+// *****************************************************************************
+{
   // Sum number of cells across distributed mesh
   std::vector< std::size_t > meshdata{ m_meshid, m_ginpoel.size()/4 };
   contribute( meshdata, CkReduction::sum_ulong, m_cbp.get< tag::load >() );
@@ -274,6 +365,7 @@ void
 Partitioner::partitioned( std::vector< std::size_t >&& che )
 // *****************************************************************************
 // Continue after partitioning finished
+//! \param[in] che Chare ids assigned to mesh elements
 // *****************************************************************************
 {
   if ( g_cfg.get< tag::feedback >() ) m_host.pepartitioned();
@@ -423,14 +515,12 @@ Partitioner::refine()
   tk::destroy( m_inpoel );
   tk::destroy( m_lid );
   tk::destroy( m_nface );
-  tk::destroy( m_nodech );
   tk::destroy( m_linnodes );
   tk::destroy( m_chinpoel );
   tk::destroy( m_chcoordmap );
   tk::destroy( m_chbface );
   tk::destroy( m_chtriinpoel );
   tk::destroy( m_chbnode );
-  tk::destroy( m_bnodechares );
   tk::destroy( m_bface );
   tk::destroy( m_triinpoel );
   tk::destroy( m_bnode );

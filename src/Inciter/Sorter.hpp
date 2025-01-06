@@ -96,6 +96,7 @@ class Sorter : public CBase_Sorter {
 
     //! Setup chare mesh boundary node communication map
     void setup( std::size_t npoin );
+
     //! \brief Incoming query for a list mesh nodes for which this chare
     //!   compiles communication maps
     void query( int fromch, const std::unordered_set< std::size_t >& bnd );
@@ -106,10 +107,8 @@ class Sorter : public CBase_Sorter {
     //! Receive boundary node communication map for our mesh chunk
     void bnd( int fromch,
       const std::map< int, std::unordered_set< std::size_t > >& nodeCommMap );
-
     //! Receive receipt of boundary node communication map
     void recvbnd();
-
     //! Start reordering (if user enabled it)
     void start();
 

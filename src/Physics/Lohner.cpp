@@ -773,7 +773,7 @@ adv_damp2( const tk::real supint[],
   auto len = tk::length( nx, ny, nz );
   auto sl = std::abs(vnL) + s*len;
   auto sr = std::abs(vnR) + s*len;
-  auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr) * len;
+  auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr);
   f[0] += aw * (pR - pL)*s2;
   f[1] += aw * (uR - uL);
   f[2] += aw * (vR - vL);
@@ -873,7 +873,7 @@ adv_damp4( const tk::real supint[],
   auto len = tk::length( nx, ny, nz );
   auto sl = std::abs(vnL) + s*len;
   auto sr = std::abs(vnR) + s*len;
-  auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr) * len;
+  auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr);
   f[0] += aw * (U(q,0) - U(p,0))*s2;
   f[1] += aw * (uR[0] - uL[0]);
   f[2] += aw * (uR[1] - uL[1]);

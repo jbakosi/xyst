@@ -10,13 +10,13 @@ print "Lid-driven cavity"
 nstep = 5
 ttyi = 1
 
-cfl = 0.9
+cfl = 0.7
 
 solver = "lohcg"
 flux = "damp2"
 stab2 = true
-stab2coef = 0.001
-soundspeed = 100.0
+stab2coef = 0.01
+soundspeed = 10.0
 rk = 2
 
 fct = false

@@ -25,7 +25,7 @@ surfaces.
 
 @section chocg_example_sphere_quarter_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [291b6f1](https://codeberg.org/xyst/xyst/commit/291b6f1ea70bb089e46d7a47a6ff5c06ee931042) and the control file below.
+To reproduce the results below, use code revision [f3b02da](https://codeberg.org/xyst/xyst/commit/f3b02da5ec9d865d5a2546bba4b314c1a205ae00) and the control file below.
 
 @section chocg_example_sphere_quarter_control Control file
 
@@ -38,14 +38,11 @@ print "Inviscid quarter sphere"
 
 term = 0.2
 ttyi = 1
-cfl = 0.3
+cfl = 0.1
 
 solver = "chocg"
-flux = "damp4"
-rk = 4
+flux = "tg"
 fct = false
-
-part = "phg"
 
 pressure = {
   iter = 300,
@@ -64,7 +61,6 @@ ic = {
 bc_dir = {
   { 6, 2, 2, 2 }
 }
-
 bc_dirval = {
   { 6, 1.0, 0.0, 0.0 }
 }

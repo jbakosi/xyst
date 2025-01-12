@@ -787,7 +787,7 @@ adv_damp2( const tk::real supint[],
   auto vnR = uR*nx + vR*ny + wR*nz;
 
   // stabilization
-  auto aw = std::abs( vnL + vnR ) / 2.0;
+  auto aw = std::abs( vnL + vnR ) / 2.0 * tk::length( nx, ny, nz );
 
   // viscosity
   auto d = supint[4] * g_cfg.get< tag::mat_dyn_viscosity >();
@@ -886,7 +886,7 @@ adv_damp4( const tk::real supint[],
   auto vnR = uR[0]*nx + uR[1]*ny + uR[2]*nz;
 
   // stabilization
-  auto aw = std::abs( vnL + vnR ) / 2.0;
+  auto aw = std::abs( vnL + vnR ) / 2.0 * tk::length( nx, ny, nz );
 
   // viscosity
   auto d = supint[4] * g_cfg.get< tag::mat_dyn_viscosity >();

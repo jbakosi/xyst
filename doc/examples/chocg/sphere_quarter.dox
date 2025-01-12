@@ -102,7 +102,7 @@ The velocity magnitude along the X axis following the sphere surface is
 depicted below.
 
 @m_div{m-col-m-12 m-center-m}
-<img src="images/sphere_chocg_inviscid_quarter_vis.png"/>
+<img src="images/sphere_inviscid_quarter_vis.png"/>
 @m_enddiv
 
 @m_div{m-col-m-12 m-center-m}

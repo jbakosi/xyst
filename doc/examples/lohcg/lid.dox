@@ -17,10 +17,10 @@ conditions prescribe a quiescent state with \f$
 \mbox{\boldmath$v$}(\mbox{\boldmath$x$},t=0) = (0,0,0) \f$. The boundaries at
 walls prescribe no-slip/no-penetration with \f$\mbox{\boldmath$v$}(t) = (0,0,0)
 \f$. The shear velocity on the top is enforced using a Dirichlet condition as
-\f$ \mbox{\boldmath$\overline{v}$}(t) = (1,0,0) \f$. The dynamic viscosity
-\f$\mu=0.01\f$ yields a Reynolds number of \f$ \text{Re} = \rho \overline{v}_x
-L / \mu \f$, defined based on the fluid density \f$\rho=1\f$, the length
-\f$L=1\f$, and the imposed shear velocity of \f$ \overline{v}_x = 1 \f$.  We
+\f$ \mbox{\boldmath$\overline{v}$}(t) = (1,0,0) \f$. The Reynolds number \f$
+\text{Re} = \rho \overline{v}_xL / \mu \f$, is defined the dynamic viscosity
+\f$\mu\f$, the fluid density \f$\rho=1\f$, the charactieristic length
+\f$L=1\f$, and the imposed shear velocity of \f$ \overline{v}_x = 1 \f$. We
 used different meshes depending on the Reynolds number, listed below.
        Mesh     | Points    | Tetrahedra   | h
        :------: | --------: | -----------: | --------:

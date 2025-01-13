@@ -18,8 +18,8 @@ conditions prescribe a quiescent state with \f$
 walls prescribe no-slip/no-penetration with \f$\mbox{\boldmath$v$}(t) = (0,0,0)
 \f$. The shear velocity on the top is enforced using a Dirichlet condition as
 \f$ \mbox{\boldmath$\overline{v}$}(t) = (1,0,0) \f$. The Reynolds number \f$
-\text{Re} = \rho \overline{v}_xL / \mu \f$, is defined the dynamic viscosity
-\f$\mu\f$, the fluid density \f$\rho=1\f$, the charactieristic length
+\text{Re} = \rho \overline{v}_xL / \mu \f$, is defined basd on the dynamic
+viscosity \f$\mu\f$, the fluid density \f$\rho=1\f$, the charactieristic length
 \f$L=1\f$, and the imposed shear velocity of \f$ \overline{v}_x = 1 \f$. We
 used different meshes depending on the Reynolds number, listed below.
        Mesh     | Points    | Tetrahedra   | h
@@ -30,8 +30,8 @@ Here h is the average edge length. The mesh labeled '128x128' is depicted below.
 
 @m_div{m-col-m-12 m-center-m}
 <img src="images/ldc_mesh.png"/>
-Surface mesh for computing the lid-driven cavity flow with \f$ \text{Re} =
-1,000 \f$, nelem=98K, npoin=33K.
+Surface mesh for computing the lid-driven cavity flow with \f$ \text{Re} = 1000
+\f$, nelem=98K, npoin=33K.
 @m_enddiv
 
 @note Contact us using the link at the bottom of the page for the mesh files.

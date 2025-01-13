@@ -37,14 +37,33 @@ FROM debian:stable
 RUN apt-get update -y && apt-get install -y git cmake g++ gfortran ninja-build bzip2 zlib1g-dev libnetcdf-mpi-dev
 
 # Install Charm++ in both non-SMP and SMP mode
+WORKDIR /etc/
 RUN git clone https://github.com/charmplusplus/charm && cd charm && git checkout v7.0.0-rc2
 RUN cd charm && mkdir nonsmp && cd nonsmp && cmake -DSMP=off -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-non-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
 RUN rm -rf charm
 
 # # Clone
 # ARG COMMIT
-# RUN git clone https://codeberg.org/xyst/xyst.git && cd xyst && git checkout $COMMIT && git log -1 HEAD
+RUN git clone https://codeberg.org/xyst/xyst.git && cd xyst && git checkout $COMMIT && git log -1 HEAD
 # # Build
-# RUN cd xyst && mkdir -p build && cd build && cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -GNinja -DCHARM_INSTALL_DIR=/charm-non-smp -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
+RUN cd xyst && mkdir -p build && cd build && cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -GNinja -DCHARM_INSTALL_DIR=/etc/charm-non-smp -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
+
 # # Test
 # RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q && ctest -j$(grep -c processor /proc/cpuinfo) --output-on-failure
+
+
+
+RUN install xyst/build/Main/inciter /bin
+RUN install xyst/build/Main/meshconv /bin
+# RUN rm -rf /xyst
+
+RUN addgroup --gid 1001 xyst_user
+RUN adduser --uid 1001 --gid 1001 --disabled-password --gecos "" xyst_user
+RUN echo 'xyst_user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+ADD motd /etc/motd
+ADD bash_config /home/xyst_user/.bashrc
+
+VOLUME /home/xyst_user/data
+USER xyst_user:xyst_user
+WORKDIR /home/xyst_user
+ENTRYPOINT bash

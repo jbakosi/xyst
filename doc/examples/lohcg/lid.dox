@@ -8,28 +8,37 @@ is compared to those published in [1].
 
 @section lohcg_example_lid_setup Problem setup
 
-The problem domain is a cube with 5 solid walls and a constant shear-velocity
-prescribed on the 6th one. The mesh consts of 750,000 tetrahedra connecting
-132,651 pointsis, displayed below. The initial conditions prescribe a quiescent
-state with \f$\mbox{\boldmath$v$}(\mbox{\boldmath$x$},t=0)=(0,0,0)\f$. The
-boundaries at walls prescribe no-slip/no-penetration with
-\f$\mbox{\boldmath$v$}(t)=(0,0,0)\f$. The shear velocity on top of the cube is
-enforced using a Dirichlet condition as \f$ \mbox{\boldmath$\overline{v}$}(t) =
-(1,0,0) \f$.  The dynamic viscosity is specified as \f$\mu=0.01\f$, which
-yields a Reynolds number of \f$ \text{Re} = \rho \overline{v}_x L / \mu = 100
-\f$, defined based on the fluid density \f$\rho=1\f$, the length of the cube
-\f$L=1\f$, and the imposed shear velocity of \f$ \overline{v}_x = 1 \f$.
+Since the problem is essentially 2D, the computational domain is a brick with a
+single element thickness in the Z dimension.  Solid walls with
+no-slip/no-penetration boundary conditions are prescribed on 3 faces of the
+domain and a constant shear-velocity is applied on the Y extreme. Free-slip
+(symmetry) conditions are prescribed at faces with Z normals. The initial
+conditions prescribe a quiescent state with \f$
+\mbox{\boldmath$v$}(\mbox{\boldmath$x$},t=0) = (0,0,0) \f$. The boundaries at
+walls prescribe no-slip/no-penetration with \f$\mbox{\boldmath$v$}(t) = (0,0,0)
+\f$. The shear velocity on the top is enforced using a Dirichlet condition as
+\f$ \mbox{\boldmath$\overline{v}$}(t) = (1,0,0) \f$. The dynamic viscosity
+\f$\mu=0.01\f$ yields a Reynolds number of \f$ \text{Re} = \rho \overline{v}_x
+L / \mu \f$, defined based on the fluid density \f$\rho=1\f$, the length
+\f$L=1\f$, and the imposed shear velocity of \f$ \overline{v}_x = 1 \f$.  We
+used different meshes depending on the Reynolds number, listed below.
+       Mesh     | Points    | Tetrahedra   | h
+       :------: | --------: | -----------: | --------:
+          32x32 |     2,178 |      6,144   | 0.036232
+        128x128 |    33,282 |     98,304   | 0.015841
+Here h is the average edge length. The mesh labeled '128x128' is depicted below.
 
 @m_div{m-col-m-12 m-center-m}
 <img src="images/ldc_mesh.png"/>
-Surface mesh for computing lid-driven cavity, nelem=750K, npoin=132K.
+Surface mesh for computing the lid-driven cavity flow with \f$ \text{Re} =
+1,000 \f$, nelem=98K, npoin=33K.
 @m_enddiv
 
 @note Contact us using the link at the bottom of the page for the mesh files.
 
 @section lohcg_example_lid_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [4c61fe1](https://codeberg.org/xyst/xyst/commit/4c61fe18dd2ae7661c2c34b9eff6ce3390b0148d) and the control file below.
+To reproduce the results below, use code revision [bf2cd97](https://codeberg.org/xyst/xyst/commit/bf2cd9722bf86b9c754407c87ea25cb1fee9b38b) and the control file below.
 
 @section lohcg_example_lid_control Control file
 
@@ -38,32 +47,30 @@ To reproduce the results below, use code revision [4c61fe1](https://codeberg.org
 
 print "Lid-driven cavity"
 
--- mesh: mms/unitcube_94K.exo
---       mms/unitcube_750K.exo
---       mms/unitcube_6M.exo
---       mms/unitcube_48M.exo
+-- mesh: ldc90_32x32_tet.exo    Re=100
+--       ldc90_128x128_tet.exo  Re=1000
 
-term = 40.0
+term = 50.0
 ttyi = 1000
 
 cfl = 0.9
+--theta = 0.5
 
 solver = "lohcg"
 flux = "damp2"
 stab2 = true
-stab2coef = 0.01
-soundspeed = 1000.0
+stab2coef = 0.2
+soundspeed = 200.0
 rk = 2
 
 part = "rcb"
 
-Re = 100.0
+Re = 1000.0
 mat = { dyn_viscosity = 1.0/Re }
 
 pressure = {
   iter = 500,
   tol = 1.0e-3,
-  verbose = 1,
   pc = "jacobi",
   hydrostat = 0
 }
@@ -73,13 +80,14 @@ ic = {
 }
 
 bc_noslip = {
-  sideset = { 1, 2, 3, 5, 6 }
+  sideset = { 6 }
 }
-
+bc_sym = {
+  sideset = { 3 }
+}
 bc_dir = {
   { 4, 0, 2, 2, 2 }
 }
-
 bc_dirval = {
   { 4, 0.0, 1.0, 0.0, 0.0 }
 }
@@ -95,10 +103,10 @@ diag = {
 }
 @endcode
 
-@section lohcg_example_lid_run Run on 64 CPUs
+@section lohcg_example_lid_run Run on 32 CPUs
 
 @code{.bash}
-./charmrun +p64 Main/inciter -i unitcube_750K.exo -c ldc_lohcg.q
+./charmrun +p32 Main/inciter -i ldc90_128x128_tet.exo -c ../../tmp/problems/ldc/ldch_lohcg.q -l 100000 -r 100000
 @endcode
 
 @section lohcg_example_lid_sol Numerical solution

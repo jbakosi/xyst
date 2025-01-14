@@ -432,15 +432,13 @@ Transporter::refinserted( std::size_t meshid, std::size_t error )
     tk::Print() <<
         "\n>>> ERROR: A worker chare was not assigned any mesh "
         "elements after distributing mesh " + std::to_string(meshid) +
-        ". This can happen in SMP-mode with a large +ppn "
-        "parameter (number of worker threads per logical node) and is "
-        "most likely the fault of the mesh partitioning algorithm not "
-        "tolerating the case when it is asked to divide the "
-        "computational domain into a number of partitions different "
-        "than the number of ranks it is called on, i.e., in case of "
-        "overdecomposition and/or calling the partitioner in SMP mode "
-        "with +ppn larger than 1. Solution 1: Try a different "
-        "partitioning algorithm. Solution 2: Decrease +ppn.";
+        ". This can happen in SMP-mode with a large +ppn parameter (number "
+        "of worker threads per logical node) or using zoltan's hypergraph "
+        "partitioning (phg), which is non-determinsitic. Solution 1: In SMP "
+        "mode decrease +ppn. Solution 2: Try a different partitioning "
+        "algorithm, e.g., rcb, rib, or hsfc, or configure phg differently by "
+        "passing extra zoltan parameters in the control file. To learn how, "
+        "grep tests/ for 'zoltan_params'.";
     finish( meshid );
 
   } else {

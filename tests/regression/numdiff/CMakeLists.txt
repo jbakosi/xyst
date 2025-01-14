@@ -25,9 +25,3 @@ endif()
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
   target_compile_options(numdiff PRIVATE -Wno-fortify-source)
 endif()
-
-install(TARGETS numdiff
-   RUNTIME
-   DESTINATION bin
-   COMPONENT Runtime
-   )

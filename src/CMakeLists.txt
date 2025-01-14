@@ -35,6 +35,8 @@ string(TOLOWER "${BUILD_TYPE}" BUILD_TYPE)
 
 # Echo install prefix
 message(STATUS "Install prefix: " ${CMAKE_INSTALL_PREFIX})
+# Configure RPATH for installed binaries
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 macro (add_compiler_flag flag)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")

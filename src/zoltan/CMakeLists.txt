@@ -99,3 +99,8 @@ file(GLOB zoltan_inc src/* src/Utilities/shared src/Utilities/Timer
      LIST_DIRECTORIES true)
 add_library(zoltan1 ${zoltan1_src})
 target_include_directories(zoltan1 PUBLIC ${zoltan_inc} ${MPI_C_INCLUDE_DIRS})
+
+INSTALL(TARGETS zoltan1
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development)

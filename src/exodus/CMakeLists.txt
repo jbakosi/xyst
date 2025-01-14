@@ -51,6 +51,11 @@ set(suplib_c_src
 add_library(suplib_c ${suplib_c_src})
 target_include_directories(suplib_c PUBLIC suplib_c)
 
+INSTALL(TARGETS exodus
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Development)
+
 project(exodiff CXX)
 SET(exodiff_src ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/ED_SystemInterface.C
 	        ${CMAKE_CURRENT_SOURCE_DIR}/exodiff/exo_entity.C

@@ -74,20 +74,24 @@ if ( NOT CHECKPOINT AND
   file(REMOVE ${TEXT_RESULT} ${BIN_RESULT})
 endif()
 
-# Set Charm++'s +ppn argument (if configured, used in SMP mode)
-if (PPN)
-  set(PPN "+ppn;${PPN}")
-endif()
-
 # Configure test run command
 if (SMP)
 
   # In Charm++'s SMP mode, if the runner is mpirun, -n (as RUNNER_NCPUS_ARG)
-  # specifies the number of compute nodes.
+  # specifies the total number of compute nodes for the job, but if the runner
+  # is srun, -n specifies the number of compute nodes from which PPN threads
+  # are spawn.
   if (RUNNER MATCHES "mpirun")
     set(NPE ${NUMNODES})
+  elseif (RUNNER MATCHES "srun")
+    math(EXPR NPE "${NUMPES}/${PPN}")
   else()
     set(NPE ${NUMPES})
+  endif()
+
+  # Set Charm++'s +ppn argument (if configured, used in SMP mode)
+  if (PPN)
+    set(PPN "+ppn;${PPN}")
   endif()
 
   set(test_command ${RUNNER} ${RUNNER_NCPUS_ARG} ${NPE} ${RUNNER_ARGS}

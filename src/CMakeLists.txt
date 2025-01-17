@@ -271,10 +271,16 @@ if (ENABLE_TESTS)
   # Defaults for runner, used to run regression tests
   set(RUNNER "${CHARM_RUN}" CACHE STRING
       "Parallel/serial test runner, used to run regression tests")
-  set(RUNNER_NCPUS_ARG "+p" CACHE STRING
-      "The argument used to specify the number of PEs for the test runner")
+
+  # Configure the argument used to specify the number of PEs for the test runner
+  if (RUNNER MATCHES "mpirun" OR RUNNER MATCHES "srun")
+    set(RUNNER_NCPUS_ARG "-n")
+  else()
+    set(RUNNER_NCPUS_ARG "+p")
+  endif()
+
   set(RUNNER_ARGS "" CACHE STRING
-      "Arguments to pass to the parallel/serial test runner, e.g., to mpirun.")
+      "Arguments to pass to the parallel/serial test runner, e.g., mpirun, srun.")
   set(POSTFIX_RUNNER_ARGS "" CACHE STRING
       "Arguments to pass to the parallel/serial test runner at the end of the command line.")
 

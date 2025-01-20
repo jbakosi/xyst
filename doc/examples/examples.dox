@@ -60,6 +60,7 @@ The pages below discuss example calculations using the @ref inciter_chocg solver
   - \subpage chocg_example_sphere_quarter
   - \subpage chocg_example_poiseuille
   - \subpage chocg_example_lid
+  - \subpage chocg_example_sphere
 
 \section lohcg_vnv LohCG V&V
 

@@ -1,0 +1,203 @@
+/*!
+  \page      lohcg_example_sphere LohCG: Viscous flow past a sphere
+
+This example uses @ref inciter_lohcg in @ref inciter_main to compute the
+viscous constant-density (incompressible) flow past a sphere. The goal is to
+compute the drag on the sphere at various Reynolds numbers which can be
+compared to experimental data allowing validation of the numerical method and
+its software implementation.
+
+@section lohcg_example_sphere_setup Problem setup
+
+Due to the spatial symmetry of the problem, only half of the sphere is
+represented in the computational domain. We use a coarser and a finer mesh,
+listed below, for lower and higher Reynolds numbers, respectively.
+       Mesh     | Points    | Tetrahedra   | h
+       :------: | --------: | -----------: | --------:
+           128K |    22,530 |     119,390  | 1.135276
+           960K |   165,632 |     925,005  | 0.582934
+
+As an example, the finer surface mesh is depicted below. The initial conditions
+prescribe the homogeneous free-stream velocity of
+\f$\mbox{\boldmath$v$}=(1,0,0)\f$. The pressure is set to zero at the outflow
+and the velocity is set to \f$\mbox{\boldmath$v$}=(1,0,0)\f$ at the inflow.
+No-slip/no-penetration \f$\mbox{\boldmath$v$}=(0,0,0)\f$ boundary conditions
+are applied on the sphere surface while free-slip conditions are enforced on the
+symmetry half-plane. Free-stream conditions are prescribed on the rest of the
+boundaries far from the sphere.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/half_sphere_mesh_far_960K.png"/>
+<img src="images/half_sphere_mesh_close_960K.png"/>
+Surface mesh for computing viscous flow past a sphere.
+@m_enddiv
+
+@note For the meshes, contact us using the link at the bottom of the page.
+
+@section lohcg_example_sphere_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [97d0e8e](https://codeberg.org/xyst/xyst/commit/97d0e8e76330f196a1577f5b6afcfd0dabc3f783) and the control file below.
+
+@section lohcg_example_sphere_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Viscous half sphere"
+
+-- mesh: half_viscous_sphere_128K.exo
+--       half_viscous_sphere_960K.exo
+--       half_viscous_sphere_2.5M.exo
+--       sphere diam = 1.0
+--       plot "out.int" u 2:(-$4*8.0/pi*2.0) w l lw 2 t "Cd"
+
+term = 100.0
+ttyi = 1000
+
+cfl = 0.9
+
+solver = "lohcg"
+flux = "damp2"
+stab2 = true
+stab2coef = 0.03
+soundspeed = 100.0
+rk = 4
+
+part = "phg"
+zoltan_params = {
+  "PHG_COARSENING_METHOD", "AGG",
+  "PHG_COARSEPARTITION_METHOD", "GREEDY",
+  "PHG_REFINEMENT_QUALITY", "5",
+  --"PHG_CUT_OBJECTIVE", "HYPEREDGES"
+  "PHG_CUT_OBJECTIVE", "CONNECTIVITY"
+}
+
+pressure = {
+  iter = 1000,
+  tol = 1.0e-5,
+  pc = "jacobi",
+  bc_dir = { { 3, 1 } }
+}
+
+Re = 300.0
+mat = { dyn_viscosity = 1.0/Re }
+
+ic = {
+  velocity = { 1.0, 0.0, 0.0 }
+}
+
+bc_dir = {
+  { 2, 0, 1, 1, 1 },    -- inflow
+  { 3, 1, 0, 0, 0 },    -- outflow
+  { 5, 0, 1, 1, 1 }     -- farfield
+}
+
+bc_noslip = {
+  sideset = { 1 }
+}
+
+bc_sym = {
+  sideset = { 4 }
+}
+
+fieldout = {
+  iter = 100000,
+  sideset = { 1, 4 }
+}
+
+integout = {
+  iter = 100,
+  sideset = { 1 },
+  integrals = { "force" }
+}
+
+diag = {
+  iter = 100,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section lohcg_example_sphere_run Run on 128 CPU cores in Charm++'s non-SMP mode using SLURM
+
+@code{.bash}
+srun --nodes=1 --ntasks-per-node=128 Main/inciter -c sphere_lohcg_viscous_half.q -i half_viscous_sphere_960K.exo -r 100000 -l 10000
+@endcode
+
+@section lohcg_example_sphere_fieldvis Visualization and numerical results
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.128.0
+@endcode
+
+Results only on the sphere and symmetry half-plane surfaces can be visualized
+by first stitching the partitioned surface output files into single surface
+output files, followed by invoking paraview loading both stitched surface exo
+files:
+@code{.bash}
+meshconv -i out-surf.1.e-s.0.128.% -o out-surf.1.exo
+meshconv -i out-surf.4.e-s.0.128.% -o out-surf.4.exo
+paraview --data="out-surf.1.exo;out-surf.4.exo"
+@endcode
+
+Example pressure and velocity magnitude distributions along the symmetry and
+sphere surfaces at \f$\text{Re}=300\f$ are shown in the figures below. Here the
+Reynolds number is defined as \f$\text{Re}=Vd\rho/\mu\f$, based on the
+free-stream velocity, \f$V\f$, sphere diameter, \f$d\f$, fluid density,
+\f$\rho\f$, and dynamic viscosity, \f$\mu\f$.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/lohcg_pressure_Re=300.png"/>
+<img src="images/lohcg_velocity_Re=300.png"/>
+@m_enddiv
+
+@section lohcg_example_sphere_drag Drag
+
+Repeatedly performing the above simulation with different Reynolds numbers and
+computing the force the fluid exerts on the sphere allow numerically estimating
+the drag coefficient which can be compared to experimental data in [1] and thus
+validating the solver implementation. The force is defined by the integral
+
+\f[
+F_i = \int_A\left(-p\delta_{ij} + \rho\mu\frac{\partial v_i}{\partial
+x_j}\right)n_j\mathrm{d}A
+\f]
+
+Here \f$n_j\f$ is the wall normal, \f$A\f$ is the sphere surface, \f$p\f$ is
+the pressure, \f$v_i\f$ is the velocity vector, while \f$\delta_{ij}\f$ denotes
+the Kronecker delta. The drag coefficient is defined based on the streamwise
+force, \f$F_x\f$,
+
+\f[
+C_D = \frac{F_x}{V^2S\rho/2}
+\f]
+
+where \f$S = d^2\pi/4\f$ is the surface of the sphere in the streamwise
+direction [1]. Plotted below are example time-evolutions of the computed drag
+coefficient for \f$\text{Re}=200\f$ and \f$\text{Re}=2.0 \times 10^3\f$,
+respectively, depicting stationary and non-stationary flows.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/sphere_lohcg_cd_Re=200.0.png"/>
+<img src="images/sphere_lohcg_cd_Re=2.0e+3.png"/>
+@m_enddiv
+
+The drag coefficient computed by @ref inciter_lohcg at different Reynolds
+numbers are overlaid on Fig.1.19 taken from [1] below, showing good agreement
+with theory and experimental data at all Reynolds numbers computed.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/sphere_drag_lohcg.png"/>
+<img src="images/schlichting_caption.png"/>
+@m_enddiv
+
+@section lohcg_example_sphere_refs References
+
+1. H. Schlichting, and K. Gersten, [Boundary-Layer
+Theory](https://doi.org/10.1007/978-3-662-52919-5), Springer, 9th edition,
+2017.
+
+*/

@@ -860,6 +860,11 @@ Transporter::diagHeader()
       var.push_back( "w" );
     }
 
+    auto ncomp = g_cfg.get< tag::problem_ncomp >();
+    for (std::size_t c=3; c<ncomp; ++c) {
+      var.push_back( "c" + std::to_string(c-3) );
+    }
+
     auto nv = var.size();
 
     // Add 'L2(var)' for all variables
@@ -868,10 +873,21 @@ Transporter::diagHeader()
     // Add L2-norm of the residuals
     for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(d" + var[i] + ')' );
 
-    // Augment diagnostics variables by error norms (if computed)
+    // Augment diagnostics variables by error norms of pressure (if computed)
     if (pressure_sol) {
       d.push_back( "L2(err:p)" );
       d.push_back( "L1(err:p)" );
+    }
+    // Augment diagnostics variables by error norms of adv/diff (if computed)
+    else if (problems::SOL()) {
+      d.push_back( "L2(err:u)" );
+      d.push_back( "L2(err:v)" );
+      d.push_back( "L2(err:w)" );
+      for (std::size_t i=4; i<nv; ++i) d.push_back( "L2(err:" + var[i] + ')' );
+      d.push_back( "L1(err:u)" );
+      d.push_back( "L1(err:v)" );
+      d.push_back( "L1(err:w)" );
+      for (std::size_t i=4; i<nv; ++i) d.push_back( "L1(err:" + var[i] + ')' );
     }
 
   }
@@ -1400,13 +1416,19 @@ Transporter::prediagnostics( CkReductionMsg* msg )
     diag.push_back( l2res[i] );
   }
 
-  // Finish computing norms of the numerical - analytical solution
+  // Finish computing norms of the numerical - analytical pressure solution
   if (problems::PRESSURE_SOL()) {
-    for (std::size_t i=0; i<d[L2ERR].size(); ++i) {
+    diag.push_back( std::sqrt( d[L2ERR][0] / m_meshvol[meshid] ) );
+    diag.push_back( d[L1ERR][0] / m_meshvol[meshid] );
+  }
+
+  // Finish computing norms of the numerical - analytical adv/diff solution
+  if (problems::SOL()) {
+    for (std::size_t i=1; i<d[L2ERR].size(); ++i) {
       // cppcheck-suppress uninitvar
       diag.push_back( std::sqrt( d[L2ERR][i] / m_meshvol[meshid] ) );
     }
-    for (std::size_t i=0; i<d[L1ERR].size(); ++i) {
+    for (std::size_t i=1; i<d[L1ERR].size(); ++i) {
       // cppcheck-suppress uninitvar
       diag.push_back( d[L1ERR][i] / m_meshvol[meshid] );
     }

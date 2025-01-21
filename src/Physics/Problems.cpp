@@ -517,14 +517,30 @@ ic( tk::real x, tk::real y, tk::real, tk::real t )
   // manufactured solution parameters
   tk::real p0 = 1.0;
 
-  std::vector< tk::real > u( 6, 0.0 );
+  // configure number of scalar components
+  std::size_t ncomp = 6;
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "chocg") {
+    ncomp = 4;
+  }
+
+  std::vector< tk::real > u( ncomp, 0.0 );
 
   // prescribed velocity: rotate in x-y plane
-  u[0] = 1.0;
-  u[1] = u[0] * (0.5 - y);
-  u[2] = u[0] * (x - 0.5);
-  u[3] = 0.0;
-  u[4] = eos::totalenergy( u[0], u[1]/u[0], u[2]/u[0], u[3]/u[0], p0 );
+  std::size_t sc = 5;
+  if (solver == "chocg") {
+    u[0] = 0.5 - y;
+    u[1] = x - 0.5;
+    u[2] = 0.0;
+    sc = 3;
+  }
+  else {
+    u[0] = 1.0;
+    u[1] = u[0] * (0.5 - y);
+    u[2] = u[0] * (x - 0.5);
+    u[3] = 0.0;
+    u[4] = eos::totalenergy( u[0], u[1]/u[0], u[2]/u[0], u[3]/u[0], p0 );
+  }
 
   const tk::real R0 = 0.15;
 
@@ -572,11 +588,11 @@ ic( tk::real x, tk::real y, tk::real, tk::real t )
 
   // cone
   r = sqrt((x-kx)*(x-kx) + (y-ky)*(y-ky)) / R0;
-  if (r<1.0) u[5] = 0.6*(1.0-r);
+  if (r<1.0) u[sc] = 0.6*(1.0-r);
 
   // hump
   r = sqrt((x-hx)*(x-hx) + (y-hy)*(y-hy)) / R0;
-  if (r<1.0) u[5] = 0.2*(1.0+cos(M_PI*std::min(r,1.0)));
+  if (r<1.0) u[sc] = 0.2*(1.0+cos(M_PI*std::min(r,1.0)));
 
   // cylinder
   r = sqrt((x-cx)*(x-cx) + (y-cy)*(y-cy)) / R0;
@@ -586,7 +602,7 @@ ic( tk::real x, tk::real y, tk::real, tk::real t )
   const std::array< tk::real, 2 > r3{{ v2x, v2y }},
                                   r4{{ x-ri2x, y-ri2y }};
   const auto d2 = (r3[0]*r4[1] - r4[0]*r3[1]) / v2;
-  if (r<1.0 && (d1>0.05 || d1<0.0 || d2<0.0)) u[5] = 0.6;
+  if (r<1.0 && (d1>0.05 || d1<0.0 || d2<0.0)) u[sc] = 0.6;
 
   return u;
 }
@@ -605,10 +621,24 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
   // evaluate solution at x,y,z,t
   auto u = ic( x, y, z, t );
 
-  std::vector< tk::real > s( 6, 0.0 );
+  // configure number of scalar components
+  std::size_t ncomp = 6;
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "chocg") {
+    ncomp = 4;
+  }
+
+  std::vector< tk::real > s( ncomp, 0.0 );
+
   // momentum source
-  s[1] = -u[2];
-  s[2] =  u[1];
+  if (solver == "chocg") {
+    s[0] = -u[1];
+    s[1] =  u[0];
+  }
+  else {
+    s[1] = -u[2];
+    s[2] =  u[1];
+  }
 
   return s;
 }
@@ -1048,7 +1078,7 @@ PRESSURE_IC()
 
   std::function< tk::real( tk::real, tk::real, tk::real ) > ic;
 
-  if (problem == "userdef")
+  if (problem == "userdef" || problem == "slot_cyl")
     ic = userdef::pic;
   else if (problem == "poisson_const")
     ic = poisson_const::ic;
@@ -1077,10 +1107,15 @@ PRESSURE_SOL()
 {
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
-  if (problem == "userdef" || problem == "poiseuille")
+  if ( problem == "userdef" ||
+       problem == "poiseuille" ||
+       problem == "slot_cyl" )
+  {
     return {};
-  else
+  }
+  else {
     return PRESSURE_IC();
+  }
 }
 
 std::function< std::array< tk::real, 3 >( tk::real, tk::real, tk::real ) >

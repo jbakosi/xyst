@@ -187,7 +187,7 @@ NodeDiagnostics::precompute( Discretization& d,
   auto pressure_sol = problems::PRESSURE_SOL();
 
   // Evaluate analytic solution (if defined)
-  auto an = p;
+  auto ap = p;
   if (pressure_sol) {
     ncomp = 0;
     const auto& coord = d.Coord();
@@ -195,7 +195,23 @@ NodeDiagnostics::precompute( Discretization& d,
     const auto& y = coord[1];
     const auto& z = coord[2];
     for (std::size_t i=0; i<p.size(); ++i) {
-      an[i] = pressure_sol( x[i], y[i], z[i] );
+      ap[i] = pressure_sol( x[i], y[i], z[i] );
+    }
+  }
+
+  // query function to evaluate analytic solution (if defined)
+  auto sol = problems::SOL();
+
+  // Evaluate analytic solution (if defined)
+  auto an = u;
+  if (sol) {
+    const auto& coord = d.Coord();
+    const auto& x = coord[0];
+    const auto& y = coord[1];
+    const auto& z = coord[2];
+    for (std::size_t i=0; i<u.nunk(); ++i) {
+      auto s = sol( x[i], y[i], z[i], d.T()+d.Dt() );
+      for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
     }
   }
 
@@ -208,19 +224,29 @@ NodeDiagnostics::precompute( Discretization& d,
   for (std::size_t i=0; i<u.nunk(); ++i) {
     // Compute sum for L2 norm of the numerical solution
     diag[L2SOL][0] += p[i] * p[i] * v[i];
-    for (std::size_t c=0; c<ncomp; ++c)
+    for (std::size_t c=0; c<ncomp; ++c) {
       diag[L2SOL][c+1] += u(i,c) * u(i,c) * v[i];
+    }
     // Compute sum for L2 norm of the residual
     diag[L2RES][0] += dp[i] * dp[i] * v[i];
-    for (std::size_t c=0; c<ncomp; ++c)
+    for (std::size_t c=0; c<ncomp; ++c) {
       diag[L2RES][c+1] += (u(i,c)-un(i,c)) * (u(i,c)-un(i,c)) * v[i];
+    }
     // Compute sum for the total energy over the entire domain
     diag[TOTALEN][0] += 0.0 * v[i];
-    // Compute sum for L2 norm of the numerical-analytic solution
+    // Compute sum for norms of the numerical-analytic pressure solution
     if (pressure_sol) {
-      auto pd = p[i] - an[i];
+      auto pd = p[i] - ap[i];
       diag[L2ERR][0] += pd * pd * v[i];
       diag[L1ERR][0] += std::abs( pd ) * v[i];
+    }
+    // Compute sum for norms of the numerical-analytic adv/diff solution
+    if (sol) {
+      for (std::size_t c=0; c<ncomp; ++c) {
+        auto du = u(i,c) - an(i,c);
+        diag[L2ERR][c+1] += du * du * v[i];
+        diag[L1ERR][c+1] += std::abs( du ) * v[i];
+      }
     }
   }
 

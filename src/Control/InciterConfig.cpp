@@ -886,6 +886,7 @@ mat( lua_State* L, Config& cfg )
   cfg.get< tag::mat_spec_gas_const >() = real(L, "spec_gas_const", 287.052874);
   cfg.get< tag::mat_heat_conductivity >() = real( L, "heat_conductivity" );
   cfg.get< tag::mat_dyn_viscosity >() = real( L, "dyn_viscosity", 0.0 );
+  cfg.get< tag::mat_dyn_diffusivity >() = real( L, "dyn_diffusivity", 0.0 );
 
   lua_pop( L, 1 );
 }

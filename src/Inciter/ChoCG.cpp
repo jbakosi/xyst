@@ -85,7 +85,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_rhs( m_u.nunk(), m_u.nprop() ),
   m_sgrad( m_u.nunk(), 3UL ),
   m_pgrad( m_u.nunk(), 3UL ),
-  m_vgrad( m_u.nunk(), 9UL ),
+  m_vgrad( m_u.nunk(), m_u.nprop()*3 ),
   m_flux( m_u.nunk(), 3UL ),
   m_div( m_u.nunk() ),
   m_stage( 0 ),
@@ -138,6 +138,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
 
   // Setup empty LHS matrix for momentum solve if needed
   if (g_cfg.get< tag::theta >() > std::numeric_limits< tk::real >::epsilon()) {
+    if (g_cfg.get< tag::fct >()) Throw( "Implicit FCT not implemented" );
     m_cgmom[ thisIndex ].insert( momlhs( psup ),
                                  d->Gid(),
                                  d->Lid(),
@@ -1490,7 +1491,7 @@ ChoCG::alw()
       m_p(i,a) /= vol[i];
       m_p(i,b) /= vol[i];
       // low-order solution
-      m_rhs(i,c) = m_u(i,c) - dt*m_rhs(i,c)/vol[i] - m_p(i,a) - m_p(i,b);
+      m_rhs(i,c) = m_un(i,c) - dt*m_rhs(i,c)/vol[i] - m_p(i,a) - m_p(i,b);
     }
   }
 
@@ -2033,65 +2034,56 @@ ChoCG::solve()
 
   if (m_stage == 0) m_un = m_u;
 
-  if (g_cfg.get< tag::fct >()) {
+  auto eps = std::numeric_limits<tk::real>::epsilon();
+  if (g_cfg.get< tag::theta >() < eps || m_stage+1 < m_rkcoef.size()) {
 
-    // Apply limited antidiffusive contributions to low-order solution
-    for (std::size_t i=0; i<npoin; ++i) {
-      for (std::size_t c=0; c<ncomp; ++c) {
-        m_a(i,c) = m_rhs(i,c) + m_a(i,c)/vol[i];
-      }
+    // Apply rhs in explicit solve
+    if (g_cfg.get< tag::fct >()) {
+      for (std::size_t i=0; i<npoin; ++i)
+        for (std::size_t c=0; c<ncomp; ++c)
+          m_a(i,c) = m_rhs(i,c) + m_a(i,c)/vol[i];
     }
+    else {
+      auto dt = m_rkcoef[m_stage] * d->Dt();
+      for (std::size_t i=0; i<npoin; ++i)
+        for (std::size_t c=0; c<ncomp; ++c)
+          m_a(i,c) = m_un(i,c) - dt*m_rhs(i,c)/vol[i];
+    }
+
     // Continue to advective-diffusive prediction
     pred();
 
   } else {
 
-    auto eps = std::numeric_limits<tk::real>::epsilon();
-    if (g_cfg.get< tag::theta >() < eps || m_stage+1 < m_rkcoef.size()) {
+    // Configure momentum BCs
+    std::unordered_map< std::size_t,
+      std::vector< std::pair< int, tk::real > > > dirbc;
 
-      // Apply rhs in explicit solve
-      auto dt = m_rkcoef[m_stage] * d->Dt();
-      for (std::size_t i=0; i<npoin; ++i) {
+    if (m_np < 3) {       // only during startup and first time step
+      // Configure Dirichlet BCs
+      std::size_t nmask = ncomp + 1;
+      Assert( m_dirbcmask.size() % nmask == 0, "Size mismatch" );
+      for (std::size_t i=0; i<m_dirbcmask.size()/nmask; ++i) {
+        auto p = m_dirbcmask[i*nmask+0];     // local node id
+        auto& bc = dirbc[p];
+        bc.resize( ncomp );
         for (std::size_t c=0; c<ncomp; ++c) {
-          m_a(i,c) = m_un(i,c) - dt*m_rhs(i,c)/vol[i];
+          bc[c] = { m_dirbcmask[i*nmask+1+c], 0.0 };
         }
       }
-      // Continue to advective-diffusive prediction
-      pred();
-
-    } else {
-
-      // Configure momentum BCs
-      std::unordered_map< std::size_t,
-        std::vector< std::pair< int, tk::real > > > dirbc;
-
-      if (m_np < 3) {       // only during startup and first time step
-        // Configure Dirichlet BCs
-        std::size_t nmask = ncomp + 1;
-        Assert( m_dirbcmask.size() % nmask == 0, "Size mismatch" );
-        for (std::size_t i=0; i<m_dirbcmask.size()/nmask; ++i) {
-          auto p = m_dirbcmask[i*nmask+0];     // local node id
-          auto& bc = dirbc[p];
-          bc.resize( ncomp );
-          for (std::size_t c=0; c<ncomp; ++c) {
-            bc[c] = { m_dirbcmask[i*nmask+1+c], 0.0 };
-          }
-        }
-        for (auto p : m_noslipbcnodes) {
-          auto& bc = dirbc[p];
-          bc.resize( ncomp );
-          for (std::size_t c=0; c<ncomp; ++c) {
-            bc[c] = { 1, 0.0 };
-          }
+      for (auto p : m_noslipbcnodes) {
+        auto& bc = dirbc[p];
+        bc.resize( ncomp );
+        for (std::size_t c=0; c<ncomp; ++c) {
+          bc[c] = { 1, 0.0 };
         }
       }
-
-      // Initialize semi-implicit momentum/transport solve
-      m_cgmom[ thisIndex ].ckLocal()->
-        init( {}, m_rhs.vec(), {}, dirbc, m_np<3,  g_cfg.get< tag::mom_pc >(),
-              CkCallback( CkIndex_ChoCG::msolve(), thisProxy[thisIndex] ) );
-
     }
+
+    // Initialize semi-implicit momentum/transport solve
+    m_cgmom[ thisIndex ].ckLocal()->
+      init( {}, m_rhs.vec(), {}, dirbc, m_np<3,  g_cfg.get< tag::mom_pc >(),
+            CkCallback( CkIndex_ChoCG::msolve(), thisProxy[thisIndex] ) );
 
   }
 }
@@ -2175,6 +2167,9 @@ ChoCG::corr()
 
     // Activate SDAG wait for next time step stage
     thisProxy[ thisIndex ].wait4rhs();
+    thisProxy[ thisIndex ].wait4aec();
+    thisProxy[ thisIndex ].wait4alw();
+    thisProxy[ thisIndex ].wait4sol();
     // Continue to next time stage of momentum/transport prediction
     rhs();
 
@@ -2382,6 +2377,37 @@ ChoCG::writeFields( CkCallback cb )
   //nodefields.push_back( m_vgrad.extract(7) );
   //nodefields.push_back( m_vgrad.extract(8) );
 
+  auto ncomp = m_u.nprop();
+  for (std::size_t c=0; c<ncomp-3; ++c) {
+    nodefieldnames.push_back( "c" + std::to_string(c) );
+    nodefields.push_back( m_u.extract(3+c) );
+  }
+
+  // query function to evaluate analytic solution (if defined)
+  auto sol = problems::SOL();
+
+  if (sol) {
+    const auto& coord = d->Coord();
+    const auto& x = coord[0];
+    const auto& y = coord[1];
+    const auto& z = coord[2];
+    auto an = m_u;
+    for (std::size_t i=0; i<an.nunk(); ++i) {
+      auto s = sol( x[i], y[i], z[i], d->T() );
+      for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
+    }
+    nodefieldnames.push_back( "velocity_analyticx" );
+    nodefields.push_back( an.extract(0) );
+    nodefieldnames.push_back( "velocity_analyticy" );
+    nodefields.push_back( an.extract(1) );
+    nodefieldnames.push_back( "velocity_analyticz" );
+    nodefields.push_back( an.extract(2) );
+    for (std::size_t c=0; c<ncomp-3; ++c) {
+      nodefieldnames.push_back( nodefieldnames[5+c] + "_analytic" );
+      nodefields.push_back( an.extract(3+c) );
+    }
+  }
+
   // also output analytic pressure (if defined)
   auto pressure_sol = problems::PRESSURE_SOL();
   if (pressure_sol) {
@@ -2407,7 +2433,7 @@ ChoCG::writeFields( CkCallback cb )
   const auto& f = g_cfg.get< tag::fieldout >();
 
   if (!f.empty()) {
-    std::size_t ncomp = 5;
+    std::size_t nc = 5;
     nodesurfnames.push_back( "velocityx" );
     nodesurfnames.push_back( "velocityy" );
     nodesurfnames.push_back( "velocityz" );
@@ -2421,7 +2447,7 @@ ChoCG::writeFields( CkCallback cb )
       if (b == end(bnode)) continue;
       const auto& nodes = b->second;
       auto i = nodesurfs.size();
-      nodesurfs.insert( end(nodesurfs), ncomp,
+      nodesurfs.insert( end(nodesurfs), nc,
                         std::vector< tk::real >( nodes.size() ) );
       std::size_t j = 0;
       for (auto n : nodes) {

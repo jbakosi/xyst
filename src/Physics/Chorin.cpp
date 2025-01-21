@@ -226,7 +226,9 @@ vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 // *****************************************************************************
 {
   Assert( G.nunk() == U.nunk(), "Size mismatch" );
-  Assert( G.nprop() == 9, "Size mismatch" );
+  Assert( G.nprop() == U.nprop()*3, "Size mismatch" );
+
+  auto ncomp = U.nprop();
 
   #if defined(__clang__)
     #pragma clang diagnostic push
@@ -243,7 +245,7 @@ vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
     const auto N = dsupedge[0].data() + e*4;
     const auto d = dsupint[0].data();
-    for (std::size_t i=0; i<3; ++i) {
+    for (std::size_t i=0; i<ncomp; ++i) {
       tk::real u[] = { U(N[0],i), U(N[1],i), U(N[2],i), U(N[3],i) };
       auto i3 = i*3;
       for (std::size_t j=0; j<3; ++j) {
@@ -265,7 +267,7 @@ vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
     const auto N = dsupedge[1].data() + e*3;
     const auto d = dsupint[1].data();
-    for (std::size_t i=0; i<3; ++i) {
+    for (std::size_t i=0; i<ncomp; ++i) {
       tk::real u[] = { U(N[0],i), U(N[1],i), U(N[2],i) };
       auto i3 = i*3;
       for (std::size_t j=0; j<3; ++j) {
@@ -283,7 +285,7 @@ vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
     const auto N = dsupedge[2].data() + e*2;
     const auto d = dsupint[2].data() + e*5;
-    for (std::size_t i=0; i<3; ++i) {
+    for (std::size_t i=0; i<ncomp; ++i) {
       tk::real u[] = { U(N[0],i), U(N[1],i) };
       auto i3 = i*3;
       for (std::size_t j=0; j<3; ++j) {
@@ -306,7 +308,7 @@ vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     tk::crossdiv( x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]],
                   x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]], 6.0,
                   n[0], n[1], n[2] );
-    for (std::size_t i=0; i<3; ++i) {
+    for (std::size_t i=0; i<ncomp; ++i) {
       tk::real u[] = { U(N[0],i), U(N[1],i), U(N[2],i) };
       auto i3 = i*3;
       auto f = (6.0*u[0] + u[1] + u[2])/8.0;
@@ -529,7 +531,7 @@ flux( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   Assert( F.nunk() == U.nunk(), "Size mismatch" );
   Assert( F.nprop() == 3, "Size mismatch" );
   Assert( G.nunk() == U.nunk(), "Size mismatch" );
-  Assert( G.nprop() == 9, "Size mismatch" );
+  Assert( G.nprop() == U.nprop()*3, "Size mismatch" );
 
   #if defined(__clang__)
     #pragma clang diagnostic push
@@ -807,6 +809,18 @@ adv_damp2( const tk::real supint[],
   f[0] = uL*vnL + uR*vnR + pf*nx + (aw-d)*(uR-uL);
   f[1] = vL*vnL + vR*vnR + pf*ny + (aw-d)*(vR-vL);
   f[2] = wL*vnL + wR*vnR + pf*nz + (aw-d)*(wR-wL);
+
+  // scalar
+  auto ncomp = U.nprop();
+  if (ncomp == 3) return;
+
+  // diffusion
+  auto s = supint[4] * g_cfg.get< tag::mat_dyn_diffusivity >();
+
+  // scalar
+  for (std::size_t c=3; c<ncomp; ++c) {
+    f[c] = U(p,c)*vnL + U(q,c)*vnR + (aw-s)*(U(q,c) - U(p,c));
+  }
 }
 
 static void
@@ -842,6 +856,8 @@ adv_damp4( const tk::real supint[],
   auto dy = y[p] - y[q];
   auto dz = z[p] - z[q];
 
+  auto ncomp = U.nprop();
+
   #if defined(__clang__)
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wvla"
@@ -851,19 +867,26 @@ adv_damp4( const tk::real supint[],
     #pragma GCC diagnostic ignored "-Wvla"
   #endif
 
-  tk::real uL[] = { U(p,0), U(p,1), U(p,2), P[p] };
-  tk::real uR[] = { U(q,0), U(q,1), U(q,2), P[q] };
-  tk::real gL[] = { G(p,0), G(p,1), G(p,2),
-                    G(p,3), G(p,4), G(p,5),
-                    G(p,6), G(p,7), G(p,8),
-                    W(p,0), W(p,1), W(p,2) };
-  tk::real gR[] = { G(q,0), G(q,1), G(q,2),
-                    G(q,3), G(q,4), G(q,5),
-                    G(q,6), G(q,7), G(q,8),
-                    W(q,0), W(q,1), W(q,2) };
+  tk::real uL[ncomp+1], uR[ncomp+1], gL[(ncomp+1)*3], gR[(ncomp+1)*3];
+  for (std::size_t i=0; i<ncomp; ++i) {
+    uL[i] = U(p,i);
+    uR[i] = U(q,i);
+  }
+  uL[ncomp] = P[p];
+  uR[ncomp] = P[q];
+  for (std::size_t i=0; i<ncomp*3; ++i) {
+    gL[i] = G(p,i);
+    gR[i] = G(q,i);
+  }
+  gL[ncomp*3+0] = W(p,0);
+  gL[ncomp*3+1] = W(p,1);
+  gL[ncomp*3+2] = W(p,2);
+  gR[ncomp*3+0] = W(q,0);
+  gR[ncomp*3+1] = W(q,1);
+  gR[ncomp*3+2] = W(q,2);
 
   // MUSCL reconstruction in edge-end points
-  for (std::size_t c=0; c<4; ++c) {
+  for (std::size_t c=0; c<ncomp+1; ++c) {
     auto g = c*3;
     auto g1 = gL[g+0]*dx + gL[g+1]*dy + gL[g+2]*dz;
     auto g2 = gR[g+0]*dx + gR[g+1]*dy + gR[g+2]*dz;
@@ -912,10 +935,21 @@ adv_damp4( const tk::real supint[],
   auto d = supint[4] * g_cfg.get< tag::mat_dyn_viscosity >();
 
   // flow
-  auto pf = uL[3] + uR[3];
+  auto pf = uL[ncomp] + uR[ncomp];
   f[0] = uL[0]*vnL + uR[0]*vnR + pf*nx + aw*(uR[0]-uL[0]) - d*(U(q,0)-U(p,0));
   f[1] = uL[1]*vnL + uR[1]*vnR + pf*ny + aw*(uR[1]-uL[1]) - d*(U(q,1)-U(p,1));
   f[2] = uL[2]*vnL + uR[2]*vnR + pf*nz + aw*(uR[2]-uL[2]) - d*(U(q,2)-U(p,2));
+
+  // scalar
+  if (ncomp == 3) return;
+
+  // diffusion
+  auto s = supint[4] * g_cfg.get< tag::mat_dyn_diffusivity >();
+
+  // scalar
+  for (std::size_t c=3; c<ncomp; ++c) {
+    f[c] = uL[c]*vnL + uR[c]*vnR + (aw-s)*(uR[c] - uL[c]);
+  }
 
   #if defined(__clang__)
     #pragma clang diagnostic pop
@@ -1037,9 +1071,11 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     auto w = U(N[0],2);
     auto p = P[N[0]];
     auto vn = n[0]*u + n[1]*v + n[2]*w;
+    // flow
     f[0][0] = u*vn + p*n[0];
     f[1][0] = v*vn + p*n[1];
     f[2][0] = w*vn + p*n[2];
+    // scalar
     for (std::size_t c=3; c<ncomp; ++c) f[c][0] = U(N[0],c)*vn;
 
     u = U(N[1],0);
@@ -1047,9 +1083,11 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     w = U(N[1],2);
     p = P[N[1]];
     vn = n[0]*u + n[1]*v + n[2]*w;
+    // flow
     f[0][1] = u*vn + p*n[0];
     f[1][1] = v*vn + p*n[1];
     f[2][1] = w*vn + p*n[2];
+    // scalar
     for (std::size_t c=3; c<ncomp; ++c) f[c][1] = U(N[1],c)*vn;
 
     u = U(N[2],0);
@@ -1057,9 +1095,11 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     w = U(N[2],2);
     p = P[N[2]];
     vn = n[0]*u + n[1]*v + n[2]*w;
+    // flow
     f[0][2] = u*vn + p*n[0];
     f[1][2] = v*vn + p*n[1];
     f[2][2] = w*vn + p*n[2];
+    // scalar
     for (std::size_t c=3; c<ncomp; ++c) f[c][2] = U(N[2],c)*vn;
 
     for (std::size_t c=0; c<ncomp; ++c) {

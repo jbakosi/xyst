@@ -38,18 +38,22 @@ RUN apt-get update -y && apt-get install -y git cmake g++ gfortran ninja-build b
 
 # Install Charm++ in both non-SMP and SMP mode
 WORKDIR /etc/
-RUN git clone https://github.com/charmplusplus/charm && cd charm && git checkout v7.0.0-rc2
-RUN cd charm && mkdir nonsmp && cd nonsmp && cmake -DSMP=off -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-non-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
+#RUN git sparse-checkout init
+#RUN git sparse-checkout set src cmake CMakeLists.txt build buildcmake &&
+#RUN git clone https://github.com/charmplusplus/charm && cd charm && git checkout v7.0.0-rc2
+RUN git clone --filter=blob:none -n https://github.com/charmplusplus/charm; cd charm; git sparse-checkout set src cmake contrib tests; git checkout v7.0.0-rc2
+WORKDIR /etc/charm/
+RUN mkdir nonsmp && cd nonsmp && cmake -DSMP=off -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/etc/charm-non-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
 RUN rm -rf charm
 
-# # Clone
-# ARG COMMIT
-RUN git clone https://codeberg.org/xyst/xyst.git && cd xyst && git checkout $COMMIT && git log -1 HEAD
+# Clone
+ARG COMMIT
+RUN git clone --filter=blob:none -n https://codeberg.org/xyst/xyst.git && cd xyst && git sparse-checkout set docker src tests cmake && git checkout $COMMIT && git log -1 HEAD
 # # Build
 RUN cd xyst && mkdir -p build && cd build && cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -GNinja -DCHARM_INSTALL_DIR=/etc/charm-non-smp -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
 
-# # Test
-# RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q && ctest -j$(grep -c processor /proc/cpuinfo) --output-on-failure
+# Test
+#RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q && ctest -j$(grep -c processor /proc/cpuinfo) --output-on-failure
 
 
 

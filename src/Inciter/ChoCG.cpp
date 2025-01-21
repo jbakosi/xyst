@@ -1050,83 +1050,88 @@ ChoCG::pinit()
   for (const auto& [g,r] : m_divc) m_div[ tk::cref_find(lid,g) ] += r;
   tk::destroy(m_divc);
 
+  // Divide Poisson rhs by dt if solving for time-increment
   if (m_np > 1) for (auto& div : m_div) div /= d->Dt();
 
-  // Configure Dirichlet BCs
+  // Configure BCs
   std::unordered_map< std::size_t,
     std::vector< std::pair< int, tk::real > > > dirbc;
-  if (!g_cfg.get< tag::pre_bc_dir >().empty()) {
-    auto ic = problems::PRESSURE_IC();
-    std::size_t nmask = 1 + 1;
-    Assert( m_dirbcmaskp.size() % nmask == 0, "Size mismatch" );
-    for (std::size_t i=0; i<m_dirbcmaskp.size()/nmask; ++i) {
-      auto p = m_dirbcmaskp[i*nmask+0];     // local node id
-      auto mask = m_dirbcmaskp[i*nmask+1];
-      if (mask == 1) {                                  // mask == 1: IC value
-        auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
-        dirbc[p] = {{ { 1, val } }};
-      } else if (mask == 2 && !m_dirbcvalp.empty()) {   // mask == 2: BC value
-        auto val = m_np>1 ? 0.0 : m_dirbcvalp[i*nmask+1];
-        dirbc[p] = {{ { 1, val } }};
-      }
-    }
-  }
-
-  // Configure Neumann BCs
   std::vector< tk::real > neubc;
-  auto pg = problems::PRESSURE_GRAD();
-  if (pg) {
-    // Collect Neumann BC elements
-    std::vector< std::uint8_t > besym( m_triinpoel.size(), 0 );
-    for (auto s : g_cfg.get< tag::pre_bc_sym >()) {
-      auto k = m_bface.find(s);
-      if (k != end(m_bface)) for (auto f : k->second) besym[f] = 1;
+
+  if (m_np < 3) {       // only during startup and first time step
+    // Configure Dirichlet BCs
+    if (!g_cfg.get< tag::pre_bc_dir >().empty()) {
+      auto ic = problems::PRESSURE_IC();
+      std::size_t nmask = 1 + 1;
+      Assert( m_dirbcmaskp.size() % nmask == 0, "Size mismatch" );
+      for (std::size_t i=0; i<m_dirbcmaskp.size()/nmask; ++i) {
+        auto p = m_dirbcmaskp[i*nmask+0];     // local node id
+        auto mask = m_dirbcmaskp[i*nmask+1];
+        if (mask == 1) {                                  // mask == 1: IC value
+          auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
+          dirbc[p] = {{ { 1, val } }};
+        } else if (mask == 2 && !m_dirbcvalp.empty()) {   // mask == 2: BC value
+          auto val = m_np>1 ? 0.0 : m_dirbcvalp[i*nmask+1];
+          dirbc[p] = {{ { 1, val } }};
+        }
+      }
     }
-    // Setup Neumann BCs
-    neubc.resize( x.size(), 0.0 );
-    for (std::size_t e=0; e<m_triinpoel.size()/3; ++e) {
-      if (besym[e]) {
-        const auto N = m_triinpoel.data() + e*3;
-        tk::real n[3];
-        tk::crossdiv( x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]],
-                      x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]], 6.0,
-                      n[0], n[1], n[2] );
-        auto g = pg( x[N[0]], y[N[0]], z[N[0]] );
-        neubc[ N[0] ] -= n[0]*g[0] + n[1]*g[1] + n[2]*g[2];
-        g = pg( x[N[1]], y[N[1]], z[N[1]] );
-        neubc[ N[1] ] -= n[0]*g[0] + n[1]*g[1] + n[2]*g[2];
-        g = pg( x[N[2]], y[N[2]], z[N[2]] );
-        neubc[ N[2] ] -= n[0]*g[0] + n[1]*g[1] + n[2]*g[2];
+
+    // Configure Neumann BCs
+    auto pg = problems::PRESSURE_GRAD();
+    if (pg) {
+      // Collect Neumann BC elements
+      std::vector< std::uint8_t > besym( m_triinpoel.size(), 0 );
+      for (auto s : g_cfg.get< tag::pre_bc_sym >()) {
+        auto k = m_bface.find(s);
+        if (k != end(m_bface)) for (auto f : k->second) besym[f] = 1;
+      }
+      // Setup Neumann BCs
+      neubc.resize( x.size(), 0.0 );
+      for (std::size_t e=0; e<m_triinpoel.size()/3; ++e) {
+        if (besym[e]) {
+          const auto N = m_triinpoel.data() + e*3;
+          tk::real n[3];
+          tk::crossdiv( x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]],
+                        x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]], 6.0,
+                        n[0], n[1], n[2] );
+          auto g = pg( x[N[0]], y[N[0]], z[N[0]] );
+          neubc[ N[0] ] -= n[0]*g[0] + n[1]*g[1] + n[2]*g[2];
+          g = pg( x[N[1]], y[N[1]], z[N[1]] );
+          neubc[ N[1] ] -= n[0]*g[0] + n[1]*g[1] + n[2]*g[2];
+          g = pg( x[N[2]], y[N[2]], z[N[2]] );
+          neubc[ N[2] ] -= n[0]*g[0] + n[1]*g[1] + n[2]*g[2];
+        }
+      }
+    }
+
+    // Set hydrostat
+    auto h = g_cfg.get< tag::pre_hydrostat >();
+    if (h != std::numeric_limits< uint64_t >::max()) {
+      auto pi = lid.find( h );
+      if (pi != end(lid)) {
+        auto p = pi->second;
+        auto ic = problems::PRESSURE_IC();
+        auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
+        auto& b = dirbc[p];
+        if (b.empty()) b = {{ { 1, val }} };
+      }
+    }
+
+    // Configure right hand side
+    auto pr = problems::PRESSURE_RHS();
+    if (pr) {
+      const auto& vol = d->Vol();
+      for (std::size_t i=0; i<x.size(); ++i) {
+        m_div[i] = pr( x[i], y[i], z[i] ) * vol[i];
       }
     }
   }
 
-  // Set hydrostat
-  auto h = g_cfg.get< tag::pre_hydrostat >();
-  if (h != std::numeric_limits< uint64_t >::max()) {
-    auto pi = lid.find( h );
-    if (pi != end(lid)) {
-      auto p = pi->second;
-      auto ic = problems::PRESSURE_IC();
-      auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
-      auto& b = dirbc[p];
-      if (b.empty()) b = {{ { 1, val }} };
-    }
-  }
-
-  // Configure right hand side
-  auto pr = problems::PRESSURE_RHS();
-  if (pr) {
-    const auto& vol = d->Vol();
-    for (std::size_t i=0; i<x.size(); ++i) {
-      m_div[i] = pr( x[i], y[i], z[i] ) * vol[i];
-    }
-  }
-
-  // Initialize Poisson solve
-  const auto& pc = g_cfg.get< tag::pre_pc >();
-  m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, pc,
-    CkCallback( CkIndex_ChoCG::psolve(), thisProxy[thisIndex] ) );
+  // Initialize Poisson solve setting ICs and BCs
+  m_cgpre[ thisIndex ].ckLocal()->
+    init( {}, m_div, neubc, dirbc, m_np<3, g_cfg.get< tag::pre_pc >(),
+          CkCallback( CkIndex_ChoCG::psolve(), thisProxy[thisIndex] ) );
 }
 
 void
@@ -2057,31 +2062,35 @@ ChoCG::solve()
 
     } else {
 
-      // Configure Dirichlet BCs
+      // Configure BCs
       std::unordered_map< std::size_t,
         std::vector< std::pair< int, tk::real > > > dirbc;
-      std::size_t nmask = ncomp + 1;
-      Assert( m_dirbcmask.size() % nmask == 0, "Size mismatch" );
-      for (std::size_t i=0; i<m_dirbcmask.size()/nmask; ++i) {
-        auto p = m_dirbcmask[i*nmask+0];     // local node id
-        auto& bc = dirbc[p];
-        bc.resize( ncomp );
-        for (std::size_t c=0; c<ncomp; ++c) {
-          bc[c] = { m_dirbcmask[i*nmask+1+c], 0.0 };
+
+      if (m_np < 3) {       // only during startup and first time step
+        // Configure Dirichlet BCs
+        std::size_t nmask = ncomp + 1;
+        Assert( m_dirbcmask.size() % nmask == 0, "Size mismatch" );
+        for (std::size_t i=0; i<m_dirbcmask.size()/nmask; ++i) {
+          auto p = m_dirbcmask[i*nmask+0];     // local node id
+          auto& bc = dirbc[p];
+          bc.resize( ncomp );
+          for (std::size_t c=0; c<ncomp; ++c) {
+            bc[c] = { m_dirbcmask[i*nmask+1+c], 0.0 };
+          }
         }
-      }
-      for (auto p : m_noslipbcnodes) {
-        auto& bc = dirbc[p];
-        bc.resize( ncomp );
-        for (std::size_t c=0; c<ncomp; ++c) {
-          bc[c] = { 1, 0.0 };
+        for (auto p : m_noslipbcnodes) {
+          auto& bc = dirbc[p];
+          bc.resize( ncomp );
+          for (std::size_t c=0; c<ncomp; ++c) {
+            bc[c] = { 1, 0.0 };
+          }
         }
       }
 
       // Initialize semi-implicit momentum/transport solve
-      const auto& pc = g_cfg.get< tag::mom_pc >();
-      m_cgmom[ thisIndex ].ckLocal()->init( {}, m_rhs.vec(), {}, dirbc, pc,
-      CkCallback( CkIndex_ChoCG::msolve(), thisProxy[thisIndex] ) );
+      m_cgmom[ thisIndex ].ckLocal()->
+        init( {}, m_rhs.vec(), {}, dirbc, m_np<3,  g_cfg.get< tag::mom_pc >(),
+              CkCallback( CkIndex_ChoCG::msolve(), thisProxy[thisIndex] ) );
 
     }
 

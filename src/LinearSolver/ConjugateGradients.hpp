@@ -99,6 +99,7 @@ class ConjugateGradients : public CBase_ConjugateGradients {
                const std::vector< tk::real >& neubc,
                const std::unordered_map< std::size_t,
                        std::vector< std::pair< int, tk::real > > >& dirbc,
+               bool apply,
                const std::string& pc,
                CkCallback cb );
 
@@ -201,6 +202,7 @@ class ConjugateGradients : public CBase_ConjugateGradients {
       p | m_xc;
       p | m_nx;
       p | m_normr;
+      p | m_apply;
     }
     //! \brief Pack/Unpack serialize operator|
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
@@ -283,6 +285,8 @@ class ConjugateGradients : public CBase_ConjugateGradients {
     std::size_t m_nx;
     //! Norm of the residual
     tk::real m_normr;
+    //! True to apply boundary conditions
+    bool m_apply;
 
     //! Initiate computationa of dot product of two vectors
     void dot( const std::vector< tk::real >& a,

@@ -1107,7 +1107,7 @@ LohCG::pinit()
 
   // Initialize Poisson solve
   const auto& pc = g_cfg.get< tag::pre_pc >();
-  m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, pc,
+  m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, true, pc,
     CkCallback( CkIndex_LohCG::psolve(), thisProxy[thisIndex] ) );
 }
 

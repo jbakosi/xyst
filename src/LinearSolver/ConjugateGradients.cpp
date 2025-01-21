@@ -77,7 +77,8 @@ ConjugateGradients::ConjugateGradients(
   m_rho0( 0.0 ),
   m_alpha( 0.0 ),
   m_converged( false ),
-  m_nx( 0 )
+  m_nx( 0 ),
+  m_apply( false )
 // *****************************************************************************
 //  Constructor
 //! \param[in] A Left hand side matrix of the linear system to solve in Ax=b
@@ -338,6 +339,7 @@ ConjugateGradients::init(
   const std::vector< tk::real >& neubc,
   const std::unordered_map< std::size_t,
           std::vector< std::pair< int, tk::real > > >& dirbc,
+  bool apply,
   const std::string& pc,
   CkCallback cb )
 // *****************************************************************************
@@ -346,6 +348,7 @@ ConjugateGradients::init(
 //! \param[in] b Right hand side vector
 //! \param[in] neubc Right hand side vector with Neumann BCs partially applied
 //! \param[in] dirbc Local node ids and associated Dirichlet BCs
+//! \param[in] apply True to apply boundary conditions
 //! \param[in] pc Preconditioner to use
 //! \param[in] cb Call to continue with when initialized and ready for a solve
 //! \details This function allows setting the initial guess and boundary
@@ -356,59 +359,71 @@ ConjugateGradients::init(
   // Configure preconditioner
   m_pc = pc;
 
-  // Save matrix state
-  m_An = m_A;
-
   // Optionally set initial guess
   if (!x.empty()) m_x = x; //else std::fill( begin(m_x), end(m_x), 0.0 );
 
   // Optionally set rhs, assumed complete in parallel
   if (!b.empty()) m_b = b;
 
-  // Set Neumann BCs, partial in parallel, communication below
-  if (!neubc.empty()) m_q = neubc; else std::fill( begin(m_q), end(m_q), 0.0 );
+  // Save if applied BCs
+  m_apply = apply;
+  if (not m_apply) {
 
-  // Store incoming Dirichlet BCs, partial in parallel, communication below
-  tk::destroy(m_dirbc);
-  for (auto&& [i,bcval] : dirbc) m_dirbc[i] = std::move(bcval);
+    // Recompute initial residual (r=b-A*x), its dot product, and the rhs norm
+    setup( cb );
 
-  // Get ready to communicate boundary conditions. This is necessary because
-  // there can be nodes a chare contributes to but does not apply BCs on.
-  // This happens if a node is in the node communication map but not on the
-  // list of incoming BCs on this chare. To have all chares share the same
-  // view on all BC nodes, we send the global node ids together with the
-  // Dirichlet BCs at which BCs are set to those fellow chares that also
-  // contribute to those BC nodes. Only after this communication step will we
-  // apply the BCs, which then will correctly setup the BC rows of the matrix
-  // and on the rhs that (1) may contain a nonzero value, (2) may have partial
-  // contributions due to Neumann BCs, and (3) will be modified to apply
-  // Dirichlet BCs.
-  thisProxy[ thisIndex ].wait4bc();
-  thisProxy[ thisIndex ].wait4r();
-
-  // Send boundary conditions to those who contribute to those rows
-  if (m_nodeCommMap.empty()) {
-    combc_complete();
-  } else {
-    auto ncomp = m_A.Ncomp();
-    for (const auto& [c,n] : m_nodeCommMap) {
-      decltype(m_dirbc) dbc;
-      std::vector< std::vector< tk::real > > qc( n.size() );
-      std::size_t k = 0;
-      for (auto g : n) {
-        auto i = tk::cref_find( m_lid, g );
-        auto j = m_dirbc.find(i);
-        if (j != end(m_dirbc)) dbc[g] = j->second;
-        std::vector< tk::real > nq( ncomp );
-        for (std::size_t d=0; d<ncomp; ++d) nq[d] = m_q[ i*ncomp+d ];
-        qc[k++] = std::move(nq);
-      }
-      std::vector< std::size_t > gid( begin(n), end(n) );
-      thisProxy[c].combc( dbc, gid, qc );
-    }
   }
+  else {
 
-  ownbc_complete( cb );
+    // Save matrix state
+    m_An = m_A;
+
+    // Set Neumann BCs, partial in parallel, communication below
+    if (!neubc.empty()) m_q = neubc; else std::fill(begin(m_q), end(m_q), 0.0);
+
+    // Store incoming Dirichlet BCs, partial in parallel, communication below
+    tk::destroy(m_dirbc);
+    for (auto&& [i,bcval] : dirbc) m_dirbc[i] = std::move(bcval);
+
+    // Get ready to communicate boundary conditions. This is necessary because
+    // there can be nodes a chare contributes to but does not apply BCs on.
+    // This happens if a node is in the node communication map but not on the
+    // list of incoming BCs on this chare. To have all chares share the same
+    // view on all BC nodes, we send the global node ids together with the
+    // Dirichlet BCs at which BCs are set to those fellow chares that also
+    // contribute to those BC nodes. Only after this communication step will we
+    // apply the BCs, which then will correctly setup the BC rows of the matrix
+    // and on the rhs that (1) may contain a nonzero value, (2) may have partial
+    // contributions due to Neumann BCs, and (3) will be modified to apply
+    // Dirichlet BCs.
+    thisProxy[ thisIndex ].wait4bc();
+    thisProxy[ thisIndex ].wait4r();
+
+    // Send boundary conditions to those who contribute to those rows
+    if (m_nodeCommMap.empty()) {
+      combc_complete();
+    } else {
+      auto ncomp = m_A.Ncomp();
+      for (const auto& [c,n] : m_nodeCommMap) {
+        decltype(m_dirbc) dbc;
+        std::vector< std::vector< tk::real > > qc( n.size() );
+        std::size_t k = 0;
+        for (auto g : n) {
+          auto i = tk::cref_find( m_lid, g );
+          auto j = m_dirbc.find(i);
+          if (j != end(m_dirbc)) dbc[g] = j->second;
+          std::vector< tk::real > nq( ncomp );
+          for (std::size_t d=0; d<ncomp; ++d) nq[d] = m_q[ i*ncomp+d ];
+          qc[k++] = std::move(nq);
+        }
+        std::vector< std::size_t > gid( begin(n), end(n) );
+        thisProxy[c].combc( dbc, gid, qc );
+      }
+    }
+
+    ownbc_complete( cb );
+
+  }
 }
 
 void
@@ -791,7 +806,7 @@ ConjugateGradients::x()
     }
 
     // Restore matrix to state before init()
-    m_A = m_An;
+    if (m_apply) m_A = m_An;
 
     m_solved.send( CkDataMsg::buildNew( sizeof(tk::real), &normr ) );
 

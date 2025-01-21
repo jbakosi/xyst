@@ -1053,7 +1053,7 @@ ChoCG::pinit()
   // Divide Poisson rhs by dt if solving for time-increment
   if (m_np > 1) for (auto& div : m_div) div /= d->Dt();
 
-  // Configure BCs
+  // Configure Poisson BCs
   std::unordered_map< std::size_t,
     std::vector< std::pair< int, tk::real > > > dirbc;
   std::vector< tk::real > neubc;
@@ -1936,7 +1936,6 @@ ChoCG::lhs()
         v += theta * mu * tk::dot(grad[a],grad[b]) / J / 6.0;
         for (std::size_t c=0; c<ncomp; ++c) A(N[a],N[b],c) -= v;
       }
-      //for (std::size_t c=0; c<ncomp; ++c) A(N[a],N[a],c) -= J/dt/24.0;
     }
   }
 }
@@ -2062,7 +2061,7 @@ ChoCG::solve()
 
     } else {
 
-      // Configure BCs
+      // Configure momentum BCs
       std::unordered_map< std::size_t,
         std::vector< std::pair< int, tk::real > > > dirbc;
 

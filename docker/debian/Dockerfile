@@ -50,10 +50,10 @@ RUN rm -rf charm
 ARG COMMIT
 RUN git clone --filter=blob:none -n https://codeberg.org/xyst/xyst.git && cd xyst && git sparse-checkout set docker src tests cmake && git checkout $COMMIT && git log -1 HEAD
 # # Build
-RUN cd xyst && mkdir -p build && cd build && cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -GNinja -DCHARM_INSTALL_DIR=/etc/charm-non-smp -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
+RUN cd xyst && mkdir -p build && cd build && cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -GNinja -DCHARM_INSTALL_DIR=/etc/charm-non-smp -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--bind-to none --allow-run-as-root --oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
 
 # Test
-#RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q && ctest -j$(grep -c processor /proc/cpuinfo) --output-on-failure
+RUN cd xyst/build && mpirun --oversubscribe --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q && ctest -j$(grep -c processor /proc/cpuinfo) --output-on-failure 
 
 
 

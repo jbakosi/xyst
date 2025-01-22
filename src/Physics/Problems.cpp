@@ -733,29 +733,6 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 
 } // point_src::
 
-namespace gyor {
-
-static std::vector< tk::real >
-ic( tk::real, tk::real, tk::real, tk::real t )
-// *****************************************************************************
-//! Set initial conditions prescribing gyor
-//! \param[in] t Time where to evaluate initial conditions
-//! \return Values of conserved variables
-// *****************************************************************************
-{
-  auto r = 1.225;
-  auto p = 1.0e5;
-
-  auto u = 5.0 * std::cos(t);
-  auto v = 5.0 * std::sin(t);
-  auto w = 0.0;
-  tk::real rE = eos::totalenergy( r, u, v, w, p );
-
-  return { r, r*u, r*v, r*w, rE };
-}
-
-} // gyor::
-
 namespace poisson {
 
 static std::vector< tk::real >
@@ -927,40 +904,6 @@ ic( tk::real x, tk::real y, tk::real )
 
 } // poisson_neumann::
 
-
-namespace poiseuille {
-
-static std::vector< tk::real >
-ic( tk::real, tk::real y, tk::real, tk::real )
-// *****************************************************************************
-//! Set initial conditions prescribing the Poisuille problem
-//! \param[in] y Y coordinate where to evaluate the solution
-//! \return Values of conserved variables
-// *****************************************************************************
-{
-  auto eps = std::numeric_limits< tk::real >::epsilon();
-  auto nu = g_cfg.get< tag::mat_dyn_viscosity >();
-  if (nu < eps) Throw( "Poiseuille flow needs nonzero viscosity" );
-
-  auto dpdx = -0.12;
-  auto u = -dpdx * y * (1.0 - y) / 2.0 / nu;
-
-  return { u, 0.0, 0.0 };
-}
-
-static tk::real
-pic( tk::real, tk::real, tk::real )
-// *****************************************************************************
-//! Set homogeneous initial conditions for Poiseuille
-//! \return Value of pressure
-// *****************************************************************************
-{
-  return 0.0;
-}
-
-} // poiseuille::
-
-
 std::function< std::vector< tk::real >
              ( tk::real, tk::real, tk::real, tk::real ) >
 IC()
@@ -992,12 +935,8 @@ IC()
     ic = slot_cyl::ic;
   else if (problem == "point_src")
     ic = point_src::ic;
-  else if (problem == "gyor")
-    ic = gyor::ic;
   else if (problem.find("poisson") != std::string::npos)
     ic = poisson::ic;
-  else if (problem == "poiseuille")
-    ic = poiseuille::ic;
   else
     Throw( "problem type ic not hooked up" );
 
@@ -1107,8 +1046,6 @@ PRESSURE_IC()
     ic = poisson_sine3::ic;
   else if (problem == "poisson_neumann")
     ic = poisson_neumann::ic;
-  else if (problem == "poiseuille")
-    ic = poiseuille::pic;
   else
     Throw( "problem type not hooked up" );
 
@@ -1125,7 +1062,6 @@ PRESSURE_SOL()
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
   if ( problem == "userdef" ||
-       problem == "poiseuille" ||
        problem == "slot_cyl" )
   {
     return {};

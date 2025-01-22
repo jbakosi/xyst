@@ -1116,11 +1116,39 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   #endif
 }
 
+static void
+src( const std::array< std::vector< tk::real >, 3 >& coord,
+     const std::vector< tk::real >& v,
+     tk::real t,
+     tk::Fields& R )
+// *****************************************************************************
+//  Compute source integral
+//! \param[in] coord Mesh node coordinates
+//! \param[in] v Nodal mesh volumes without contributions from other chares
+//! \param[in] t Physical time
+//! \param[in,out] R Right-hand side vector computed
+// *****************************************************************************
+{
+  auto src = problems::SRC();
+  if (!src) return;
+
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  for (std::size_t p=0; p<R.nunk(); ++p) {
+    auto s = src( x[p], y[p], z[p], t );
+    for (std::size_t c=0; c<s.size(); ++c) R(p,c) -= s[c] * v[p];
+  }
+}
+
 void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const std::vector< std::size_t >& triinpoel,
+     const std::vector< tk::real >& v,
+     tk::real t,
      tk::real dt,
      const std::vector< tk::real >& P,
      const tk::Fields& U,
@@ -1133,6 +1161,8 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] coord Mesh node coordinates
 //! \param[in] triinpoel Boundary face connectivity
+//! \param[in] v Nodal mesh volumes without contributions from other chares
+//! \param[in] t Physical time
 //! \param[in] dt Physical time step size
 //! \param[in] P Pressure
 //! \param[in] U Solution vector of primitive variables at recent time step
@@ -1149,6 +1179,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 
   R.fill( 0.0 );
   adv( dsupedge, dsupint, coord, triinpoel, dt, U, G, P, W, R );
+  src( coord, v, t, R );
 }
 
 } // chorin::

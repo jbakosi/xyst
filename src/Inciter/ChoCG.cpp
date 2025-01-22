@@ -1952,7 +1952,7 @@ ChoCG::rhs()
 
   // Compute own portion of right-hand side for all equations
   auto dt = m_rkcoef[m_stage] * d->Dt();
-  chorin::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel,
+  chorin::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, d->V(), d->T(),
                dt, m_pr, m_u, m_vgrad, m_pgrad, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary

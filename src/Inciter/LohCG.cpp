@@ -1425,8 +1425,8 @@ LohCG::rhs()
   }
 
   // Compute own portion of right-hand side for all equations
-  lohner::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_grad,
-               m_rhs );
+  lohner::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, d->V(), d->T(),
+               m_u, m_grad, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {

@@ -523,6 +523,9 @@ ic( tk::real x, tk::real y, tk::real, tk::real t )
   if (solver == "chocg") {
     ncomp = 4;
   }
+  else if (solver == "lohcg") {
+    ncomp = 5;
+  }
 
   std::vector< tk::real > u( ncomp, 0.0 );
 
@@ -533,6 +536,13 @@ ic( tk::real x, tk::real y, tk::real, tk::real t )
     u[1] = x - 0.5;
     u[2] = 0.0;
     sc = 3;
+  }
+  else if (solver == "lohcg") {
+    u[0] = 0.0;
+    u[1] = 0.5 - y;
+    u[2] = x - 0.5;
+    u[3] = 0.0;
+    sc = 4;
   }
   else {
     u[0] = 1.0;
@@ -627,6 +637,9 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
   if (solver == "chocg") {
     ncomp = 4;
   }
+  else if (solver == "lohcg") {
+    ncomp = 5;
+  }
 
   std::vector< tk::real > s( ncomp, 0.0 );
 
@@ -634,6 +647,10 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
   if (solver == "chocg") {
     s[0] = -u[1];
     s[1] =  u[0];
+  }
+  else if (solver == "lohcg") {
+    s[1] = -u[2];
+    s[2] =  u[1];
   }
   else {
     s[1] = -u[2];

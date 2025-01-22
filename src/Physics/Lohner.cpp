@@ -737,6 +737,8 @@ adv_damp2( const tk::real supint[],
 //! \param[in,out] f Flux computed
 // *****************************************************************************
 {
+  auto ncomp = U.nprop();
+
   auto nx = supint[0];
   auto ny = supint[1];
   auto nz = supint[2];
@@ -766,6 +768,14 @@ adv_damp2( const tk::real supint[],
   f[2] = vL*vnL + vR*vnR + pf*ny - d*(vR - vL);
   f[3] = wL*vnL + wR*vnR + pf*nz - d*(wR - wL);
 
+  // diffusion
+  auto m = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
+
+  // scalar
+  for (std::size_t c=4; c<ncomp; ++c) {
+    f[c] = U(p,c)*vnL + U(q,c)*vnR - m*(U(q,c) - U(p,c));
+  }
+
   // artificial viscosity
   const auto stab2 = g_cfg.get< tag::stab2 >();
   if (!stab2) return;
@@ -774,10 +784,15 @@ adv_damp2( const tk::real supint[],
   auto sl = std::abs(vnL) + s*len;
   auto sr = std::abs(vnR) + s*len;
   auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr) * len;
+  // flow
   f[0] += aw * (pR - pL)*s2;
   f[1] += aw * (uR - uL);
   f[2] += aw * (vR - vL);
   f[3] += aw * (wR - wL);
+  // scalar
+  for (std::size_t c=4; c<ncomp; ++c) {
+    f[c] += aw*(U(q,c) - U(p,c));
+  }
 }
 
 static void
@@ -819,8 +834,11 @@ adv_damp4( const tk::real supint[],
     #pragma GCC diagnostic ignored "-Wvla"
   #endif
 
-  tk::real uL[] = { U(p,1), U(p,2), U(p,3) };
-  tk::real uR[] = { U(q,1), U(q,2), U(q,3) };
+  tk::real uL[ncomp-1], uR[ncomp-1];
+  for (std::size_t i=1; i<ncomp; ++i) {
+    uL[i-1] = U(p,i);
+    uR[i-1] = U(q,i);
+  }
 
   // MUSCL reconstruction in edge-end points
   for (std::size_t c=0; c<ncomp-1; ++c) {
@@ -866,6 +884,14 @@ adv_damp4( const tk::real supint[],
   f[2] = uL[1]*vnL + uR[1]*vnR + pf*ny - d*(uR[1] - uL[1]);
   f[3] = uL[2]*vnL + uR[2]*vnR + pf*nz - d*(uR[2] - uL[2]);
 
+  // diffusion
+  auto m = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
+
+  // scalar
+  for (std::size_t c=4; c<ncomp; ++c) {
+    f[c] = uL[c-1]*vnL + uR[c-1]*vnR - m*(uR[c-1] - uL[c-1]);
+  }
+
   // artificial viscosity
   const auto stab2 = g_cfg.get< tag::stab2 >();
   if (!stab2) return;
@@ -874,10 +900,15 @@ adv_damp4( const tk::real supint[],
   auto sl = std::abs(vnL) + s*len;
   auto sr = std::abs(vnR) + s*len;
   auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr) * len;
+  // flow
   f[0] += aw * (U(q,0) - U(p,0))*s2;
   f[1] += aw * (uR[0] - uL[0]);
   f[2] += aw * (uR[1] - uL[1]);
   f[3] += aw * (uR[2] - uL[2]);
+  // scalar
+  for (std::size_t c=4; c<ncomp; ++c) {
+    f[c] += aw*(uR[c-1] - uL[c-1]);
+  }
 
   #if defined(__clang__)
     #pragma clang diagnostic pop
@@ -995,30 +1026,39 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     auto v = U(N[0],2);
     auto w = U(N[0],3);
     auto vn = n[0]*u + n[1]*v + n[2]*w;
+    // flow
     f[0][0] = vn * s2;
     f[1][0] = u*vn + p*n[0];
     f[2][0] = v*vn + p*n[1];
     f[3][0] = w*vn + p*n[2];
+    // scalar
+    for (std::size_t c=4; c<ncomp; ++c) f[c][0] = U(N[0],c)*vn;
 
     p = U(N[1],0);
     u = U(N[1],1);
     v = U(N[1],2);
     w = U(N[1],3);
     vn = n[0]*u + n[1]*v + n[2]*w;
+    // flow
     f[0][1] = vn * s2;
     f[1][1] = u*vn + p*n[0];
     f[2][1] = v*vn + p*n[1];
     f[3][1] = w*vn + p*n[2];
+    // scalar
+    for (std::size_t c=4; c<ncomp; ++c) f[c][1] = U(N[1],c)*vn;
 
     p = U(N[2],0);
     u = U(N[2],1);
     v = U(N[2],2);
     w = U(N[2],3);
     vn = n[0]*u + n[1]*v + n[2]*w;
+    // flow
     f[0][2] = vn * s2;
     f[1][2] = u*vn + p*n[0];
     f[2][2] = v*vn + p*n[1];
     f[3][2] = w*vn + p*n[2];
+    // scalar
+    for (std::size_t c=4; c<ncomp; ++c) f[c][2] = U(N[2],c)*vn;
 
     for (std::size_t c=0; c<ncomp; ++c) {
       R(N[0],c) += (6.0*f[c][0] + f[c][1] + f[c][2])/8.0;

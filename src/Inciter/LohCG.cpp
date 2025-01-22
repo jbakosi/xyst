@@ -193,7 +193,7 @@ LohCG::ngradcomp() const
   if (g_cfg.get< tag::flux >() == "damp4" or
       std::find( begin(req), end(req), "force") != end(req))
   {
-    n += 9;     // (u,v,w) x 3
+    n += (m_u.nprop()-1) * 3;     // (u,v,w,c0,...) x 3
   }
 
   return n;
@@ -1653,6 +1653,37 @@ LohCG::writeFields( CkCallback cb )
   nodefields.push_back( m_u.extract(2) );
   nodefields.push_back( m_u.extract(3) );
 
+  auto ncomp = m_u.nprop();
+  for (std::size_t c=0; c<ncomp-4; ++c) {
+    nodefieldnames.push_back( "c" + std::to_string(c) );
+    nodefields.push_back( m_u.extract(4+c) );
+  }
+
+  // query function to evaluate analytic solution (if defined)
+  auto sol = problems::SOL();
+
+  if (sol) {
+    const auto& coord = d->Coord();
+    const auto& x = coord[0];
+    const auto& y = coord[1];
+    const auto& z = coord[2];
+    auto an = m_u;
+    for (std::size_t i=0; i<an.nunk(); ++i) {
+      auto s = sol( x[i], y[i], z[i], d->T() );
+      for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
+    }
+    nodefieldnames.push_back( "velocity_analyticx" );
+    nodefields.push_back( an.extract(0) );
+    nodefieldnames.push_back( "velocity_analyticy" );
+    nodefields.push_back( an.extract(1) );
+    nodefieldnames.push_back( "velocity_analyticz" );
+    nodefields.push_back( an.extract(2) );
+    for (std::size_t c=0; c<ncomp-4; ++c) {
+      nodefieldnames.push_back( nodefieldnames[4+c] + "_analytic" );
+      nodefields.push_back( an.extract(4+c) );
+    }
+  }
+
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 
   // Surface output
@@ -1663,7 +1694,7 @@ LohCG::writeFields( CkCallback cb )
   const auto& f = g_cfg.get< tag::fieldout >();
 
   if (!f.empty()) {
-    std::size_t ncomp = 4;
+    std::size_t nc = 4;
     nodesurfnames.push_back( "pressure" );
     nodesurfnames.push_back( "velocityx" );
     nodesurfnames.push_back( "velocityy" );
@@ -1676,7 +1707,7 @@ LohCG::writeFields( CkCallback cb )
       if (b == end(bnode)) continue;
       const auto& nodes = b->second;
       auto i = nodesurfs.size();
-      nodesurfs.insert( end(nodesurfs), ncomp,
+      nodesurfs.insert( end(nodesurfs), nc,
                         std::vector< tk::real >( nodes.size() ) );
       std::size_t j = 0;
       for (auto n : nodes) {

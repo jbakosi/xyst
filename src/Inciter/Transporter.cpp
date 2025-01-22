@@ -899,6 +899,11 @@ Transporter::diagHeader()
     var.push_back( "v" );
     var.push_back( "w" );
 
+    auto ncomp = g_cfg.get< tag::problem_ncomp >();
+    for (std::size_t c=4; c<ncomp; ++c) {
+      var.push_back( "c" + std::to_string(c-4) );
+    }
+
     auto nv = var.size();
 
     // Add 'L2(var)' for all variables
@@ -906,6 +911,18 @@ Transporter::diagHeader()
 
     // Add L2-norm of the residuals
     for (std::size_t i=0; i<nv; ++i) d.push_back( "L2(d" + var[i] + ')' );
+
+    // Augment diagnostics variables by error norms of adv/diff (if computed)
+    if (problems::SOL()) {
+      d.push_back( "L2(err:u)" );
+      d.push_back( "L2(err:v)" );
+      d.push_back( "L2(err:w)" );
+      for (std::size_t i=4; i<nv; ++i) d.push_back( "L2(err:" + var[i] + ')' );
+      d.push_back( "L1(err:u)" );
+      d.push_back( "L1(err:v)" );
+      d.push_back( "L1(err:w)" );
+      for (std::size_t i=4; i<nv; ++i) d.push_back( "L1(err:" + var[i] + ')' );
+    }
 
   }
   else {
@@ -1503,6 +1520,18 @@ Transporter::acdiagnostics( CkReductionMsg* msg )
     // cppcheck-suppress uninitvar
     l2res[i] = std::sqrt( d[L2RES][i] / m_meshvol[meshid] );
     diag.push_back( l2res[i] );
+  }
+
+  // Finish computing norms of the numerical - analytical adv/diff solution
+  if (problems::SOL()) {
+    for (std::size_t i=1; i<d[L2ERR].size(); ++i) {
+      // cppcheck-suppress uninitvar
+      diag.push_back( std::sqrt( d[L2ERR][i] / m_meshvol[meshid] ) );
+    }
+    for (std::size_t i=1; i<d[L1ERR].size(); ++i) {
+      // cppcheck-suppress uninitvar
+      diag.push_back( d[L1ERR][i] / m_meshvol[meshid] );
+    }
   }
 
   // Append diagnostics file at selected times

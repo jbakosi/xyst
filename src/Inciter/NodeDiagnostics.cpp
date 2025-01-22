@@ -302,6 +302,22 @@ NodeDiagnostics::accompute( Discretization& d,
 
   const auto& v = d.V();  // nodal volumes without contributions from others
 
+  // query function to evaluate analytic solution (if defined)
+  auto sol = problems::SOL();
+
+  // Evaluate analytic solution (if defined)
+  auto an = u;
+  if (sol) {
+    const auto& coord = d.Coord();
+    const auto& x = coord[0];
+    const auto& y = coord[1];
+    const auto& z = coord[2];
+    for (std::size_t i=0; i<u.nunk(); ++i) {
+      auto s = sol( x[i], y[i], z[i], d.T()+d.Dt() );
+      for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
+    }
+  }
+
   // Put in norms sweeping our mesh chunk
   for (std::size_t i=0; i<u.nunk(); ++i) {
     // Compute sum for L2 norm of the numerical solution
@@ -312,6 +328,14 @@ NodeDiagnostics::accompute( Discretization& d,
       diag[L2RES][c] += (u(i,c)-un(i,c)) * (u(i,c)-un(i,c)) * v[i];
     // Compute sum for the total energy over the entire domain
     diag[TOTALEN][0] += 0.0 * v[i];
+    // Compute sum for norms of the numerical-analytic adv/diff solution
+    if (sol) {
+      for (std::size_t c=0; c<ncomp; ++c) {
+        auto du = u(i,c) - an(i,c);
+        diag[L2ERR][c] += du * du * v[i];
+        diag[L1ERR][c] += std::abs( du ) * v[i];
+      }
+    }
   }
 
   // Append diagnostics vector with metadata on the current time step

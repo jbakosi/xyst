@@ -9,7 +9,8 @@ ttyi = 1
 cfl = 0.5
 
 solver = "chocg"
-flux = "tg"
+flux = "damp2"
+stab = false
 
 part = "phg"
 fct = false

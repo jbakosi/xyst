@@ -40,7 +40,7 @@ Coarse surface mesh for computing Poiseuille flow, nelem=3K, npoin=1.2K.
 
 @section chocg_example_poiseuille_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [291b6f1](https://codeberg.org/xyst/xyst/commit/291b6f1ea70bb089e46d7a47a6ff5c06ee931042) and the control file below.
+To reproduce the results below, use code revision [63a8333](https://codeberg.org/xyst/xyst/commit/63a83338798428b34190955acc00c1de0a2ef6ea) and the control file below.
 
 @section chocg_example_poiseuille_control Control file
 
@@ -50,14 +50,16 @@ To reproduce the results below, use code revision [291b6f1](https://codeberg.org
 print "Poiseuille flow"
 
 -- mesh: poiseuille?tetz.exo
+-- plot "diag" u 2:12 w l lw 2 t "L2(err:u)", "" u 2:15 w l lw 2 t "L1(err:u)"
 
-term = 300.0
+term = 100.0
 ttyi = 100
 
-cfl = 0.7
+cfl = 0.5
 
 solver = "chocg"
 flux = "damp2"
+stab = false
 
 fct = false
 
@@ -79,6 +81,10 @@ pressure = {
              { 2, 2 } },
   bc_dirval = { { 1, 2.4 },
                 { 2, 0.0 } }
+}
+
+problem = {
+  name = "poiseuille"
 }
 
 ic = {
@@ -154,17 +160,17 @@ where \f$m\f$ is a mesh index.
 Errors and convergence rates using second-order damping for advection.
        Mesh     | h         | L1(err)      | L2(err)
        :------: | --------: | -----------: | -----------:
-             1  |      0.25 |    0.0598139 |    0.0636658
-             2  |      0.16 |    0.0133345 |    0.0144788
-             3  |      0.08 |    0.0023768 |    0.0027099
-             p  |           |    **2.488** |   **2.4176**
+             1  |      0.25 |  6.60850e-03 |  1.24939e-02
+             2  |      0.16 |  6.45591e-03 |  9.67748e-03
+             3  |      0.08 |  1.14023e-03 |  1.37348e-03
+         **p**  |           |    **2.501** |   **2.8168**
 
 Errors and convergence rates using fourth-order damping for advection.
        Mesh     | h         | L1(err)      | L2(err)
        :------: | --------: | -----------: | -----------:
-             1  |      0.25 |     0.055548 |    0.0592916
-             2  |      0.16 |     0.013252 |    0.0143954
-             3  |      0.08 |     0.001735 |    0.0018838
-             p  |           |    **2.933** |    **2.934**
+             1  |      0.25 |  2.27264e-02 |  3.01810e-02
+             2  |      0.16 |  6.69731e-03 |  9.81238e-03
+             3  |      0.08 |  1.17535e-03 |  1.40336e-03
+         **p**  |           |    **2.510** |    **2.805**
 
 */

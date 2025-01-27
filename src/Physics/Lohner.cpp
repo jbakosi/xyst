@@ -759,21 +759,21 @@ adv_damp2( const tk::real supint[],
 
   auto s = g_cfg.get< tag::soundspeed >();
   auto s2 = s*s;
-  auto d = supint[3] * g_cfg.get< tag::mat_dyn_viscosity >();
+  auto v = supint[3] * g_cfg.get< tag::mat_dyn_viscosity >();
 
   // flow
   auto pf = pL + pR;
   f[0] = (vnL + vnR)*s2;
-  f[1] = uL*vnL + uR*vnR + pf*nx - d*(uR - uL);
-  f[2] = vL*vnL + vR*vnR + pf*ny - d*(vR - vL);
-  f[3] = wL*vnL + wR*vnR + pf*nz - d*(wR - wL);
+  f[1] = uL*vnL + uR*vnR + pf*nx - v*(uR - uL);
+  f[2] = vL*vnL + vR*vnR + pf*ny - v*(vR - vL);
+  f[3] = wL*vnL + wR*vnR + pf*nz - v*(wR - wL);
 
   // diffusion
-  auto m = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
+  auto d = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
 
   // scalar
   for (std::size_t c=4; c<ncomp; ++c) {
-    f[c] = U(p,c)*vnL + U(q,c)*vnR - m*(U(q,c) - U(p,c));
+    f[c] = U(p,c)*vnL + U(q,c)*vnR - d*(U(q,c) - U(p,c));
   }
 
   // artificial viscosity
@@ -783,7 +783,7 @@ adv_damp2( const tk::real supint[],
   auto len = tk::length( nx, ny, nz );
   auto sl = std::abs(vnL) + s*len;
   auto sr = std::abs(vnR) + s*len;
-  auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr) * len;
+  auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr);
   // flow
   f[0] += aw * (pR - pL)*s2;
   f[1] += aw * (uR - uL);
@@ -875,21 +875,21 @@ adv_damp4( const tk::real supint[],
 
   auto s = g_cfg.get< tag::soundspeed >();
   auto s2 = s*s;
-  auto d = supint[3] * g_cfg.get< tag::mat_dyn_viscosity >();
+  auto v = supint[3] * g_cfg.get< tag::mat_dyn_viscosity >();
 
   // flow
   auto pf = U(p,0) + U(q,0);
   f[0] = (vnL + vnR)*s2;
-  f[1] = uL[0]*vnL + uR[0]*vnR + pf*nx - d*(uR[0] - uL[0]);
-  f[2] = uL[1]*vnL + uR[1]*vnR + pf*ny - d*(uR[1] - uL[1]);
-  f[3] = uL[2]*vnL + uR[2]*vnR + pf*nz - d*(uR[2] - uL[2]);
+  f[1] = uL[0]*vnL + uR[0]*vnR + pf*nx - v*(uR[0] - uL[0]);
+  f[2] = uL[1]*vnL + uR[1]*vnR + pf*ny - v*(uR[1] - uL[1]);
+  f[3] = uL[2]*vnL + uR[2]*vnR + pf*nz - v*(uR[2] - uL[2]);
 
   // diffusion
-  auto m = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
+  auto d = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
 
   // scalar
   for (std::size_t c=4; c<ncomp; ++c) {
-    f[c] = uL[c-1]*vnL + uR[c-1]*vnR - m*(uR[c-1] - uL[c-1]);
+    f[c] = uL[c-1]*vnL + uR[c-1]*vnR - d*(uR[c-1] - uL[c-1]);
   }
 
   // artificial viscosity
@@ -899,7 +899,7 @@ adv_damp4( const tk::real supint[],
   auto len = tk::length( nx, ny, nz );
   auto sl = std::abs(vnL) + s*len;
   auto sr = std::abs(vnR) + s*len;
-  auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr) * len;
+  auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr);
   // flow
   f[0] += aw * (U(q,0) - U(p,0))*s2;
   f[1] += aw * (uR[0] - uL[0]);

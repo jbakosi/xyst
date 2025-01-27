@@ -25,7 +25,7 @@ surfaces.
 
 @section chocg_example_sphere_quarter_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [621987c](https://codeberg.org/xyst/xyst/commit/621987c85ca3a1c3f1bbe91fe971f4aee7741310) and the control file below.
+To reproduce the results below, use code revision [63a8333](https://codeberg.org/xyst/xyst/commit/63a83338798428b34190955acc00c1de0a2ef6ea) and the control file below.
 
 @section chocg_example_sphere_quarter_control Control file
 
@@ -43,6 +43,7 @@ cfl = 0.1
 
 solver = "chocg"
 flux = "damp4"
+stab = false
 fct = false
 
 part = "phg"

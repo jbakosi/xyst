@@ -1672,12 +1672,14 @@ LohCG::writeFields( CkCallback cb )
       auto s = sol( x[i], y[i], z[i], d->T() );
       for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
     }
-    nodefieldnames.push_back( "velocity_analyticx" );
+    nodefieldnames.push_back( "pressure_analytic" );
     nodefields.push_back( an.extract(0) );
-    nodefieldnames.push_back( "velocity_analyticy" );
+    nodefieldnames.push_back( "velocity_analyticx" );
     nodefields.push_back( an.extract(1) );
-    nodefieldnames.push_back( "velocity_analyticz" );
+    nodefieldnames.push_back( "velocity_analyticy" );
     nodefields.push_back( an.extract(2) );
+    nodefieldnames.push_back( "velocity_analyticz" );
+    nodefields.push_back( an.extract(3) );
     for (std::size_t c=0; c<ncomp-4; ++c) {
       nodefieldnames.push_back( nodefieldnames[4+c] + "_analytic" );
       nodefields.push_back( an.extract(4+c) );

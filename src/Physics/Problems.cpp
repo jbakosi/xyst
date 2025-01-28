@@ -912,7 +912,7 @@ ic( tk::real, tk::real y, tk::real, tk::real )
 // *****************************************************************************
 //! Set initial conditions prescribing the Poisuille problem
 //! \param[in] y Y coordinate where to evaluate the solution
-//! \return Values of conserved variables
+//! \return Values of physics variables
 // *****************************************************************************
 {
   auto eps = std::numeric_limits< tk::real >::epsilon();
@@ -922,7 +922,39 @@ ic( tk::real, tk::real y, tk::real, tk::real )
   auto dpdx = -0.12;
   auto u = -dpdx * y * (1.0 - y) / 2.0 / nu;
 
-  return { u, 0.0, 0.0 };
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "chocg") {
+    return { u, 0.0, 0.0 };
+  } else
+  if (solver == "lohcg") {
+    return { 0.0, 0.0, 0.0, 0.0 };
+  }
+  else Throw( "Poiseuille IC not setup for this solver" );
+}
+
+static std::vector< tk::real >
+sol( tk::real, tk::real y, tk::real, tk::real )
+// *****************************************************************************
+//! Set analytic solution of the Poisuille problem
+//! \param[in] y Y coordinate where to evaluate the solution
+//! \return Values of physics variables
+// *****************************************************************************
+{
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto nu = g_cfg.get< tag::mat_dyn_viscosity >();
+  if (nu < eps) Throw( "Poiseuille flow needs nonzero viscosity" );
+
+  auto dpdx = -0.12;
+  auto u = -dpdx * y * (1.0 - y) / 2.0 / nu;
+
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "chocg") {
+    return { u, 0.0, 0.0 };
+  } else
+  if (solver == "lohcg") {
+    return { 0.0, u, 0.0, 0.0 };
+  }
+  else Throw( "Poiseuille IC not setup for this solver" );
 }
 
 static tk::real
@@ -993,6 +1025,8 @@ SOL()
       problem == "sedov" ||
       problem == "point_src")
     return {};
+  else if (problem == "poiseuille")
+    return poiseuille::sol;
   else
     return IC();
 }
@@ -1069,7 +1103,10 @@ PRESSURE_IC()
 
   std::function< tk::real( tk::real, tk::real, tk::real ) > ic;
 
-  if (problem == "userdef" || problem == "slot_cyl")
+  if ( problem == "userdef" or
+       problem == "slot_cyl" or
+       problem == "sheardiff" or
+       problem == "poiseuille" )
     ic = userdef::pic;
   else if (problem == "poisson_const")
     ic = poisson_const::ic;
@@ -1081,8 +1118,6 @@ PRESSURE_IC()
     ic = poisson_sine3::ic;
   else if (problem == "poisson_neumann")
     ic = poisson_neumann::ic;
-  else if (problem == "poiseuille")
-    ic = poiseuille::pic;
   else
     Throw( "problem type not hooked up" );
 

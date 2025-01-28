@@ -957,16 +957,6 @@ sol( tk::real, tk::real y, tk::real, tk::real )
   else Throw( "Poiseuille IC not setup for this solver" );
 }
 
-static tk::real
-pic( tk::real, tk::real, tk::real )
-// *****************************************************************************
-//! Set homogeneous initial conditions for Poiseuille
-//! \return Value of pressure
-// *****************************************************************************
-{
-  return 0.0;
-}
-
 } // poiseuille::
 
 std::function< std::vector< tk::real >

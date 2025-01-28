@@ -163,7 +163,7 @@ Errors and convergence rates using second-order damping for advection.
              1  |      0.25 |  6.60850e-03 |  1.24939e-02
              2  |      0.16 |  6.45591e-03 |  9.67748e-03
              3  |      0.08 |  1.14023e-03 |  1.37348e-03
-         **p**  |           |    **2.501** |   **2.8168**
+             p  |           |    **2.501** |   **2.8168**
 
 Errors and convergence rates using fourth-order damping for advection.
        Mesh     | h         | L1(err)      | L2(err)
@@ -171,6 +171,6 @@ Errors and convergence rates using fourth-order damping for advection.
              1  |      0.25 |  2.27264e-02 |  3.01810e-02
              2  |      0.16 |  6.69731e-03 |  9.81238e-03
              3  |      0.08 |  1.17535e-03 |  1.40336e-03
-         **p**  |           |    **2.510** |    **2.805**
+             p  |           |    **2.510** |    **2.805**
 
 */

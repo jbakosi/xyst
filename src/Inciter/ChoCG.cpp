@@ -1844,8 +1844,10 @@ ChoCG::dt()
   } else {
 
     auto cfl = g_cfg.get< tag::cfl >();
-    auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
     auto large = std::numeric_limits< tk::real >::max();
+    auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
+    auto dif = g_cfg.get< tag::mat_dyn_diffusivity >();
+    dif = std::max( mu, dif );
 
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
       auto u = m_u(i,0);
@@ -1855,8 +1857,8 @@ ChoCG::dt()
       auto L = std::cbrt( vol[i] );
       auto euler_dt = L / std::max( vel, 1.0e-8 );
       mindt = std::min( mindt, euler_dt );
-      auto visc_dt = mu > eps ? L * L / mu : large;
-      mindt = std::min( mindt, visc_dt );
+      auto dif_dt = dif > eps ? L * L / dif : large;
+      mindt = std::min( mindt, dif_dt );
     }
     mindt *= cfl;
 

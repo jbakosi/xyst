@@ -416,7 +416,7 @@ flux( const tk::Fields& U,
 //! \return Momentum flux contribution for edge p-q
 // *****************************************************************************
 {
-  auto inv = U(p,i)*U(p,j) + U(q,i)*U(q,j);
+  auto inv = U(p,i+1)*U(p,j+1) + U(q,i+1)*U(q,j+1);
 
   auto eps = std::numeric_limits< tk::real >::epsilon();
   auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
@@ -445,7 +445,7 @@ flux( const tk::Fields& U,
 //! \return Momentum flux contribution for point p
 // *****************************************************************************
 {
-  auto inv = U(p,i)*U(p,j);
+  auto inv = U(p,i+1)*U(p,j+1);
 
   auto eps = std::numeric_limits< tk::real >::epsilon();
   auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
@@ -609,7 +609,7 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   Assert( G.nunk() == U.nunk(), "Size mismatch" );
   Assert( G.nprop() > 2, "Size mismatch" );
   Assert( G.nprop() % 3 == 0, "Size mismatch" );
-  Assert( G.nprop() == (U.nprop()-1)*3, "Size mismatch" );
+  Assert( G.nprop() == U.nprop()*3, "Size mismatch" );
 
   const auto ncomp = U.nprop();
 

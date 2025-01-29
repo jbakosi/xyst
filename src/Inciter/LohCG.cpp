@@ -877,7 +877,7 @@ LohCG::div( const tk::Fields& u, std::size_t pos )
     physics::symbc( m_flux, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
   }
 
-  // Compute divergence
+  // Compute velocity divergence
   std::fill( begin(m_div), end(m_div), 0.0 );
   lohner::div( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, u, m_div, pos );
 
@@ -1198,7 +1198,7 @@ LohCG::psolved()
     }
     // Enforce boundary conditions
     auto t = d->T() + d->Dt();
-    physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
+    physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval);
     physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
     physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
   }

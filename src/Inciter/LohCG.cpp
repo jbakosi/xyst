@@ -193,7 +193,7 @@ LohCG::ngradcomp() const
   if (g_cfg.get< tag::flux >() == "damp4" or
       std::find( begin(req), end(req), "force") != end(req))
   {
-    n += (m_u.nprop()-1) * 3;     // (u,v,w,c0,...) x 3
+    n += m_u.nprop() * 3;     // (p,u,v,w,c0,...) x 3
   }
 
   return n;

@@ -680,13 +680,11 @@ adv_damp2( const tk::real supint[],
   }
 
   // artificial viscosity
-  tk::real fw = 0.0;
   if (g_cfg.get< tag::stab2 >()) {
     auto stab2coef = g_cfg.get< tag::stab2coef >();
     auto sl = std::abs(vnL);
     auto sr = std::abs(vnR);
-    fw = stab2coef * std::max( sl, sr );
-    aw += fw;
+    aw += stab2coef * std::max( sl, sr );
   }
 
   // viscosity
@@ -812,13 +810,11 @@ adv_damp4( const tk::real supint[],
   }
 
   // artificial viscosity
-  tk::real fw = 0.0;
   if (g_cfg.get< tag::stab2 >()) {
     auto stab2coef = g_cfg.get< tag::stab2coef >();
     auto sl = std::abs(vnL);
     auto sr = std::abs(vnR);
-    fw = stab2coef * std::max( sl, sr );
-    aw += fw;
+    aw += stab2coef * std::max( sl, sr );
   }
 
   // viscosity

@@ -822,9 +822,9 @@ adv_damp4( const tk::real supint[],
 
   // flow
   auto pf = uL[ncomp] + uR[ncomp];
-  f[0] = uL[0]*vnL + uR[0]*vnR + pf*nx + aw*(uR[0]-uL[0]) - v*(U(q,0)-U(p,0));
-  f[1] = uL[1]*vnL + uR[1]*vnR + pf*ny + aw*(uR[1]-uL[1]) - v*(U(q,1)-U(p,1));
-  f[2] = uL[2]*vnL + uR[2]*vnR + pf*nz + aw*(uR[2]-uL[2]) - v*(U(q,2)-U(p,2));
+  f[0] = uL[0]*vnL + uR[0]*vnR + pf*nx + (aw-v)*(uR[0]-uL[0]);
+  f[1] = uL[1]*vnL + uR[1]*vnR + pf*ny + (aw-v)*(uR[1]-uL[1]);
+  f[2] = uL[2]*vnL + uR[2]*vnR + pf*nz + (aw-v)*(uR[2]-uL[2]);
 
   // scalar
   if (ncomp == 3) return;

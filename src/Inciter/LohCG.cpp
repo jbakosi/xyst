@@ -193,7 +193,7 @@ LohCG::ngradcomp() const
   if (g_cfg.get< tag::flux >() == "damp4" or
       std::find( begin(req), end(req), "force") != end(req))
   {
-    n += m_u.nprop() * 3;     // (p,u,v,w,c0,...) x 3
+    n += (m_u.nprop()-1) * 3;     // (u,v,w,c0,...) x 3
   }
 
   return n;
@@ -1409,22 +1409,8 @@ LohCG::rhs()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-  if (m_grad.nprop()) {
-    // Combine own and communicated contributions to gradients
-    for (const auto& [g,r] : m_gradc) {
-      auto i = tk::cref_find( lid, g );
-      for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c) += r[c];
-    }
-    tk::destroy(m_gradc);
-
-    // Divide weak result by nodal volume
-    const auto& vol = d->Vol();
-    for (std::size_t p=0; p<m_grad.nunk(); ++p) {
-      for (std::size_t c=0; c<m_grad.nprop(); ++c) {
-        m_grad(p,c) /= vol[p];
-      }
-    }
-  }
+  // Combine own and communicated contributions to gradients
+  if (m_grad.nprop()) fingrad( m_grad, m_gradc );
 
   // Compute own portion of right-hand side for all equations
   lohner::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, d->V(), d->T(),

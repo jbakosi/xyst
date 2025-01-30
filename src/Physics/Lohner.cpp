@@ -609,7 +609,7 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   Assert( G.nunk() == U.nunk(), "Size mismatch" );
   Assert( G.nprop() > 2, "Size mismatch" );
   Assert( G.nprop() % 3 == 0, "Size mismatch" );
-  Assert( G.nprop() == U.nprop()*3, "Size mismatch" );
+  Assert( G.nprop() == (U.nprop()-1)*3, "Size mismatch" );
 
   const auto ncomp = U.nprop();
 
@@ -628,9 +628,9 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
     const auto N = dsupedge[0].data() + e*4;
     const auto d = dsupint[0].data();
-    for (std::size_t c=0; c<ncomp; ++c) {
+    for (std::size_t c=1; c<ncomp; ++c) {
       tk::real u[] = { U(N[0],c), U(N[1],c), U(N[2],c), U(N[3],c) };
-      auto g = c*3;
+      auto g = (c-1)*3;
       for (std::size_t j=0; j<3; ++j) {
         tk::real f[] = {
           d[(e*6+0)*4+j] * (u[1] + u[0]),
@@ -651,9 +651,9 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
     const auto N = dsupedge[1].data() + e*3;
     const auto d = dsupint[1].data();
-    for (std::size_t c=0; c<ncomp; ++c) {
+    for (std::size_t c=1; c<ncomp; ++c) {
       tk::real u[] = { U(N[0],c), U(N[1],c), U(N[2],c) };
-      auto g = c*3;
+      auto g = (c-1)*3;
       for (std::size_t j=0; j<3; ++j) {
         tk::real f[] = {
           d[(e*3+0)*4+j] * (u[1] + u[0]),
@@ -670,9 +670,9 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
     const auto N = dsupedge[2].data() + e*2;
     const auto d = dsupint[2].data() + e*4;
-    for (std::size_t c=0; c<ncomp; ++c) {
+    for (std::size_t c=1; c<ncomp; ++c) {
       tk::real u[] = { U(N[0],c), U(N[1],c) };
-      auto g = c*3;
+      auto g = (c-1)*3;
       for (std::size_t j=0; j<3; ++j) {
         tk::real f = d[j] * (u[1] + u[0]);
         G(N[0],g+j) -= f;
@@ -693,8 +693,8 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     tk::crossdiv( x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]],
                   x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]], 6.0,
                   n[0], n[1], n[2] );
-    for (std::size_t c=0; c<ncomp; ++c) {
-      auto g = c*3;
+    for (std::size_t c=1; c<ncomp; ++c) {
+      auto g = (c-1)*3;
       auto uA = U(N[0],c);
       auto uB = U(N[1],c);
       auto uC = U(N[2],c);
@@ -832,14 +832,14 @@ adv_damp4( const tk::real supint[],
     #pragma GCC diagnostic ignored "-Wvla"
   #endif
 
-  tk::real uL[ncomp], uR[ncomp];
-  for (std::size_t i=0; i<ncomp; ++i) {
-    uL[i] = U(p,i);
-    uR[i] = U(q,i);
+  tk::real uL[ncomp-1], uR[ncomp-1];
+  for (std::size_t i=0; i<ncomp-1; ++i) {
+    uL[i] = U(p,i+1);
+    uR[i] = U(q,i+1);
   }
 
   // MUSCL reconstruction in edge-end points
-  for (std::size_t c=0; c<ncomp; ++c) {
+  for (std::size_t c=0; c<ncomp-1; ++c) {
     auto g = c*3;
     auto g1 = G(p,g+0)*dx + G(p,g+1)*dy + G(p,g+2)*dz;
     auto g2 = G(q,g+0)*dx + G(q,g+1)*dy + G(q,g+2)*dz;
@@ -868,8 +868,8 @@ adv_damp4( const tk::real supint[],
   auto nz = supint[2];
 
   // normal velocities
-  auto vnL = uL[1]*nx + uL[2]*ny + uL[3]*nz;
-  auto vnR = uR[1]*nx + uR[2]*ny + uR[3]*nz;
+  auto vnL = uL[0]*nx + uL[1]*ny + uL[2]*nz;
+  auto vnR = uR[0]*nx + uR[1]*ny + uR[2]*nz;
 
   auto s = g_cfg.get< tag::soundspeed >();
   auto s2 = s*s;
@@ -892,18 +892,18 @@ adv_damp4( const tk::real supint[],
   }
 
   // flow
-  auto pf = uL[0] + uR[0];
-  f[0] = (vnL + vnR + aw*(uR[0] - uL[0]))*s2;
-  f[1] = uL[1]*vnL + uR[1]*vnR + pf*nx + (aw-v)*(uR[1] - uL[1]);
-  f[2] = uL[2]*vnL + uR[2]*vnR + pf*ny + (aw-v)*(uR[2] - uL[2]);
-  f[3] = uL[3]*vnL + uR[3]*vnR + pf*nz + (aw-v)*(uR[3] - uL[3]);
+  auto pf = U(p,0) + U(q,0);
+  f[0] = (vnL + vnR + aw*(U(q,0) - U(p,0)))*s2;
+  f[1] = uL[0]*vnL + uR[0]*vnR + pf*nx + (aw-v)*(uR[0] - uL[0]);
+  f[2] = uL[1]*vnL + uR[1]*vnR + pf*ny + (aw-v)*(uR[1] - uL[1]);
+  f[3] = uL[2]*vnL + uR[2]*vnR + pf*nz + (aw-v)*(uR[2] - uL[2]);
 
   // diffusion
   auto d = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
 
   // scalar
-  for (std::size_t c=4; c<ncomp; ++c) {
-    f[c] = uL[c]*vnL + uR[c]*vnR + (aw-d)*(uR[c] - uL[c]);
+  for (std::size_t c=3; c<ncomp-1; ++c) {
+    f[c+1] = uL[c]*vnL + uR[c]*vnR + (aw-d)*(uR[c] - uL[c]);
   }
 
   #if defined(__clang__)

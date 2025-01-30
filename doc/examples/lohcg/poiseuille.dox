@@ -40,7 +40,7 @@ Coarse surface mesh for computing Poiseuille flow, nelem=3K, npoin=1.2K.
 
 @section lohcg_example_poiseuille_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [291b6f1](https://codeberg.org/xyst/xyst/commit/291b6f1ea70bb089e46d7a47a6ff5c06ee931042) and the control file below.
+To reproduce the results below, use code revision [710aaa7](https://codeberg.org/xyst/xyst/commit/710aaa7b0f169b919cda8dc0898f3f6b33deea0a) and the control file below.
 
 @section lohcg_example_poiseuille_control Control file
 
@@ -50,6 +50,7 @@ To reproduce the results below, use code revision [291b6f1](https://codeberg.org
 print "Poiseuille flow"
 
 -- mesh: poiseuille?tetz.exo
+-- plot "diag" u 2:12 w l lw 2 t "L2(err:u)", "" u 2:15 w l lw 2 t "L1(err:u)"
 
 term = 400.0
 ttyi = 1000
@@ -58,19 +59,19 @@ cfl = 1.0
 
 solver = "lohcg"
 flux = "damp4"
-stab2 = true
-stab2coef = 0.01
-soundspeed = 100.0
-rk = 4
+stab = false
+--stab2 = true
+--stab2coef = 1.0e-5
+rk = 3
+soundspeed = 20.0
 
-part = "phg"
+part = "rcb"
 
 mat = { dyn_viscosity = 0.01 }
 
 pressure = {
   iter = 500,
   tol = 1.0e-12,
-  --verbose = 1,
   pc = "jacobi",
   bc_dir = { { 1, 2 },
              { 2, 2 } },
@@ -78,8 +79,8 @@ pressure = {
                 { 2, 0.0 } }
 }
 
-ic = {
-  velocity = { 0.0, 0.0, 0.0 }
+problem = {
+  name = "poiseuille"
 }
 
 bc_noslip = {
@@ -91,11 +92,11 @@ bc_dir = {
 }
 
 fieldout = {
-  iter = 100000
+  iter = 10000
 }
 
 diag = {
-  iter = 10,
+  iter = 100,
   format = "scientific",
   precision = 12
 }
@@ -147,20 +148,24 @@ p = \frac{ \log \left| \left| \varepsilon \right| \right|^{m+1} - \log \left|
 \f]
 where \f$m\f$ is a mesh index.
 
-Errors and convergence rates using second-order damping for advection and three-stage Runge-Kutta time stepping.
+Errors (sampled along the centerline in the cross-stream direction) and
+convergence rates using second-order damping for advection and third-order
+Runge-Kutta time stepping.
        Mesh     | h         | L1(err)      | L2(err)
        :------: | --------: | -----------: | -----------:
-             1  |      0.25 |    0.0402192 |    0.0438342
-             2  |      0.16 |    0.0097760 |    0.0108168
-             3  |      0.08 |    0.0023641 |    0.0027010
-             p  |           |    **2.048** |   **2.0017**
+             1  |      0.25 |    0.0395646 |    0.0432123
+             2  |      0.16 |    0.0103242 |    0.0113435
+             3  |      0.08 |    0.0029295 |    0.0032368
+             p  |           |    **1.817** |   **1.8092**
 
-Errors and convergence rates using fourth-order damping for advection and four-stage Runge-Kutta time stepping.
+Errors (sampled along the centerline in the cross-stream direction) and
+convergence rates using fourth-order damping for advection and third-order
+Runge-Kutta time stepping.
        Mesh     | h         | L1(err)      | L2(err)
        :------: | --------: | -----------: | -----------:
-             1  |      0.25 |     0.097477 |    0.103251
-             2  |      0.16 |     0.022909 |    0.024383
-             3  |      0.08 |     0.004090 |    0.004404
-             p  |           |    **2.485** |    **2.469**
+             1  |      0.25 |     0.038914 |    0.042567
+             2  |      0.16 |     0.009047 |    0.010130
+             3  |      0.08 |     0.002286 |    0.0026301
+             p  |           |    **1.985** |    **1.945**
 
 */

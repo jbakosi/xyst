@@ -216,13 +216,13 @@ vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
        const tk::Fields& U,
        tk::Fields& G )
 // *****************************************************************************
-//  Compute velocity gradients in all points
+//  Compute velocity+scalar gradients in all points
 //! \param[in] dsupedge Domain superedges
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] coord Mesh node coordinates
 //! \param[in] triinpoel Boundary face connectivity
 //! \param[in] U Velocity whose gradient to compute
-//! \param[in,out] G Nodal velocity gradients (9 components) in all points
+//! \param[in,out] G Nodal gradients in all points
 // *****************************************************************************
 {
   Assert( G.nunk() == U.nunk(), "Size mismatch" );

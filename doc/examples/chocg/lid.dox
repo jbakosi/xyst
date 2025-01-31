@@ -38,7 +38,7 @@ Surface mesh for computing the lid-driven cavity flow with \f$ \text{Re} = 1000
 
 @section chocg_example_lid_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [bf2cd97](https://codeberg.org/xyst/xyst/commit/bf2cd9722bf86b9c754407c87ea25cb1fee9b38b) and the control file below.
+To reproduce the results below, use code revision [3255350](https://codeberg.org/xyst/xyst/commit/325535012bb9ce96d2adbb9a5089cec85eecd0b8) and the control file below.
 
 @section chocg_example_lid_control Control file
 
@@ -50,15 +50,14 @@ print "Lid-driven cavity"
 -- mesh: ldc90_32x32_tet.exo    Re=100
 --       ldc90_128x128_tet.exo  Re=1000
 
-term = 30.0
+term = 100.0
 ttyi = 10
 
 cfl = 0.7
---theta = 0.5
 
 solver = "chocg"
 flux = "damp2"
---rk = 3
+stab = false
 fct = false
 
 part = "rcb"
@@ -110,8 +109,24 @@ diag = {
 @section chocg_example_lid_run Run on 32 CPUs
 
 @code{.bash}
-./charmrun +p32 Main/inciter -i ldc90_128x128_tet.exo -c ../../tmp/problems/ldc/ldch_chocg.q
+./charmrun +p32 Main/inciter -i ldc90_128x128_tet.exo -c ldch_chocg.q
 @endcode
+
+@section chocg_example_lid_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.32.0
+@endcode
+
+The converged velocity field distribution on the domain surface surface is depicted
+below.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/ldc_chocg_velocity_Re=1000.png"/>
+@m_enddiv
 
 @section chocg_example_lid_sol Numerical solution
 

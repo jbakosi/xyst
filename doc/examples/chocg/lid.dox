@@ -121,8 +121,8 @@ of the numerically computed 3D fields as
 paraview out.e-s.0.32.0
 @endcode
 
-The converged velocity field distribution on the domain surface surface is depicted
-below.
+The converged velocity field distribution at \f$ \text{Re} = 1000\f$ on the
+domain surface surface is depicted below.
 
 @m_div{m-col-m-12 m-center-m}
 <img src="images/ldc_chocg_velocity_Re=1000.png"/>

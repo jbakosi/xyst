@@ -1,0 +1,14 @@
+
+Welcome to Xyst Docker Image!
+
+Xyst Docker Image consists of the following tools:
+
+inciter — Euler and Navier-Stokes solvers for engineering flows
+Implements multiple flow solvers for complex engineering geometries.
+
+meshconv — Tetrahedron-mesh converter
+Converts large tetrahedron meshes between various formats.
+
+If you want to learn more about what can you do using Inciter visit:
+https://xyst.cc/vnv.html
+

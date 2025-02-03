@@ -48,7 +48,7 @@ To reproduce the results below, use code revision [3255350](https://codeberg.org
 print "Lid-driven cavity"
 
 -- mesh: ldc90_32x32_tet.exo    Re=100
---       ldc90_128x128_tet.exo  Re=1000
+--       ldc90_128x128_tet.exo  Re=1000,5000
 
 term = 50.0
 ttyi = 1000

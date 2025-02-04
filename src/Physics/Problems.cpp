@@ -662,6 +662,96 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
 
 } // slot_cyl::
 
+namespace sheardiff {
+
+static std::vector< tk::real >
+ic( tk::real x, tk::real y, tk::real, tk::real t )
+// *****************************************************************************
+//! Set initial conditions prescribing shear-diffusion in 2D
+//! \param[in] x X coordinate where to evaluate the solution
+//! \param[in] y Y coordinate where to evaluate the solution
+//! \param[in] t Time where to evaluate the solution
+//! \return Values of conserved variables
+//! \see A. Okubo, M.J. Karweit, Diffusion from a continuous source in a uniform
+//!      shear flow, Limnology and Oceanography, 14, 1969,
+//!      https://doi.org/10.4319/lo.1969.14.4.0514.
+// *****************************************************************************
+{
+  using std::exp;
+  using std::pow;
+  using std::sqrt;
+
+  // manufactured solution parameters
+  auto V0 = g_cfg.get< tag::problem_p0 >();  // translation velocity in x
+  auto L = g_cfg.get< tag::problem_alpha >();// shear velocity
+  auto t0 = g_cfg.get< tag::t0 >();          // initial time
+  auto dif = g_cfg.get< tag::mat_dyn_diffusivity >();  // diffusivity
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  if (dif < eps) Throw( "Diffusivity must be positive" );
+
+  // configure number of scalar components
+  std::size_t ncomp = 4;
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "chocg") {
+  } else
+  if (solver == "lohcg") {
+    ncomp = 5;
+  }
+  else Throw( "Shear-diff IC not setup for this solver" );
+
+  // prescribed velocity
+  std::vector< tk::real > u( ncomp, 0.0 );
+  std::size_t sc = 3;
+  if (solver == "chocg") {
+    u[0] = V0 + L*y;
+    u[1] = u[2] = 0.0;
+  }
+  else if (solver == "lohcg") {
+    u[1] = V0 + L*y;
+    u[2] = u[3] = 0.0;
+    sc = 4;
+  }
+
+  auto M = [=](tk::real T){ return 4.0*M_PI*T*sqrt(1.0 + L*L*T*T/12.0); };
+
+  u[sc] = M(t0) / M(t) *
+       exp( -pow( x - V0*t - 0.5*L*y*t, 2.0 ) /
+             (4.0*dif*t*(1.0 + L*L*t*t/12.0)) - y*y / (4.0*dif*t) );
+
+  return u;
+}
+
+static std::vector< tk::real >
+src( tk::real, tk::real, tk::real, tk::real )
+// *****************************************************************************
+//! Compute and return source term for shear-diffusion in 2D
+//! \return Source for flow variables + transported scalars
+//! \see A. Okubo, M.J. Karweit, Diffusion from a continuous source in a uniform
+//!      shear flow, Limnology and Oceanography, 14, 1969,
+//!      https://doi.org/10.4319/lo.1969.14.4.0514.
+// *****************************************************************************
+{
+  // configure number of scalar components
+  std::size_t ncomp = 4;
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "lohcg") {
+    ncomp = 5;
+  }
+
+  // manufactured solution parameters
+  auto L = g_cfg.get< tag::problem_alpha >();// shear velocity
+
+  // source
+  std::vector< tk::real > s( ncomp, 0.0 );
+  if (solver == "lohcg") {
+    s[0] = -L;
+  }
+
+  return s;
+}
+
+} // sheardiff::
+
 namespace point_src {
 
 static std::vector< tk::real >
@@ -988,6 +1078,8 @@ IC()
     ic = vortical_flow::ic;
   else if (problem == "slot_cyl")
     ic = slot_cyl::ic;
+  else if (problem == "sheardiff")
+    ic = sheardiff::ic;
   else if (problem == "point_src")
     ic = point_src::ic;
   else if (problem.find("poisson") != std::string::npos)
@@ -1010,9 +1102,9 @@ SOL()
 {
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
-  if (problem == "userdef" ||
-      problem == "sod" ||
-      problem == "sedov" ||
+  if (problem == "userdef" or
+      problem == "sod" or
+      problem == "sedov" or
       problem == "point_src")
     return {};
   else if (problem == "poiseuille")
@@ -1201,6 +1293,8 @@ SRC()
     src = vortical_flow::src;
   else if (problem == "slot_cyl")
     src = slot_cyl::src;
+  else if (problem == "sheardiff")
+    src = sheardiff::src;
 
   return src;
 }

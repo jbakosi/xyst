@@ -926,7 +926,12 @@ problem( lua_State* L, Config& cfg )
 
   auto& n = cfg.get< tag::problem_ncomp >();
   n = 5;
-  if (problem == "slot_cyl" || problem == "point_src") ++n;
+  if ( problem == "slot_cyl" or
+       problem == "point_src" or
+       problem == "sheardiff" )
+  {
+     ++n;
+  }
 
        if (solver == "chocg") n -= 2;
   else if (solver == "lohcg") n -= 1;

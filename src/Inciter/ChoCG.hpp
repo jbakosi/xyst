@@ -136,19 +136,6 @@ class ChoCG : public CBase_ChoCG {
     //! Receive contributions to velocity divergence on chare-boundaries
     void comdiv( const std::unordered_map< std::size_t, tk::real >& indiv );
 
-    //! Receive antidiffusive and low-order contributions on chare-boundaries
-    void comaec( const std::unordered_map< std::size_t,
-                         std::vector< tk::real > >& inaec );
-
-
-    //! Receive allowed limits contributions on chare-boundaries
-    void comalw( const std::unordered_map< std::size_t,
-                         std::vector< tk::real > >& inalw );
-
-    //! Receive limited antidiffusive contributions on chare-boundaries
-    void comlim( const std::unordered_map< std::size_t,
-                         std::vector< tk::real > >& inlim );
-
     //! Evaluate residuals
     void evalres( const std::vector< tk::real >& l2res );
 
@@ -192,9 +179,6 @@ class ChoCG : public CBase_ChoCG {
       p | m_cgmom;
       p | m_nrhs;
       p | m_nnorm;
-      p | m_naec;
-      p | m_nalw;
-      p | m_nlim;
       p | m_nsgrad;
       p | m_npgrad;
       p | m_nvgrad;
@@ -208,12 +192,6 @@ class ChoCG : public CBase_ChoCG {
       p | m_u;
       p | m_un;
       p | m_pr;
-      p | m_p;
-      p | m_pc;
-      p | m_q;
-      p | m_qc;
-      p | m_a;
-      p | m_ac;
       p | m_rhs;
       p | m_rhsc;
       p | m_sgrad;
@@ -234,7 +212,6 @@ class ChoCG : public CBase_ChoCG {
       p | m_bpint;
       p | m_dsupedge;
       p | m_dsupint;
-      p | m_dsuplim;
       p | m_dirbcmask;
       p | m_dirbcval;
       p | m_dirbcmaskp;
@@ -265,12 +242,6 @@ class ChoCG : public CBase_ChoCG {
     std::size_t m_nrhs;
     //! Counter for receiving boundary point normals
     std::size_t m_nnorm;
-    //! Counter for receiving antidiffusive contributions
-    std::size_t m_naec;
-    //! Counter for receiving allowed limits
-    std::size_t m_nalw;
-    //! Counter for receiving limited antidiffusive contributions
-    std::size_t m_nlim;
     //! Counter for receiving conjugrate gradient solution gradient
     std::size_t m_nsgrad;
     //! Counter for receiving pressure gradient
@@ -297,22 +268,6 @@ class ChoCG : public CBase_ChoCG {
     tk::Fields m_un;
     //! Pressure
     std::vector< tk::real > m_pr;
-    //! Max/min antidiffusive edge contributions at mesh nodes
-    tk::Fields m_p;
-    //! Receive buffer for max/min antidiffusive edge contributions
-    //! \details Key: global node id, value: max/min antidiff edge contributions
-    std::unordered_map< std::size_t, std::vector< tk::real > > m_pc;
-    //! Max/min allowed limits at mesh nodes
-    tk::Fields m_q;
-    //! Receive buffer for max/min allowed limits
-    //! \details Key: global node id, value: max/min allowed limits in nodes.
-    std::unordered_map< std::size_t, std::vector< tk::real > > m_qc;
-    //! Limited antidiffusive contributions at mesh nodes
-    tk::Fields m_a;
-    //! Receive buffer for limited antidiffusive contributions
-    //! \details Key: global node id, value: limited antidiffusive contributions
-    //!     in nodes.
-    std::unordered_map< std::size_t, std::vector< tk::real > > m_ac;
     //! Right-hand side vector (for the high order system)
     tk::Fields m_rhs;
     //! Receive buffer for communication of the right hand side
@@ -364,8 +319,6 @@ class ChoCG : public CBase_ChoCG {
     std::array< std::vector< std::size_t >, 3 > m_dsupedge;
     //! Superedge (tet, face, edge) domain edge integrals
     std::array< std::vector< tk::real >, 3 > m_dsupint;
-    //! FCT limiter coefficients in domain superedges
-    std::array< std::vector< tk::real >, 3 > m_dsuplim;
     //! Nodes and their Dirichlet BC masks
     std::vector< std::size_t > m_dirbcmask;
     //! Nodes and their Dirichlet BC values
@@ -472,18 +425,6 @@ class ChoCG : public CBase_ChoCG {
 
     //! Compute righ-hand side vector of transport equations
     void rhs();
-
-    //! Continue with flux-corrected transport if enabled
-    void fct();
-
-    //! Compute antidiffusive contributions: P+/-
-    void aec();
-
-    //! Compute allowed limits, Q+/-
-    void alw();
-
-    //! Compute limit coefficients
-    void lim();
 
     //! Advance systems of equations
     void solve();

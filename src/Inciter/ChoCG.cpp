@@ -63,9 +63,6 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_cgmom( cgmom ),
   m_nrhs( 0 ),
   m_nnorm( 0 ),
-  m_naec( 0 ),
-  m_nalw( 0 ),
-  m_nlim( 0 ),
   m_nsgrad( 0 ),
   m_npgrad( 0 ),
   m_nvgrad( 0 ),
@@ -79,9 +76,6 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
   m_pr( m_u.nunk(), 0.0 ),
-  m_p( m_u.nunk(), m_u.nprop()*2 ),
-  m_q( m_u.nunk(), m_u.nprop()*2 ),
-  m_a( m_u.nunk(), m_u.nprop() ),
   m_rhs( m_u.nunk(), m_u.nprop() ),
   m_sgrad( m_u.nunk(), 3UL ),
   m_pgrad( m_u.nunk(), 3UL ),
@@ -138,7 +132,6 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
 
   // Setup empty LHS matrix for momentum solve if needed
   if (g_cfg.get< tag::theta >() > std::numeric_limits< tk::real >::epsilon()) {
-    if (g_cfg.get< tag::fct >()) Throw( "Implicit FCT not implemented" );
     m_cgmom[ thisIndex ].insert( momlhs( psup ),
                                  d->Gid(),
                                  d->Lid(),
@@ -794,13 +787,6 @@ ChoCG::domsuped()
     ++k;
   }
 
-  if (g_cfg.get< tag::fct >()) {
-    const auto ncomp = m_u.nprop();
-    m_dsuplim[0].resize( m_dsupedge[0].size() * 6 * ncomp );
-    m_dsuplim[1].resize( m_dsupedge[1].size() * 3 * ncomp );
-    m_dsuplim[2].resize( m_dsupedge[2].size() * ncomp );
-  }
-
   tk::destroy( m_domedgeint );
 
   //std::cout << std::setprecision(2)
@@ -1348,466 +1334,6 @@ ChoCG::start()
 }
 
 void
-// cppcheck-suppress unusedFunction
-ChoCG::aec()
-// *****************************************************************************
-// Compute antidiffusive contributions: P+/-
-// *****************************************************************************
-{
-  auto d = Disc();
-  const auto ncomp = m_u.nprop();
-  const auto& lid = d->Lid();
-
-  // Antidiffusive contributions: P+/-
-
-  auto ctau = g_cfg.get< tag::fctdif >();
-  m_p.fill( 0.0 );
-
-  // tetrahedron superedges
-  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
-    const auto N = m_dsupedge[0].data() + e*4;
-    const auto D = m_dsupint[0].data();
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoed) {
-      auto dif = D[(e*6+i)*5+3];
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto aec = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
-        auto a = c*2;
-        auto b = a+1;
-        if (aec > 0.0) std::swap(a,b);
-        m_p(N[p],a) -= aec;
-        m_p(N[q],b) += aec;
-      }
-      ++i;
-    }
-  }
-
-  // triangle superedges
-  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
-    const auto N = m_dsupedge[1].data() + e*3;
-    const auto D = m_dsupint[1].data();
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoet) {
-      auto dif = D[(e*3+i)*5+3];
-      for (std::size_t c=0; c<ncomp; ++c) {
-        auto aec = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
-        auto a = c*2;
-        auto b = a+1;
-        if (aec > 0.0) std::swap(a,b);
-        m_p(N[p],a) -= aec;
-        m_p(N[q],b) += aec;
-      }
-      ++i;
-    }
-  }
-
-  // edges
-  for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
-    const auto N = m_dsupedge[2].data() + e*2;
-    const auto dif = m_dsupint[2][e*5+3];
-    for (std::size_t c=0; c<ncomp; ++c) {
-      auto aec = -dif * ctau * (m_u(N[0],c) - m_u(N[1],c));
-      auto a = c*2;
-      auto b = a+1;
-      if (aec > 0.0) std::swap(a,b);
-      m_p(N[0],a) -= aec;
-      m_p(N[1],b) += aec;
-    }
-  }
-
-  // Apply symmetry BCs on AEC
-  for (std::size_t i=0; i<m_symbcnodes.size(); ++i) {
-    auto p = m_symbcnodes[i];
-    auto n = m_symbcnorms.data() + i*3;
-    auto rvnp = m_p(p,0)*n[0] + m_p(p,2)*n[1] + m_p(p,4)*n[2];
-    auto rvnn = m_p(p,1)*n[0] + m_p(p,3)*n[1] + m_p(p,5)*n[2];
-    m_p(p,0) -= rvnp * n[0];
-    m_p(p,1) -= rvnn * n[0];
-    m_p(p,2) -= rvnp * n[1];
-    m_p(p,3) -= rvnn * n[1];
-    m_p(p,4) -= rvnp * n[2];
-    m_p(p,5) -= rvnn * n[2];
-  }
-
-  // Communicate antidiffusive edge and low-order solution contributions
-  if (d->NodeCommMap().empty()) {
-    comaec_complete();
-  } else {
-    for (const auto& [c,n] : d->NodeCommMap()) {
-      decltype(m_pc) exp;
-      for (auto g : n) exp[g] = m_p[ tk::cref_find(lid,g) ];
-      thisProxy[c].comaec( exp );
-    }
-  }
-  ownaec_complete();
-}
-
-void
-ChoCG::comaec( const std::unordered_map< std::size_t,
-                       std::vector< tk::real > >& inaec )
-// *****************************************************************************
-//  Receive antidiffusive and low-order contributions on chare-boundaries
-//! \param[in] inaec Partial contributions of antidiffusive edge and low-order
-//!   solution contributions on chare-boundary nodes. Key: global mesh node IDs,
-//!   value: 0: antidiffusive contributions, 1: low-order solution.
-// *****************************************************************************
-{
-  using tk::operator+=;
-  for (const auto& [g,a] : inaec) m_pc[g] += a;
-
-  // When we have heard from all chares we communicate with, this chare is done
-  if (++m_naec == Disc()->NodeCommMap().size()) {
-    m_naec = 0;
-    comaec_complete();
-  }
-}
-
-void
-ChoCG::alw()
-// *****************************************************************************
-// Compute allowed limits, Q+/-
-// *****************************************************************************
-{
-  auto d = Disc();
-  const auto npoin = m_u.nunk();
-  const auto ncomp = m_u.nprop();
-  const auto& lid = d->Lid();
-  const auto& vol = d->Vol();
-
-  // Combine own and communicated contributions to antidiffusive contributions
-  // and low-order solution
-  for (const auto& [g,p] : m_pc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<p.size(); ++c) m_p(i,c) += p[c];
-  }
-  tk::destroy(m_pc);
-
-  // Finish computing antidiffusive contributions and low-order solution
-  auto dt = m_rkcoef[m_stage] * d->Dt();
-  for (std::size_t i=0; i<npoin; ++i) {
-    for (std::size_t c=0; c<ncomp; ++c) {
-      auto a = c*2;
-      auto b = a+1;
-      m_p(i,a) /= vol[i];
-      m_p(i,b) /= vol[i];
-      // low-order solution
-      m_rhs(i,c) = m_un(i,c) - dt*m_rhs(i,c)/vol[i] - m_p(i,a) - m_p(i,b);
-    }
-  }
-
-  // Allowed limits: Q+/-
-
-  using std::max;
-  using std::min;
-
-  auto large = std::numeric_limits< tk::real >::max();
-  for (std::size_t i=0; i<m_q.nunk(); ++i) {
-    for (std::size_t c=0; c<m_q.nprop()/2; ++c) {
-      m_q(i,c*2+0) = -large;
-      m_q(i,c*2+1) = +large;
-    }
-  }
-
-  // tetrahedron superedges
-  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
-    const auto N = m_dsupedge[0].data() + e*4;
-    for (std::size_t c=0; c<ncomp; ++c) {
-      auto a = c*2;
-      auto b = a+1;
-      for (const auto& [p,q] : tk::lpoed) {
-        tk::real alwp, alwn;
-        if (g_cfg.get< tag::fctclip >()) {
-          alwp = max( m_rhs(N[p],c), m_rhs(N[q],c) );
-          alwn = min( m_rhs(N[p],c), m_rhs(N[q],c) );
-        } else {
-          alwp = max( max(m_rhs(N[p],c), m_u(N[p],c)),
-                      max(m_rhs(N[q],c), m_u(N[q],c)) );
-          alwn = min( min(m_rhs(N[p],c), m_u(N[p],c)),
-                      min(m_rhs(N[q],c), m_u(N[q],c)) );
-        }
-        m_q(N[p],a) = max(m_q(N[p],a), alwp);
-        m_q(N[p],b) = min(m_q(N[p],b), alwn);
-        m_q(N[q],a) = max(m_q(N[q],a), alwp);
-        m_q(N[q],b) = min(m_q(N[q],b), alwn);
-      }
-    }
-  }
-
-  // triangle superedges
-  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
-    const auto N = m_dsupedge[1].data() + e*3;
-    for (std::size_t c=0; c<ncomp; ++c) {
-      auto a = c*2;
-      auto b = a+1;
-      for (const auto& [p,q] : tk::lpoet) {
-        tk::real alwp, alwn;
-        if (g_cfg.get< tag::fctclip >()) {
-          alwp = max( m_rhs(N[p],c), m_rhs(N[q],c) );
-          alwn = min( m_rhs(N[p],c), m_rhs(N[q],c) );
-        } else {
-          alwp = max( max(m_rhs(N[p],c), m_u(N[p],c)),
-                      max(m_rhs(N[q],c), m_u(N[q],c)) );
-          alwn = min( min(m_rhs(N[p],c), m_u(N[p],c)),
-                      min(m_rhs(N[q],c), m_u(N[q],c)) );
-        }
-        m_q(N[p],a) = max(m_q(N[p],a), alwp);
-        m_q(N[p],b) = min(m_q(N[p],b), alwn);
-        m_q(N[q],a) = max(m_q(N[q],a), alwp);
-        m_q(N[q],b) = min(m_q(N[q],b), alwn);
-      }
-    }
-  }
-
-  // edges
-  for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
-    const auto N = m_dsupedge[2].data() + e*2;
-    for (std::size_t c=0; c<ncomp; ++c) {
-      auto a = c*2;
-      auto b = a+1;
-      tk::real alwp, alwn;
-      if (g_cfg.get< tag::fctclip >()) {
-        alwp = max( m_rhs(N[0],c), m_rhs(N[1],c) );
-        alwn = min( m_rhs(N[0],c), m_rhs(N[1],c) );
-      } else {
-        alwp = max( max(m_rhs(N[0],c), m_u(N[0],c)),
-                    max(m_rhs(N[1],c), m_u(N[1],c)) );
-        alwn = min( min(m_rhs(N[0],c), m_u(N[0],c)),
-                    min(m_rhs(N[1],c), m_u(N[1],c)) );
-      }
-      m_q(N[0],a) = max(m_q(N[0],a), alwp);
-      m_q(N[0],b) = min(m_q(N[0],b), alwn);
-      m_q(N[1],a) = max(m_q(N[1],a), alwp);
-      m_q(N[1],b) = min(m_q(N[1],b), alwn);
-    }
-  }
-
-  // Communicate allowed limits contributions
-  if (d->NodeCommMap().empty()) {
-    comalw_complete();
-  } else {
-    for (const auto& [c,n] : d->NodeCommMap()) {
-      decltype(m_qc) exp;
-      for (auto g : n) exp[g] = m_q[ tk::cref_find(lid,g) ];
-      thisProxy[c].comalw( exp );
-    }
-  }
-  ownalw_complete();
-}
-
-void
-ChoCG::comalw( const std::unordered_map< std::size_t,
-                       std::vector< tk::real > >& inalw )
-// *****************************************************************************
-//  Receive allowed limits contributions on chare-boundaries
-//! \param[in] inalw Partial contributions of allowed limits contributions on
-//!   chare-boundary nodes. Key: global mesh node IDs, value: allowed limit
-//!   contributions.
-// *****************************************************************************
-{
-  for (const auto& [g,alw] : inalw) {
-    auto& q = m_qc[g];
-    q.resize( alw.size() );
-    for (std::size_t c=0; c<alw.size()/2; ++c) {
-      auto a = c*2;
-      auto b = a+1;
-      q[a] = std::max( q[a], alw[a] );
-      q[b] = std::min( q[b], alw[b] );
-    }
-  }
-
-  // When we have heard from all chares we communicate with, this chare is done
-  if (++m_nalw == Disc()->NodeCommMap().size()) {
-    m_nalw = 0;
-    comalw_complete();
-  }
-}
-
-void
-ChoCG::lim()
-// *****************************************************************************
-// Compute limit coefficients
-// *****************************************************************************
-{
-  auto d = Disc();
-  const auto npoin = m_u.nunk();
-  const auto ncomp = m_u.nprop();
-  const auto& lid = d->Lid();
-
-  using std::max;
-  using std::min;
-
-  // Combine own and communicated contributions to allowed limits
-  for (const auto& [g,alw] : m_qc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<alw.size()/2; ++c) {
-      auto a = c*2;
-      auto b = a+1;
-      m_q(i,a) = max( m_q(i,a), alw[a] );
-      m_q(i,b) = min( m_q(i,b), alw[b] );
-    }
-  }
-  tk::destroy(m_qc);
-
-  // Finish computing allowed limits
-  for (std::size_t i=0; i<npoin; ++i) {
-    for (std::size_t c=0; c<ncomp; ++c) {
-      auto a = c*2;
-      auto b = a+1;
-      m_q(i,a) -= m_rhs(i,c);
-      m_q(i,b) -= m_rhs(i,c);
-    }
-  }
-
-  // Limit coefficients, C
-
-  for (std::size_t i=0; i<npoin; ++i) {
-    for (std::size_t c=0; c<ncomp; ++c) {
-      auto a = c*2;
-      auto b = a+1;
-      auto eps = std::numeric_limits< tk::real >::epsilon();
-      m_q(i,a) = m_p(i,a) <  eps ? 0.0 : min(1.0, m_q(i,a)/m_p(i,a));
-      m_q(i,b) = m_p(i,b) > -eps ? 0.0 : min(1.0, m_q(i,b)/m_p(i,b));
-    }
-  }
-
-  // Limited antidiffusive contributions
-
-  auto ctau = g_cfg.get< tag::fctdif >();
-  m_a.fill( 0.0 );
-
-  auto fctsys = g_cfg.get< tag::fctsys >();
-  for (auto& c : fctsys) --c;
-
-  #if defined(__clang__)
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wvla"
-    #pragma clang diagnostic ignored "-Wvla-extension"
-  #elif defined(STRICT_GNUC)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wvla"
-  #endif
-
-  // tetrahedron superedges
-  for (std::size_t e=0; e<m_dsupedge[0].size()/4; ++e) {
-    const auto N = m_dsupedge[0].data() + e*4;
-    const auto D = m_dsupint[0].data();
-    auto C = m_dsuplim[0].data();
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoed) {
-      auto dif = D[(e*6+i)*5+3];
-      auto coef = C + (e*6+i)*ncomp;
-      tk::real aec[ncomp];
-      for (std::size_t c=0; c<ncomp; ++c) {
-        aec[c] = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
-        auto a = c*2;
-        auto b = a+1;
-        coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a) : m_q(N[p],b),
-                       aec[c] > 0.0 ? m_q(N[q],a) : m_q(N[q],b) );
-      }
-      tk::real cs = 1.0;
-      for (auto c : fctsys) cs = min( cs, coef[c] );
-      for (auto c : fctsys) coef[c] = cs;
-      for (std::size_t c=0; c<ncomp; ++c) {
-        aec[c] *= coef[c];
-        m_a(N[p],c) -= aec[c];
-        m_a(N[q],c) += aec[c];
-      }
-      ++i;
-    }
-  }
-
-  // triangle superedges
-  for (std::size_t e=0; e<m_dsupedge[1].size()/3; ++e) {
-    const auto N = m_dsupedge[1].data() + e*3;
-    const auto D = m_dsupint[1].data();
-    auto C = m_dsuplim[0].data();
-    std::size_t i = 0;
-    for (const auto& [p,q] : tk::lpoet) {
-      auto dif = D[(e*3+i)*5+3];
-      auto coef = C + (e*3+i)*ncomp;
-      tk::real aec[ncomp];
-      for (std::size_t c=0; c<ncomp; ++c) {
-        aec[c] = -dif * ctau * (m_u(N[p],c) - m_u(N[q],c));
-        auto a = c*2;
-        auto b = a+1;
-        coef[c] = min( aec[c] < 0.0 ? m_q(N[p],a) : m_q(N[p],b),
-                       aec[c] > 0.0 ? m_q(N[q],a) : m_q(N[q],b) );
-      }
-      tk::real cs = 1.0;
-      for (auto c : fctsys) cs = min( cs, coef[c] );
-      for (auto c : fctsys) coef[c] = cs;
-      for (std::size_t c=0; c<ncomp; ++c) {
-        aec[c] *= coef[c];
-        m_a(N[p],c) -= aec[c];
-        m_a(N[q],c) += aec[c];
-      }
-      ++i;
-    }
-  }
-
-  // edges
-  for (std::size_t e=0; e<m_dsupedge[2].size()/2; ++e) {
-    const auto N = m_dsupedge[2].data() + e*2;
-    const auto dif = m_dsupint[2][e*5+3];
-    auto coef = m_dsuplim[2].data() + e*ncomp;
-    tk::real aec[ncomp];
-    for (std::size_t c=0; c<ncomp; ++c) {
-      aec[c] = -dif * ctau * (m_u(N[0],c) - m_u(N[1],c));
-      auto a = c*2;
-      auto b = a+1;
-      coef[c] = min( aec[c] < 0.0 ? m_q(N[0],a) : m_q(N[0],b),
-                     aec[c] > 0.0 ? m_q(N[1],a) : m_q(N[1],b) );
-    }
-    tk::real cs = 1.0;
-    for (auto c : fctsys) cs = min( cs, coef[c] );
-    for (auto c : fctsys) coef[c] = cs;
-    for (std::size_t c=0; c<ncomp; ++c) {
-      aec[c] *= coef[c];
-      m_a(N[0],c) -= aec[c];
-      m_a(N[1],c) += aec[c];
-    }
-  }
-
-  #if defined(__clang__)
-    #pragma clang diagnostic pop
-  #elif defined(STRICT_GNUC)
-    #pragma GCC diagnostic pop
-  #endif
-
-  // Communicate limited antidiffusive contributions
-  if (d->NodeCommMap().empty()){
-    comlim_complete();
-  } else {
-    for (const auto& [c,n] : d->NodeCommMap()) {
-      decltype(m_ac) exp;
-      for (auto g : n) exp[g] = m_a[ tk::cref_find(lid,g) ];
-      thisProxy[c].comlim( exp );
-    }
-  }
-  ownlim_complete();
-}
-
-void
-ChoCG::comlim( const std::unordered_map< std::size_t,
-                       std::vector< tk::real > >& inlim )
-// *****************************************************************************
-//  Receive limited antidiffusive contributions on chare-boundaries
-//! \param[in] inlim Partial contributions of limited contributions on
-//!   chare-boundary nodes. Key: global mesh node IDs, value: limited
-//!   contributions.
-// *****************************************************************************
-{
-  using tk::operator+=;
-  for (const auto& [g,a] : inlim) m_ac[g] += a;
-
-  // When we have heard from all chares we communicate with, this chare is done
-  if (++m_nlim == Disc()->NodeCommMap().size()) {
-    m_nlim = 0;
-    comlim_complete();
-  }
-}
-
-void
 ChoCG::BC( tk::Fields& u, tk::real t )
 // *****************************************************************************
 // Apply boundary conditions
@@ -1866,9 +1392,6 @@ ChoCG::dt()
 
   // Actiavate SDAG waits for next time step stage
   thisProxy[ thisIndex ].wait4rhs();
-  thisProxy[ thisIndex ].wait4aec();
-  thisProxy[ thisIndex ].wait4alw();
-  thisProxy[ thisIndex ].wait4sol();
   thisProxy[ thisIndex ].wait4div();
   thisProxy[ thisIndex ].wait4sgrad();
   thisProxy[ thisIndex ].wait4step();
@@ -1993,27 +1516,6 @@ ChoCG::comrhs(
 }
 
 void
-ChoCG::fct()
-// *****************************************************************************
-// Continue with flux-corrected transport if enabled
-// *****************************************************************************
-{
-  // Combine own and communicated contributions to rhs
-  const auto lid = Disc()->Lid();
-  for (const auto& [g,r] : m_rhsc) {
-    auto i = tk::cref_find( lid, g );
-    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c) += r[c];
-  }
-  tk::destroy(m_rhsc);
-
-  auto eps = std::numeric_limits< tk::real >::epsilon();
-  if (g_cfg.get< tag::theta >() < eps and g_cfg.get< tag::fct >())
-    aec();
-  else
-    solve();
-}
-
-void
 // cppcheck-suppress unusedFunction
 ChoCG::solve()
 // *****************************************************************************
@@ -2025,31 +1527,16 @@ ChoCG::solve()
   const auto ncomp = m_u.nprop();
   const auto& vol = d->Vol();
 
-  // Combine own and communicated contributions to limited antidiffusive
-  // contributions
-  for (const auto& [g,a] : m_ac) {
-    auto i = tk::cref_find( d->Lid(), g );
-    for (std::size_t c=0; c<a.size(); ++c) m_a(i,c) += a[c];
-  }
-  tk::destroy(m_ac);
-
   if (m_stage == 0) m_un = m_u;
 
   auto eps = std::numeric_limits<tk::real>::epsilon();
   if (g_cfg.get< tag::theta >() < eps || m_stage+1 < m_rkcoef.size()) {
 
     // Apply rhs in explicit solve
-    if (g_cfg.get< tag::fct >()) {
-      for (std::size_t i=0; i<npoin; ++i)
-        for (std::size_t c=0; c<ncomp; ++c)
-          m_a(i,c) = m_rhs(i,c) + m_a(i,c)/vol[i];
-    }
-    else {
-      auto dt = m_rkcoef[m_stage] * d->Dt();
-      for (std::size_t i=0; i<npoin; ++i)
-        for (std::size_t c=0; c<ncomp; ++c)
-          m_a(i,c) = m_un(i,c) - dt*m_rhs(i,c)/vol[i];
-    }
+    auto dt = m_rkcoef[m_stage] * d->Dt();
+    for (std::size_t i=0; i<npoin; ++i)
+      for (std::size_t c=0; c<ncomp; ++c)
+        m_u(i,c) = m_un(i,c) - dt*m_rhs(i,c)/vol[i];
 
     // Continue to advective-diffusive prediction
     pred();
@@ -2119,7 +1606,7 @@ ChoCG::msolved()
   auto& du = m_cgmom[ thisIndex ].ckLocal()->solution();
   for (std::size_t i=0; i<npoin; ++i) {
     for (std::size_t c=0; c<ncomp; ++c) {
-      m_a(i,c) = m_un(i,c) + du[i*ncomp+c];
+      m_u(i,c) = m_un(i,c) + du[i*ncomp+c];
     }
   }
 
@@ -2137,14 +1624,10 @@ ChoCG::pred()
 
   // Configure and apply scalar source to solution (if defined)
   auto src = problems::PHYS_SRC();
-  if (src) src( d->Coord(), d->T(), m_a );
+  if (src) src( d->Coord(), d->T(), m_u );
 
   // Enforce boundary conditions
-  BC( m_a, d->T() + m_rkcoef[m_stage] * d->Dt() );
-
-  // Update momentum/transport solution
-  m_u = m_a;
-  m_a.fill( 0.0 );
+  BC( m_u, d->T() + m_rkcoef[m_stage] * d->Dt() );
 
   // Compute velocity gradients if needed
   if (g_cfg.get< tag::flux >() == "damp4") {
@@ -2168,9 +1651,6 @@ ChoCG::corr()
 
     // Activate SDAG wait for next time step stage
     thisProxy[ thisIndex ].wait4rhs();
-    thisProxy[ thisIndex ].wait4aec();
-    thisProxy[ thisIndex ].wait4alw();
-    thisProxy[ thisIndex ].wait4sol();
     // Continue to next time stage of momentum/transport prediction
     rhs();
 

@@ -819,9 +819,9 @@ adv_damp4( const tk::real supint[],
   const auto& z = coord[2];
 
   // edge vector
-  auto dx = x[p] - x[q];
-  auto dy = y[p] - y[q];
-  auto dz = z[p] - z[q];
+  auto dx = x[q] - x[p];
+  auto dy = y[q] - y[p];
+  auto dz = z[q] - z[p];
 
   #if defined(__clang__)
     #pragma clang diagnostic push

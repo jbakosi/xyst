@@ -894,9 +894,9 @@ adv_damp4( const tk::real supint[],
   // flow
   auto pf = U(p,0) + U(q,0);
   f[0] = (vnL + vnR + aw*(U(q,0) - U(p,0)))*s2;
-  f[1] = uL[0]*vnL + uR[0]*vnR + pf*nx + (aw-v)*(uR[0] - uL[0]);
-  f[2] = uL[1]*vnL + uR[1]*vnR + pf*ny + (aw-v)*(uR[1] - uL[1]);
-  f[3] = uL[2]*vnL + uR[2]*vnR + pf*nz + (aw-v)*(uR[2] - uL[2]);
+  f[1] = uL[0]*vnL + uR[0]*vnR + pf*nx + (aw-v)*(uR[0]-uL[0]);
+  f[2] = uL[1]*vnL + uR[1]*vnR + pf*ny + (aw-v)*(uR[1]-uL[1]);
+  f[3] = uL[2]*vnL + uR[2]*vnR + pf*nz + (aw-v)*(uR[2]-uL[2]);
 
   // diffusion
   auto d = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();

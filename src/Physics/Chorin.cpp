@@ -818,7 +818,7 @@ adv_damp4( const tk::real supint[],
 
   // scalar
   for (std::size_t c=3; c<ncomp; ++c) {
-    f[c] = uL[c]*vnL + uR[c]*vnR + (aw-d)*(uR[c] - uL[c]);
+    f[c] = uL[c]*vnL + uR[c]*vnR + (aw-d)*(uR[c]-uL[c]);
   }
 
   #if defined(__clang__)

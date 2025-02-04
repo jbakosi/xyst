@@ -1526,6 +1526,14 @@ ChoCG::solve()
   const auto npoin = m_u.nunk();
   const auto ncomp = m_u.nprop();
   const auto& vol = d->Vol();
+  const auto& lid = d->Lid();
+
+  // Combine own and communicated contributions to rhs
+  for (const auto& [g,r] : m_rhsc) {
+    auto i = tk::cref_find( lid, g );
+    for (std::size_t c=0; c<r.size(); ++c) m_rhs(i,c) += r[c];
+  }
+  tk::destroy(m_rhsc);
 
   if (m_stage == 0) m_un = m_u;
 

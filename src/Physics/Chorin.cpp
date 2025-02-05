@@ -704,7 +704,7 @@ adv_damp2( const tk::real supint[],
 
   // scalar
   for (std::size_t c=3; c<ncomp; ++c) {
-    f[c] = U(p,c)*vnL + U(q,c)*vnR + (aw-d)*(U(q,c) - U(p,c));
+    f[c] = U(p,c)*vnL + U(q,c)*vnR + (aw-d)*(U(q,c)-U(p,c));
   }
 }
 
@@ -806,9 +806,9 @@ adv_damp4( const tk::real supint[],
 
   // flow
   auto pf = P[p] + P[q];
-  f[0] = uL[0]*vnL + uR[0]*vnR + pf*nx + (aw-v)*(uR[0]-uL[0]);
-  f[1] = uL[1]*vnL + uR[1]*vnR + pf*ny + (aw-v)*(uR[1]-uL[1]);
-  f[2] = uL[2]*vnL + uR[2]*vnR + pf*nz + (aw-v)*(uR[2]-uL[2]);
+  f[0] = uL[0]*vnL + uR[0]*vnR + pf*nx + aw*(uR[0]-uL[0]) - v*(U(q,0)-U(p,0));
+  f[1] = uL[1]*vnL + uR[1]*vnR + pf*ny + aw*(uR[1]-uL[1]) - v*(U(q,1)-U(p,1));
+  f[2] = uL[2]*vnL + uR[2]*vnR + pf*nz + aw*(uR[2]-uL[2]) - v*(U(q,2)-U(p,2));
 
   // scalar
   if (ncomp == 3) return;
@@ -818,7 +818,7 @@ adv_damp4( const tk::real supint[],
 
   // scalar
   for (std::size_t c=3; c<ncomp; ++c) {
-    f[c] = uL[c]*vnL + uR[c]*vnR + (aw-d)*(uR[c]-uL[c]);
+    f[c] = uL[c]*vnL + uR[c]*vnR + aw*(uR[c]-uL[c]) - d*(U(q,c)-U(p,c));
   }
 
   #if defined(__clang__)

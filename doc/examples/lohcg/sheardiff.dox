@@ -1,19 +1,19 @@
 /*!
-  \page      chocg_example_sheardiff ChoCG: Dispersion from a point source in shear flow
+  \page      lohcg_example_sheardiff LohCG: Dispersion from a point source in shear flow
 
-This example uses @ref inciter_chocg in @ref inciter_main to compute a problem
+This example uses @ref inciter_lohcg in @ref inciter_main to compute a problem
 featuring advection, shear, and diffusion of a passive scalar. Since the
 analytic solution is known as a function of time, numerical errors can be
 estimated. This enables quantifying the accuracy of the numerical method as
 well as verifying the correctness of the implementation.
 
-@section chocg_example_sheardiff_equations Equations solved
+@section lohcg_example_sheardiff_equations Equations solved
 
 In this example we numerically solve the linear advection equation of a passive
 scalar, denoted by \f$c\f$, representing the normalized concentration of a
 pollutant released from a concentrated source, coupled to the Navier-Stokes
 equations governing viscous Newtonian constant-density flow, see also @ref
-inciter_chocg, as
+inciter_lohcg, as
 
 \f[ \begin{split}
 \frac{\partial\mbox{\boldmath$v$}}{\partial t} +
@@ -21,11 +21,14 @@ inciter_chocg, as
 \nabla\mu\nabla\mbox{\boldmath$v$} \\
 \frac{\partial\mbox{c}}{\partial t} + \mbox{\boldmath$v$}\cdot\nabla\mbox{c} &
 = D \nabla^2 c \\
-\nabla\cdot\mbox{\boldmath$v$} & = 0
+\frac{1}{c^2}\frac{\partial p}{\partial t} + \nabla\cdot\mbox{\boldmath$v$} &=S
 \end{split} \f]
 where \f$\mbox{\boldmath$v$}\f$ is the velocity vector, \f$p\f$ is the
 pressure, and both the pressure and the viscosity \f$\mu\f$ have been
 normalized by the (constant) density. Here \f$D\f$ is the scalar diffusivity.
+Furthermore, \f$S\f$, is a source term that arises from the prescribing a known
+velocity field, used for verification only, specified below. This source term is
+zero when computing practical engineering problems.
 
 @note While here we are only interested in the solution of the scalar field and
 that could also be done by prescribing an external velocity field and solving
@@ -33,7 +36,7 @@ only for \f$c\f$, we still solve the above coupled system. This way we test the
 solver as it is intended to be used in practice: solving the same system of
 equations with its software implementation.
 
-@section chocg_example_sheardiff_setup Problem setup
+@section lohcg_example_sheardiff_setup Problem setup
 
 This problem and its analytical solution was presented by Carter and Obuko [1]
 with further related discussion in [2]. For the simple steady two dimensional
@@ -68,6 +71,13 @@ unity. The problem is solved on a 3D rectangular domain with a few cells in the
 \f$x_0=y_0=0\f$, \f$t_0=2400\f$, \f$u_0=0.5\f$, \f$\lambda=1.0\times10^4\f$, and
 \f$D=50.0\f$.
 
+While we are only interested in the evolution of the scalar, we prescribe the
+source term that yields a stationary flow with a prescribed translational and
+sheared velocity field \f$v_x = u_0 + \lambda y\f$ as
+\f[
+S = -\lambda
+\f]
+
 The initial conditions are sampled from the analytic solutions above. We set
 inhomogeneous Dirichlet boundary conditions for all variables on the sides of
 the domain with normals in the \f$x\f$ or \f$y\f$ directions, sampling their
@@ -83,11 +93,11 @@ npoin=3K.
 
 @note Contact us using the link at the bottom of the page for the mesh files.
 
-@section chocg_example_sheardiff_sha Code revision to reproduce
+@section lohcg_example_sheardiff_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [917090c](https://codeberg.org/xyst/xyst/commit/917090c26bfb747cd631c3ef77edb898ba6c5a60) and the control file below.
+To reproduce the results below, use code revision [8c88d03](https://codeberg.org/xyst/xyst/commit/8c88d0313ec25bd45fcb0b4faec55a3bd0ac2801) and the control file below.
 
-@section chocg_example_sheardiff_control Control file
+@section lohcg_example_sheardiff_control Control file
 
 @code{.lua}
 -- vim: filetype=lua:
@@ -99,13 +109,14 @@ print "2D shear-diffusion"
 
 t0 = 2400.0
 term = 9600.0
-ttyi = 1
+ttyi = 100
 
-cfl = 0.4
+cfl = 0.3
 
-solver = "chocg"
+solver = "lohcg"
 flux = "damp4"
 rk = 4
+soundspeed = 10.0
 
 part = "rcb"
 
@@ -127,8 +138,8 @@ pressure = {
 }
 
 bc_dir = {
-  { 1, 1, 1, 1, 1 },
-  { 2, 1, 1, 1, 0 }
+  { 1, 0, 1, 1, 1, 1 },
+  { 2, 0, 1, 1, 1, 0 }
 }
 
 fieldout = {
@@ -142,13 +153,13 @@ diag = {
 }
 @endcode
 
-@section chocg_example_sheardiff_run Run using on 32 CPUs
+@section lohcg_example_sheardiff_run Run using on 32 CPUs
 
 @code{.bash}
-./charmrun +p32 Main/inciter -i shear_124K.exo -c sheardiff_chocg.q
+./charmrun +p32 Main/inciter -i shear_124K.exo -c sheardiff_lohcg.q
 @endcode
 
-@section chocg_example_sheardiff_fieldvis Visualization
+@section lohcg_example_sheardiff_fieldvis Visualization
 
 [ParaView](https://www.paraview.org) can be used for interactive visualization
 of the numerically computed fields as
@@ -163,7 +174,7 @@ The scalar field is displayed at the initial and final times below.
 <img src="images/sheardiff_t1.png"/>
 @m_enddiv
 
-@section chocg_example_sheardiff_errors Numerical solutions and errors
+@section lohcg_example_sheardiff_errors Numerical solutions and errors
 
 To estimate the order of convergence, the numerical solution was computed using
 two different meshes, whose properties of are tabulated below.
@@ -190,11 +201,11 @@ p = \frac{ \log \left| \left| \varepsilon \right| \right|^{m+1} - \log \left|
 where \f$m\f$ is a mesh index.
        Mesh     | h         | L1(err)      | L2(err)
        :------: | --------: | -----------: | -----------:
-             1  |    640.99 |  6.448e-04   |  3.674e-03
-             2  |    218.97 |  5.734e-05   |  3.289e-04
-             p  |           |  **2.253**   |  **2.247**
+             1  |    640.99 |  6.486e-04   |  3.697e-03
+             2  |    218.97 |  5.825e-05   |  3.357e-04
+             p  |           |  **2.244**   |  **2.234**
 
-@section chocg_example_sheardiff_references References
+@section lohcg_example_sheardiff_references References
 
 1. H. Carter, A. Okubo, A study of the physical processes of movement and dispersion in the Cape Kennedy area, Chesapeake Bay Inst. Ref. 65-2, Johns Hopkins Univ., 1965.
 

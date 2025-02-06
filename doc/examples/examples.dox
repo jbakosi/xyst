@@ -70,6 +70,7 @@ The pages below discuss example calculations using the @ref inciter_lohcg solver
 
   - \subpage lohcg_example_sphere_quarter
   - \subpage lohcg_example_poiseuille
+  - \subpage lohcg_example_sheardiff
   - \subpage lohcg_example_lid
   - \subpage lohcg_example_sphere
 

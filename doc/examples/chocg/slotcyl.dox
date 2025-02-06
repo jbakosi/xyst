@@ -46,7 +46,7 @@ figure below.
 @m_enddiv
 
 While this is a 2D test problem, we calculate it on a 3D domain with the
-extents \f$\{0,1,0\} \times \{0,1,0.05\}\f$, Since we are only interested in
+extents \f$\{0,1,0\} \times \{0,1,0.05\}\f$. Since we are only interested in
 the evolution of the scalar, we prescribe the source term that yields a
 stationary flow with a prescribed rotational velocity field
 \f$\mbox{\boldmath$v$} = \{ 1/2 - y, x - 1/2, 0 \}\f$ as

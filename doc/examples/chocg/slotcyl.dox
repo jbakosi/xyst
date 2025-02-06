@@ -14,7 +14,7 @@ and discontinuous profiles.
 In this example we numerically solve the linear advection equation of a passive
 scalar, denoted by \f$c\f$, (e.g., a normalized concentration of a pollutant),
 coupled to the Navier-Stokes equations governing viscous Newtonian
-constant-density flow, see also @ref inciter_chocg. as
+constant-density flow, see also @ref inciter_chocg, as
 
 \f[ \begin{split}
 \frac{\partial\mbox{\boldmath$v$}}{\partial t} +
@@ -79,10 +79,19 @@ c(x,y)=0.2\left[1+\cos{\left(\pi\min\left(r(x,y),1\right)\right)}\right],\quad(x
 \end{split} \f]
 
 The initial conditions are sampled from the analytic solutions above. We set
-inhomogeneous Dirichlet boundary conditions for the flow variables on all sides
-of the domain, sampling their analytic solutions. For the scalar, homogeneous
-Dirichlet conditions are set on those sides with normals in the x and y
-directions.
+inhomogeneous Dirichlet boundary conditions for all variables on the sides of
+the domain with normals in the \f$x\f$ or \f$y\f$ directions, sampling their
+analytic solutions. On the sides with normals in the \f$z\f$ direction, the
+flow variables are sampled from their analytic solutions, while for the scalar,
+homogeneous Neumann conditions are enforced.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/slot_cyl_mesh.png"/>
+Surface mesh for computing the slotted cylinder test problem, nelem=1.9M,
+npoin=349K.
+@m_enddiv
+
+@note Contact us using the link at the bottom of the page for the mesh file.
 
 @section chocg_example_slotcyl_sha Code revision to reproduce
 
@@ -141,8 +150,6 @@ diag = {
 @code{.bash}
 ./charmrun +p32 Main/inciter -i unitsquare_01_1.9M.exo -c slot_cyl.q
 @endcode
-
-@note For the mesh, contact us using the link at the bottom of the page.
 
 @section chocg_example_slotcyl_fieldvis Visualization
 

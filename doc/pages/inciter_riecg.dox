@@ -147,20 +147,19 @@ with
   r^v &= \delta_2/\delta_1 \\
   r^w &= \delta_2/\delta_3
 \end{split} \f]
-This scheme corresponds to a piecewise linear reconstruction for
-\f$k=-1\f$ and a piecewise parabolic reconstruction for
-\f$k=1/3\f$. The function \f$\phi\f$
+This scheme corresponds to a piecewise linear reconstruction for \f$k=-1\f$ and
+a piecewise parabolic reconstruction for \f$k=1/3\f$. The function \f$\phi\f$
 can be any total variation diminishing limiter function, e.g., that of van
 Leer. The gradients of the primitive variables are computed in all mesh points
 based on the edge-based formulation as
 \f[
-V^v\left(\frac{\partial \phi}{\partial x_j}\right)^v = \sum_{vw \in v}
-D_j^{vw}\left(\phi^w+\phi^v\right) + \sum_{vw \in v}
-B_j^{vw}\left(\phi^w+\phi^v\right) + B_j^v\phi^v
+V^v\left(\frac{\partial u}{\partial x_j}\right)^v = \sum_{vw \in v}
+D_j^{vw}\left(u^w+u^v\right) + \sum_{vw \in v}
+B_j^{vw}\left(u^w+u^v\right) + B_j^vu^v
 \f]
-where \f$\phi\f$ are scalar components of the primitive
-variables \f$\rho,u_i,e\f$. The above summations are over
-all edges \f$vw \in \Omega_h\f$ that contribute to point v.
+where \f$u\f$ are scalar components of the primitive variables
+\f$\rho,u_i,e\f$. The above summations are over all edges \f$vw \in \Omega_h\f$
+that contribute to point \f$v\f$.
 
 @section riecg_time Time integration
 

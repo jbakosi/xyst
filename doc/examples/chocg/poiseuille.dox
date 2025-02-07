@@ -157,7 +157,7 @@ time stepping.
              3  |      0.08 |  0.00174476  |  0.00190673
              p  |           |  **2.3739**  |  **2.4089**
 
-Errors (sampled along the centerline in the cross-stream direction)and
+Errors (sampled along the centerline in the cross-stream direction) and
 convergence rates using fourth-order damping for advection and four-stage
 Runge-Kutta time stepping.
        Mesh     | h         | L1(err)      | L2(err)

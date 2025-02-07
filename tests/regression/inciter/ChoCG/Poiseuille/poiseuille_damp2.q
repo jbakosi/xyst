@@ -11,8 +11,6 @@ cfl = 0.05
 solver = "chocg"
 flux = "damp2"
 
-fct = false
-
 mat = { dyn_viscosity = 0.01 }
 
 pressure = {

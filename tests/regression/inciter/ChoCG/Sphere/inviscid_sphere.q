@@ -10,10 +10,8 @@ cfl = 0.5
 
 solver = "chocg"
 flux = "damp2"
-stab = false
 
 part = "phg"
-fct = false
 
 pressure = {
   iter = 300,

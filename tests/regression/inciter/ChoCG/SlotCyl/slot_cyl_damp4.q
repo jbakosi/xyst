@@ -11,8 +11,6 @@ solver = "chocg"
 flux = "damp4"
 rk = 4
 
-fct = true
-
 part = "rcb"
 
 problem = {

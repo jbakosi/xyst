@@ -1660,7 +1660,7 @@ ChoCG::corr()
     // Activate SDAG wait for next time step stage
     thisProxy[ thisIndex ].wait4rhs();
     // Continue to next time stage of momentum/transport prediction
-    rhs();
+    contribute( CkCallback(CkReductionTarget(ChoCG,rhs), thisProxy) );
 
   } else {
 

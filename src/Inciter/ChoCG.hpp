@@ -103,6 +103,9 @@ class ChoCG : public CBase_ChoCG {
     //! Advance equations to next time step
     void advance( tk::real newdt );
 
+    //! Compute righ-hand side vector of transport equations
+    void rhs();
+
     //! Evaluate diagnostics
     void diag();
 
@@ -422,9 +425,6 @@ class ChoCG : public CBase_ChoCG {
 
     //! Fill lhs matrix of transport equations
     void lhs();
-
-    //! Compute righ-hand side vector of transport equations
-    void rhs();
 
     //! Advance systems of equations
     void solve();

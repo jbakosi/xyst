@@ -33,6 +33,7 @@ module chocg {
       entry void start();
       entry void evalres( const std::vector< tk::real >& l2ref );
       entry [reductiontarget] void advance( tk::real newdt );
+      entry [reductiontarget] void rhs();
       entry void comnorm( const std::unordered_map< int,
         std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& inbnd );
       entry void comvgrad( const std::unordered_map< std::size_t,

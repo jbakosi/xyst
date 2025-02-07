@@ -7,14 +7,14 @@ print "Viscous full sphere"
 nstep = 20
 ttyi = 1
 
-cfl = 0.7
+cfl = 0.1
 
 solver = "lohcg"
-flux = "damp2"
+flux = "damp4"
 stab2 = true
-stab2coef = 0.01
+stab2coef = 0.05
 soundspeed = 10.0
-rk = 2
+rk = 4
 
 part = "phg"
 

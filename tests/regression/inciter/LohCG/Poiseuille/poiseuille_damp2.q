@@ -6,12 +6,10 @@ print "Poiseuille flow"
 
 nstep = 20
 ttyi = 1
-cfl = 0.7
+cfl = 0.5
 
 solver = "lohcg"
 flux = "damp2"
-stab2 = true
-stab2coef = 0.01
 soundspeed = 10.0
 rk = 3
 

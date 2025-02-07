@@ -1809,9 +1809,9 @@ LohCG::integrals()
           fy -= n[1]*m_u(p,0);
           fz -= n[2]*m_u(p,0);
           // viscous force
-          fx += mu * (m_grad(p,0)*n[0] + m_grad(p,1)*n[1] + m_grad(p,2)*n[2]);
-          fy += mu * (m_grad(p,3)*n[0] + m_grad(p,4)*n[1] + m_grad(p,5)*n[2]);
-          fz += mu * (m_grad(p,6)*n[0] + m_grad(p,7)*n[1] + m_grad(p,8)*n[2]);
+          fx += mu * (m_grad(p,3)*n[0] + m_grad(p,4)*n[1] + m_grad(p,5)*n[2]);
+          fy += mu * (m_grad(p,6)*n[0] + m_grad(p,7)*n[1] + m_grad(p,8)*n[2]);
+          fz += mu * (m_grad(p,9)*n[0] + m_grad(p,10)*n[1] + m_grad(p,11)*n[2]);
           n += 3;
         }
       }

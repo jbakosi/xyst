@@ -13,8 +13,6 @@ rk = 3
 stab2 = true
 stab2coef = 0.1
 
-fct = true
-
 part = "rcb"
 
 problem = {

@@ -609,7 +609,7 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   Assert( G.nunk() == U.nunk(), "Size mismatch" );
   Assert( G.nprop() > 2, "Size mismatch" );
   Assert( G.nprop() % 3 == 0, "Size mismatch" );
-  Assert( G.nprop() == (U.nprop()-1)*3, "Size mismatch" );
+  Assert( G.nprop() == U.nprop()*3, "Size mismatch" );
 
   const auto ncomp = U.nprop();
 

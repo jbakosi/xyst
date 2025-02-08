@@ -26,6 +26,7 @@ used different meshes depending on the Reynolds number, listed below.
        :------: | --------: | -----------: | --------:
           32x32 |     2,178 |      6,144   | 0.036232
         128x128 |    33,282 |     98,304   | 0.015841
+        256x256 |   132,098 |    393,216   | 0.012821
 Here h is the average edge length. The mesh labeled '128x128' is depicted below.
 
 @m_div{m-col-m-12 m-center-m}
@@ -38,7 +39,7 @@ Surface mesh for computing the lid-driven cavity flow with \f$ \text{Re} = 1000
 
 @section chocg_example_lid_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [3255350](https://codeberg.org/xyst/xyst/commit/325535012bb9ce96d2adbb9a5089cec85eecd0b8) and the control file below.
+To reproduce the results below, use code revision [ece4f40](https://codeberg.org/xyst/xyst/commit/ece4f4038addc5d7336f26df8c82f28c1baea5f5) and the control file below.
 
 @section chocg_example_lid_control Control file
 
@@ -48,7 +49,8 @@ To reproduce the results below, use code revision [3255350](https://codeberg.org
 print "Lid-driven cavity"
 
 -- mesh: ldc90_32x32_tet.exo    Re=100
---       ldc90_128x128_tet.exo  Re=1000,5000
+--       ldc90_128x128_tet.exo  Re=1000
+--       ldc90_256x256_tet.exo  Re=5000
 
 term = 100.0
 ttyi = 10
@@ -56,9 +58,8 @@ ttyi = 10
 cfl = 0.7
 
 solver = "chocg"
-flux = "damp2"
-stab = false
-fct = false
+flux = "damp4"
+rk = 4
 
 part = "rcb"
 
@@ -72,7 +73,7 @@ momentum = {
 }
 
 pressure = {
-  iter = 500,
+  iter = 1000,
   tol = 1.0e-3,
   pc = "jacobi",
   hydrostat = 0

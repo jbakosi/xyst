@@ -12,8 +12,6 @@ solver = "chocg"
 flux = "damp2"
 theta = 0.5
 
-fct = false
-
 mat = { dyn_viscosity = 0.01 }
 
 momentum = {

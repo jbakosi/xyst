@@ -193,7 +193,7 @@ LohCG::ngradcomp() const
   if (g_cfg.get< tag::flux >() == "damp4" or
       std::find( begin(req), end(req), "force") != end(req))
   {
-    n += (m_u.nprop()-1) * 3;     // (u,v,w,c0,...) x 3
+    n += m_u.nprop() * 3;     // (p,u,v,w,c0,...) x 3
   }
 
   return n;
@@ -877,7 +877,7 @@ LohCG::div( const tk::Fields& u, std::size_t pos )
     physics::symbc( m_flux, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
   }
 
-  // Compute divergence
+  // Compute velocity divergence
   std::fill( begin(m_div), end(m_div), 0.0 );
   lohner::div( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, u, m_div, pos );
 
@@ -1198,7 +1198,7 @@ LohCG::psolved()
     }
     // Enforce boundary conditions
     auto t = d->T() + d->Dt();
-    physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
+    physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval);
     physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
     physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
   }
@@ -1289,9 +1289,11 @@ LohCG::dt()
   } else {
 
     auto cfl = g_cfg.get< tag::cfl >();
-    auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
     auto large = std::numeric_limits< tk::real >::max();
     auto c = g_cfg.get< tag::soundspeed >();
+    auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
+    auto dif = g_cfg.get< tag::mat_dyn_diffusivity >();
+    dif = std::max( mu, dif );
 
     for (std::size_t i=0; i<m_u.nunk(); ++i) {
       auto u = m_u(i,1);
@@ -1301,7 +1303,7 @@ LohCG::dt()
       auto L = std::cbrt( vol[i] );
       auto euler_dt = L / std::max( vel+c, 1.0e-8 );
       mindt = std::min( mindt, euler_dt );
-      auto visc_dt = mu > eps ? L * L / mu : large;
+      auto visc_dt = dif > eps ? L * L / dif : large;
       mindt = std::min( mindt, visc_dt );
     }
     mindt *= cfl;
@@ -1407,26 +1409,12 @@ LohCG::rhs()
   auto d = Disc();
   const auto& lid = d->Lid();
 
-  if (m_grad.nprop()) {
-    // Combine own and communicated contributions to gradients
-    for (const auto& [g,r] : m_gradc) {
-      auto i = tk::cref_find( lid, g );
-      for (std::size_t c=0; c<r.size(); ++c) m_grad(i,c) += r[c];
-    }
-    tk::destroy(m_gradc);
-
-    // Divide weak result by nodal volume
-    const auto& vol = d->Vol();
-    for (std::size_t p=0; p<m_grad.nunk(); ++p) {
-      for (std::size_t c=0; c<m_grad.nprop(); ++c) {
-        m_grad(p,c) /= vol[p];
-      }
-    }
-  }
+  // Combine own and communicated contributions to gradients
+  if (m_grad.nprop()) fingrad( m_grad, m_gradc );
 
   // Compute own portion of right-hand side for all equations
-  lohner::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, m_u, m_grad,
-               m_rhs );
+  lohner::rhs( m_dsupedge, m_dsupint, d->Coord(), m_triinpoel, d->V(), d->T(),
+               m_u, m_grad, m_rhs );
 
   // Communicate rhs to other chares on chare-boundary
   if (d->NodeCommMap().empty()) {
@@ -1672,12 +1660,14 @@ LohCG::writeFields( CkCallback cb )
       auto s = sol( x[i], y[i], z[i], d->T() );
       for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
     }
-    nodefieldnames.push_back( "velocity_analyticx" );
+    nodefieldnames.push_back( "pressure_analytic" );
     nodefields.push_back( an.extract(0) );
-    nodefieldnames.push_back( "velocity_analyticy" );
+    nodefieldnames.push_back( "velocity_analyticx" );
     nodefields.push_back( an.extract(1) );
-    nodefieldnames.push_back( "velocity_analyticz" );
+    nodefieldnames.push_back( "velocity_analyticy" );
     nodefields.push_back( an.extract(2) );
+    nodefieldnames.push_back( "velocity_analyticz" );
+    nodefields.push_back( an.extract(3) );
     for (std::size_t c=0; c<ncomp-4; ++c) {
       nodefieldnames.push_back( nodefieldnames[4+c] + "_analytic" );
       nodefields.push_back( an.extract(4+c) );
@@ -1819,9 +1809,9 @@ LohCG::integrals()
           fy -= n[1]*m_u(p,0);
           fz -= n[2]*m_u(p,0);
           // viscous force
-          fx += mu * (m_grad(p,0)*n[0] + m_grad(p,1)*n[1] + m_grad(p,2)*n[2]);
-          fy += mu * (m_grad(p,3)*n[0] + m_grad(p,4)*n[1] + m_grad(p,5)*n[2]);
-          fz += mu * (m_grad(p,6)*n[0] + m_grad(p,7)*n[1] + m_grad(p,8)*n[2]);
+          fx += mu * (m_grad(p,3)*n[0] + m_grad(p,4)*n[1] + m_grad(p,5)*n[2]);
+          fy += mu * (m_grad(p,6)*n[0] + m_grad(p,7)*n[1] + m_grad(p,8)*n[2]);
+          fz += mu * (m_grad(p,9)*n[0] + m_grad(p,10)*n[1] + m_grad(p,11)*n[2]);
           n += 3;
         }
       }

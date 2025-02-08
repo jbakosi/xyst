@@ -9,10 +9,9 @@ ttyi = 1
 cfl = 0.5
 
 solver = "chocg"
-flux = "tg"
+flux = "damp2"
 
 part = "phg"
-fct = false
 
 pressure = {
   iter = 300,

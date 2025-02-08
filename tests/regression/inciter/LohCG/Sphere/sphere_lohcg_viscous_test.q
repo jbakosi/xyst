@@ -10,11 +10,11 @@ ttyi = 1
 cfl = 0.1
 
 solver = "lohcg"
-flux = "damp2"
+flux = "damp4"
 stab2 = true
-stab2coef = 0.01
-soundspeed = 100.0
-rk = 2
+stab2coef = 0.05
+soundspeed = 10.0
+rk = 4
 
 part = "phg"
 

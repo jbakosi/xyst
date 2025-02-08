@@ -33,6 +33,7 @@ module chocg {
       entry void start();
       entry void evalres( const std::vector< tk::real >& l2ref );
       entry [reductiontarget] void advance( tk::real newdt );
+      entry [reductiontarget] void rhs();
       entry void comnorm( const std::unordered_map< int,
         std::unordered_map< std::size_t, std::array< tk::real, 4 > > >& inbnd );
       entry void comvgrad( const std::unordered_map< std::size_t,
@@ -47,12 +48,6 @@ module chocg {
                                  std::vector< tk::real > >& inrhs );
       entry void comdiv( const std::unordered_map< std::size_t,
                                  tk::real >& indiv );
-      entry void comaec( const std::unordered_map< std::size_t,
-                           std::vector< tk::real > >& inaec );
-      entry void comalw( const std::unordered_map< std::size_t,
-                           std::vector< tk::real > >& inalw );
-      entry void comlim( const std::unordered_map< std::size_t,
-                           std::vector< tk::real > >& inlim );
       entry void pinit();
       entry void psolve();
       entry void psolved();
@@ -87,16 +82,7 @@ module chocg {
         when ownpgrad_complete(), compgrad_complete() serial { finpgrad(); } }
 
       entry void wait4rhs() {
-        when ownrhs_complete(), comrhs_complete() serial { fct(); } }
-
-      entry void wait4aec() {
-        when ownaec_complete(), comaec_complete() serial { alw(); } }
-
-      entry void wait4alw() {
-        when ownalw_complete(), comalw_complete() serial { lim(); } }
-
-      entry void wait4sol() {
-        when ownlim_complete(), comlim_complete() serial { solve(); } }
+        when ownrhs_complete(), comrhs_complete() serial { solve(); } }
 
       entry void wait4step() {
         when feop_complete(), resize_complete() serial { out(); } }
@@ -115,12 +101,6 @@ module chocg {
       entry void comflux_complete();
       entry void ownrhs_complete();
       entry void comrhs_complete();
-      entry void ownaec_complete();
-      entry void comaec_complete();
-      entry void ownalw_complete();
-      entry void comalw_complete();
-      entry void ownlim_complete();
-      entry void comlim_complete();
       entry void feop_complete();
       entry void resize_complete();
     }

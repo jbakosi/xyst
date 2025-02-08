@@ -107,11 +107,6 @@ edge \f$ij\f$ with
   \lambda^i = \left| v^i_k \frac{D^{ij}_k}{\left|D^{ij}_k\right|} \right| + c
 \f]
 
-Instead of the above second-order damping term, another, less diffusive, option
-in LohCG is to stabilize the advection term via solution reconstruction and
-limited extrapolation, similar to that of implemented in \ref inciter_riecg,
-applied to the velocity components.
-
 @section lohcg_pressure Discretization of pressure transport
 
 The evolution equation governing the pressure is discretized in a similar
@@ -133,6 +128,46 @@ where the flux at mesh point \f$i\f$ is
 \f[
   F^i_k = v^i_k
 \f]
+
+@section lohcg_reconstruction Solution reconstruction
+
+Instead of the second-order damping term, discussed above, another, less
+diffusive, option in LohCG is to stabilize the advection terms via solution
+reconstruction and limited extrapolation, similar to that implemented in \ref
+inciter_riecg, but applied to the velocity and pressure.
+
+In LohCG the inputs to the flux functions above are approximated using a
+piecewise limited solution reconstruction of each of the flow variables
+\f$u=\{p,v_x,v_y,v_z\}\f$. The reconstruction is performed component-wise for
+each edge \f$ij\f$ as follows:
+\f[ \begin{split}
+  \hat{u}^i &= u^i + \frac{1}{4} \left[ (1-k) \phi(r^i) \delta_1 +
+    (1+k)\phi\left(\frac{1}{r^i}\right)\delta_2 \right]\\
+  \hat{u}^j &= u^j - \frac{1}{4} \left[ (1-k) \phi(r^j) \delta_3 +
+    (1+k)\phi\left(\frac{1}{r^j}\right)\delta_2 \right]
+ \end{split} \f]
+with
+\f[ \begin{split}
+  \delta_1 &= 2x_k^{ij} \frac{\partial u^i}{\partial x_k} - \delta_2 \\
+  \delta_2 &= u^j - u^i \\
+  \delta_3 &= 2x_k^{ij} \frac{\partial u^j}{\partial x_k} - \delta_2 \\
+  x_k^{ij} &= x_k^j - x_k^i \\
+  r^i &= \delta_2/\delta_1 \\
+  r^j &= \delta_2/\delta_3
+\end{split} \f]
+This scheme corresponds to a piecewise linear reconstruction for \f$k=-1\f$ and
+a piecewise parabolic reconstruction for \f$k=1/3\f$. The function \f$\phi\f$
+can be any total variation diminishing limiter function, e.g., that of van
+Leer. The gradients of the primitive variables are computed in all mesh points
+based on the edge-based formulation as
+\f[
+V^i\left(\frac{\partial u}{\partial x_k}\right)^i = \sum_{ij \in i}
+D_k^{ij}\left(u^j+u^i\right) + \sum_{ij \in i}
+B_k^{ij}\left(u^j+u^i\right) + B_k^iu^i
+\f]
+where \f$u\f$ are scalar components of the flow variables
+\f$\mbox{\boldmath$v$}\f$ and \f$p\f$. The above summations are over all edges
+\f$ij \in \Omega_h\f$ that contribute to point \f$i\f$.
 
 @section lohcg_start Startup procedure
 

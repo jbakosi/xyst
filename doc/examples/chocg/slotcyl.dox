@@ -1,0 +1,181 @@
+/*!
+  \page      chocg_example_slotcyl ChoCG: Slotted cylinder
+
+This example uses @ref inciter_chocg in @ref inciter_main to compute a
+solid-body rotation problem. Such tests are frequently used to evaluate and
+compare numerical schemes for convection-dominated problems.
+
+Here we evaluate the numerical method using Zalesak's slotted cylinder problem
+[1], augmented by Leveque [2] in order to examine the resolution of both smooth
+and discontinuous profiles.
+
+@section chocg_example_slotcyl_equations Equations solved
+
+In this example we numerically solve the linear advection equation of a passive
+scalar, denoted by \f$c\f$, (e.g., a normalized concentration of a pollutant),
+coupled to the Navier-Stokes equations governing viscous Newtonian
+constant-density flow, see also @ref inciter_chocg, as
+
+\f[ \begin{split}
+\frac{\partial\mbox{\boldmath$v$}}{\partial t} +
+\mbox{\boldmath$v$}\cdot\nabla\mbox{\boldmath$v$} + \nabla p & =
+\nabla\mu\nabla\mbox{\boldmath$v$} + S \\
+\frac{\partial\mbox{c}}{\partial t} + \mbox{\boldmath$v$}\cdot\nabla\mbox{c} &
+= 0 \\
+\nabla\cdot\mbox{\boldmath$v$} & = 0
+\end{split} \f]
+where \f$\mbox{\boldmath$v$}\f$ is the velocity vector, \f$p\f$ is the
+pressure, and both the pressure and the viscosity \f$\mu\f$ have been
+normalized by the (constant) density. Furthermore,
+\f$S\f$, is a source term that arise from the application
+of the method of manufactured solutions, used for verification only. This
+source term is zero when computing practical engineering problems.
+
+@note While here we are only interested in the solution of the scalar field and
+that could also be done by prescribing an external velocity field and solving
+only for \f$c\f$, we still solve the above coupled system. This way we test the
+solver as it is intended to be used in practice: solving the same system of
+equations with its software implementation.
+
+@section chocg_example_slotcyl_setup Problem setup
+
+The inital configuration for the scalar field, \f$c\f$, is depicted in the
+figure below.
+@m_div{m-col-m-10 m-center-m}
+<img src="images/slotcyl_ic.png"/>
+@m_enddiv
+
+While this is a 2D test problem, we calculate it on a 3D domain with the
+extents \f$\{0,1,0\} \times \{0,1,0.05\}\f$. Since we are only interested in
+the evolution of the scalar, we prescribe the source term that yields a
+stationary flow with a prescribed rotational velocity field
+\f$\mbox{\boldmath$v$} = \{ 1/2 - y, x - 1/2, 0 \}\f$ as
+\f[
+S = \left\{ -v_y, v_x, 0 \right\}
+\f]
+Each solid body lies within a radius \f$r_0 = 0.15\f$ centered at a point
+\f$\{x_0,y_0,0\}\f$.  In the rest of the domain the solution is initially zero.
+The shapes of the three bodies can be expressed in terms of the normalized
+distance function for the respective reference point \f$\{x_0,y_0,0\}\f$
+\f[
+r(x,y) = \frac{1}{r_0}\sqrt{(x-x_0)^2+(y-y_0)^2}.
+\f]
+The center of the slotted cylinder is located at \f$\{x_0,y_0,0\} =
+\{0.5,0.75,0\}\f$ and its geometry is given by
+\f[ \begin{split}
+c(x,y)=\left\{
+\begin{aligned}
+&0.6\enskip\mathrm{if}\enskip|x-x_0|\ge0.025\enskip\mathrm{or}\enskip y\ge0.85,\\&0\enskip\mathrm{otherwise.}
+\end{aligned}
+\right.
+\end{split} \f]
+The corresponding analytical expression for the conical body is
+\f[ \begin{split}
+c(x,y)=0.6[1-r(x,y)],\quad(x_0,y_0)=(0.5,0.25),
+\end{split} \f]
+while the shape and location of the hump reads
+\f[ \begin{split}
+c(x,y)=0.2\left[1+\cos{\left(\pi\min\left(r(x,y),1\right)\right)}\right],\quad(x_0,y_0)=(0.25,0.5).
+\end{split} \f]
+
+The initial conditions are sampled from the analytic solutions above. We set
+inhomogeneous Dirichlet boundary conditions for all variables on the sides of
+the domain with normals in the \f$x\f$ or \f$y\f$ directions, sampling their
+analytic solutions. On the sides with normals in the \f$z\f$ direction, the
+flow variables are sampled from their analytic solutions, while for the scalar,
+homogeneous Neumann conditions are enforced.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/slot_cyl_mesh.png"/>
+Surface mesh for computing the slotted cylinder test problem, nelem=1.9M,
+npoin=349K.
+@m_enddiv
+
+@note Contact us using the link at the bottom of the page for the mesh file.
+
+@section chocg_example_slotcyl_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [becc101](https://codeberg.org/xyst/xyst/commit/becc101c13dce5b0f5f9b4dcf7044b3d969da8b8) and the control file below.
+
+@section chocg_example_slotcyl_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Scalar transport: slotted cylinder, cone, hump"
+
+term = math.pi
+ttyi = 10
+cfl = 0.1
+
+solver = "chocg"
+flux = "damp4"
+rk = 4
+
+part = "rcb"
+
+problem = {
+  name = "slot_cyl"
+}
+
+pressure = {
+  iter = 1000,
+  tol = 1.0e-2,
+  pc = "jacobi",
+  hydrostat = 0
+}
+
+bc_dir = {
+  { 1, 1, 1, 1, 1 },
+  { 2, 1, 1, 1, 1 },
+  { 3, 1, 1, 1, 1 },
+  { 4, 1, 1, 1, 0 },
+  { 5, 1, 1, 1, 1 },
+  { 6, 1, 1, 1, 0 }
+}
+
+fieldout = {
+  iter = 500
+}
+
+diag = {
+  iter = 1,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section chocg_example_slotcyl_run Run using on 32 CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -i unitsquare_01_1.9M.exo -c slot_cyl.q
+@endcode
+
+@section chocg_example_slotcyl_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed fields as
+
+@code{.bash}
+paraview out.e-s.0.32.0
+@endcode
+
+@section chocg_example_slotcyl_results Results
+
+The scalar field after half revolution is depicted below with several line-outs
+at various locations so the solution can be compared to the analytic solution.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/slotcyl_chocg_x0.5.png"/>
+<img src="images/slotcyl_chocg_x0.75.png"/>
+<img src="images/slotcyl_chocg_y0.25.png"/>
+<img src="images/slotcyl_chocg_y0.75.png"/>
+@m_enddiv
+
+@section chocg_example_slotcyl_references References
+
+1. S.T. Zalesak, [Fully multidimensional flux-corrected transport algorithms for fluids](https://doi.org/10.1016/0021-9991(79)90051-2), J. Comput. Phys. 31,3, p.335-362, 1979.
+
+2. R.J. Leveque, [High-resolution conservative algorithms for advection in incompressible flow](https://doi.org/10.1137/0733033), SIAM J. on Numerical Analysis, 33, p.627-665  1996.
+
+*/

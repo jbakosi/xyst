@@ -416,7 +416,7 @@ flux( const tk::Fields& U,
 //! \return Momentum flux contribution for edge p-q
 // *****************************************************************************
 {
-  auto inv = U(p,i)*U(p,j) + U(q,i)*U(q,j);
+  auto inv = U(p,i+1)*U(p,j+1) + U(q,i+1)*U(q,j+1);
 
   auto eps = std::numeric_limits< tk::real >::epsilon();
   auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
@@ -445,7 +445,7 @@ flux( const tk::Fields& U,
 //! \return Momentum flux contribution for point p
 // *****************************************************************************
 {
-  auto inv = U(p,i)*U(p,j);
+  auto inv = U(p,i+1)*U(p,j+1);
 
   auto eps = std::numeric_limits< tk::real >::epsilon();
   auto mu = g_cfg.get< tag::mat_dyn_viscosity >();
@@ -609,7 +609,7 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   Assert( G.nunk() == U.nunk(), "Size mismatch" );
   Assert( G.nprop() > 2, "Size mismatch" );
   Assert( G.nprop() % 3 == 0, "Size mismatch" );
-  Assert( G.nprop() == (U.nprop()-1)*3, "Size mismatch" );
+  Assert( G.nprop() == U.nprop()*3, "Size mismatch" );
 
   const auto ncomp = U.nprop();
 
@@ -628,9 +628,9 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[0].size()/4; ++e) {
     const auto N = dsupedge[0].data() + e*4;
     const auto d = dsupint[0].data();
-    for (std::size_t c=1; c<ncomp; ++c) {
+    for (std::size_t c=0; c<ncomp; ++c) {
       tk::real u[] = { U(N[0],c), U(N[1],c), U(N[2],c), U(N[3],c) };
-      auto g = (c-1)*3;
+      auto g = c*3;
       for (std::size_t j=0; j<3; ++j) {
         tk::real f[] = {
           d[(e*6+0)*4+j] * (u[1] + u[0]),
@@ -651,9 +651,9 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[1].size()/3; ++e) {
     const auto N = dsupedge[1].data() + e*3;
     const auto d = dsupint[1].data();
-    for (std::size_t c=1; c<ncomp; ++c) {
+    for (std::size_t c=0; c<ncomp; ++c) {
       tk::real u[] = { U(N[0],c), U(N[1],c), U(N[2],c) };
-      auto g = (c-1)*3;
+      auto g = c*3;
       for (std::size_t j=0; j<3; ++j) {
         tk::real f[] = {
           d[(e*3+0)*4+j] * (u[1] + u[0]),
@@ -670,9 +670,9 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   for (std::size_t e=0; e<dsupedge[2].size()/2; ++e) {
     const auto N = dsupedge[2].data() + e*2;
     const auto d = dsupint[2].data() + e*4;
-    for (std::size_t c=1; c<ncomp; ++c) {
+    for (std::size_t c=0; c<ncomp; ++c) {
       tk::real u[] = { U(N[0],c), U(N[1],c) };
-      auto g = (c-1)*3;
+      auto g = c*3;
       for (std::size_t j=0; j<3; ++j) {
         tk::real f = d[j] * (u[1] + u[0]);
         G(N[0],g+j) -= f;
@@ -693,8 +693,8 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
     tk::crossdiv( x[N[1]]-x[N[0]], y[N[1]]-y[N[0]], z[N[1]]-z[N[0]],
                   x[N[2]]-x[N[0]], y[N[2]]-y[N[0]], z[N[2]]-z[N[0]], 6.0,
                   n[0], n[1], n[2] );
-    for (std::size_t c=1; c<ncomp; ++c) {
-      auto g = (c-1)*3;
+    for (std::size_t c=0; c<ncomp; ++c) {
+      auto g = c*3;
       auto uA = U(N[0],c);
       auto uB = U(N[1],c);
       auto uC = U(N[2],c);
@@ -759,39 +759,37 @@ adv_damp2( const tk::real supint[],
 
   auto s = g_cfg.get< tag::soundspeed >();
   auto s2 = s*s;
-  auto d = supint[3] * g_cfg.get< tag::mat_dyn_viscosity >();
 
-  // flow
-  auto pf = pL + pR;
-  f[0] = (vnL + vnR)*s2;
-  f[1] = uL*vnL + uR*vnR + pf*nx - d*(uR - uL);
-  f[2] = vL*vnL + vR*vnR + pf*ny - d*(vR - vL);
-  f[3] = wL*vnL + wR*vnR + pf*nz - d*(wR - wL);
+  // viscosity
+  auto v = supint[3] * g_cfg.get< tag::mat_dyn_viscosity >();
 
-  // diffusion
-  auto m = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
-
-  // scalar
-  for (std::size_t c=4; c<ncomp; ++c) {
-    f[c] = U(p,c)*vnL + U(q,c)*vnR - m*(U(q,c) - U(p,c));
+  // stabilization
+  tk::real aw = 0.0;
+  if (g_cfg.get< tag::stab >()) {
+    aw = std::abs( vnL + vnR ) / 2.0;
   }
 
   // artificial viscosity
-  const auto stab2 = g_cfg.get< tag::stab2 >();
-  if (!stab2) return;
+  if (g_cfg.get< tag::stab2 >()) {
+    auto len = tk::length( nx, ny, nz );
+    auto sl = std::abs(vnL) + s*len;
+    auto sr = std::abs(vnR) + s*len;
+    aw += g_cfg.get< tag::stab2coef >() * std::max(sl,sr);
+  }
 
-  auto len = tk::length( nx, ny, nz );
-  auto sl = std::abs(vnL) + s*len;
-  auto sr = std::abs(vnR) + s*len;
-  auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr) * len;
   // flow
-  f[0] += aw * (pR - pL)*s2;
-  f[1] += aw * (uR - uL);
-  f[2] += aw * (vR - vL);
-  f[3] += aw * (wR - wL);
+  auto pf = pL + pR;
+  f[0] = (vnL + vnR + aw*(pR - pL))*s2;
+  f[1] = uL*vnL + uR*vnR + pf*nx + (aw-v)*(uR - uL);
+  f[2] = vL*vnL + vR*vnR + pf*ny + (aw-v)*(vR - vL);
+  f[3] = wL*vnL + wR*vnR + pf*nz + (aw-v)*(wR - wL);
+
+  // diffusion
+  auto d = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
+
   // scalar
   for (std::size_t c=4; c<ncomp; ++c) {
-    f[c] += aw*(U(q,c) - U(p,c));
+    f[c] = U(p,c)*vnL + U(q,c)*vnR + (aw-d)*(U(q,c) - U(p,c));
   }
 }
 
@@ -821,9 +819,9 @@ adv_damp4( const tk::real supint[],
   const auto& z = coord[2];
 
   // edge vector
-  auto dx = x[p] - x[q];
-  auto dy = y[p] - y[q];
-  auto dz = z[p] - z[q];
+  auto dx = x[q] - x[p];
+  auto dy = y[q] - y[p];
+  auto dz = z[q] - z[p];
 
   #if defined(__clang__)
     #pragma clang diagnostic push
@@ -834,17 +832,16 @@ adv_damp4( const tk::real supint[],
     #pragma GCC diagnostic ignored "-Wvla"
   #endif
 
-  tk::real uL[ncomp-1], uR[ncomp-1];
-  for (std::size_t i=1; i<ncomp; ++i) {
-    uL[i-1] = U(p,i);
-    uR[i-1] = U(q,i);
+  tk::real uL[ncomp], uR[ncomp];
+  for (std::size_t i=0; i<ncomp; ++i) {
+    uL[i] = U(p,i);
+    uR[i] = U(q,i);
   }
 
   // MUSCL reconstruction in edge-end points
-  for (std::size_t c=0; c<ncomp-1; ++c) {
-    auto g = c*3;
-    auto g1 = G(p,g+0)*dx + G(p,g+1)*dy + G(p,g+2)*dz;
-    auto g2 = G(q,g+0)*dx + G(q,g+1)*dy + G(q,g+2)*dz;
+  for (std::size_t c=0; c<ncomp; ++c) {
+    auto g1 = G(p,c*3+0)*dx + G(p,c*3+1)*dy + G(p,c*3+2)*dz;
+    auto g2 = G(q,c*3+0)*dx + G(q,c*3+1)*dy + G(q,c*3+2)*dz;
     auto delta2 = uR[c] - uL[c];
     auto delta1 = 2.0 * g1 - delta2;
     auto delta3 = 2.0 * g2 - delta2;
@@ -870,44 +867,42 @@ adv_damp4( const tk::real supint[],
   auto nz = supint[2];
 
   // normal velocities
-  auto vnL = uL[0]*nx + uL[1]*ny + uL[2]*nz;
-  auto vnR = uR[0]*nx + uR[1]*ny + uR[2]*nz;
+  auto vnL = uL[1]*nx + uL[2]*ny + uL[3]*nz;
+  auto vnR = uR[1]*nx + uR[2]*ny + uR[3]*nz;
 
   auto s = g_cfg.get< tag::soundspeed >();
   auto s2 = s*s;
-  auto d = supint[3] * g_cfg.get< tag::mat_dyn_viscosity >();
 
-  // flow
-  auto pf = U(p,0) + U(q,0);
-  f[0] = (vnL + vnR)*s2;
-  f[1] = uL[0]*vnL + uR[0]*vnR + pf*nx - d*(uR[0] - uL[0]);
-  f[2] = uL[1]*vnL + uR[1]*vnR + pf*ny - d*(uR[1] - uL[1]);
-  f[3] = uL[2]*vnL + uR[2]*vnR + pf*nz - d*(uR[2] - uL[2]);
+  // viscosity
+  auto v = supint[3] * g_cfg.get< tag::mat_dyn_viscosity >();
 
-  // diffusion
-  auto m = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
-
-  // scalar
-  for (std::size_t c=4; c<ncomp; ++c) {
-    f[c] = uL[c-1]*vnL + uR[c-1]*vnR - m*(uR[c-1] - uL[c-1]);
+  // stabilization
+  tk::real aw = 0.0;
+  if (g_cfg.get< tag::stab >()) {
+    aw = std::abs( vnL + vnR ) / 2.0;
   }
 
   // artificial viscosity
-  const auto stab2 = g_cfg.get< tag::stab2 >();
-  if (!stab2) return;
+  if (g_cfg.get< tag::stab2 >()) {
+    auto len = tk::length( nx, ny, nz );
+    auto sl = std::abs(vnL) + s*len;
+    auto sr = std::abs(vnR) + s*len;
+    aw += g_cfg.get< tag::stab2coef >() * std::max(sl,sr);
+  }
 
-  auto len = tk::length( nx, ny, nz );
-  auto sl = std::abs(vnL) + s*len;
-  auto sr = std::abs(vnR) + s*len;
-  auto aw = g_cfg.get< tag::stab2coef >() * std::max(sl,sr) * len;
   // flow
-  f[0] += aw * (U(q,0) - U(p,0))*s2;
-  f[1] += aw * (uR[0] - uL[0]);
-  f[2] += aw * (uR[1] - uL[1]);
-  f[3] += aw * (uR[2] - uL[2]);
+  auto pf = uL[0] + uR[0];
+  f[0] = (vnL + vnR + aw*(uR[0]-uL[0]))*s2;
+  f[1] = uL[1]*vnL + uR[1]*vnR + pf*nx + aw*(uR[1]-uL[1]) - v*(U(q,1)-U(p,1));
+  f[2] = uL[2]*vnL + uR[2]*vnR + pf*ny + aw*(uR[2]-uL[2]) - v*(U(q,2)-U(p,2));
+  f[3] = uL[3]*vnL + uR[3]*vnR + pf*nz + aw*(uR[3]-uL[3]) - v*(U(q,3)-U(p,3));
+
+  // diffusion
+  auto d = supint[3] * g_cfg.get< tag::mat_dyn_diffusivity >();
+
   // scalar
   for (std::size_t c=4; c<ncomp; ++c) {
-    f[c] += aw*(uR[c-1] - uL[c-1]);
+    f[c] = uL[c]*vnL + uR[c]*vnR + aw*(uR[c]-uL[c]) - d*(U(q,c)-U(p,c));
   }
 
   #if defined(__clang__)
@@ -1074,11 +1069,39 @@ adv( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
   #endif
 }
 
+static void
+src( const std::array< std::vector< tk::real >, 3 >& coord,
+     const std::vector< tk::real >& v,
+     tk::real t,
+     tk::Fields& R )
+// *****************************************************************************
+//  Compute source integral
+//! \param[in] coord Mesh node coordinates
+//! \param[in] v Nodal mesh volumes without contributions from other chares
+//! \param[in] t Physical time
+//! \param[in,out] R Right-hand side vector computed
+// *****************************************************************************
+{
+  auto src = problems::SRC();
+  if (!src) return;
+
+  const auto& x = coord[0];
+  const auto& y = coord[1];
+  const auto& z = coord[2];
+
+  for (std::size_t p=0; p<R.nunk(); ++p) {
+    auto s = src( x[p], y[p], z[p], t );
+    for (std::size_t c=0; c<s.size(); ++c) R(p,c) -= s[c] * v[p];
+  }
+}
+
 void
 rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const std::vector< std::size_t >& triinpoel,
+     const std::vector< tk::real >& v,
+     tk::real t,
      const tk::Fields& U,
      const tk::Fields& G,
      tk::Fields& R )
@@ -1088,6 +1111,8 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 //! \param[in] dsupint Domain superedge integrals
 //! \param[in] coord Mesh node coordinates
 //! \param[in] triinpoel Boundary face connectivity
+//! \param[in] v Nodal mesh volumes without contributions from other chares
+//! \param[in] t Physical time
 //! \param[in] U Solution vector of primitive variables at recent time step
 //! \param[in] G Gradients of velocity and transported scalars
 //! \param[in,out] R Right-hand side vector computed
@@ -1101,6 +1126,7 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
 
   R.fill( 0.0 );
   adv( dsupedge, dsupint, coord, triinpoel, U, G, R );
+  src( coord, v, t, R );
 }
 
 } // lohner::

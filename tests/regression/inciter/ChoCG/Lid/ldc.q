@@ -18,8 +18,6 @@ solver = "chocg"
 flux = "damp4"
 --rk = 3
 
-fct = false
-
 part = "rcb"
 
 Re = 100.0

@@ -26,6 +26,7 @@ used different meshes depending on the Reynolds number, listed below.
        :------: | --------: | -----------: | --------:
           32x32 |     2,178 |      6,144   | 0.036232
         128x128 |    33,282 |     98,304   | 0.015841
+        256x256 |   132,098 |    393,216   | 0.012821
 Here h is the average edge length. The mesh labeled '128x128' is depicted below.
 
 @m_div{m-col-m-12 m-center-m}
@@ -38,7 +39,7 @@ Surface mesh for computing the lid-driven cavity flow with \f$ \text{Re} = 1000
 
 @section lohcg_example_lid_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [bf2cd97](https://codeberg.org/xyst/xyst/commit/bf2cd9722bf86b9c754407c87ea25cb1fee9b38b) and the control file below.
+To reproduce the results below, use code revision [ece4f40](https://codeberg.org/xyst/xyst/commit/ece4f4038addc5d7336f26df8c82f28c1baea5f5) and the control file below.
 
 @section lohcg_example_lid_control Control file
 
@@ -49,19 +50,17 @@ print "Lid-driven cavity"
 
 -- mesh: ldc90_32x32_tet.exo    Re=100
 --       ldc90_128x128_tet.exo  Re=1000
+--       ldc90_256x256_tet.exo  Re=5000
 
 term = 50.0
 ttyi = 1000
 
-cfl = 0.9
---theta = 0.5
+cfl = 0.2
 
 solver = "lohcg"
-flux = "damp2"
-stab2 = true
-stab2coef = 0.2
-soundspeed = 200.0
-rk = 2
+flux = "damp4"
+soundspeed = 10.0
+rk = 3
 
 part = "rcb"
 
@@ -106,8 +105,24 @@ diag = {
 @section lohcg_example_lid_run Run on 32 CPUs
 
 @code{.bash}
-./charmrun +p32 Main/inciter -i ldc90_128x128_tet.exo -c ../../tmp/problems/ldc/ldch_lohcg.q -l 100000 -r 100000
+./charmrun +p32 Main/inciter -i ldc90_128x128_tet.exo -c ldch_lohcg.q -l 100000 -r 100000
 @endcode
+
+@section lohcg_example_lid_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.32.0
+@endcode
+
+The converged velocity field distribution at \f$ \text{Re} = 1000\f$ on the
+domain surface surface is depicted below.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/ldc_lohcg_velocity_Re=1000.png"/>
+@m_enddiv
 
 @section lohcg_example_lid_sol Numerical solution
 

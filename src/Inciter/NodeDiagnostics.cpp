@@ -330,7 +330,7 @@ NodeDiagnostics::accompute( Discretization& d,
     diag[TOTALEN][0] += 0.0 * v[i];
     // Compute sum for norms of the numerical-analytic adv/diff solution
     if (sol) {
-      for (std::size_t c=0; c<ncomp; ++c) {
+      for (std::size_t c=1; c<ncomp; ++c) {
         auto du = u(i,c) - an(i,c);
         diag[L2ERR][c] += du * du * v[i];
         diag[L1ERR][c] += std::abs( du ) * v[i];

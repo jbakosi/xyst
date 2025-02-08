@@ -926,7 +926,12 @@ problem( lua_State* L, Config& cfg )
 
   auto& n = cfg.get< tag::problem_ncomp >();
   n = 5;
-  if (problem == "slot_cyl" || problem == "point_src") ++n;
+  if ( problem == "slot_cyl" or
+       problem == "point_src" or
+       problem == "sheardiff" )
+  {
+     ++n;
+  }
 
        if (solver == "chocg") n -= 2;
   else if (solver == "lohcg") n -= 1;
@@ -1068,6 +1073,7 @@ Config::control()
     get< tag::part >() = string( L, "part", "rcb", true );
     get< tag::zoltan_params >() = stringlist( L, "zoltan_params", true );
     get< tag::solver >() = string( L, "solver", "riecg", true );
+    get< tag::stab >() = boolean( L, "stab", true, true );
     get< tag::stab2 >() = boolean( L, "stab2", false, true );
     get< tag::stab2coef >() = real( L, "stab2coef", 0.2, true );
     get< tag::fct >() = boolean( L, "fct", true, true );

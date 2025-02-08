@@ -1,0 +1,203 @@
+/*!
+  \page      chocg_example_sheardiff ChoCG: Dispersion from a point source in shear flow
+
+This example uses @ref inciter_chocg in @ref inciter_main to compute a problem
+featuring advection, shear, and diffusion of a passive scalar. Since the
+analytic solution is known as a function of time, numerical errors can be
+estimated. This enables quantifying the accuracy of the numerical method as
+well as verifying the correctness of the implementation.
+
+@section chocg_example_sheardiff_equations Equations solved
+
+In this example we numerically solve the linear advection equation of a passive
+scalar, denoted by \f$c\f$, representing the normalized concentration of a
+pollutant released from a concentrated source, coupled to the Navier-Stokes
+equations governing viscous Newtonian constant-density flow, see also @ref
+inciter_chocg, as
+
+\f[ \begin{split}
+\frac{\partial\mbox{\boldmath$v$}}{\partial t} +
+\mbox{\boldmath$v$}\cdot\nabla\mbox{\boldmath$v$} + \nabla p & =
+\nabla\mu\nabla\mbox{\boldmath$v$} \\
+\frac{\partial\mbox{c}}{\partial t} + \mbox{\boldmath$v$}\cdot\nabla\mbox{c} &
+= D \nabla^2 c \\
+\nabla\cdot\mbox{\boldmath$v$} & = 0
+\end{split} \f]
+where \f$\mbox{\boldmath$v$}\f$ is the velocity vector, \f$p\f$ is the
+pressure, and both the pressure and the viscosity \f$\mu\f$ have been
+normalized by the (constant) density. Here \f$D\f$ is the scalar diffusivity.
+
+@note While here we are only interested in the solution of the scalar field and
+that could also be done by prescribing an external velocity field and solving
+only for \f$c\f$, we still solve the above coupled system. This way we test the
+solver as it is intended to be used in practice: solving the same system of
+equations with its software implementation.
+
+@section chocg_example_sheardiff_setup Problem setup
+
+This problem and its analytical solution was presented by Carter and Obuko [1]
+with further related discussion in [2]. For the simple steady two dimensional
+uni-directional flow, with velocity \f$u_0\f$ along the \f$x\f$ axis, shear
+\f$\lambda = \mathrm{d}u/\mathrm{d}y\f$ and constant diffusion coefficient,
+\f$D\f$, the governing equation is
+\f[
+\frac{\partial c}{\partial t}+\left(u_0+\lambda y\right)\frac{\partial
+c}{\partial x}=D\left(\frac{\partial^2c}{\partial
+x^2}+\frac{\partial^2c}{\partial
+y^2}\right)\quad\quad\left(-\infty<x<\infty\right),
+\f]
+subject to initial conditions
+\f[ \begin{split}
+c(x,y,0) & = c_0(x,y) \\
+c(x,y,t) & \rightarrow
+0\enskip\mathrm{as}\enskip|x|\enskip\mathrm{or}\enskip|y|\rightarrow\infty
+\end{split} \f]
+When the initial condition is a point source of mass \f$M\f$ at \f$(x = x_0 ,y
+= y_0, t = 0)\f$, the solution is
+\f[
+c\left(x,y,t\right)=\frac{M}{4\pi
+t\sqrt{1+\lambda^2t^2/12}}\exp\left(-\frac{\left(x-x_0-u_0t-\lambda
+yt/2\right)^2}{4\pi Dt\left(1+\lambda^2t^2/12\right)}-\frac{y^2}{4Dt}\right)
+\f]
+To allow the numerical solution to be based on a finite source size, the
+calculation is started at time \f$t=t_0\f$ with a concentration distribution
+given by the above analytic solution using \f$M=4\pi
+t_0\sqrt{1+\lambda^2t_0^2/12}\f$, i.e., the initial concentration peak is
+unity. The problem is solved on a 3D rectangular domain with a few cells in the
+\f$Z\f$ dimension and extents \f$(x\in[0,24000];y\in[-3400,3400]\f$ with
+\f$x_0=y_0=0\f$, \f$t_0=2400\f$, \f$u_0=0.5\f$, \f$\lambda=1.0\times10^4\f$, and
+\f$D=50.0\f$.
+
+The initial conditions are sampled from the analytic solutions above. We set
+inhomogeneous Dirichlet boundary conditions for all variables on the sides of
+the domain with normals in the \f$x\f$ or \f$y\f$ directions, sampling their
+analytic solutions. On the sides with normals in the \f$z\f$ direction, the
+flow variables are sampled from their analytic solutions, while for the scalar,
+homogeneous Neumann conditions are enforced.
+
+@m_div{m-col-m-12 m-center-m}
+<img src="images/shear_15K_mesh.png"/>
+Coarse surface mesh for computing the shear-diffusion test problem, nelem=15K,
+npoin=3K.
+@m_enddiv
+
+@note Contact us using the link at the bottom of the page for the mesh files.
+
+@section chocg_example_sheardiff_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [917090c](https://codeberg.org/xyst/xyst/commit/917090c26bfb747cd631c3ef77edb898ba6c5a60) and the control file below.
+
+@section chocg_example_sheardiff_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "2D shear-diffusion"
+
+-- mesh: shear_15K.exo
+--       shear_124K.exo
+
+t0 = 2400.0
+term = 9600.0
+ttyi = 1
+
+cfl = 0.4
+
+solver = "chocg"
+flux = "damp4"
+rk = 4
+
+part = "rcb"
+
+problem = {
+  name = "sheardiff",
+  p0 = 0.5,             -- x translation velocity (u_0)
+  alpha = 1.0e-4        -- y shear velocity (lambda)
+}
+
+mat = {
+  dyn_diffusivity = 50.0
+}
+
+pressure = {
+  iter = 1,
+  tol = 1.0e-3,
+  pc = "jacobi",
+  hydrostat = 0
+}
+
+bc_dir = {
+  { 1, 1, 1, 1, 1 },
+  { 2, 1, 1, 1, 0 }
+}
+
+fieldout = {
+  iter = 100
+}
+
+diag = {
+  iter = 1,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section chocg_example_sheardiff_run Run using on 32 CPUs
+
+@code{.bash}
+./charmrun +p32 Main/inciter -i shear_124K.exo -c sheardiff_chocg.q
+@endcode
+
+@section chocg_example_sheardiff_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed fields as
+
+@code{.bash}
+paraview out.e-s.0.32.0
+@endcode
+
+The scalar field is displayed at the initial and final times below.
+@m_div{m-col-m-12 m-center-m}
+<img src="images/sheardiff_t0.png"/>
+<img src="images/sheardiff_t1.png"/>
+@m_enddiv
+
+@section chocg_example_sheardiff_errors Numerical solutions and errors
+
+To estimate the order of convergence, the numerical solution was computed using
+two different meshes, whose properties of are tabulated below.
+       Mesh     | Points    | Tetrahedra   | h
+       :------: | --------: | -----------: | --------:
+              1 |     3,134 |      9,123   | 640.99
+              2 |    24,992 |     74,156   | 218.97
+Here h is the average edge length. The L1 and L2 errors are computed as
+\f[ \begin{split}
+\left| \left| \varepsilon \right| \right|_1 & = \frac{\sum_{i=1}^n V^i \left|
+\hat{c}^i - c^i \right|} {\sum_{i=1}^n V^i} \\
+\left| \left| \varepsilon \right| \right|_2 & = \left[\frac{\sum_{i=1}^n V^i
+\left( \hat{c}^i - c^i \right)^2} {\sum_{i=1}^n V^i}\right]^{1/2}
+\end{split} \f]
+where \f$n\f$ is the total number of points in the whole domain,
+\f$\hat{c}^i\f$ and \f$c^i\f$ are the exact and computed scalar concentrations
+at mesh point \f$i\f$, and \f$V^i\f$ denotes the volume associated to mesh
+point \f$i\f$. The table below displays the numerical errors for the two meshes
+and the estimated order of convergence, computed by
+\f[
+p = \frac{ \log \left| \left| \varepsilon \right| \right|^{m+1} - \log \left|
+\left| \varepsilon \right| \right|^m}{ \log h^{m+1} - \log h^m}
+\f]
+where \f$m\f$ is a mesh index.
+       Mesh     | h         | L1(err)      | L2(err)
+       :------: | --------: | -----------: | -----------:
+             1  |    640.99 |  6.448e-04   |  3.674e-03
+             2  |    218.97 |  5.734e-05   |  3.289e-04
+             p  |           |  **2.253**   |  **2.247**
+
+@section chocg_example_sheardiff_references References
+
+1. H. Carter, A. Okubo, A study of the physical processes of movement and dispersion in the Cape Kennedy area, Chesapeake Bay Inst. Ref. 65-2, Johns Hopkins Univ., 1965.
+
+2. A. Okubo, M. Karweit, [Diffusion from a continuous source in a uniform shear flow](https://doi.org/10.4319/lo.1969.14.4.0514), Limm. and Oceano. 14(4) 514-520., 1969.
+
+*/

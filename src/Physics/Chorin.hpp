@@ -37,7 +37,7 @@ grad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
       const std::vector< tk::real >& U,
       tk::Fields& G );
 
-//! Compute velocity gradients in all points
+//  Compute velocity+scalar gradients in all points
 void
 vgrad( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
        const std::array< std::vector< tk::real >, 3 >& dsupint,
@@ -62,11 +62,11 @@ rhs( const std::array< std::vector< std::size_t >, 3 >& dsupedge,
      const std::array< std::vector< tk::real >, 3 >& dsupint,
      const std::array< std::vector< tk::real >, 3 >& coord,
      const std::vector< std::size_t >& triinpoel,
-     tk::real dt,
+     const std::vector< tk::real >& v,
+     tk::real t,
      const std::vector< tk::real >& P,
      const tk::Fields& U,
      const tk::Fields& G,
-     const tk::Fields& W,
      tk::Fields& R );
 
 } // chorin::

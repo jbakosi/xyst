@@ -40,7 +40,7 @@ Coarse surface mesh for computing Poiseuille flow, nelem=3K, npoin=1.2K.
 
 @section chocg_example_poiseuille_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [291b6f1](https://codeberg.org/xyst/xyst/commit/291b6f1ea70bb089e46d7a47a6ff5c06ee931042) and the control file below.
+To reproduce the results below, use code revision [710aaa7](https://codeberg.org/xyst/xyst/commit/710aaa7b0f169b919cda8dc0898f3f6b33deea0a) and the control file below.
 
 @section chocg_example_poiseuille_control Control file
 
@@ -50,26 +50,22 @@ To reproduce the results below, use code revision [291b6f1](https://codeberg.org
 print "Poiseuille flow"
 
 -- mesh: poiseuille?tetz.exo
+-- plot "diag" u 2:12 w l lw 2 t "L2(err:u)", "" u 2:15 w l lw 2 t "L1(err:u)"
 
 term = 300.0
 ttyi = 100
 
-cfl = 0.7
+cfl = 0.5
 
 solver = "chocg"
-flux = "damp2"
-
+flux = "damp4"
+stab = false
 fct = false
+rk = 4
 
 part = "rcb"
 
 mat = { dyn_viscosity = 0.01 }
-
-momentum = {
-  iter = 50,
-  tol = 1.0e-3,
-  pc = "jacobi"
-}
 
 pressure = {
   iter = 500,
@@ -81,8 +77,8 @@ pressure = {
                 { 2, 0.0 } }
 }
 
-ic = {
-  velocity = { 0.0, 0.0, 0.0 }
+problem = {
+  name = "poiseuille"
 }
 
 bc_noslip = {
@@ -99,7 +95,7 @@ fieldout = {
 }
 
 diag = {
-  iter = 1,
+  iter = 10,
   format = "scientific",
   precision = 12
 }
@@ -151,20 +147,24 @@ p = \frac{ \log \left| \left| \varepsilon \right| \right|^{m+1} - \log \left|
 \f]
 where \f$m\f$ is a mesh index.
 
-Errors and convergence rates using second-order damping for advection.
+Errors (sampled along the centerline in the cross-stream direction) and
+convergence rates using second-order damping for advection and forward Euler
+time stepping.
        Mesh     | h         | L1(err)      | L2(err)
        :------: | --------: | -----------: | -----------:
-             1  |      0.25 |    0.0598139 |    0.0636658
-             2  |      0.16 |    0.0133345 |    0.0144788
-             3  |      0.08 |    0.0023768 |    0.0027099
-             p  |           |    **2.488** |   **2.4176**
+             1  |      0.25 |  0.0384685   |  0.0421331
+             2  |      0.16 |  0.00904349  |  0.010126
+             3  |      0.08 |  0.00174476  |  0.00190673
+             p  |           |  **2.3739**  |  **2.4089**
 
-Errors and convergence rates using fourth-order damping for advection.
+Errors (sampled along the centerline in the cross-stream direction) and
+convergence rates using fourth-order damping for advection and four-stage
+Runge-Kutta time stepping.
        Mesh     | h         | L1(err)      | L2(err)
        :------: | --------: | -----------: | -----------:
-             1  |      0.25 |     0.055548 |    0.0592916
-             2  |      0.16 |     0.013252 |    0.0143954
-             3  |      0.08 |     0.001735 |    0.0018838
-             p  |           |    **2.933** |    **2.934**
+             1  |      0.25 |  0.0262011   |  0.0311479
+             2  |      0.16 |  0.00901158  |  0.0100876
+             3  |      0.08 |  0.00204505  |  0.00228464
+             p  |           |   **2.140**  |  **2.143**
 
 */

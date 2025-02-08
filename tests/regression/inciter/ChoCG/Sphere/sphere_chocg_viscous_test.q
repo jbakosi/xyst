@@ -13,7 +13,6 @@ cfl = 0.3
 solver = "chocg"
 flux = "damp4"
 rk = 4
-fct = false
 
 part = "phg"
 --zoltan_params = {

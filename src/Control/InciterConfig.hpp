@@ -60,6 +60,7 @@ DEFTAG( reorder );
 DEFTAG( part );
 DEFTAG( zoltan_params );
 DEFTAG( solver );
+DEFTAG( stab );
 DEFTAG( stab2 );
 DEFTAG( stab2coef );
 DEFTAG( fct );
@@ -193,6 +194,7 @@ using ConfigMembers = brigand::list<
   , tag::part, std::string
   , tag::zoltan_params, std::vector< std::string >
   , tag::solver, std::string
+  , tag::stab, bool
   , tag::stab2, bool
   , tag::stab2coef, double
   , tag::fct, bool

@@ -27,18 +27,6 @@ add_regression_test(lohcg_poiseuille_damp4 ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS lohcg)
 
-add_regression_test(lohcg_poiseuille_rk4 ${INCITER_EXECUTABLE}
-                    NUMPES 1
-                    INPUTFILES poiseuille_rk4.q poiseuille1tetz.exo
-                    ARGS -c poiseuille_rk4.q -i poiseuille1tetz.exo
-                    BIN_BASELINE poiseuille_rk4.std.exo
-                    BIN_RESULT out.e-s.0.1.0
-                    BIN_DIFF_PROG_CONF exodiff.cfg
-                    TEXT_BASELINE diag_poiseuille_rk4.std
-                    TEXT_RESULT diag
-                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
-                    LABELS lohcg)
-
 # Parallel
 
 add_regression_test(lohcg_poiseuille

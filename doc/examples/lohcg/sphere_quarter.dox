@@ -25,7 +25,7 @@ surfaces.
 
 @section lohcg_example_sphere_quarter_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [621987c](https://codeberg.org/xyst/xyst/commit/621987c85ca3a1c3f1bbe91fe971f4aee7741310) and the control file below.
+To reproduce the results below, use code revision [9b1a25d](https://codeberg.org/xyst/xyst/commit/9b1a25d0a314ea4b78a921b81b002543a71ae562) and the control file below.
 
 @section lohcg_example_sphere_quarter_control Control file
 
@@ -39,20 +39,21 @@ print "Inviscid quarter sphere"
 term = 0.2
 ttyi = 10
 
-cfl = 0.7
+cfl = 0.9
 
 solver = "lohcg"
 flux = "damp4"
+stab = false
 stab2 = true
-stab2coef = 0.2
-soundspeed = 50.0
-rk = 2
+stab2coef = 1.0e-4
+soundspeed = 20.0
+rk = 4
 
 part = "phg"
 
 pressure = {
   iter = 300,
-  tol = 1.0e-4,
+  tol = 1.0e-8,
   pc = "jacobi",
   bc_dir = { { 7, 1 } }
 }

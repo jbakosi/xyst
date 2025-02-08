@@ -38,37 +38,38 @@ where \f$\gamma\f$ is the ratio of specific heats.
 
 @note While here we are only interested in the solution of the scalar field and
 that could also be done by prescribing an external velocity field and solving
-only for c, we still solve the above coupled system. This way we test the
+only for \f$c\f$, we still solve the above coupled system. This way we test the
 solver as it is intended to be used in practice: solving the same system of
 equations with its software implementation.
 
 @section riecg_example_slotcyl_setup Problem setup
 
-The inital configuration for the scalar field, c, is depicted in the figure
-below.
+The inital configuration for the scalar field, \f$c\f$, is depicted in the
+figure below.
 @m_div{m-col-m-10 m-center-m}
 <img src="images/slotcyl_ic.png"/>
 @m_enddiv
 
 While this is a 2D test problem, we calculate it on a 3D domain with the
-extents {0,1,0} x {0,1,0.05}, Since we are only interested in the evolution of
-the scalar, we prescribe the source terms that yield a stationary flow with a
-prescribed rotational velocity field ui = { 1/2 - y, x - 1/2, 0 } as
+extents \f$\{0,1,0\} \times \{0,1,0.05\}\f$, Since we are only interested in
+the evolution of the scalar, we prescribe the source terms that yield a
+stationary flow with a prescribed rotational velocity field \f$u_i = \{ 1/2 -
+y, x - 1/2, 0 \}\f$ as
 \f[ \begin{split}
 S_\rho &= 0 \\
 S_{u,i}&= \left\{ -\rho u_2, \rho u_1, 0 \right\} \\
 S_E    &= u_iS_{u,i} = 0 \\
 S_c    &= 0
 \end{split} \f]
-Each solid body lies within a radius r0 = 0.15 centered at a point {x0,y0,0}.
-In the rest of the domain the solution is initially zero. The shapes of the
-three bodies can be expressed in terms of the normalized distance function for
-the respective reference point {x0,y0,0}
+Each solid body lies within a radius \f$r_0 = 0.15\f$ centered at a point
+\f$\{x_0,y_0,0\}\f$.  In the rest of the domain the solution is initially zero.
+The shapes of the three bodies can be expressed in terms of the normalized
+distance function for the respective reference point \f$\{x_0,y_0,0\}\f$
 \f[ \begin{split}
 r(x,y)=\frac{1}{r_0}\sqrt{(x-x_0)^2+(y-y_0)^2}.
 \end{split} \f]
-The center of the slotted cylinder is located at {x0,y0,0} = {0.5,0.75,0} and
-its geometry is given by
+The center of the slotted cylinder is located at \f$\{x_0,y_0,0\} =
+\{0.5,0.75,0\}\f$ and its geometry is given by
 \f[ \begin{split}
 c(x,y)=\left\{
 \begin{aligned}

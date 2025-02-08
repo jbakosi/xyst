@@ -662,6 +662,96 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
 
 } // slot_cyl::
 
+namespace sheardiff {
+
+static std::vector< tk::real >
+ic( tk::real x, tk::real y, tk::real, tk::real t )
+// *****************************************************************************
+//! Set initial conditions prescribing shear-diffusion in 2D
+//! \param[in] x X coordinate where to evaluate the solution
+//! \param[in] y Y coordinate where to evaluate the solution
+//! \param[in] t Time where to evaluate the solution
+//! \return Values of conserved variables
+//! \see A. Okubo, M.J. Karweit, Diffusion from a continuous source in a uniform
+//!      shear flow, Limnology and Oceanography, 14, 1969,
+//!      https://doi.org/10.4319/lo.1969.14.4.0514.
+// *****************************************************************************
+{
+  using std::exp;
+  using std::pow;
+  using std::sqrt;
+
+  // manufactured solution parameters
+  auto V0 = g_cfg.get< tag::problem_p0 >();  // translation velocity in x
+  auto L = g_cfg.get< tag::problem_alpha >();// shear velocity
+  auto t0 = g_cfg.get< tag::t0 >();          // initial time
+  auto dif = g_cfg.get< tag::mat_dyn_diffusivity >();  // diffusivity
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  if (dif < eps) Throw( "Diffusivity must be positive" );
+
+  // configure number of scalar components
+  std::size_t ncomp = 4;
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "chocg") {
+  } else
+  if (solver == "lohcg") {
+    ncomp = 5;
+  }
+  else Throw( "Shear-diff IC not setup for this solver" );
+
+  // prescribed velocity
+  std::vector< tk::real > u( ncomp, 0.0 );
+  std::size_t sc = 3;
+  if (solver == "chocg") {
+    u[0] = V0 + L*y;
+    u[1] = u[2] = 0.0;
+  }
+  else if (solver == "lohcg") {
+    u[1] = V0 + L*y;
+    u[2] = u[3] = 0.0;
+    sc = 4;
+  }
+
+  auto M = [=](tk::real T){ return 4.0*M_PI*T*sqrt(1.0 + L*L*T*T/12.0); };
+
+  u[sc] = M(t0) / M(t) *
+       exp( -pow( x - V0*t - 0.5*L*y*t, 2.0 ) /
+             (4.0*dif*t*(1.0 + L*L*t*t/12.0)) - y*y / (4.0*dif*t) );
+
+  return u;
+}
+
+static std::vector< tk::real >
+src( tk::real, tk::real, tk::real, tk::real )
+// *****************************************************************************
+//! Compute and return source term for shear-diffusion in 2D
+//! \return Source for flow variables + transported scalars
+//! \see A. Okubo, M.J. Karweit, Diffusion from a continuous source in a uniform
+//!      shear flow, Limnology and Oceanography, 14, 1969,
+//!      https://doi.org/10.4319/lo.1969.14.4.0514.
+// *****************************************************************************
+{
+  // configure number of scalar components
+  std::size_t ncomp = 4;
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "lohcg") {
+    ncomp = 5;
+  }
+
+  // manufactured solution parameters
+  auto L = g_cfg.get< tag::problem_alpha >();// shear velocity
+
+  // source
+  std::vector< tk::real > s( ncomp, 0.0 );
+  if (solver == "lohcg") {
+    s[0] = -L;
+  }
+
+  return s;
+}
+
+} // sheardiff::
+
 namespace point_src {
 
 static std::vector< tk::real >
@@ -732,29 +822,6 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 }
 
 } // point_src::
-
-namespace gyor {
-
-static std::vector< tk::real >
-ic( tk::real, tk::real, tk::real, tk::real t )
-// *****************************************************************************
-//! Set initial conditions prescribing gyor
-//! \param[in] t Time where to evaluate initial conditions
-//! \return Values of conserved variables
-// *****************************************************************************
-{
-  auto r = 1.225;
-  auto p = 1.0e5;
-
-  auto u = 5.0 * std::cos(t);
-  auto v = 5.0 * std::sin(t);
-  auto w = 0.0;
-  tk::real rE = eos::totalenergy( r, u, v, w, p );
-
-  return { r, r*u, r*v, r*w, rE };
-}
-
-} // gyor::
 
 namespace poisson {
 
@@ -935,7 +1002,7 @@ ic( tk::real, tk::real y, tk::real, tk::real )
 // *****************************************************************************
 //! Set initial conditions prescribing the Poisuille problem
 //! \param[in] y Y coordinate where to evaluate the solution
-//! \return Values of conserved variables
+//! \return Values of physics variables
 // *****************************************************************************
 {
   auto eps = std::numeric_limits< tk::real >::epsilon();
@@ -945,21 +1012,42 @@ ic( tk::real, tk::real y, tk::real, tk::real )
   auto dpdx = -0.12;
   auto u = -dpdx * y * (1.0 - y) / 2.0 / nu;
 
-  return { u, 0.0, 0.0 };
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "chocg") {
+    return { u, 0.0, 0.0 };
+  } else
+  if (solver == "lohcg") {
+    return { 0.0, 0.0, 0.0, 0.0 };
+  }
+  else Throw( "Poiseuille IC not setup for this solver" );
 }
 
-static tk::real
-pic( tk::real, tk::real, tk::real )
+static std::vector< tk::real >
+sol( tk::real, tk::real y, tk::real, tk::real )
 // *****************************************************************************
-//! Set homogeneous initial conditions for Poiseuille
-//! \return Value of pressure
+//! Set analytic solution of the Poisuille problem
+//! \param[in] y Y coordinate where to evaluate the solution
+//! \return Values of physics variables
 // *****************************************************************************
 {
-  return 0.0;
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  auto nu = g_cfg.get< tag::mat_dyn_viscosity >();
+  if (nu < eps) Throw( "Poiseuille flow needs nonzero viscosity" );
+
+  auto dpdx = -0.12;
+  auto u = -dpdx * y * (1.0 - y) / 2.0 / nu;
+
+  const auto& solver = g_cfg.get< tag::solver >();
+  if (solver == "chocg") {
+    return { u, 0.0, 0.0 };
+  } else
+  if (solver == "lohcg") {
+    return { 0.0, u, 0.0, 0.0 };
+  }
+  else Throw( "Poiseuille IC not setup for this solver" );
 }
 
 } // poiseuille::
-
 
 std::function< std::vector< tk::real >
              ( tk::real, tk::real, tk::real, tk::real ) >
@@ -990,10 +1078,10 @@ IC()
     ic = vortical_flow::ic;
   else if (problem == "slot_cyl")
     ic = slot_cyl::ic;
+  else if (problem == "sheardiff")
+    ic = sheardiff::ic;
   else if (problem == "point_src")
     ic = point_src::ic;
-  else if (problem == "gyor")
-    ic = gyor::ic;
   else if (problem.find("poisson") != std::string::npos)
     ic = poisson::ic;
   else if (problem == "poiseuille")
@@ -1014,11 +1102,13 @@ SOL()
 {
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
-  if (problem == "userdef" ||
-      problem == "sod" ||
-      problem == "sedov" ||
+  if (problem == "userdef" or
+      problem == "sod" or
+      problem == "sedov" or
       problem == "point_src")
     return {};
+  else if (problem == "poiseuille")
+    return poiseuille::sol;
   else
     return IC();
 }
@@ -1095,7 +1185,10 @@ PRESSURE_IC()
 
   std::function< tk::real( tk::real, tk::real, tk::real ) > ic;
 
-  if (problem == "userdef" || problem == "slot_cyl")
+  if ( problem == "userdef" or
+       problem == "slot_cyl" or
+       problem == "sheardiff" or
+       problem == "poiseuille" )
     ic = userdef::pic;
   else if (problem == "poisson_const")
     ic = poisson_const::ic;
@@ -1107,8 +1200,6 @@ PRESSURE_IC()
     ic = poisson_sine3::ic;
   else if (problem == "poisson_neumann")
     ic = poisson_neumann::ic;
-  else if (problem == "poiseuille")
-    ic = poiseuille::pic;
   else
     Throw( "problem type not hooked up" );
 
@@ -1124,9 +1215,10 @@ PRESSURE_SOL()
 {
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
-  if ( problem == "userdef" ||
-       problem == "poiseuille" ||
-       problem == "slot_cyl" )
+  if ( problem == "userdef" or
+       problem == "slot_cyl" or
+       problem == "poiseuille" or
+       problem == "sheardiff" )
   {
     return {};
   }
@@ -1201,6 +1293,8 @@ SRC()
     src = vortical_flow::src;
   else if (problem == "slot_cyl")
     src = slot_cyl::src;
+  else if (problem == "sheardiff")
+    src = sheardiff::src;
 
   return src;
 }

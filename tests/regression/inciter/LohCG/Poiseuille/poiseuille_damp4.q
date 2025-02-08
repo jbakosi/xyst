@@ -6,14 +6,12 @@ print "Poiseuille flow"
 
 nstep = 20
 ttyi = 1
-cfl = 1.0
+cfl = 0.3
 
 solver = "lohcg"
 flux = "damp4"
-stab2 = true
-stab2coef = 0.001
-soundspeed = 200.0
-rk = 3
+soundspeed = 10.0
+rk = 4
 
 mat = { dyn_viscosity = 0.01 }
 

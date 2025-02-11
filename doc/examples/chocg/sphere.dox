@@ -36,7 +36,7 @@ Surface mesh for computing viscous flow past a sphere.
 
 @section chocg_example_sphere_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [97d0e8e](https://codeberg.org/xyst/xyst/commit/97d0e8e76330f196a1577f5b6afcfd0dabc3f783) and the control file below.
+To reproduce the results below, use code revision [3b9b55e](https://codeberg.org/xyst/xyst/commit/3b9b55e18106a9c2762be2070b14822bd03dca41) and the control file below.
 
 @section chocg_example_sphere_control Control file
 
@@ -48,6 +48,7 @@ print "Viscous half sphere"
 -- mesh: half_viscous_sphere_128K.exo
 --       half_viscous_sphere_960K.exo
 --       sphere diam = 1.0
+--       plot "diag" u 2:8 t "L2(dp)" w l lw 2, "" u 2:9 t "L2(du)" w l lw 2, "" u 2:10 t "L2(dv)" w l lw 2, "" u 2:11 t "L2(dw)" w l lw 2
 --       plot "out.int" u 2:(-$4*8.0/pi*2.0) w l lw 2 t "Cd"
 
 term = 20.0
@@ -59,28 +60,22 @@ solver = "chocg"
 flux = "damp4"
 rk = 4
 
-fct = false
-
 part = "phg"
 zoltan_params = {
   "PHG_COARSENING_METHOD", "AGG",
   "PHG_COARSEPARTITION_METHOD", "GREEDY",
   "PHG_REFINEMENT_QUALITY", "5",
+  --"PHG_CUT_OBJECTIVE", "HYPEREDGES"
   "PHG_CUT_OBJECTIVE", "CONNECTIVITY"
 }
 
 pressure = {
   iter = 300,
-  tol = 1.0e-4,
+  tol = 1.0e-3,
   pc = "jacobi",
   bc_dir = { { 3, 1 } }
 }
 
-momentum = {
-  iter = 100,
-  tol = 1.0e-3,
-  pc = "jacobi"
-}
 
 Re = 300.0
 mat = { dyn_viscosity = 1.0/Re }
@@ -103,7 +98,7 @@ bc_sym = {
 }
 
 fieldout = {
-  iter = 10000,
+  iter = 1000,
   sideset = { 1, 4 }
 }
 

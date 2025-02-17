@@ -36,7 +36,7 @@ Surface mesh for computing viscous flow past a sphere.
 
 @section lohcg_example_sphere_sha Code revision to reproduce
 
-To reproduce the results below, use code revision [97d0e8e](https://codeberg.org/xyst/xyst/commit/97d0e8e76330f196a1577f5b6afcfd0dabc3f783) and the control file below.
+To reproduce the results below, use code revision [2b16432](https://codeberg.org/xyst/xyst/commit/2b164328d45e649d4605755ed6abcad6fa92cd1e) and the control file below.
 
 @section lohcg_example_sphere_control Control file
 
@@ -47,19 +47,20 @@ print "Viscous half sphere"
 
 -- mesh: half_viscous_sphere_128K.exo
 --       half_viscous_sphere_960K.exo
---       half_viscous_sphere_2.5M.exo
 --       sphere diam = 1.0
+--       plot "diag" u 2:8 t "L2(dp)" w l lw 2, "" u 2:9 t "L2(du)" w l lw 2, "" u 2:10 t "L2(dv)" w l lw 2, "" u 2:11 t "L2(dw)" w l lw 2
 --       plot "out.int" u 2:(-$4*8.0/pi*2.0) w l lw 2 t "Cd"
 
 term = 100.0
 ttyi = 1000
 
-cfl = 0.9
+cfl = 0.7
 
 solver = "lohcg"
-flux = "damp2"
+flux = "damp4"
+stab = false
 stab2 = true
-stab2coef = 0.03
+stab2coef = 1.0e-4
 soundspeed = 100.0
 rk = 4
 

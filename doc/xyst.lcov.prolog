@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <title>Xyst unit test code coverage report</title>
+  <title>Xyst test code coverage report</title>
   <link rel="stylesheet" type="text/css" href="@basedir@gcov.css">
 </head>
 <body>

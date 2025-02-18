@@ -32,7 +32,7 @@ boxnodes( const std::array< std::vector< tk::real >, 3 >& coord )
 //! \return inbox List of nodes at which box user ICs are set for each IC box
 // *****************************************************************************
 {
-  const auto& icbox = g_cfg.get< tag::ic >();
+  const auto& icbox = g_cfg.get< tag::ic, tag::boxes >();
 
   if (icbox.empty()) return {};
 
@@ -45,9 +45,9 @@ boxnodes( const std::array< std::vector< tk::real >, 3 >& coord )
   std::size_t bcnt = 0;
   for (const auto& b : icbox) {
     inbox.emplace_back();
-    const auto& bx = b.get< tag::x >();
-    const auto& by = b.get< tag::y >();
-    const auto& bz = b.get< tag::z >();
+    const auto& bx = b.get< tag::box_x >();
+    const auto& by = b.get< tag::box_y >();
+    const auto& bz = b.get< tag::box_z >();
     std::vector< tk::real > box{ bx[0], bx[1], by[0], by[1], bz[0], bz[1] };
 
     const auto eps = std::numeric_limits< tk::real >::epsilon();
@@ -84,7 +84,7 @@ box( std::size_t p,
 //! \param[in] boxnodes Nodes at which box user ICs are set (for each box IC)
 // *****************************************************************************
 {
-  const auto& icbox = g_cfg.get< tag::ic >();
+  const auto& icbox = g_cfg.get< tag::ic, tag::boxes >();
   if (icbox.empty()) return;
 
   auto large = std::numeric_limits< double >::max();
@@ -92,11 +92,11 @@ box( std::size_t p,
   for (std::size_t j=0; j<icbox.size(); ++j) {
     const auto& b = icbox[j];
     if (boxnodes.size() > j && boxnodes[j].find(p) != boxnodes[j].end()) {
-      auto boxr = b.get< tag::ic_density >();
-      const auto& boxv = b.get< tag::ic_velocity >();
-      auto boxp = b.get< tag::ic_pressure >();
-      auto boxe = b.get< tag::ic_energy >();
-      auto boxt = b.get< tag::ic_temperature >();
+      auto boxr = b.get< tag::box_density >();
+      const auto& boxv = b.get< tag::box_velocity >();
+      auto boxp = b.get< tag::box_pressure >();
+      auto boxe = b.get< tag::box_energy >();
+      auto boxt = b.get< tag::box_temperature >();
 
       tk::real r = 0.0, ru = 0.0, rv = 0.0, rw = 0.0, re = 0.0;
       if (std::abs(boxr - large) > 1.0e-12 && boxr > 0.0) {

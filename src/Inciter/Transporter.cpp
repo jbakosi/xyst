@@ -118,9 +118,12 @@ Transporter::Transporter( CkMigrateMessage* m ) :
 }
 
 bool
-Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
+Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd,
+                       const std::string& filename )
 // *****************************************************************************
 // Verify that side sets specified in the control file exist in mesh file
+//! \param[in,out] bnd Node or face lists mapped to side set ids
+//! \param[in] filename Mesh file name whose BCs are processed
 //! \details This function does two things: (1) it verifies that the side
 //!   sets used in the input file (either to which boundary conditions (BC)
 //!   are assigned or listed as field output by the user in the
@@ -131,7 +134,6 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
 //!   and node lists associated to side sets that the user did not set BCs or
 //!   listed as field output on (as they will not need processing further since
 //!   they will not be used).
-//! \param[in,out] bnd Node or face lists mapped to side set ids
 //! \return True if sidesets have been used and found in mesh
 // *****************************************************************************
 {
@@ -169,7 +171,7 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
       sidesets_used.insert( i );  // store side set id configured as BC
     else {
       Throw( "Boundary conditions specified on side set " + std::to_string(i) +
-             " which does not exist in mesh file" );
+             " which does not exist in mesh file '" + filename + "'" );
     }
   }
  
@@ -246,8 +248,8 @@ Transporter::createPartitioner()
     // Read node lists on side sets
     bnode = mr.readSidesetNodes();
     // Verify boundarty condition (BC) side sets used exist in mesh file
-    bcs_set = matchBCs( bnode );
-    bcs_set = bcs_set || matchBCs( bface );
+    bcs_set = matchBCs( bnode, filename );
+    bcs_set = bcs_set || matchBCs( bface, filename );
 
     // Warn on no BCs
     if (!bcs_set) print << "\n>>> WARNING: No boundary conditions set\n\n";

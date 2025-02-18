@@ -110,18 +110,28 @@ DEFTAG( integout_precision );
 DEFTAG( integout_format );
 DEFTAG( integout_integrals );
 DEFTAG( ic );
-DEFTAG( x );
-DEFTAG( y );
-DEFTAG( z );
-DEFTAG( ic_density );
-DEFTAG( ic_pressure );
-DEFTAG( ic_energy );
-DEFTAG( ic_temperature );
-DEFTAG( ic_velocity );
+DEFTAG( ic_ );
+DEFTAG( density );
+DEFTAG( pressure );
+DEFTAG( energy );
+DEFTAG( temperature );
+DEFTAG( velocity );
+DEFTAG( boxes );
+DEFTAG( box_x );
+DEFTAG( box_y );
+DEFTAG( box_z );
+DEFTAG( box_density );
+DEFTAG( box_pressure );
+DEFTAG( box_energy );
+DEFTAG( box_temperature );
+DEFTAG( box_velocity );
 DEFTAG( bc_dir );
 DEFTAG( bc_dirval );
+DEFTAG( bc_dir_ );
 DEFTAG( bc_sym );
+DEFTAG( bc_sym_ );
 DEFTAG( bc_noslip );
+DEFTAG( bc_noslip_ );
 DEFTAG( bc_far );
 DEFTAG( bc_far_density );
 DEFTAG( bc_far_pressure );
@@ -151,7 +161,7 @@ namespace ctr {
 //! Member data for tagged tuple
 using ConfigMembers = brigand::list<
     tag::commit, std::string
-  , tag::input, std::string
+  , tag::input, std::vector< std::string >
   , tag::control, std::string
   , tag::output, std::string
   , tag::diag, std::string
@@ -244,27 +254,53 @@ using ConfigMembers = brigand::list<
   , tag::integout_precision, std::streamsize
   , tag::integout_format, std::string
   , tag::integout_integrals, std::vector< std::string >
-  , tag::ic, std::vector<
-               tk::TaggedTuple< brigand::list<
-                   tag::x,              std::vector< double >
-                 , tag::y,              std::vector< double >
-                 , tag::z,              std::vector< double >
-                 , tag::ic_density,     double
-                 , tag::ic_pressure,    double
-                 , tag::ic_energy,      double
-                 , tag::ic_temperature, double
-                 , tag::ic_velocity,    std::vector< double >
-               > >
-             >
-  , tag::ic_density, double
-  , tag::ic_pressure, double
-  , tag::ic_energy, double
-  , tag::ic_temperature, double
-  , tag::ic_velocity,  std::vector< double >
+  , tag::ic, tk::TaggedTuple< brigand::list<
+               tag::density,     double
+             , tag::pressure,    double
+             , tag::energy,      double
+             , tag::temperature, double
+             , tag::velocity,    std::vector< double >
+             , tag::boxes, std::vector<
+                 tk::TaggedTuple< brigand::list<
+                     tag::box_x,           std::vector< double >
+                   , tag::box_y,           std::vector< double >
+                   , tag::box_z,           std::vector< double >
+                   , tag::box_density,     double
+                   , tag::box_pressure,    double
+                   , tag::box_energy,      double
+                   , tag::box_temperature, double
+                   , tag::box_velocity,    std::vector< double >
+                 > >
+               >
+             > >
+  , tag::ic_, std::vector<
+                tk::TaggedTuple< brigand::list<
+                  tag::density,     double
+                , tag::pressure,    double
+                , tag::energy,      double
+                , tag::temperature, double
+                , tag::velocity,    std::vector< double >
+                , tag::boxes, std::vector<
+                    tk::TaggedTuple< brigand::list<
+                        tag::box_x,           std::vector< double >
+                      , tag::box_y,           std::vector< double >
+                      , tag::box_z,           std::vector< double >
+                      , tag::box_density,     double
+                      , tag::box_pressure,    double
+                      , tag::box_energy,      double
+                      , tag::box_temperature, double
+                      , tag::box_velocity,    std::vector< double >
+                    > >
+                  >
+                > >
+              >
   , tag::bc_dir, std::vector< std::vector< int > >
   , tag::bc_dirval, std::vector< std::vector< double > >
+  , tag::bc_dir_, std::vector< std::vector< std::vector< int > > >
   , tag::bc_sym, std::vector< int >
+  , tag::bc_sym_, std::vector< std::vector< int > >
   , tag::bc_noslip, std::vector< int >
+  , tag::bc_noslip_, std::vector< std::vector< int > >
   , tag::bc_far, std::vector< int >
   , tag::bc_far_density, double
   , tag::bc_far_pressure, double

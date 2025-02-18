@@ -40,7 +40,7 @@ ic( tk::real, tk::real, tk::real, tk::real )
   if (solver == "chocg") {
     const auto& ncomp = g_cfg.get< tag::problem_ncomp >();
     std::vector< tk::real > u( ncomp, 0.0 );
-    auto ic_velocity = g_cfg.get< tag::ic_velocity >();
+    const auto& ic_velocity = g_cfg.get< tag::ic, tag::velocity >();
     auto large = std::numeric_limits< double >::max();
     if (std::abs(ic_velocity[0] - large) > 1.0e-12) u[0] = ic_velocity[0];
     if (std::abs(ic_velocity[1] - large) > 1.0e-12) u[1] = ic_velocity[1];
@@ -50,7 +50,7 @@ ic( tk::real, tk::real, tk::real, tk::real )
   else if (solver == "lohcg") {
     const auto& ncomp = g_cfg.get< tag::problem_ncomp >();
     std::vector< tk::real > u( ncomp, 0.0 );
-    auto ic_velocity = g_cfg.get< tag::ic_velocity >();
+    const auto& ic_velocity = g_cfg.get< tag::ic, tag::velocity >();
     auto large = std::numeric_limits< double >::max();
     if (std::abs(ic_velocity[0] - large) > 1.0e-12) u[1] = ic_velocity[0];
     if (std::abs(ic_velocity[1] - large) > 1.0e-12) u[2] = ic_velocity[1];
@@ -59,9 +59,9 @@ ic( tk::real, tk::real, tk::real, tk::real )
   }
 
   // density-based solvers
-
-  auto ic_density = g_cfg.get< tag::ic_density >();
-  const auto& ic_velocity = g_cfg.get< tag::ic_velocity >();
+  const auto& tic = g_cfg.get< tag::ic >();
+  auto ic_density = tic.get< tag::density >();
+  const auto& ic_velocity = tic.get< tag::velocity >();
   ErrChk( ic_velocity.size() == 3, "ic_velocity must have 3 components" );
 
   std::vector< tk::real > u( 5, 0.0 );
@@ -71,9 +71,9 @@ ic( tk::real, tk::real, tk::real, tk::real )
   u[2] = u[0] * ic_velocity[1];
   u[3] = u[0] * ic_velocity[2];
 
-  auto ic_pressure = g_cfg.get< tag::ic_pressure >();
-  auto ic_energy = g_cfg.get< tag::ic_energy >();
-  auto ic_temperature = g_cfg.get< tag::ic_temperature >();
+  auto ic_pressure = tic.get< tag::pressure >();
+  auto ic_energy = tic.get< tag::energy >();
+  auto ic_temperature = tic.get< tag::temperature >();
 
   auto largereal = std::numeric_limits< double >::max();
 

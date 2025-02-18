@@ -342,7 +342,8 @@ class Transporter : public CBase_Transporter {
     void stat();
 
     //! Verify boundary condition (BC) side sets used exist in mesh file
-    bool matchBCs( std::map< int, std::vector< std::size_t > >& bnd );
+    bool matchBCs( std::map< int, std::vector< std::size_t > >& bnd,
+                   const std::string& filenamne );
 
     //! Print out mesh statistics
     void meshstat( const std::string& header ) const;

@@ -512,7 +512,7 @@ ChoCG::setup( tk::real v )
   problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
-  if (!g_cfg.get< tag::histout >().empty()) {
+  if (!g_cfg.get< tag::histout, tag::point >().empty()) {
     std::vector< std::string > var
       {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
     auto ncomp = m_u.nprop();

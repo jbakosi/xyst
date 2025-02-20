@@ -98,11 +98,9 @@ DEFTAG( iter );
 DEFTAG( time );
 DEFTAG( range );
 DEFTAG( histout );
-DEFTAG( histout_iter );
-DEFTAG( histout_time );
-DEFTAG( histout_range );
-DEFTAG( histout_precision );
-DEFTAG( histout_format );
+DEFTAG( point );
+DEFTAG( precision );
+DEFTAG( format );
 DEFTAG( integout );
 DEFTAG( integout_iter );
 DEFTAG( integout_time );
@@ -244,12 +242,14 @@ using ConfigMembers = brigand::list<
                    , tag::time,    double
                    , tag::range,   std::vector< std::vector< double > >
                    > >
-  , tag::histout, std::vector< std::vector< double > >
-  , tag::histout_iter, uint64_t
-  , tag::histout_time, double
-  , tag::histout_range, std::vector< std::vector< double > >
-  , tag::histout_precision, std::streamsize
-  , tag::histout_format, std::string
+  , tag::histout, tk::TaggedTuple< brigand::list<
+                    tag::point,     std::vector< std::vector< double > >
+                  , tag::iter,      uint64_t
+                  , tag::time,      double
+                  , tag::range,     std::vector< std::vector< double > >
+                  , tag::precision, std::streamsize
+                  , tag::format,    std::string
+                  > >
   , tag::integout, std::vector< int >
   , tag::integout_iter, uint64_t
   , tag::integout_time, double

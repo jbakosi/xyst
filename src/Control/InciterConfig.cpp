@@ -574,17 +574,18 @@ histout( lua_State* L, Config& cfg )
 {
   lua_getglobal( L, "histout" );
 
-  cfg.get< tag::histout_iter >() = unsigint( L, "iter" );
-  cfg.get< tag::histout_time >() = real( L, "time" );
-  cfg.get< tag::histout_range >() = range( L );
-  cfg.get< tag::histout_precision >() = sigint( L, "precision", 8 );
-  cfg.get< tag::histout_format >() = string( L, "format" );
+  auto& th = cfg.get< tag::histout >();
+  th.get< tag::iter >() = unsigint( L, "iter" );
+  th.get< tag::time >() = real( L, "time" );
+  th.get< tag::range >() = range( L );
+  th.get< tag::precision >() = sigint( L, "precision", 8 );
+  th.get< tag::format >() = string( L, "format" );
 
   if (lua_istable( L, -1 )) {
     lua_getfield( L, -1, "points" );
     if (!lua_isnil( L, -1 )) {
       ErrChk( lua_istable( L, -1 ), "histout points must be a table" );
-      auto& r = cfg.get< tag::histout >();
+      auto& r = th.get< tag::point >();
       int64_t n = luaL_len( L, -1 );
       for (int64_t i=1; i<=n; ++i) {
         lua_geti( L, -1, i );

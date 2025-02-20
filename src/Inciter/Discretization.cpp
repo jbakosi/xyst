@@ -54,7 +54,7 @@ Discretization::Discretization(
   m_physHistFloor( 0.0 ),
   m_physIntegFloor( 0.0 ),
   m_rangeFieldFloor( g_cfg.get< tag::fieldout, tag::range >().size(), 0.0 ),
-  m_rangeHistFloor( g_cfg.get< tag::histout_range >().size(), 0.0 ),
+  m_rangeHistFloor( g_cfg.get< tag::histout, tag::range >().size(), 0.0 ),
   m_rangeIntegFloor( g_cfg.get< tag::integout_range >().size(), 0.0 ),
   m_dt( g_cfg.get< tag::dt >() ),
   m_dtn( m_dt ),
@@ -110,7 +110,7 @@ Discretization::Discretization(
 
   // Find host elements of user-specified points where time histories are
   // saved, and save the shape functions evaluated at the point locations
-  const auto& pt = g_cfg.get< tag::histout >();
+  const auto& pt = g_cfg.get< tag::histout, tag::point >();
   for (std::size_t p=0; p<pt.size(); ++p) {
     std::array< tk::real, 4 > N;
     const auto& l = pt[p];
@@ -600,7 +600,7 @@ Discretization::next()
   const auto eps = std::numeric_limits< tk::real >::epsilon();
   const auto ft = g_cfg.get< tag::fieldout, tag::time >();
   if (ft > eps) m_physFieldFloor = std::floor( m_t / ft );
-  const auto ht = g_cfg.get< tag::histout_time >();
+  const auto ht = g_cfg.get< tag::histout, tag::time >();
   if (ht > eps) m_physHistFloor = std::floor( m_t / ht );
   const auto it = g_cfg.get< tag::integout_time >();
   if (it > eps) m_physIntegFloor = std::floor( m_t / it );
@@ -613,7 +613,7 @@ Discretization::next()
     }
   }
 
-  const auto& rh = g_cfg.get< tag::histout_range >();
+  const auto& rh = g_cfg.get< tag::histout, tag::range >();
   for (std::size_t i=0; i<rh.size(); ++i) {
     if (m_t > rh[i][0] and m_t < rh[i][1]) {
       m_rangeHistFloor[i] = std::floor( m_t / rh[i][2] );
@@ -696,9 +696,9 @@ Discretization::histheader( std::vector< std::string >&& names )
 // *****************************************************************************
 {
   for (const auto& h : m_histdata) {
-    auto prec = g_cfg.get< tag::histout_precision >();
+    auto prec = g_cfg.get< tag::histout, tag:: precision >();
     tk::DiagWriter hw( histfilename( h.get< tag::id >(), prec ),
-                       g_cfg.get< tag::histout_format >(),
+                       g_cfg.get< tag::histout, tag::format >(),
                        prec );
     hw.header( names );
   }
@@ -715,9 +715,9 @@ Discretization::history( std::vector< std::vector< tk::real > >&& data )
 
   std::size_t i = 0;
   for (const auto& h : m_histdata) {
-    auto prec = g_cfg.get< tag::histout_precision >();
+    auto prec = g_cfg.get< tag::histout, tag::precision >();
     tk::DiagWriter hw( histfilename( h.get< tag::id >(), prec ),
-                       g_cfg.get< tag::histout_format >(),
+                       g_cfg.get< tag::histout, tag::format >(),
                        prec,
                        std::ios_base::app );
     hw.write( m_it, m_t, m_dt, data[i] );
@@ -786,8 +786,8 @@ Discretization::histiter() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  auto hist = g_cfg.get< tag::histout_iter >();
-  const auto& hist_points = g_cfg.get< tag::histout >();
+  auto hist = g_cfg.get< tag::histout, tag::iter >();
+  const auto& hist_points = g_cfg.get< tag::histout, tag::point >();
 
   return m_it % hist == 0 and not hist_points.empty();
 }
@@ -802,7 +802,7 @@ Discretization::histtime() const
   if (g_cfg.get< tag::benchmark >()) return false;
 
   auto eps = std::numeric_limits< tk::real >::epsilon();
-  auto ht = g_cfg.get< tag::histout_time >();
+  auto ht = g_cfg.get< tag::histout, tag::time >();
 
   if (ht < eps) return false;
 
@@ -822,7 +822,7 @@ Discretization::histrange() const
 
   bool output = false;
 
-  const auto& rh = g_cfg.get< tag::histout_range >();
+  const auto& rh = g_cfg.get< tag::histout, tag::range >();
   for (std::size_t i=0; i<rh.size(); ++i) {
     if (m_t > rh[i][0] and m_t < rh[i][1]) {
       output |= std::floor(m_t/rh[i][2]) - m_rangeHistFloor[i] > eps;

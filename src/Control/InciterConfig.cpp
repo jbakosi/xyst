@@ -556,7 +556,7 @@ fieldout( lua_State* L, Config& cfg )
   lua_getglobal( L, "fieldout" );
 
   auto& tf = cfg.get< tag::fieldout >();
-  tf.get< tag::sideset >() = sideset( L );
+  tf.get< tag::sidesets >() = sideset( L );
   tf.get< tag::iter >() = unsigint( L, "iter" );
   tf.get< tag::time >() = real( L, "time" );
   tf.get< tag::range >() = range( L );
@@ -585,7 +585,7 @@ histout( lua_State* L, Config& cfg )
     lua_getfield( L, -1, "points" );
     if (!lua_isnil( L, -1 )) {
       ErrChk( lua_istable( L, -1 ), "histout points must be a table" );
-      auto& r = th.get< tag::point >();
+      auto& r = th.get< tag::points >();
       int64_t n = luaL_len( L, -1 );
       for (int64_t i=1; i<=n; ++i) {
         lua_geti( L, -1, i );
@@ -618,13 +618,14 @@ integout( lua_State* L, Config& cfg )
 {
   lua_getglobal( L, "integout" );
 
-  cfg.get< tag::integout_iter >() = unsigint( L, "iter" );
-  cfg.get< tag::integout_time >() = real( L, "time" );
-  cfg.get< tag::integout_range >() = range( L );
-  cfg.get< tag::integout_precision >() = sigint( L, "precision", 8 );
-  cfg.get< tag::integout_format >() = string( L, "format" );
-  cfg.get< tag::integout >() = sideset( L );
-  cfg.get< tag::integout_integrals >() = stringlist( L, "integrals" );
+  auto& ti = cfg.get< tag::integout >();
+  ti.get< tag::sidesets >() = sideset( L );
+  ti.get< tag::integrals >() = stringlist( L, "integrals" );
+  ti.get< tag::iter >() = unsigint( L, "iter" );
+  ti.get< tag::time >() = real( L, "time" );
+  ti.get< tag::range >() = range( L );
+  ti.get< tag::precision >() = sigint( L, "precision", 8 );
+  ti.get< tag::format >() = string( L, "format" );
 
   lua_pop( L, 1 );
 }

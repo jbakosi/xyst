@@ -188,7 +188,7 @@ LohCG::ngradcomp() const
 // *****************************************************************************
 {
   std::size_t n = 0;
-  const auto& req = g_cfg.get< tag::integout_integrals >();
+  const auto& req = g_cfg.get< tag::integout, tag::integrals >();
 
   if (g_cfg.get< tag::flux >() == "damp4" or
       std::find( begin(req), end(req), "force") != end(req))
@@ -507,7 +507,7 @@ LohCG::setup( tk::real v )
   problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
-  if (!g_cfg.get< tag::histout, tag::point >().empty()) {
+  if (!g_cfg.get< tag::histout, tag::points >().empty()) {
     std::vector< std::string > var
       {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
     auto ncomp = m_u.nprop();
@@ -572,7 +572,7 @@ LohCG::streamable()
 {
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
-  const auto& is = g_cfg.get< tag::integout >();
+  const auto& is = g_cfg.get< tag::integout, tag::sidesets >();
   std::set< int > outsets( begin(is), end(is) );
   for (auto s : outsets) {
     auto m = m_bface.find(s);
@@ -1681,7 +1681,7 @@ LohCG::writeFields( CkCallback cb )
   std::vector< std::string > nodesurfnames;
   std::vector< std::vector< tk::real > > nodesurfs;
 
-  const auto& f = g_cfg.get< tag::fieldout, tag::sideset >();
+  const auto& f = g_cfg.get< tag::fieldout, tag::sidesets >();
 
   if (!f.empty()) {
     std::size_t nc = 4;
@@ -1780,7 +1780,7 @@ LohCG::integrals()
     ints[ DT ][ 0 ] = d->Dt();
 
     // Compute integrals requested for surfaces requested
-    const auto& reqv = g_cfg.get< tag::integout_integrals >();
+    const auto& reqv = g_cfg.get< tag::integout, tag::integrals >();
     std::unordered_set< std::string > req( begin(reqv), end(reqv) );
     if (req.count("mass_flow_rate")) {
       for (const auto& [s,sint] : m_surfint) {

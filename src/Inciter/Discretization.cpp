@@ -55,7 +55,7 @@ Discretization::Discretization(
   m_physIntegFloor( 0.0 ),
   m_rangeFieldFloor( g_cfg.get< tag::fieldout, tag::range >().size(), 0.0 ),
   m_rangeHistFloor( g_cfg.get< tag::histout, tag::range >().size(), 0.0 ),
-  m_rangeIntegFloor( g_cfg.get< tag::integout_range >().size(), 0.0 ),
+  m_rangeIntegFloor( g_cfg.get< tag::integout, tag::range >().size(), 0.0 ),
   m_dt( g_cfg.get< tag::dt >() ),
   m_dtn( m_dt ),
   m_nvol( 0 ),
@@ -110,7 +110,7 @@ Discretization::Discretization(
 
   // Find host elements of user-specified points where time histories are
   // saved, and save the shape functions evaluated at the point locations
-  const auto& pt = g_cfg.get< tag::histout, tag::point >();
+  const auto& pt = g_cfg.get< tag::histout, tag::points >();
   for (std::size_t p=0; p<pt.size(); ++p) {
     std::array< tk::real, 4 > N;
     const auto& l = pt[p];
@@ -564,7 +564,7 @@ Discretization::write(
     fieldoutput = true;
   }
 
-  const auto& f = g_cfg.get< tag::fieldout, tag::sideset >();
+  const auto& f = g_cfg.get< tag::fieldout, tag::sidesets >();
   std::set< int > outsets( begin(f), end(f) );
 
   m_meshwriter[ CkNodeFirst( CkMyNode() ) ].
@@ -602,7 +602,7 @@ Discretization::next()
   if (ft > eps) m_physFieldFloor = std::floor( m_t / ft );
   const auto ht = g_cfg.get< tag::histout, tag::time >();
   if (ht > eps) m_physHistFloor = std::floor( m_t / ht );
-  const auto it = g_cfg.get< tag::integout_time >();
+  const auto it = g_cfg.get< tag::integout, tag::time >();
   if (it > eps) m_physIntegFloor = std::floor( m_t / it );
 
   // Update floors of physics time divided by output interval times for ranges
@@ -620,7 +620,7 @@ Discretization::next()
     }
   }
 
-  const auto& ri = g_cfg.get< tag::integout_range >();
+  const auto& ri = g_cfg.get< tag::integout, tag::range >();
   for (std::size_t i=0; i<ri.size(); ++i) {
     if (m_t > ri[i][0] and m_t < ri[i][1]) {
       m_rangeIntegFloor[i] = std::floor( m_t / ri[i][2] );
@@ -787,7 +787,7 @@ Discretization::histiter() const
   if (g_cfg.get< tag::benchmark >()) return false;
 
   auto hist = g_cfg.get< tag::histout, tag::iter >();
-  const auto& hist_points = g_cfg.get< tag::histout, tag::point >();
+  const auto& hist_points = g_cfg.get< tag::histout, tag::points >();
 
   return m_it % hist == 0 and not hist_points.empty();
 }
@@ -841,8 +841,8 @@ Discretization::integiter() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  auto integ = g_cfg.get< tag::integout_iter >();
-  const auto& sidesets_integral = g_cfg.get< tag::integout >();
+  auto integ = g_cfg.get< tag::integout, tag::iter >();
+  const auto& sidesets_integral = g_cfg.get< tag::integout, tag::sidesets >();
 
   return m_it % integ == 0 and not sidesets_integral.empty();
 }
@@ -857,7 +857,7 @@ Discretization::integtime() const
   if (g_cfg.get< tag::benchmark >()) return false;
 
   auto eps = std::numeric_limits< tk::real >::epsilon();
-  auto it = g_cfg.get< tag::integout_time >();
+  auto it = g_cfg.get< tag::integout, tag::time >();
 
   if (it < eps) return false;
 
@@ -877,7 +877,7 @@ Discretization::integrange() const
 
   bool output = false;
 
-  const auto& ri = g_cfg.get< tag::integout_range >();
+  const auto& ri = g_cfg.get< tag::integout, tag::range >();
   for (std::size_t i=0; i<ri.size(); ++i) {
     if (m_t > ri[i][0] and m_t < ri[i][1]) {
       output |= std::floor(m_t/ri[i][2]) - m_rangeIntegFloor[i] > eps;

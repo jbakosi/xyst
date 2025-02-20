@@ -512,7 +512,7 @@ ChoCG::setup( tk::real v )
   problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
-  if (!g_cfg.get< tag::histout, tag::point >().empty()) {
+  if (!g_cfg.get< tag::histout, tag::points >().empty()) {
     std::vector< std::string > var
       {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
     auto ncomp = m_u.nprop();
@@ -577,7 +577,7 @@ ChoCG::streamable()
 {
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
-  const auto& is = g_cfg.get< tag::integout >();
+  const auto& is = g_cfg.get< tag::integout, tag::sidesets >();
   std::set< int > outsets( begin(is), end(is) );
   for (auto s : outsets) {
     auto m = m_bface.find(s);
@@ -1919,7 +1919,7 @@ ChoCG::writeFields( CkCallback cb )
   std::vector< std::string > nodesurfnames;
   std::vector< std::vector< tk::real > > nodesurfs;
 
-  const auto& f = g_cfg.get< tag::fieldout, tag::sideset >();
+  const auto& f = g_cfg.get< tag::fieldout, tag::sidesets >();
 
   if (!f.empty()) {
     std::size_t nc = 5;
@@ -2019,7 +2019,7 @@ ChoCG::integrals()
     ints[ DT ][ 0 ] = d->Dt();
 
     // Compute integrals requested for surfaces requested
-    const auto& reqv = g_cfg.get< tag::integout_integrals >();
+    const auto& reqv = g_cfg.get< tag::integout, tag::integrals >();
     std::unordered_set< std::string > req( begin(reqv), end(reqv) );
     if (req.count("mass_flow_rate")) {
       for (const auto& [s,sint] : m_surfint) {

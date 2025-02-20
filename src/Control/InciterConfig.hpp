@@ -92,22 +92,17 @@ DEFTAG( radius );
 DEFTAG( release_time );
 DEFTAG( freezeflow );
 DEFTAG( freezetime );
-DEFTAG( sideset );
 DEFTAG( fieldout );
+DEFTAG( histout );
+DEFTAG( integout );
 DEFTAG( iter );
 DEFTAG( time );
 DEFTAG( range );
-DEFTAG( histout );
-DEFTAG( point );
+DEFTAG( sidesets );
+DEFTAG( points );
+DEFTAG( integrals );
 DEFTAG( precision );
 DEFTAG( format );
-DEFTAG( integout );
-DEFTAG( integout_iter );
-DEFTAG( integout_time );
-DEFTAG( integout_range );
-DEFTAG( integout_precision );
-DEFTAG( integout_format );
-DEFTAG( integout_integrals );
 DEFTAG( ic );
 DEFTAG( ic_ );
 DEFTAG( density );
@@ -237,26 +232,28 @@ using ConfigMembers = brigand::list<
   , tag::freezeflow, double
   , tag::freezetime, double
   , tag::fieldout, tk::TaggedTuple< brigand::list<
-                     tag::sideset, std::vector< int >
-                   , tag::iter,    uint64_t
-                   , tag::time,    double
-                   , tag::range,   std::vector< std::vector< double > >
+                     tag::sidesets, std::vector< int >
+                   , tag::iter,     uint64_t
+                   , tag::time,     double
+                   , tag::range,    std::vector< std::vector< double > >
                    > >
   , tag::histout, tk::TaggedTuple< brigand::list<
-                    tag::point,     std::vector< std::vector< double > >
+                    tag::points,    std::vector< std::vector< double > >
                   , tag::iter,      uint64_t
                   , tag::time,      double
                   , tag::range,     std::vector< std::vector< double > >
                   , tag::precision, std::streamsize
                   , tag::format,    std::string
                   > >
-  , tag::integout, std::vector< int >
-  , tag::integout_iter, uint64_t
-  , tag::integout_time, double
-  , tag::integout_range, std::vector< std::vector< double > >
-  , tag::integout_precision, std::streamsize
-  , tag::integout_format, std::string
-  , tag::integout_integrals, std::vector< std::string >
+  , tag::integout, tk::TaggedTuple< brigand::list<
+                    tag::sidesets, std::vector< int >
+                  , tag::integrals, std::vector< std::string >
+                  , tag::iter, uint64_t
+                  , tag::time, double
+                  , tag::range, std::vector< std::vector< double > >
+                  , tag::precision, std::streamsize
+                  , tag::format, std::string
+                  > >
   , tag::ic, tk::TaggedTuple< brigand::list<
                tag::density,     double
              , tag::pressure,    double

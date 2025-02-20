@@ -160,9 +160,9 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd,
   for (auto s : g_cfg.get< tag::pre_bc_sym >()) usersets.insert( s );
 
   // Add sidesets requested for field output
-  for (auto s : g_cfg.get< tag::fieldout, tag::sideset >()) usersets.insert(s);
+  for (auto s : g_cfg.get< tag::fieldout, tag::sidesets >()) usersets.insert(s);
   // Add sidesets requested for integral output
-  for (auto s : g_cfg.get< tag::integout >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::integout, tag::sidesets >()) usersets.insert(s);
 
   // Find user-configured side set ids among side sets read from mesh file
   std::unordered_set< int > sidesets_used;
@@ -941,18 +941,19 @@ Transporter::integralsHeader()
 // Configure and write integrals file header
 // *****************************************************************************
 {
-  const auto& sidesets_integral = g_cfg.get< tag::integout >();
+  const auto& ti = g_cfg.get< tag::integout >();
+  const auto& sidesets_integral = ti.get< tag::sidesets  >();
 
   if (sidesets_integral.empty()) return;
 
   auto filename = g_cfg.get< tag::output >() + ".int";
   tk::DiagWriter dw( filename,
-                     g_cfg.get< tag::integout_format >(),
-                     g_cfg.get< tag::integout_precision >() );
+                     ti.get< tag::format >(),
+                     ti.get< tag::precision >() );
 
   // Collect variables names for integral output
   std::vector< std::string > var;
-  const auto& reqv = g_cfg.get< tag::integout_integrals >();
+  const auto& reqv = ti.get< tag::integrals >();
   std::unordered_set< std::string > req( begin(reqv), end(reqv) );
   for (auto s : sidesets_integral) {
     if (req.count( "mass_flow_rate" )) {
@@ -1575,7 +1576,8 @@ Transporter::integrals( CkReductionMsg* msg )
   creator | d;
   delete msg;
 
-  const auto& sidesets_integral = g_cfg.get< tag::integout >();
+  const auto& ti = g_cfg.get< tag::integout >();
+  const auto& sidesets_integral = ti.get< tag::sidesets >();
   // cppcheck-suppress
   if (not sidesets_integral.empty()) {
 
@@ -1591,8 +1593,8 @@ Transporter::integrals( CkReductionMsg* msg )
     // Append integrals file at selected times
     auto filename = g_cfg.get< tag::output >() + ".int";
     tk::DiagWriter dw( filename,
-                       g_cfg.get< tag::integout_format >(),
-                       g_cfg.get< tag::integout_precision >(),
+                       ti.get< tag::format >(),
+                       ti.get< tag::precision >(),
                        std::ios_base::app );
     // cppcheck-suppress containerOutOfBounds
     dw.write( static_cast<uint64_t>(tk::cref_find( d[ITER], 0 )),

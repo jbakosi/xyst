@@ -92,10 +92,11 @@ DEFTAG( radius );
 DEFTAG( release_time );
 DEFTAG( freezeflow );
 DEFTAG( freezetime );
+DEFTAG( sideset );
 DEFTAG( fieldout );
-DEFTAG( fieldout_iter );
-DEFTAG( fieldout_time );
-DEFTAG( fieldout_range );
+DEFTAG( iter );
+DEFTAG( time );
+DEFTAG( range );
 DEFTAG( histout );
 DEFTAG( histout_iter );
 DEFTAG( histout_time );
@@ -237,10 +238,12 @@ using ConfigMembers = brigand::list<
                       > >
   , tag::freezeflow, double
   , tag::freezetime, double
-  , tag::fieldout, std::vector< int >
-  , tag::fieldout_iter, uint64_t
-  , tag::fieldout_time, double
-  , tag::fieldout_range, std::vector< std::vector< double > >
+  , tag::fieldout, tk::TaggedTuple< brigand::list<
+                     tag::sideset, std::vector< int >
+                   , tag::iter,    uint64_t
+                   , tag::time,    double
+                   , tag::range,   std::vector< std::vector< double > >
+                   > >
   , tag::histout, std::vector< std::vector< double > >
   , tag::histout_iter, uint64_t
   , tag::histout_time, double

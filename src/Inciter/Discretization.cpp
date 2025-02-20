@@ -53,7 +53,7 @@ Discretization::Discretization(
   m_physFieldFloor( 0.0 ),
   m_physHistFloor( 0.0 ),
   m_physIntegFloor( 0.0 ),
-  m_rangeFieldFloor( g_cfg.get< tag::fieldout_range >().size(), 0.0 ),
+  m_rangeFieldFloor( g_cfg.get< tag::fieldout, tag::range >().size(), 0.0 ),
   m_rangeHistFloor( g_cfg.get< tag::histout_range >().size(), 0.0 ),
   m_rangeIntegFloor( g_cfg.get< tag::integout_range >().size(), 0.0 ),
   m_dt( g_cfg.get< tag::dt >() ),
@@ -564,7 +564,7 @@ Discretization::write(
     fieldoutput = true;
   }
 
-  const auto& f = g_cfg.get< tag::fieldout >();
+  const auto& f = g_cfg.get< tag::fieldout, tag::sideset >();
   std::set< int > outsets( begin(f), end(f) );
 
   m_meshwriter[ CkNodeFirst( CkMyNode() ) ].
@@ -598,7 +598,7 @@ Discretization::next()
 {
   // Update floor of physics time divided by output interval times
   const auto eps = std::numeric_limits< tk::real >::epsilon();
-  const auto ft = g_cfg.get< tag::fieldout_time >();
+  const auto ft = g_cfg.get< tag::fieldout, tag::time >();
   if (ft > eps) m_physFieldFloor = std::floor( m_t / ft );
   const auto ht = g_cfg.get< tag::histout_time >();
   if (ht > eps) m_physHistFloor = std::floor( m_t / ht );
@@ -606,7 +606,7 @@ Discretization::next()
   if (it > eps) m_physIntegFloor = std::floor( m_t / it );
 
   // Update floors of physics time divided by output interval times for ranges
-  const auto& rf = g_cfg.get< tag::fieldout_range >();
+  const auto& rf = g_cfg.get< tag::fieldout, tag::range >();
   for (std::size_t i=0; i<rf.size(); ++i) {
     if (m_t > rf[i][0] and m_t < rf[i][1]) {
       m_rangeFieldFloor[i] = std::floor( m_t / rf[i][2] );
@@ -734,7 +734,7 @@ Discretization::fielditer() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  return m_it % g_cfg.get< tag::fieldout_iter >() == 0;
+  return m_it % g_cfg.get< tag::fieldout, tag::iter >() == 0;
 }
 
 bool
@@ -747,7 +747,7 @@ Discretization::fieldtime() const
   if (g_cfg.get< tag::benchmark >()) return false;
 
   auto eps = std::numeric_limits< tk::real >::epsilon();
-  auto ft = g_cfg.get< tag::fieldout_time >();
+  auto ft = g_cfg.get< tag::fieldout, tag::time >();
 
   if (ft < eps) return false;
 
@@ -767,7 +767,7 @@ Discretization::fieldrange() const
 
   bool output = false;
 
-  const auto& rf = g_cfg.get< tag::fieldout_range >();
+  const auto& rf = g_cfg.get< tag::fieldout, tag::range >();
   for (std::size_t i=0; i<rf.size(); ++i) {
     if (m_t > rf[i][0] and m_t < rf[i][1]) {
       output |= std::floor(m_t/rf[i][2]) - m_rangeFieldFloor[i] > eps;

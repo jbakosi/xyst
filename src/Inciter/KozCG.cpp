@@ -1393,7 +1393,7 @@ KozCG::writeFields( CkCallback cb )
   std::vector< std::string > nodesurfnames;
   std::vector< std::vector< tk::real > > nodesurfs;
 
-  const auto& f = g_cfg.get< tag::fieldout >();
+  const auto& f = g_cfg.get< tag::fieldout, tag::sideset >();
 
   if (!f.empty()) {
     nodesurfnames.push_back( "density" );

@@ -555,10 +555,11 @@ fieldout( lua_State* L, Config& cfg )
 {
   lua_getglobal( L, "fieldout" );
 
-  cfg.get< tag::fieldout_iter >() = unsigint( L, "iter" );
-  cfg.get< tag::fieldout_time >() = real( L, "time" );
-  cfg.get< tag::fieldout_range >() = range( L );
-  cfg.get< tag::fieldout >() = sideset( L );
+  auto& tf = cfg.get< tag::fieldout >();
+  tf.get< tag::sideset >() = sideset( L );
+  tf.get< tag::iter >() = unsigint( L, "iter" );
+  tf.get< tag::time >() = real( L, "time" );
+  tf.get< tag::range >() = range( L );
 
   lua_pop( L, 1 );
 }

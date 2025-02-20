@@ -160,7 +160,7 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd,
   for (auto s : g_cfg.get< tag::pre_bc_sym >()) usersets.insert( s );
 
   // Add sidesets requested for field output
-  for (auto s : g_cfg.get< tag::fieldout >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::fieldout, tag::sideset >()) usersets.insert(s);
   // Add sidesets requested for integral output
   for (auto s : g_cfg.get< tag::integout >()) usersets.insert( s );
 
@@ -170,8 +170,8 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd,
     if (bnd.find(i) != end(bnd))  // used set found among side sets in file
       sidesets_used.insert( i );  // store side set id configured as BC
     else {
-      Throw( "Boundary conditions specified on side set " + std::to_string(i) +
-             " which does not exist in mesh file '" + filename + "'" );
+      Throw( "Side set " + std::to_string(i) + " referred to in control file "
+             " but does not exist in mesh file '" + filename + "'" );
     }
   }
  

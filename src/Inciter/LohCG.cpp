@@ -305,7 +305,8 @@ LohCG::feop()
   // Prepare Dirichlet boundary conditions data structures
   setupDirBC( g_cfg.get< tag::bc_dir >(), g_cfg.get< tag::bc_dirval >(),
               m_u.nprop(), m_dirbcmask, m_dirbcval );
-  setupDirBC( g_cfg.get< tag::pre_bc_dir >(), g_cfg.get< tag::pre_bc_dirval >(),
+  const auto& tp = g_cfg.get< tag::pressure >();
+  setupDirBC( tp.get< tag::bc_dir >(), tp.get< tag::bc_dirval >(),
               1, m_dirbcmaskp, m_dirbcvalp );
 
   // Compute local contributions to boundary normals and integrals
@@ -1029,6 +1030,7 @@ LohCG::pinit()
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
+  const auto& tp = g_cfg.get< tag::pressure >();
 
   // Combine own and communicated contributions to velocity divergence
   for (const auto& [g,r] : m_divc) m_div[ tk::cref_find(lid,g) ] += r;
@@ -1037,7 +1039,7 @@ LohCG::pinit()
   // Configure Dirichlet BCs
   std::unordered_map< std::size_t,
     std::vector< std::pair< int, tk::real > > > dirbc;
-  if (!g_cfg.get< tag::pre_bc_dir >().empty()) {
+  if (!tp.get< tag::bc_dir >().empty()) {
     auto ic = problems::PRESSURE_IC();
     std::size_t nmask = 1 + 1;
     Assert( m_dirbcmaskp.size() % nmask == 0, "Size mismatch" );
@@ -1060,7 +1062,7 @@ LohCG::pinit()
   if (pg) {
     // Collect Neumann BC elements
     std::vector< std::uint8_t > besym( m_triinpoel.size(), 0 );
-    for (auto s : g_cfg.get< tag::pre_bc_sym >()) {
+    for (auto s : tp.get< tag::bc_sym >()) {
       auto k = m_bface.find(s);
       if (k != end(m_bface)) for (auto f : k->second) besym[f] = 1;
     }
@@ -1084,7 +1086,7 @@ LohCG::pinit()
   }
 
   // Set hydrostat
-  auto h = g_cfg.get< tag::pre_hydrostat >();
+  auto h = tp.get< tag::hydrostat >();
   if (h != std::numeric_limits< uint64_t >::max()) {
     auto pi = lid.find( h );
     if (pi != end(lid)) {
@@ -1106,7 +1108,7 @@ LohCG::pinit()
   }
 
   // Initialize Poisson solve
-  const auto& pc = g_cfg.get< tag::pre_pc >();
+  const auto& pc = tp.get< tag::pc >();
   m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, true, pc,
     CkCallback( CkIndex_LohCG::psolve(), thisProxy[thisIndex] ) );
 }
@@ -1117,9 +1119,10 @@ LohCG::psolve()
 //  Solve Poisson equation
 // *****************************************************************************
 {
-  auto iter = g_cfg.get< tag::pre_iter >();
-  auto tol = g_cfg.get< tag::pre_tol >();
-  auto verbose = g_cfg.get< tag::pre_verbose >();
+  const auto& tp = g_cfg.get< tag::pressure >();
+  auto iter = tp.get< tag::iter >();
+  auto tol = tp.get< tag::tol >();
+  auto verbose = tp.get< tag::verbose >();
 
   auto c = m_np != 1 ?
            CkCallback( CkIndex_LohCG::sgrad(), thisProxy[thisIndex] ) :

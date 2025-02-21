@@ -1226,14 +1226,15 @@ pressure( lua_State* L, Config& cfg )
 {
   lua_getglobal( L, "pressure" );
 
-  cfg.get< tag::pre_iter >() = unsigint( L, "iter", 10 );
-  cfg.get< tag::pre_tol >() = real( L, "tol", 1.0e-3 );
-  cfg.get< tag::pre_verbose >() = unsigint( L, "verbose", 0 );
-  cfg.get< tag::pre_hydrostat >() = unsigint( L, "hydrostat" );
-  cfg.get< tag::pre_pc >() = string( L, "pc", "none" );
-  bc_dir( L, cfg.get< tag::pre_bc_dir >() );
-  bc_dirval( L, cfg.get< tag::pre_bc_dirval >() );
-  bc_sym( L, cfg.get< tag::pre_bc_sym >() );
+  auto& tp = cfg.get< tag::pressure >();
+  tp.get< tag::iter >() = unsigint( L, "iter", 10 );
+  tp.get< tag::tol >() = real( L, "tol", 1.0e-3 );
+  tp.get< tag::verbose >() = unsigint( L, "verbose", 0 );
+  tp.get< tag::hydrostat >() = unsigint( L, "hydrostat" );
+  tp.get< tag::pc >() = string( L, "pc", "none" );
+  bc_dir( L, tp.get< tag::bc_dir >() );
+  bc_dirval( L, tp.get< tag::bc_dirval >() );
+  bc_sym( L, tp.get< tag::bc_sym >() );
 
   lua_pop( L, 1 );
 }

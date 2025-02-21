@@ -84,7 +84,7 @@ dirbcp( tk::Fields& U,
 //! \param[in] dirbcvalp Nodes and component values for Dirichlet BCs
 // *****************************************************************************
 {
-  if (g_cfg.get< tag::pre_bc_dir >().empty()) return;
+  if (g_cfg.get< tag::pressure, tag::bc_dir >().empty()) return;
 
   std::size_t nmask = 1 + 1;
 

@@ -153,11 +153,11 @@ Transporter::matchsets( std::map< int, std::vector< std::size_t > >& bnd,
     if (!s.empty()) usersets.insert( s[0] );
   }
  
-  for (const auto& s : g_cfg.get< tag::pre_bc_dir >()) {
+  for (const auto& s : g_cfg.get< tag::pressure, tag::bc_dir >()) {
     if (!s.empty()) usersets.insert( s[0] );
   }
 
-  for (auto s : g_cfg.get< tag::pre_bc_sym >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::pressure, tag::bc_sym >()) usersets.insert( s );
 
   // Add sidesets requested for field output
   for (auto s : g_cfg.get< tag::fieldout, tag::sidesets >()) usersets.insert(s);

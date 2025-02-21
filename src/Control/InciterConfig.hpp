@@ -44,14 +44,11 @@ DEFTAG( dt );
 DEFTAG( turkel );
 DEFTAG( soundspeed );
 DEFTAG( velinf );
-DEFTAG( pre_iter );
-DEFTAG( pre_tol );
-DEFTAG( pre_verbose );
-DEFTAG( pre_hydrostat );
-DEFTAG( pre_pc );
-DEFTAG( pre_bc_dir );
-DEFTAG( pre_bc_dirval );
-DEFTAG( pre_bc_sym );
+DEFTAG( presure );
+DEFTAG( tol );
+DEFTAG( verbose );
+DEFTAG( hydrostat );
+DEFTAG( pc );
 DEFTAG( mom_iter );
 DEFTAG( mom_tol );
 DEFTAG( mom_verbose );
@@ -183,14 +180,16 @@ using ConfigMembers = brigand::list<
   , tag::turkel, double
   , tag::soundspeed, double
   , tag::velinf, std::vector< double >
-  , tag::pre_iter, uint64_t
-  , tag::pre_tol, double
-  , tag::pre_verbose, uint64_t
-  , tag::pre_hydrostat, uint64_t
-  , tag::pre_pc, std::string
-  , tag::pre_bc_dir, std::vector< std::vector< int > >
-  , tag::pre_bc_dirval, std::vector< std::vector< double > >
-  , tag::pre_bc_sym, std::vector< int >
+  , tag::pressure, tk::TaggedTuple< brigand::list<
+                     tag::iter,      uint64_t
+                   , tag::tol,       double
+                   , tag::verbose,   uint64_t
+                   , tag::hydrostat, uint64_t
+                   , tag::pc,        std::string
+                   , tag::bc_dir,    std::vector< std::vector< int > >
+                   , tag::bc_dirval, std::vector< std::vector< double > >
+                   , tag::bc_sym,    std::vector< int >
+                   > >
   , tag::mom_iter, uint64_t
   , tag::mom_tol, double
   , tag::mom_verbose, uint64_t

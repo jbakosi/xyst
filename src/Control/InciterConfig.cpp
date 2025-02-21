@@ -1219,7 +1219,7 @@ deactivate( lua_State* L, Config& cfg )
 static void
 pressure( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse pressure table
+// Parse pressure table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
@@ -1237,6 +1237,41 @@ pressure( lua_State* L, Config& cfg )
   bc_sym( L, tp.get< tag::bc_sym >() );
 
   lua_pop( L, 1 );
+}
+
+static void
+pressure_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse pressure table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "pressure_";
+  auto& tp = cfg.get< tag::pressure_ >();
+  tp.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& tpk = tp[k];
+    tpk.get< tag::iter >() = unsigint( L, "iter", 10 );
+    tpk.get< tag::tol >() = real( L, "tol", 1.0e-3 );
+    tpk.get< tag::verbose >() = unsigint( L, "verbose", 0 );
+    tpk.get< tag::hydrostat >() = unsigint( L, "hydrostat" );
+    tpk.get< tag::pc >() = string( L, "pc", "none" );
+    bc_dir( L, tpk.get< tag::bc_dir >() );
+    bc_dirval( L, tpk.get< tag::bc_dirval >() );
+    bc_sym( L, tpk.get< tag::bc_sym >() );
+
+    lua_pop( L, 1 );
+
+  }
 }
 
 static void
@@ -1341,6 +1376,7 @@ Config::control()
     href( L, *this );
     deactivate( L, *this );
     pressure( L, *this );
+    pressure_( L, *this );
     momentum( L, *this );
     lb( L, *this );
 

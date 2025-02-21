@@ -105,6 +105,7 @@ DEFTAG( ic );
 DEFTAG( ic_ );
 DEFTAG( density );
 DEFTAG( pressure );
+DEFTAG( pressure_ );
 DEFTAG( energy );
 DEFTAG( temperature );
 DEFTAG( velocity );
@@ -190,6 +191,18 @@ using ConfigMembers = brigand::list<
                    , tag::bc_dirval, std::vector< std::vector< double > >
                    , tag::bc_sym,    std::vector< int >
                    > >
+  , tag::pressure_, std::vector<
+                      tk::TaggedTuple< brigand::list<
+                        tag::iter,      uint64_t
+                      , tag::tol,       double
+                      , tag::verbose,   uint64_t
+                      , tag::hydrostat, uint64_t
+                      , tag::pc,        std::string
+                      , tag::bc_dir,    std::vector< std::vector< int > >
+                      , tag::bc_dirval, std::vector< std::vector< double > >
+                      , tag::bc_sym,    std::vector< int >
+                      > >
+                    >
   , tag::mom_iter, uint64_t
   , tag::mom_tol, double
   , tag::mom_verbose, uint64_t

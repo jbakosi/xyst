@@ -548,7 +548,7 @@ range( lua_State* L, bool global = false )
 static void
 fieldout( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse fieldout table
+// Parse fieldout table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
@@ -562,6 +562,37 @@ fieldout( lua_State* L, Config& cfg )
   tf.get< tag::range >() = range( L );
 
   lua_pop( L, 1 );
+}
+
+static void
+fieldout_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse fieldout table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "fieldout_";
+  auto& tf = cfg.get< tag::fieldout_ >();
+  tf.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& tfk = tf[k];
+    tfk.get< tag::sidesets >() = sideset( L );
+    tfk.get< tag::iter >() = unsigint( L, "iter" );
+    tfk.get< tag::time >() = real( L, "time" );
+    tfk.get< tag::range >() = range( L );
+
+    lua_pop( L, 1 );
+
+  }
 }
 
 static void
@@ -1302,6 +1333,7 @@ Config::control()
     problem( L, *this );
     mat( L, *this );
     fieldout( L, *this );
+    fieldout_( L, *this );
     histout( L, *this );
     integout( L, *this );
     diag( L, *this );

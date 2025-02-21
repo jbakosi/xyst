@@ -93,6 +93,7 @@ DEFTAG( release_time );
 DEFTAG( freezeflow );
 DEFTAG( freezetime );
 DEFTAG( fieldout );
+DEFTAG( fieldout_ );
 DEFTAG( histout );
 DEFTAG( integout );
 DEFTAG( iter );
@@ -237,6 +238,14 @@ using ConfigMembers = brigand::list<
                    , tag::time,     double
                    , tag::range,    std::vector< std::vector< double > >
                    > >
+  , tag::fieldout_, std::vector<
+                      tk::TaggedTuple< brigand::list<
+                        tag::sidesets, std::vector< int >
+                      , tag::iter,     uint64_t
+                      , tag::time,     double
+                      , tag::range,    std::vector< std::vector< double > >
+                      > >
+                    >
   , tag::histout, tk::TaggedTuple< brigand::list<
                     tag::points,    std::vector< std::vector< double > >
                   , tag::iter,      uint64_t

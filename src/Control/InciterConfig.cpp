@@ -567,7 +567,7 @@ fieldout( lua_State* L, Config& cfg )
 static void
 fieldout_( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse fieldout table from global scope for multiple meshes
+// Parse fieldout_* table from global scope for multiple meshes
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
@@ -598,7 +598,7 @@ fieldout_( lua_State* L, Config& cfg )
 static void
 histout( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse histout table
+// Parse histout table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
@@ -637,6 +637,63 @@ histout( lua_State* L, Config& cfg )
   }
 
   lua_pop( L, 1 );
+}
+
+static void
+histout_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse histout_* table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "histout_";
+  auto& th = cfg.get< tag::histout_ >();
+  th.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& thk = th[k];
+
+    thk.get< tag::iter >() = unsigint( L, "iter" );
+    thk.get< tag::time >() = real( L, "time" );
+    thk.get< tag::range >() = range( L );
+    thk.get< tag::precision >() = sigint( L, "precision", 8 );
+    thk.get< tag::format >() = string( L, "format" );
+
+    if (lua_istable( L, -1 )) {
+      lua_getfield( L, -1, "points" );
+      if (!lua_isnil( L, -1 )) {
+        ErrChk( lua_istable( L, -1 ), "histout points must be a table" );
+        auto& r = thk.get< tag::points >();
+        int64_t n = luaL_len( L, -1 );
+        for (int64_t i=1; i<=n; ++i) {
+          lua_geti( L, -1, i );
+          ErrChk( lua_istable( L, -1 ), "histout point must be a table" );
+          r.emplace_back();
+          auto& p = r.back();
+          int64_t m = luaL_len( L, -1 );
+          for (int64_t j=1; j<=m; ++j) {
+            lua_geti( L, -1, j );
+            ErrChk( lua_isnumber(L,-1), "point coordinate must be a number" );
+            p.push_back( lua_tonumber( L, -1 ) );
+            lua_pop( L, 1 );
+          }
+          lua_pop( L, 1 );
+        }
+      }
+      lua_pop( L, 1 );
+    }
+
+    lua_pop( L, 1 );
+
+  }
 }
 
 static void
@@ -1242,7 +1299,7 @@ pressure( lua_State* L, Config& cfg )
 static void
 pressure_( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse pressure table from global scope for multiple meshes
+// Parse pressure_* table from global scope for multiple meshes
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
@@ -1371,6 +1428,7 @@ Config::control()
     fieldout( L, *this );
     fieldout_( L, *this );
     histout( L, *this );
+    histout_( L, *this );
     integout( L, *this );
     diag( L, *this );
     href( L, *this );

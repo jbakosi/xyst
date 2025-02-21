@@ -118,10 +118,10 @@ Transporter::Transporter( CkMigrateMessage* m ) :
 }
 
 bool
-Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd,
-                       const std::string& filename )
+Transporter::matchsets( std::map< int, std::vector< std::size_t > >& bnd,
+                        const std::string& filename )
 // *****************************************************************************
-// Verify that side sets specified in the control file exist in mesh file
+// Verify that side sets referred to in the control file exist in mesh file
 //! \param[in,out] bnd Node or face lists mapped to side set ids
 //! \param[in] filename Mesh file name whose BCs are processed
 //! \details This function does two things: (1) it verifies that the side
@@ -247,9 +247,9 @@ Transporter::createPartitioner()
     bool bcs_set = false;
     // Read node lists on side sets
     bnode = mr.readSidesetNodes();
-    // Verify boundarty condition (BC) side sets used exist in mesh file
-    bcs_set = matchBCs( bnode, filename );
-    bcs_set = bcs_set || matchBCs( bface, filename );
+    // Verify that side sets referred to in the control file exist in mesh file
+    bcs_set = matchsets( bnode, filename );
+    bcs_set = bcs_set || matchsets( bface, filename );
 
     // Warn on no BCs
     if (!bcs_set) print << "\n>>> WARNING: No boundary conditions set\n\n";

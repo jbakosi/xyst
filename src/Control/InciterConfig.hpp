@@ -128,12 +128,9 @@ DEFTAG( bc_sym_ );
 DEFTAG( bc_noslip );
 DEFTAG( bc_noslip_ );
 DEFTAG( bc_far );
-DEFTAG( bc_far_density );
-DEFTAG( bc_far_pressure );
-DEFTAG( bc_far_velocity );
+DEFTAG( bc_far_ );
 DEFTAG( bc_pre );
-DEFTAG( bc_pre_density );
-DEFTAG( bc_pre_pressure );
+DEFTAG( bc_pre_ );
 DEFTAG( mat_spec_heat_ratio );
 DEFTAG( mat_spec_heat_const_vol );
 DEFTAG( mat_spec_gas_const );
@@ -345,13 +342,32 @@ using ConfigMembers = brigand::list<
   , tag::bc_sym_, std::vector< std::vector< int > >
   , tag::bc_noslip, std::vector< int >
   , tag::bc_noslip_, std::vector< std::vector< int > >
-  , tag::bc_far, std::vector< int >
-  , tag::bc_far_density, double
-  , tag::bc_far_pressure, double
-  , tag::bc_far_velocity, std::vector< double >
-  , tag::bc_pre, std::vector< std::vector< int > >
-  , tag::bc_pre_density, std::vector< double >
-  , tag::bc_pre_pressure, std::vector< double >
+  , tag::bc_far, tk::TaggedTuple< brigand::list<
+                     tag::sidesets, std::vector< int >
+                   , tag::density,  double
+                   , tag::pressure, double
+                   , tag::velocity, std::vector< double >
+                 > >
+  , tag::bc_far_, std::vector<
+                    tk::TaggedTuple< brigand::list<
+                      tag::sidesets, std::vector< int >
+                    , tag::density,  double
+                    , tag::pressure, double
+                    , tag::velocity, std::vector< double >
+                    > >
+                  >
+  , tag::bc_pre, tk::TaggedTuple< brigand::list<
+                   tag::sidesets, std::vector< std::vector< int > >
+                 , tag::density,  std::vector< double >
+                 , tag::pressure, std::vector< double >
+                 > >
+  , tag::bc_pre_, std::vector<
+                    tk::TaggedTuple< brigand::list<
+                      tag::sidesets, std::vector< std::vector< int > >
+                    , tag::density,  std::vector< double >
+                    , tag::pressure, std::vector< double >
+                    > >
+                  >
   , tag::mat_spec_heat_ratio, double
   , tag::mat_spec_heat_const_vol, double
   , tag::mat_spec_gas_const, double

@@ -139,29 +139,27 @@ Transporter::matchsets( std::map< int, std::vector< std::size_t > >& bnd,
 {
   std::unordered_set< int > usersets;
 
-  // Collect side sets at which BCs are set
+  // Collect side sets referred to
 
   for (const auto& s : g_cfg.get< tag::bc_dir >()) {
-    if (!s.empty()) usersets.insert( s[0] );
+    if (!s.empty()) usersets.insert(s[0]);
   }
 
-  for (auto s : g_cfg.get< tag::bc_sym >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::bc_sym >()) usersets.insert(s);
 
-  for (auto s : g_cfg.get< tag::bc_far >()) usersets.insert( s );
- 
-  for (const auto& s : g_cfg.get< tag::bc_pre >()) {
-    if (!s.empty()) usersets.insert( s[0] );
+  for (auto s : g_cfg.get< tag::bc_far, tag::sidesets >()) usersets.insert(s);
+
+  for (const auto& s : g_cfg.get< tag::bc_pre, tag::sidesets >()) {
+    if (!s.empty()) usersets.insert(s[0]);
   }
- 
+
   for (const auto& s : g_cfg.get< tag::pressure, tag::bc_dir >()) {
-    if (!s.empty()) usersets.insert( s[0] );
+    if (!s.empty()) usersets.insert(s[0]);
   }
 
-  for (auto s : g_cfg.get< tag::pressure, tag::bc_sym >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::pressure, tag::bc_sym >()) usersets.insert(s);
 
-  // Add sidesets requested for field output
   for (auto s : g_cfg.get< tag::fieldout, tag::sidesets >()) usersets.insert(s);
-  // Add sidesets requested for integral output
   for (auto s : g_cfg.get< tag::integout, tag::sidesets >()) usersets.insert(s);
 
   // Find user-configured side set ids among side sets read from mesh file
@@ -175,6 +173,83 @@ Transporter::matchsets( std::map< int, std::vector< std::size_t > >& bnd,
     }
   }
  
+  // Remove sidesets not used (will not process those further)
+  tk::erase_if( bnd, [&]( auto& item ) {
+    return sidesets_used.find( item.first ) == end(sidesets_used);
+  });
+
+  return not bnd.empty();
+}
+
+bool
+Transporter::matchsets_multi( std::map< int, std::vector< std::size_t > >& bnd,
+                              const std::string& filename,
+                              std::size_t meshid )
+// *****************************************************************************
+// Verify that side sets referred to in the control file exist in mesh file
+//! \note Multi-mesh version, used with overset methods.
+//! \param[in,out] bnd Node or face lists mapped to side set ids
+//! \param[in] filename Mesh file name whose BCs are processed
+//! \details This function does two things: (1) it verifies that the side
+//!   sets used in the input file (either to which boundary conditions (BC)
+//!   are assigned or listed as field output by the user in the
+//!   input file) all exist among the side sets read from the input mesh
+//!   file and errors out if at least one does not, and (2) it matches the
+//!   side set ids at which the user has configured BCs (or listed as an output
+//!   surface) to side set ids read from the mesh file and removes those face
+//!   and node lists associated to side sets that the user did not set BCs or
+//!   listed as field output on (as they will not need processing further since
+//!   they will not be used).
+//! \param[in] meshid Mesh id whose side sets are interrogated
+//! \return True if sidesets have been used and found in mesh
+// *****************************************************************************
+{
+  std::unordered_set< int > usersets;
+
+  // Collect side sets referred to
+
+  for (const auto& s : g_cfg.get< tag::bc_dir_ >()[ meshid ]) {
+    if (!s.empty()) usersets.insert(s[0]);
+  }
+
+  for (auto s : g_cfg.get< tag::bc_sym_ >()[ meshid ]) usersets.insert(s);
+
+  for (auto s : g_cfg.get< tag::bc_far_ >()[ meshid ].get< tag::sidesets >()) {
+    usersets.insert(s);
+  }
+
+  for (const auto& s :
+         g_cfg.get< tag::bc_pre_ >()[ meshid ].get< tag::sidesets >())
+  {
+    if (!s.empty()) usersets.insert(s[0]);
+  }
+
+  const auto& tp = g_cfg.get< tag::pressure_ >()[ meshid ];
+  for (const auto& s : tp.get< tag::bc_dir >()) {
+    if (!s.empty()) usersets.insert(s[0]);
+  }
+  for (auto s : tp.get< tag::bc_sym >()) {
+    usersets.insert(s);
+  }
+
+  for (auto s : g_cfg.get< tag::fieldout_ >()[ meshid ].get< tag::sidesets >()){
+    usersets.insert(s);
+  }
+  for (auto s : g_cfg.get< tag::integout_ >()[ meshid ].get< tag::sidesets >()){
+    usersets.insert(s);
+  }
+
+  // Find user-configured side set ids among side sets read from mesh file
+  std::unordered_set< int > sidesets_used;
+  for (auto i : usersets) {       // for all side sets used in control file
+    if (bnd.find(i) != end(bnd))  // used set found among side sets in file
+      sidesets_used.insert( i );  // store side set id configured as BC
+    else {
+      Throw( "Side set " + std::to_string(i) + " referred to in control file "
+             " but does not exist in mesh file '" + filename + "'" );
+    }
+  }
+
   // Remove sidesets not used (will not process those further)
   tk::erase_if( bnd, [&]( auto& item ) {
     return sidesets_used.find( item.first ) == end(sidesets_used);
@@ -230,6 +305,7 @@ Transporter::createPartitioner()
 
   // Read boundary (side set) data from a list of input mesh files
   std::size_t meshid = 0;
+  bool multi = m_input.size() > 1;
   for (const auto& filename : m_input) {
     // Create mesh reader for reading side sets from file
     tk::ExodusIIMeshReader mr( filename );
@@ -248,8 +324,14 @@ Transporter::createPartitioner()
     // Read node lists on side sets
     bnode = mr.readSidesetNodes();
     // Verify that side sets referred to in the control file exist in mesh file
-    bcs_set = matchsets( bnode, filename );
-    bcs_set = bcs_set || matchsets( bface, filename );
+    if (multi) {
+      bcs_set = matchsets_multi( bnode, filename, meshid );
+      bcs_set = bcs_set || matchsets_multi( bface, filename, meshid );
+    }
+    else {
+      bcs_set = matchsets( bnode, filename );
+      bcs_set = bcs_set || matchsets( bface, filename );
+    }
 
     // Warn on no BCs
     if (!bcs_set) print << "\n>>> WARNING: No boundary conditions set\n\n";

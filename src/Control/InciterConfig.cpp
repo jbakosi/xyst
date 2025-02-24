@@ -1022,25 +1022,57 @@ bc_noslip_( lua_State* L,
 static void
 bc_far( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse bc_far table
+// Parse bc_far table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "bc_far" );
 
-  cfg.get< tag::bc_far >() = sideset( L );
-  cfg.get< tag::bc_far_velocity >() = vector( L, "velocity" );
-  cfg.get< tag::bc_far_density >() = real( L, "density" );
-  cfg.get< tag::bc_far_pressure >() = real( L, "pressure" );
+  auto& tf = cfg.get< tag::bc_far >();
+  tf.get< tag::sidesets >() = sideset( L );
+  tf.get< tag::velocity >() = vector( L, "velocity" );
+  tf.get< tag::density >() = real( L, "density" );
+  tf.get< tag::pressure >() = real( L, "pressure" );
 
   lua_pop( L, 1 );
 }
 
 static void
+bc_far_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse bc_far_* table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "bc_far_";
+  auto& tf = cfg.get< tag::bc_far_ >();
+  tf.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& tfk = tf[k];
+    tfk.get< tag::sidesets >() = sideset( L );
+    tfk.get< tag::velocity >() = vector( L, "velocity" );
+    tfk.get< tag::density >() = real( L, "density" );
+    tfk.get< tag::pressure >() = real( L, "pressure" );
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
 bc_pre( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse bc_pre table
+// Parse bc_pre table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
@@ -1052,9 +1084,10 @@ bc_pre( lua_State* L, Config& cfg )
       lua_getfield( L, -1, name );
       if (!lua_isnil( L, -1 )) {
         ErrChk( lua_istable( L, -1 ), "bc_pre must be a table" );
-        cfg.get< tag::bc_pre >().push_back( sideset( L ) );
-        cfg.get< tag::bc_pre_density >().push_back( real(L,"density") );
-        cfg.get< tag::bc_pre_pressure >().push_back( real(L,"pressure") );
+        auto& tb = cfg.get< tag::bc_pre >();
+        tb.get< tag::sidesets >().push_back( sideset( L ) );
+        tb.get< tag::density >().push_back( real(L,"density") );
+        tb.get< tag::pressure >().push_back( real(L,"pressure") );
       }
       lua_pop( L, 1 );
     };
@@ -1064,6 +1097,48 @@ bc_pre( lua_State* L, Config& cfg )
   }
 
   lua_pop( L, 1 );
+}
+
+static void
+bc_pre_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse bc_pre_* table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "bc_pre_";
+  auto& tb = cfg.get< tag::bc_pre_ >();
+  tb.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+    auto& tbk = tb[k];
+
+    if (lua_istable( L, -1 )) {
+      auto bc_pre_set = [&]( const char* n ) {
+        lua_getfield( L, -1, n );
+        if (!lua_isnil( L, -1 )) {
+          ErrChk( lua_istable( L, -1 ), "bc_pre must be a table" );
+          tbk.get< tag::sidesets >().push_back( sideset( L ) );
+          tbk.get< tag::density >().push_back( real(L,"density") );
+          tbk.get< tag::pressure >().push_back( real(L,"pressure") );
+        }
+        lua_pop( L, 1 );
+      };
+
+      bc_pre_set( "inlet" );
+      bc_pre_set( "outlet" );
+    }
+
+    lua_pop( L, 1 );
+
+  }
 }
 
 static void
@@ -1457,7 +1532,9 @@ Config::control()
     bc_noslip( L, get< tag::bc_noslip >(), true );
     bc_noslip_( L, get< tag::bc_noslip_ >(), get< tag::input >().size(), true );
     bc_far( L, *this );
+    bc_far_( L, *this );
     bc_pre( L, *this );
+    bc_pre_( L, *this );
     problem( L, *this );
     mat( L, *this );
     fieldout( L, *this );

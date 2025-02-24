@@ -164,14 +164,15 @@ farbc( tk::Fields& U,
 //! \param[in] farbcnorms Normals at nodes at which to set farfield BCs
 // *****************************************************************************
 {
-  if (g_cfg.get< tag::bc_far >().empty()) return;
+  const auto& tf = g_cfg.get< tag::bc_far >();
+  if (tf.get< tag::sidesets >().empty()) return;
 
   Assert( farbcnodes.size()*3 == farbcnorms.size(), "Size mismatch" );
 
   // cppcheck-suppress unreadVariable
-  tk::real fr = g_cfg.get< tag::bc_far_density >();
+  tk::real fr = tf.get< tag::density >();
 
-  const auto& fue = g_cfg.get< tag::bc_far_velocity >();
+  const auto& fue = tf.get< tag::velocity >();
   ErrChk( !fue.empty(), "No farfield velocity specified" );
   // cppcheck-suppress unreadVariable
   tk::real fu = fue[0];
@@ -180,7 +181,7 @@ farbc( tk::Fields& U,
   // cppcheck-suppress unreadVariable
   tk::real fw = fue[2];
 
-  tk::real fp = g_cfg.get< tag::bc_far_pressure >();
+  tk::real fp = tf.get< tag::pressure >();
 
   for (std::size_t i=0; i<farbcnodes.size(); ++i) {
     auto p  = farbcnodes[i];

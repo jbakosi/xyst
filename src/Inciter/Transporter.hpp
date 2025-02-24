@@ -345,6 +345,11 @@ class Transporter : public CBase_Transporter {
     bool matchsets( std::map< int, std::vector< std::size_t > >& bnd,
                     const std::string& filenamne );
 
+    //! Verify that side sets referred to in the control file exist in mesh file
+    bool matchsets_multi( std::map< int, std::vector< std::size_t > >& bnd,
+                          const std::string& filenamne,
+                          std::size_t meshid );
+
     //! Print out mesh statistics
     void meshstat( const std::string& header ) const;
 };

@@ -148,8 +148,10 @@ ZalCG::setupBC()
   ErrChk( m_dirbcmasks.size() % nmask == 0, "Dirichlet BC masks incomplete" );
 
   // Query pressure BC nodes associated to side sets
+  const auto& pbc = g_cfg.get< tag::bc_pre >();
+  const auto& pbc_sets = pbc.get< tag::sidesets >();
   std::unordered_map< int, std::unordered_set< std::size_t > > pre;
-  for (const auto& ss : g_cfg.get< tag::bc_pre >()) {
+  for (const auto& ss : pbc_sets) {
     for (const auto& s : ss) {
       auto k = m_bface.find(s);
       if (k != end(m_bface)) {
@@ -165,7 +167,7 @@ ZalCG::setupBC()
   }
 
   // Augment Pressure BC nodes with nodes not necessarily part of faces
-  for (const auto& s : g_cfg.get< tag::bc_pre >()) {
+  for (const auto& s : pbc_sets) {
     auto k = m_bnode.find(s[0]);
     if (k != end(m_bnode)) {
       auto& n = pre[ k->first ];
@@ -176,18 +178,17 @@ ZalCG::setupBC()
   }
 
   // Prepare density and pressure values for pressure BC nodes
-  const auto& pbc_set = g_cfg.get< tag::bc_pre >();
-  if (!pbc_set.empty()) {
-    const auto& pbc_r = g_cfg.get< tag::bc_pre_density >();
-    ErrChk( pbc_r.size() == pbc_set.size(), "Pressure BC density unspecified" );
-    const auto& pbc_p = g_cfg.get< tag::bc_pre_pressure >();
-    ErrChk( pbc_p.size() == pbc_set.size(), "Pressure BC pressure unspecified" );
+  if (!pbc_sets.empty()) {
+    const auto& pbc_r = pbc.get< tag::density >();
+    ErrChk( pbc_r.size() == pbc_sets.size(), "Pressure BC density unspecified" );
+    const auto& pbc_p = pbc.get< tag::pressure >();
+    ErrChk( pbc_p.size() == pbc_sets.size(), "Pressure BC pressure unspecified" );
     tk::destroy( m_prebcnodes );
     tk::destroy( m_prebcvals );
     for (const auto& [s,n] : pre) {
       m_prebcnodes.insert( end(m_prebcnodes), begin(n), end(n) );
-      for (std::size_t p=0; p<pbc_set.size(); ++p) {
-        for (auto u : pbc_set[p]) {
+      for (std::size_t p=0; p<pbc_sets.size(); ++p) {
+        for (auto u : pbc_sets[p]) {
           if (s == u) {
             for (std::size_t i=0; i<n.size(); ++i) {
               m_prebcvals.push_back( pbc_r[p] );
@@ -218,7 +219,7 @@ ZalCG::setupBC()
 
   // Query farfield BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > far;
-  for (auto s : g_cfg.get< tag::bc_far >()) {
+  for (auto s : g_cfg.get< tag::bc_far, tag::sidesets >()) {
     auto k = m_bface.find(s);
     if (k != end(m_bface)) {
       auto& n = far[ k->first ];
@@ -633,7 +634,7 @@ ZalCG::streamable()
   tk::destroy( m_farbcnodes );
   tk::destroy( m_farbcnorms );
   for (auto p : m_farbcnodeset) {
-    for (const auto& s : g_cfg.get< tag::bc_far >()) {
+    for (const auto& s : g_cfg.get< tag::bc_far, tag::sidesets >()) {
       auto n = m_bnorm.find(s);
       if (n != end(m_bnorm)) {
         auto a = n->second.find(p);

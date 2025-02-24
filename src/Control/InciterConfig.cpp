@@ -699,7 +699,7 @@ histout_( lua_State* L, Config& cfg )
 static void
 integout( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse integout table
+// Parse integout table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
@@ -716,6 +716,41 @@ integout( lua_State* L, Config& cfg )
   ti.get< tag::format >() = string( L, "format" );
 
   lua_pop( L, 1 );
+}
+
+static void
+integout_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse integout_* table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "integout_";
+  auto& ti = cfg.get< tag::integout_ >();
+  ti.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& tik = ti[k];
+
+    tik.get< tag::sidesets >() = sideset( L );
+    tik.get< tag::integrals >() = stringlist( L, "integrals" );
+    tik.get< tag::iter >() = unsigint( L, "iter" );
+    tik.get< tag::time >() = real( L, "time" );
+    tik.get< tag::range >() = range( L );
+    tik.get< tag::precision >() = sigint( L, "precision", 8 );
+    tik.get< tag::format >() = string( L, "format" );
+
+    lua_pop( L, 1 );
+
+  }
 }
 
 static void
@@ -1430,6 +1465,7 @@ Config::control()
     histout( L, *this );
     histout_( L, *this );
     integout( L, *this );
+    integout_( L, *this );
     diag( L, *this );
     href( L, *this );
     deactivate( L, *this );

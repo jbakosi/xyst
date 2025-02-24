@@ -94,6 +94,7 @@ DEFTAG( fieldout_ );
 DEFTAG( histout );
 DEFTAG( histout_ );
 DEFTAG( integout );
+DEFTAG( integout_ );
 DEFTAG( iter );
 DEFTAG( time );
 DEFTAG( range );
@@ -286,6 +287,17 @@ using ConfigMembers = brigand::list<
                   , tag::precision, std::streamsize
                   , tag::format, std::string
                   > >
+  , tag::integout_, std::vector<
+                      tk::TaggedTuple< brigand::list<
+                        tag::sidesets, std::vector< int >
+                      , tag::integrals, std::vector< std::string >
+                      , tag::iter, uint64_t
+                      , tag::time, double
+                      , tag::range, std::vector< std::vector< double > >
+                      , tag::precision, std::streamsize
+                      , tag::format, std::string
+                      > >
+                   >
   , tag::ic, tk::TaggedTuple< brigand::list<
                tag::density,     double
              , tag::pressure,    double

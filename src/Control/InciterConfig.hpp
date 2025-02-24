@@ -164,7 +164,7 @@ using ConfigMembers = brigand::list<
   , tag::diag_format, std::string
   , tag::checkpoint, std::string
   , tag::quiescence, bool
-  , tag::virt, double
+  , tag::virt, std::vector< double >
   , tag::nonblocking, bool
   , tag::benchmark, bool
   , tag::feedback, bool

@@ -108,7 +108,7 @@ Config::cmdline( int argc, char** argv )
         get< tag::quiescence >() = true;
         break;
       case 'u':
-        get< tag::virt >() = std::stod( optarg );
+        get< tag::virt >().push_back( std::stod( optarg ) );
         break;
       case 'v':
         print << '\n';
@@ -123,6 +123,13 @@ Config::cmdline( int argc, char** argv )
     help( argv );
     CkExit( EXIT_FAILURE );
   }
+
+  // Augment virtualization parameters if necessary
+  auto& vir = get< tag::virt>();
+  auto inps = get< tag::input >().size();
+  if (inps > vir.size()) vir.resize( inps, 0.0 );
+
+  // Basic error handling
   ErrChk( not get< tag::input >().empty(),
           "Mandatory input mesh file not specified. Use -i <filename>." );
   ErrChk( not get< tag::control >().empty(),
@@ -1442,11 +1449,12 @@ pressure_( lua_State* L, Config& cfg )
 }
 
 static void
-part_( lua_State* L, Config& cfg )
+part_( lua_State* L, Config& cfg, const char* def = "default" )
 // *****************************************************************************
 // Parse part_* field from global scope for multiple meshes
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
+//! \param[in] def Default if does not exist
 // *****************************************************************************
 {
   auto nf = cfg.get< tag::input >().size();
@@ -1454,7 +1462,7 @@ part_( lua_State* L, Config& cfg )
 
   std::string basename = "part_";
   auto& vp = cfg.get< tag::part_ >();
-  vp.resize( nf );
+  if (vp.size() != nf ) vp.resize( nf, def );
 
   for (std::size_t k=0; k<nf; ++k) {
 
@@ -1575,10 +1583,13 @@ Config::control()
     get< tag::steady >() = boolean( L, "steady", false, true );
     get< tag::residual >() = real( L, "residual", 0.0, true );
     get< tag::rescomp >() = unsigint( L, "rescomp", 1, true );
+
     get< tag::part >() = string( L, "part", "rcb", true );
-    part_( L, *this );
+    part_( L, *this, "rcb" );
+
     get< tag::zoltan_params >() = stringlist( L, "zoltan_params", true );
     zoltan_params_( L, *this );
+
     get< tag::solver >() = string( L, "solver", "riecg", true );
     get< tag::stab >() = boolean( L, "stab", true, true );
     get< tag::stab2 >() = boolean( L, "stab2", false, true );
@@ -1593,17 +1604,23 @@ Config::control()
 
     ic( L, *this );
     ic_( L, *this );
+
     bc_dir( L, get< tag::bc_dir >(), true );
-    bc_dirval( L, get< tag::bc_dirval >(), true );
     bc_dir_( L, get< tag::bc_dir_ >(), get< tag::input >().size(), true );
+    bc_dirval( L, get< tag::bc_dirval >(), true );
+
     bc_sym( L, get< tag::bc_sym >(), true );
     bc_sym_( L, get< tag::bc_sym_ >(), get< tag::input >().size(), true );
+
     bc_noslip( L, get< tag::bc_noslip >(), true );
     bc_noslip_( L, get< tag::bc_noslip_ >(), get< tag::input >().size(), true );
+
     bc_far( L, *this );
     bc_far_( L, *this );
+
     bc_pre( L, *this );
     bc_pre_( L, *this );
+
     problem( L, *this );
     mat( L, *this );
     fieldout( L, *this );

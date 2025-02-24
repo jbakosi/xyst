@@ -318,7 +318,7 @@ class Transporter : public CBase_Transporter {
     //! Average mesh statistics (one per mesh)
     std::vector< std::array< tk::real, 6 > > m_avgstat;
     //! Timer tags
-    enum class TimerTag { MESH_READ=0, MESH_PART, MESH_DIST };
+    enum class TimerTag { MESH_READ=0, MESH_PART };
     //! Timers
     std::map< TimerTag, std::pair< tk::Timer, tk::real > > m_timer;
     //! Progress object for preparing mesh

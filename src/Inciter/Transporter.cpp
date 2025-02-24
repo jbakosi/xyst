@@ -421,9 +421,9 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
   // Compute load distribution given total work (nelem) and user-specified
   // virtualization
   uint64_t chunksize, remainder;
-  m_nchare[meshid] = static_cast<int>(
+  m_nchare[ meshid ] = static_cast<int>(
     tk::linearLoadDistributor(
-       g_cfg.get< tag::virt >(),
+       g_cfg.get< tag::virt >()[ meshid ],
        m_nelem[meshid], CkNumPes(), chunksize, remainder ) );
 
   // Store sum of meshids (across all chares, key) for each meshid (value).
@@ -440,17 +440,29 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
   if (++m_nload == m_nelem.size()) {     // all meshes have been loaded
     m_nload = 0;
     auto print = tk::Print();
+    bool multi = m_input.size() > 1;
+    std::string es = multi ? "es" : "";
 
     auto& timer = tk::ref_find( m_timer, TimerTag::MESH_READ );
     timer.second = timer.first.dsec();
     print << "Mesh read time: " + std::to_string( timer.second ) + " sec\n";
 
     // Print out mesh partitioning configuration
-    print.section( "Partitioning mesh" );
-    print.item( "Partitioner", g_cfg.get< tag::part >() );
-    print.item( "Virtualization", g_cfg.get< tag::virt >() );
+    print.section( "Partitioning mesh"+es );
+
+    if (multi) {
+      print.item( "Partitioner (per mesh)",
+                  tk::parameters( g_cfg.get< tag::part_ >() ) );
+      print.item( "Virtualization (per mesh)",
+                  tk::parameters( g_cfg.get< tag::virt >() ) );
+    }
+    else {
+      print.item( "Partitioner", g_cfg.get< tag::part >() );
+      print.item( "Virtualization", g_cfg.get< tag::virt >()[ 0 ] );
+    }
+
     // Print out initial mesh statistics
-    meshstat( "Mesh read from file" );
+    meshstat( "Mesh"+es+" read from file" );
 
     // Tell meshwriter the total number of chares
     m_meshwriter[meshid].nchare( m_nchare[meshid] );
@@ -466,8 +478,8 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
     if (g_cfg.get< tag::reorder >()) nreord = m_nchare[0];
 
     print << '\n';
-    m_progMesh.start( print, "Preparing mesh", {{ CkNumPes(), CkNumPes(), nref,
-      m_nchare[0], m_nchare[0], nreord, nreord }} );
+    m_progMesh.start( print, "Preparing mesh"+es, {{ CkNumPes(), CkNumPes(),
+      nref, m_nchare[0], m_nchare[0], nreord, nreord }} );
   }
 }
 
@@ -482,7 +494,6 @@ Transporter::partitioned( std::size_t meshid )
     m_npart = 0;
     auto& timer = tk::ref_find( m_timer, TimerTag::MESH_PART );
     timer.second = timer.first.dsec();
-    m_timer[ TimerTag::MESH_DIST ];  // start timer measuring mesh distribution
   } else { // partition next mesh
     m_partitioner[meshid+1].partition( m_nchare[meshid+1] );
   }
@@ -497,8 +508,6 @@ Transporter::distributed( std::size_t meshid )
 // *****************************************************************************
 {
   m_partitioner[meshid].refine();
-  auto& timer = tk::ref_find( m_timer, TimerTag::MESH_DIST );
-  timer.second = timer.first.dsec();
 }
 
 void
@@ -1239,9 +1248,6 @@ Transporter::stat()
     auto& t = tk::ref_find( m_timer, TimerTag::MESH_PART );
     print << '\n';
     print << "Mesh partitioning time: " + std::to_string(t.second) + " sec\n";
-    t = tk::ref_find( m_timer, TimerTag::MESH_DIST );
-    print << "Mesh distribution time: " + std::to_string(t.second) + " sec\n";
-
 
     for (std::size_t i=0; i<m_nelem.size(); ++i) {
       if (m_nelem.size() > 1) {

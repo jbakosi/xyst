@@ -55,7 +55,9 @@ DEFTAG( mom_verbose );
 DEFTAG( mom_pc );
 DEFTAG( reorder );
 DEFTAG( part );
+DEFTAG( part_ );
 DEFTAG( zoltan_params );
+DEFTAG( zoltan_params_ );
 DEFTAG( solver );
 DEFTAG( stab );
 DEFTAG( stab2 );
@@ -208,7 +210,9 @@ using ConfigMembers = brigand::list<
   , tag::mom_pc, std::string
   , tag::reorder, bool
   , tag::part, std::string
+  , tag::part_, std::vector< std::string >
   , tag::zoltan_params, std::vector< std::string >
+  , tag::zoltan_params_, std::vector< std::vector< std::string > >
   , tag::solver, std::string
   , tag::stab, bool
   , tag::stab2, bool

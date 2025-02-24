@@ -1442,6 +1442,73 @@ pressure_( lua_State* L, Config& cfg )
 }
 
 static void
+part_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse part_* field from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "part_";
+  auto& vp = cfg.get< tag::part_ >();
+  vp.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    if (!lua_isnil( L, -1 )) {
+      ErrChk( lua_isstring( L, -1 ), std::string(name) + " must be a string" );
+      vp[k] = lua_tostring( L, -1 );
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
+zoltan_params_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse zoltan_params_* field from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "zoltan_params_";
+  auto& vl = cfg.get< tag::zoltan_params_ >();
+  vl.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+    auto& v = vl[k];
+
+    if (!lua_isnil( L, -1 )) {
+      ErrChk( lua_istable( L, -1 ), "stringlist must be a table" );
+      int64_t n = luaL_len( L, -1 );
+      for (int64_t i=1; i<=n; ++i) {
+        lua_geti( L, -1, i );
+        ErrChk( lua_isstring( L, -1 ), "stringlist components must be strings" );
+        v.push_back( lua_tostring( L, -1 ) );
+        lua_pop( L, 1 );
+      }
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
 momentum( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse momentum table
@@ -1509,7 +1576,9 @@ Config::control()
     get< tag::residual >() = real( L, "residual", 0.0, true );
     get< tag::rescomp >() = unsigint( L, "rescomp", 1, true );
     get< tag::part >() = string( L, "part", "rcb", true );
+    part_( L, *this );
     get< tag::zoltan_params >() = stringlist( L, "zoltan_params", true );
+    zoltan_params_( L, *this );
     get< tag::solver >() = string( L, "solver", "riecg", true );
     get< tag::stab >() = boolean( L, "stab", true, true );
     get< tag::stab2 >() = boolean( L, "stab2", false, true );

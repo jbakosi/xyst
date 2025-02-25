@@ -77,8 +77,8 @@ class Transporter : public CBase_Transporter {
     //! Reduction target: the mesh has been read from file on all PEs
     void load( std::size_t meshid, std::size_t nelem );
 
-    //! Reduction target: a mesh has been partitioned
-    void partitioned( std::size_t meshid );
+    //! Reduction target: all meshes have been partitioned
+    void partitioned();
 
     //! \brief Reduction target: all Solver (PEs) have computed the number of
     //!   chares they will recieve contributions from during linear solution

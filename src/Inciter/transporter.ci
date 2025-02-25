@@ -23,7 +23,7 @@ module transporter {
       entry Transporter();
       entry [reductiontarget] void load( std::size_t meshid,
                                          std::size_t nelem );
-      entry [reductiontarget] void partitioned( std::size_t meshid );
+      entry [reductiontarget] void partitioned();
       entry [reductiontarget] void distributed( std::size_t meshid );
       entry [reductiontarget] void refinserted( std::size_t meshid,
                                                 std::size_t error );
@@ -93,10 +93,18 @@ module transporter {
         }
       };
 
+      entry void wait4part() {
+        forall [meshid] ( 0 : m_nelem.size(), 1 ) {
+          when part_complete[meshid]( std::size_t _meshid )
+          serial "part" { partitioned(); }
+        }
+      };
+
       entry void minstat_complete( std::size_t _meshid );
       entry void maxstat_complete( std::size_t _meshid );
       entry void sumstat_complete( std::size_t _meshid );
       entry void pdfstat_complete( std::size_t _meshid );
+      entry void part_complete( std::size_t _meshid );
     }
 
   } // inciter::

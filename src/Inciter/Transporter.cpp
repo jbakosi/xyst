@@ -88,8 +88,9 @@ Transporter::Transporter() :
   // constdt is zero.
   if ( nstep != 0 && term > t0 && constdt < term-t0 ) {
 
-    // Enable SDAG waits for collecting mesh statistics
+    // Enable SDAG waits
     thisProxy.wait4stat();
+    thisProxy.wait4part();
 
     // Configure and write diagnostics file header
     diagHeader();
@@ -433,7 +434,11 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
 
   if (++m_nload == m_nelem.size()) {     // all meshes have been loaded
     m_timer[ TimerTag::MESH_PART ];  // start timer measuring mesh partitioning
-    m_partitioner[0].partition( m_nchare[0] ); // partition first mesh
+
+    // Partition all meshes
+    for (std::size_t p=0; p<m_partitioner.size(); ++p) {
+      m_partitioner[p].partition( m_nchare[p] );
+    }
 
     m_nload = 0;
     auto print = tk::Print();
@@ -481,18 +486,15 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
 }
 
 void
-Transporter::partitioned( std::size_t meshid )
+Transporter::partitioned()
 // *****************************************************************************
-// Reduction target: a mesh has been partitioned
-//! \param[in] meshid Mesh id
+// Reduction target: all meshes have been partitioned
 // *****************************************************************************
 {
   if (++m_npart == m_nelem.size()) {     // all meshes have been partitioned
     m_npart = 0;
     auto& timer = tk::ref_find( m_timer, TimerTag::MESH_PART );
     timer.second = timer.first.dsec();
-  } else { // partition next mesh
-    m_partitioner[meshid+1].partition( m_nchare[meshid+1] );
   }
 }
 

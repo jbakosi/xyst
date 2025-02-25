@@ -19,16 +19,16 @@ std::pair< int, std::unique_ptr<char[]> >
 serialize(
   const std::unordered_map< std::size_t, std::size_t >& d )
 // *****************************************************************************
-// Serialize diagnostics to raw memory stream
+// Serialize parts to raw memory stream
 //! \param[in] d Mesh graph to aggregate
 //! \return Pair of the length and the raw stream containing the serialized data
 // *****************************************************************************
 {
-  // Prepare for serializing diagnostics to a raw binary stream, compute size
+  // Prepare for serializing parts to a raw binary stream, compute size
   PUP::sizer sizer;
   sizer | const_cast< std::unordered_map< std::size_t, std::size_t >& >( d );
 
-  // Create raw character stream to store the serialized vectors
+  // Create raw character stream to store the serialized parts
   std::unique_ptr<char[]> flatData = std::make_unique<char[]>( sizer.size() );
 
   // Serialize vector, each message will contain graph
@@ -45,7 +45,7 @@ mergeParts( int nmsg, CkReductionMsg **msgs )
 // Charm++ custom reducer for merging mesh graphs during reduction across PEs
 //! \param[in] nmsg Number of messages in msgs
 //! \param[in] msgs Charm++ reduction message containing serialized data
-//! \return Aggregated diagnostics built for further aggregation if needed
+//! \return Aggregated parts built for further aggregation if needed
 // *****************************************************************************
 {
   // Will store deserialized mesh graph
@@ -71,10 +71,10 @@ mergeParts( int nmsg, CkReductionMsg **msgs )
     }
   }
 
-  // Serialize concatenated diagnostics vector to raw stream
+  // Serialize concatenated parts to raw stream
   auto stream = tk::serialize( v );
 
-  // Forward serialized diagnostics
+  // Forward serialized parts
   return CkReductionMsg::buildNew( stream.first, stream.second.get() );
 }
 

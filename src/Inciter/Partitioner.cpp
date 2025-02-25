@@ -48,7 +48,7 @@ Partitioner::Partitioner(
   const CProxy_Refiner& refiner,
   const CProxy_Sorter& sorter,
   const tk::CProxy_MeshWriter& meshwriter,
-  const CProxy_Discretization& discretization,
+  const std::vector< CProxy_Discretization >& discretization,
   const CProxy_RieCG& riecg,
   const CProxy_LaxCG& laxcg,
   const CProxy_ZalCG& zalcg,
@@ -93,7 +93,7 @@ Partitioner::Partitioner(
 //! \param[in] refiner Mesh refiner proxy
 //! \param[in] sorter Mesh reordering (sorter) proxy
 //! \param[in] meshwriter Mesh writer proxy
-//! \param[in] discretization Discretization base
+//! \param[in] discretization Discretization proxy for all meshes
 //! \param[in] riecg Discretization scheme
 //! \param[in] laxcg Discretization scheme
 //! \param[in] zalcg Discretization scheme

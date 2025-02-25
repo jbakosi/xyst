@@ -40,7 +40,7 @@ Refiner::Refiner( std::size_t meshid,
                   const CProxy_Transporter& transporter,
                   const CProxy_Sorter& sorter,
                   const tk::CProxy_MeshWriter& meshwriter,
-                  const CProxy_Discretization& discretization,
+                  const std::vector< CProxy_Discretization >& discretization,
                   const CProxy_RieCG& riecg,
                   const CProxy_LaxCG& laxcg,
                   const CProxy_ZalCG& zalcg,
@@ -100,7 +100,7 @@ Refiner::Refiner( std::size_t meshid,
 //! \param[in] transporter Transporter (host) proxy
 //! \param[in] sorter Mesh reordering (sorter) proxy
 //! \param[in] meshwriter Mesh writer proxy
-//! \param[in] discretization Discretization base proxy
+//! \param[in] discretization Discretization proxy for all meshes
 //! \param[in] riecg Discretization scheme proxy
 //! \param[in] laxcg Discretization scheme proxy
 //! \param[in] zalcg Discretization scheme proxy
@@ -201,11 +201,11 @@ Refiner::sendProxy()
 // *****************************************************************************
 {
   // Make sure (bound) Discretization chare is already created and accessible
-  Assert( m_disc[ thisIndex ].ckLocal() != nullptr,
+  Assert( m_disc[ m_meshid ][ thisIndex ].ckLocal() != nullptr,
           "About to dereference nullptr" );
 
   // Pass Refiner Charm++ chare proxy to fellow (bound) Discretization object
-  m_disc[ thisIndex ].ckLocal()->setRefiner( thisProxy );
+  m_disc[ m_meshid ][ thisIndex ].ckLocal()->setRefiner( thisProxy );
 }
 
 void
@@ -1089,9 +1089,8 @@ Refiner::endt0ref()
   // create sorter Charm++ chare array elements using dynamic insertion
   m_sorter[ thisIndex ].insert( m_meshid, m_host, m_meshwriter, m_cbs,
     m_disc, m_riecg, m_laxcg, m_zalcg, m_kozcg, m_chocg, m_lohcg, m_cgpre,
-    m_cgmom,
-    CkCallback(CkIndex_Refiner::reorder(), thisProxy[thisIndex]), m_ginpoel,
-    m_coordmap, m_el, m_bface, m_triinpoel, m_bnode, m_nchare );
+    m_cgmom, CkCallback( CkIndex_Refiner::reorder(), thisProxy[thisIndex] ),
+    m_ginpoel, m_coordmap, m_el, m_bface, m_triinpoel, m_bnode, m_nchare );
 
   // Compute final number of cells across whole problem
   std::vector< std::size_t >
@@ -1464,7 +1463,7 @@ Refiner::updateMesh()
 
   // Get nodal communication map from Discretization worker
   if ( m_mode == RefMode::DTREF) {
-    m_nodeCommMap = m_disc[ thisIndex ].ckLocal()->NodeCommMap();
+    m_nodeCommMap = m_disc[ m_meshid ][ thisIndex ].ckLocal()->NodeCommMap();
   }
 
   // Update mesh and solution after refinement

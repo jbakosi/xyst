@@ -17,7 +17,6 @@
 #include "Timer.hpp"
 #include "Fields.hpp"
 #include "PUPUtil.hpp"
-#include "PDFReducer.hpp"
 #include "UnsMesh.hpp"
 #include "History.hpp"
 
@@ -58,6 +57,7 @@ class Discretization : public CBase_Discretization {
     explicit
       Discretization(
         std::size_t meshid,
+        const std::vector< CProxy_Discretization >& disc,
         const CProxy_Transporter& transporter,
         const tk::CProxy_MeshWriter& meshwriter,
         const tk::UnsMesh::CoordMap& coordmap,
@@ -327,6 +327,7 @@ class Discretization : public CBase_Discretization {
       p | m_dtn;
       p | m_nvol;
       p | m_boxnodes;
+      p | m_disc;
       p | m_transporter;
       p | m_meshwriter;
       p | m_refiner;
@@ -411,6 +412,8 @@ class Discretization : public CBase_Discretization {
     std::size_t m_nvol;
     //! List of nodes at which box user ICs are set for each IC box
     std::vector< std::unordered_set< std::size_t > > m_boxnodes;
+    //! Discretization proxy for all meshes
+    std::vector< CProxy_Discretization > m_disc;
     //! Transporter proxy
     CProxy_Transporter m_transporter;
     //! Mesh writer proxy

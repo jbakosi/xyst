@@ -402,7 +402,7 @@ Transporter::createPartitioner()
     m_partitioner.push_back(
       CProxy_Partitioner::ckNew( meshid, filename, cbp, cbr, cbs,
         thisProxy, m_refiner.back(), m_sorter.back(), m_meshwriter.back(),
-        m_discretization.back(), riecg, laxcg, zalcg, kozcg, chocg, lohcg,
+        m_discretization, riecg, laxcg, zalcg, kozcg, chocg, lohcg,
         cgpre, cgmom, bface, faces, bnode ) );
 
     ++meshid;

@@ -22,6 +22,7 @@
 #include "InciterConfig.hpp"
 #include "Print.hpp"
 #include "Around.hpp"
+#include "PDFReducer.hpp"
 #include "XystBuildConfig.hpp"
 #include "Box.hpp"
 
@@ -36,6 +37,7 @@ using inciter::Discretization;
 
 Discretization::Discretization(
   std::size_t meshid,
+  const std::vector< CProxy_Discretization >& disc,
   const CProxy_Transporter& transporter,
   const tk::CProxy_MeshWriter& meshwriter,
   const tk::UnsMesh::CoordMap& coordmap,
@@ -59,6 +61,7 @@ Discretization::Discretization(
   m_dt( g_cfg.get< tag::dt >() ),
   m_dtn( m_dt ),
   m_nvol( 0 ),
+  m_disc( disc ),
   m_transporter( transporter ),
   m_meshwriter( meshwriter ),
   m_el( el ),     // fills m_inpoel, m_gid, m_lid
@@ -79,6 +82,7 @@ Discretization::Discretization(
 // *****************************************************************************
 //  Constructor
 //! \param[in] meshid Mesh ID
+//! \param[in] disc Discretization proxy for all meshes
 //! \param[in] transporter Host (Transporter) proxy
 //! \param[in] meshwriter Mesh writer proxy
 //! \param[in] coordmap Coordinates of mesh nodes and their global IDs

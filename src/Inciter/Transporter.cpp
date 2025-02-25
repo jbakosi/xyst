@@ -335,7 +335,10 @@ Transporter::createPartitioner()
     }
 
     // Warn on no BCs
-    if (!bcs_set) print << "\n>>> WARNING: No boundary conditions set\n\n";
+    if (!bcs_set) {
+      print << "\n>>> WARNING: No boundary conditions set for mesh "
+                + std::to_string(meshid) + ": " + filename + "\n\n";
+    }
 
     // Create empty discretization chare array
     m_discretization.push_back( CProxy_Discretization::ckNew() );

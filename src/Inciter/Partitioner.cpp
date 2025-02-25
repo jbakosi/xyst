@@ -134,7 +134,10 @@ Partitioner::Partitioner(
   // Compute unqiue mesh graph if needed
   std::unordered_map< int, std::unordered_map< std::size_t,
                              std::unordered_set< std::size_t > > > graph;
-  if ( g_cfg.get< tag::part >() == "phg" ) {
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  const auto& alg = multi ? g_cfg.get< tag::part_ >()[ m_meshid ]
+                          : g_cfg.get< tag::part >();
+  if ( alg == "phg" ) {
     // Generate global node ids for the mesh on this compute node
     const auto gid = tk::uniquecopy( m_ginpoel );
     // Generate points surrounding points of this sub-graph with local node ids
@@ -309,8 +312,11 @@ Partitioner::partition( int nchare )
                                   "number of compute nodes" );
 
   m_nchare = nchare;
-  const auto& alg = g_cfg.get< tag::part >();
-  const auto& params = g_cfg.get< tag::zoltan_params >();
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  const auto& alg = multi ? g_cfg.get< tag::part_ >()[ m_meshid ]
+                          : g_cfg.get< tag::part >();
+  const auto& params = multi ? g_cfg.get< tag::zoltan_params_ >()[ m_meshid ]
+                             : g_cfg.get< tag::zoltan_params >();
 
   if ( alg == "phg" ) {
 

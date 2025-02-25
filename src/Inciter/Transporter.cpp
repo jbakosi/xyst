@@ -431,13 +431,10 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
   m_meshid[ static_cast<std::size_t>(m_nchare[meshid])*meshid ] = meshid;
   Assert( meshid < m_nelem.size(), "MeshId indexing out" );
 
-  // Partition first mesh
-  if (meshid == 0) {
-    m_timer[ TimerTag::MESH_PART ];  // start timer measuring mesh partitioning
-    m_partitioner[0].partition( m_nchare[0] );
-  }
-
   if (++m_nload == m_nelem.size()) {     // all meshes have been loaded
+    m_timer[ TimerTag::MESH_PART ];  // start timer measuring mesh partitioning
+    m_partitioner[0].partition( m_nchare[0] ); // partition first mesh
+
     m_nload = 0;
     auto print = tk::Print();
     bool multi = m_input.size() > 1;

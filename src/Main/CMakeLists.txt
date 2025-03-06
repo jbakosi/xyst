@@ -15,8 +15,8 @@ else()
 endif()
 
 STRING(REGEX REPLACE "<CMAKE_CXX_COMPILER>"
-       "${CHARM_LINKER} -module CommonLBs ${EXTRA_LINK_ARGS}"
-       CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
+  "${CHARM_LINKER} -module CommonLBs -module collidecharm ${EXTRA_LINK_ARGS}"
+  CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE}")
 
 include(ConfigExecutable)
 

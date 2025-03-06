@@ -14,11 +14,6 @@ include(BuildType)
 
 option(AMPI "Use Charm++'s AMPI instead of MPI" OFF)
 
-if (NOT AMPI)
-  find_package(MPI REQUIRED)
-  set(COMPILER ${MPI_CXX_COMPILER})
-endif()
-
 set(BUILD_SHARED_LIBS ON CACHE
     BOOL "Build shared libraries. Possible values: ON | OFF")
 
@@ -181,7 +176,7 @@ if(AMPI)
   set(CHARM_NETWORK "netlrts")
   set(XYST_AMPI AMPI)   # will become compiler define
 else()
-  set(CHARM_TARGET "Charm++")
+  set(CHARM_TARGET "LIBS")
   set(CHARM_NETWORK "mpi")
 endif()
 
@@ -222,6 +217,9 @@ endif()
 
 if(AMPI)
   set(COMPILER ${AMPI_CXX_COMPILER})
+else()
+  find_package(MPI REQUIRED)
+  set(COMPILER ${MPI_CXX_COMPILER})
 endif()
 
 message(STATUS "C++ compiler: " ${COMPILER})

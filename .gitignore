@@ -1,6 +1,10 @@
 *~
 *sw?
+src/tags
+src/xyst-cscope*
 .gitignore
+/charm
+/tmp
 /build
 */build
 */install

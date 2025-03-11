@@ -139,6 +139,7 @@ target_link_libraries(${INCITER_EXECUTABLE}
                       Physics
                       Statistics
                       LinearSolver
+                      Transfer
                       zoltan1
                       exodus
                       ${MPI_C_LIBRARIES}

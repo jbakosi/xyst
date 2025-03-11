@@ -1,0 +1,37 @@
+// *****************************************************************************
+/*!
+  \file      src/Transfer/nodesearch.ci
+  \copyright 2020-2021 Charmworks, Inc.,
+             2022-2025 J. Bakosi
+             All rights reserved. See the LICENSE file for details.
+  \brief     Charm++ module interface file for node search between 3D meshes
+*/
+// *****************************************************************************
+
+module nodesearch {
+
+  include "collidecharm.h";
+
+  namespace transfer {
+
+    class MeshData;
+    class PotentialCollision;
+    class SolutionData;
+
+    array [1D] NodeSearch {
+      entry NodeSearch( CkArrayID p, MeshData d, CkCallback cb );
+      entry void processCollisions( CProxy_NodeSearch proxy,
+                                    int nchares,
+                                    int offset,
+                                    int nColls,
+                                    Collision colls[nColls] );
+      entry void determineActualCollisions( CProxy_NodeSearch proxy,
+                                            int index,
+                                            int nColls,
+                                            PotentialCollision colls[nColls] );
+      entry void transferSolution( const std::vector< SolutionData >& sol );
+    }
+
+  } // transfer::
+
+}

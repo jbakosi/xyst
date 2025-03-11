@@ -25,6 +25,7 @@
 #include "PDFReducer.hpp"
 #include "XystBuildConfig.hpp"
 #include "Box.hpp"
+#include "Transfer.hpp"
 
 namespace inciter {
 
@@ -126,6 +127,24 @@ Discretization::Discretization(
     }
   }
 
+  // Register with mesh-transfer (if coupled)
+  if (m_disc.size() == 1) {
+    transferInit();
+  } else {
+    if (thisIndex == 0) {
+      transfer::addMesh( thisProxy, m_nchare,
+        CkCallback( CkIndex_Discretization::transferInit(), thisProxy ) );
+      std::cout << "transfer::addMesh(), meshid " << m_meshid << "\n";
+    }
+  }
+}
+
+void
+Discretization::transferInit()
+// *****************************************************************************
+// Our mesh has been registered with the mesh-to-mesh transfer (if coupled)
+// *****************************************************************************
+{
   // Compute number of mesh points owned
   std::size_t npoin = m_gid.size();
   for (auto g : m_gid) if (tk::slave( m_nodeCommMap, g, thisIndex ) ) --npoin;

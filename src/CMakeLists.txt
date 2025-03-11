@@ -197,7 +197,9 @@ if(NOT CHARM_FOUND)
       PREFIX charm
       GIT_REPOSITORY ${CHARM_REPOSITORY}
       GIT_TAG v7.0.0-rc2
-      PATCH_COMMAND patch -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch
+      PATCH_COMMAND
+    patch -p1 -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch &&
+    patch -p1 -t -i ${PROJECT_SOURCE_DIR}/../cmake/migratable_charmcollide.patch
       CMAKE_ARGS -D TARGET=${CHARM_TARGET}
                  -D NETWORK=${CHARM_NETWORK}
                  -D SMP=${SMP}
@@ -355,6 +357,7 @@ if (ENABLE_TESTS)
   add_subdirectory(UnitTest)
 endif()
 add_subdirectory(Main)
+add_subdirectory(Transfer)
 
 # Configure regression tests
 if (ENABLE_TESTS)

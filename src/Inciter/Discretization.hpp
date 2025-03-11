@@ -80,6 +80,9 @@ class Discretization : public CBase_Discretization {
     //! Configure Charm++ reduction types
     static void registerReducers();
 
+    //! Our mesh has been registered with mesh-to-mesh transfer (if coupled)
+    void transferInit();
+
     //! Resize mesh data structures after mesh refinement
     void resizePostAMR(
       const tk::UnsMesh::Chunk& chunk,

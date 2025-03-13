@@ -14,11 +14,11 @@ module transfer {
 
   namespace transfer {
 
-    readonly CProxy_Transfer g_transferProxy;
+    readonly transfer::CProxy_Transfer g_transferProxy;
     readonly CollideHandle g_collideHandle;
 
-    mainchare LibMain {
-      entry LibMain( CkArgMsg* msg );
+    mainchare LibTransfer {
+      entry LibTransfer( CkArgMsg* msg );
     };
 
     group [migratable] Transfer {

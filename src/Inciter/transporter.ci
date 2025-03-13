@@ -63,6 +63,7 @@ module transporter {
         tk::real d2, tk::real d3, tk::real d4, tk::real d5, tk::real d6,
         tk::real d7, tk::real d8, tk::real summeshid );
       entry [reductiontarget] void pdfstat( CkReductionMsg* msg );
+      entry [reductiontarget] void transferred();
       entry [reductiontarget] void boxvol( tk::real v, tk::real summeshid );
       entry [reductiontarget] void rhodiagnostics( CkReductionMsg* msg );
       entry [reductiontarget] void prediagnostics( CkReductionMsg* msg );

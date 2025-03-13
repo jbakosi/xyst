@@ -56,7 +56,8 @@ module lohcg {
       entry void evalLB( int nrestart );
 
       entry void wait4int() {
-        when ownnorm_complete(), comnorm_complete() serial { merge(); } }
+        when ownnorm_complete(), comnorm_complete(), transfer_complete() serial
+        { merge(); } }
 
       entry void wait4div() {
         when owndiv_complete(), comdiv_complete() serial { pinit(); } }
@@ -81,6 +82,7 @@ module lohcg {
 
       entry void ownnorm_complete();
       entry void comnorm_complete();
+      entry void transfer_complete();
       entry void owndiv_complete();
       entry void comdiv_complete();
       entry void ownsgrad_complete();

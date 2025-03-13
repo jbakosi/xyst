@@ -502,10 +502,10 @@ LohCG::setup( tk::real v )
   auto d = Disc();
 
   // Store user-defined box IC volume
-  Disc()->Boxvol() = v;
+  d->Boxvol() = v;
 
   // Set initial conditions
-  problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
+  problems::initialize( d->Coord(), m_u, d->T(), d->MeshId(), d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
   if (!g_cfg.get< tag::histout, tag::points >().empty()) {
@@ -516,6 +516,10 @@ LohCG::setup( tk::real v )
       var.push_back( "c" + std::to_string(c-5) );
     d->histheader( std::move(var) );
   }
+
+  // Initiate transfer of initial conditions (if coupled)
+  d->transfer( m_u,
+    CkCallback( CkIndex_LohCG::transfer_complete(), thisProxy[thisIndex] ) );
 
   // Compute finite element operators
   feop();
@@ -1047,7 +1051,7 @@ LohCG::pinit()
       auto p = m_dirbcmaskp[i*nmask+0];     // local node id
       auto mask = m_dirbcmaskp[i*nmask+1];
       if (mask == 1) {                                  // mask == 1: IC value
-        auto val = ic( x[p], y[p], z[p] );
+        auto val = ic( x[p], y[p], z[p], /*meshid=*/0 );
         dirbc[p] = {{ { 1, val } }};
       } else if (mask == 2 && !m_dirbcvalp.empty()) {   // mask == 2: BC value
         auto val = m_dirbcvalp[i*nmask+1];
@@ -1092,7 +1096,7 @@ LohCG::pinit()
     if (pi != end(lid)) {
       auto p = pi->second;
       auto ic = problems::PRESSURE_IC();
-      auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
+      auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p], /*meshid=*/0 );
       auto& b = dirbc[p];
       if (b.empty()) b = {{ { 1, val }} };
     }
@@ -1208,6 +1212,9 @@ LohCG::psolved()
 
   if (g_cfg.get< tag::nstep >() == 1) {  // test first Poisson solve only
 
+    if (thisIndex == 0) {
+      tk::Print() << "WARNING: Testing first Poisson solve only\n";
+    }
     auto p = m_cgpre[ thisIndex ].ckLocal()->solution();
     for (std::size_t i=0; i<m_u.nunk(); ++i) m_u(i,0) = p[i];
     thisProxy[ thisIndex ].wait4step();
@@ -1660,7 +1667,7 @@ LohCG::writeFields( CkCallback cb )
     const auto& z = coord[2];
     auto an = m_u;
     for (std::size_t i=0; i<an.nunk(); ++i) {
-      auto s = sol( x[i], y[i], z[i], d->T() );
+      auto s = sol( x[i], y[i], z[i], d->T(), /*meshid=*/0 );
       for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
     }
     nodefieldnames.push_back( "pressure_analytic" );

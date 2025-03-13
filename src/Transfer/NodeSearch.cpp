@@ -8,6 +8,8 @@
 */
 // *****************************************************************************
 
+#include <iostream>     // NOT NEEDED
+
 #include "NodeSearch.hpp"
 #include "Transfer.hpp"
 #include "DerivedData.hpp"
@@ -35,17 +37,17 @@ extern CProxy_Transfer g_transferProxy;
 using transfer::NodeSearch;
 
 NodeSearch::NodeSearch( CkArrayID p, MeshData d, CkCallback cb ) :
-    m_firstchunk(d.m_firstchunk)
+    m_firstchunk( d.m_firstchunk )
 // *****************************************************************************
 //  Constructor
 //! \param[in] firstchunk Chunk ID used for the collision detection library
 //! \param[in] cb Callback to inform application that the library is ready
 // *****************************************************************************
 {
-  CollideRegister(g_collideHandle, m_firstchunk + thisIndex);
+  CollideRegister( g_collideHandle, m_firstchunk + thisIndex );
   d.m_proxy = thisProxy;
   g_transferProxy.ckLocalBranch()->setMesh( p, d );
-  contribute(cb);
+  contribute( cb );
 }
 
 void
@@ -69,10 +71,9 @@ NodeSearch::setSourceTets(
 }
 
 void
-NodeSearch::setDestPoints(
-    std::array< std::vector< double >, 3 >* coords,
-    tk::Fields& u,
-    CkCallback cb )
+NodeSearch::setDestPoints( std::array< std::vector< double >, 3 >* coords,
+                           tk::Fields& u,
+                           CkCallback cb )
 // *****************************************************************************
 //  Set the data for the destination points to be collided
 //! \param[in] coords Pointer to the coordinate data for the destination mesh
@@ -232,8 +233,8 @@ NodeSearch::determineActualCollisions(
 {
   const std::vector< std::size_t >& inpoel = *m_inpoel;
   tk::Fields& u = *m_u;
-  //CkPrintf("Source chare %i received data for %i potential collisions\n",
-  //    thisIndex, nColls);
+  //CkPrintf( "Source chare %i received data for %i potential collisions\n",
+  //          thisIndex, nColls);
 
   std::array< double, 4 > N;
   int numInTet = 0;
@@ -260,8 +261,8 @@ NodeSearch::determineActualCollisions(
       return_data.push_back(data);
     }
   }
-  //CkPrintf("Source chare %i found %i/%i actual collisions\n",
-  //    thisIndex, numInTet, nColls);
+  CkPrintf( "Source chare %i found %i/%i actual collisions\n",
+            thisIndex, numInTet, nColls );
   // Send the solution data for the actual collisions back to the dest mesh
   proxy[index].transferSolution( return_data );
 }
@@ -278,7 +279,7 @@ NodeSearch::transferSolution( const std::vector< SolutionData >& sol )
 
   for (std::size_t i=0; i<sol.size(); ++i) {
     for (std::size_t c=0; c<u.nprop(); ++c) {
-      u(sol[i].dest_index,c) = sol[i].solution[c];
+      u( sol[i].dest_index, c ) = sol[i].solution[c];
     }
   }
 

@@ -37,6 +37,7 @@
 
 #include "NoWarning/inciter.decl.h"
 #include "NoWarning/partitioner.decl.h"
+#include "NoWarning/transfer.decl.h"
 
 extern CProxy_Main mainProxy;
 
@@ -53,6 +54,7 @@ Transporter::Transporter() :
   m_input{ g_cfg.get< tag::input >() },
   m_nchare( m_input.size() ),
   m_ncit( m_nchare.size(), 0 ),
+  m_ntrans( 0 ),
   m_nload( 0 ),
   m_npart( 0 ),
   m_nstat( 0 ),
@@ -304,9 +306,18 @@ Transporter::createPartitioner()
   // Start preparing mesh(es)
   print.section( "Reading mesh" + std::string(m_input.size()>1?"es":"") );
 
-  // Read boundary (side set) data from a list of input mesh files
   std::size_t meshid = 0;
   bool multi = m_input.size() > 1;
+
+  // Create empty discretization chare array for all meshes
+  std::vector< CkArrayOptions > opt;
+  for (std::size_t i=0; i<m_input.size(); ++i) {
+    m_discretization.push_back( CProxy_Discretization::ckNew() );
+    opt.emplace_back();
+    opt.back().bindTo( m_discretization.back() );
+  }
+
+  // Create Partitioner Charm++ chare nodegroup for all meshes
   for (const auto& filename : m_input) {
     // Create mesh reader for reading side sets from file
     tk::ExodusIIMeshReader mr( filename );
@@ -340,11 +351,6 @@ Transporter::createPartitioner()
                 + std::to_string(meshid) + ": " + filename + "\n\n";
     }
 
-    // Create empty discretization chare array
-    m_discretization.push_back( CProxy_Discretization::ckNew() );
-    CkArrayOptions opt;
-    opt.bindTo( m_discretization.back() );
-
     // Create empty discretization scheme chare array (bound to discretization)
     CProxy_RieCG riecg;
     CProxy_LaxCG laxcg;
@@ -353,35 +359,36 @@ Transporter::createPartitioner()
     CProxy_ChoCG chocg;
     CProxy_LohCG lohcg;
     tk::CProxy_ConjugateGradients cgpre, cgmom;
+    const auto& mopt = opt[ meshid ];
     const auto& solver = g_cfg.get< tag::solver >();
     if (solver == "riecg") {
-      m_riecg.push_back( CProxy_RieCG::ckNew(opt) );
+      m_riecg.push_back( CProxy_RieCG::ckNew(mopt) );
       riecg = m_riecg.back();
     }
     else if (solver == "laxcg") {
-      m_laxcg.push_back( CProxy_LaxCG::ckNew(opt) );
+      m_laxcg.push_back( CProxy_LaxCG::ckNew(mopt) );
       laxcg = m_laxcg.back();
     }
     else if (solver == "zalcg") {
-      m_zalcg.push_back( CProxy_ZalCG::ckNew(opt) );
+      m_zalcg.push_back( CProxy_ZalCG::ckNew(mopt) );
       zalcg = m_zalcg.back();
     }
     else if (solver == "kozcg") {
-      m_kozcg.push_back( CProxy_KozCG::ckNew(opt) );
+      m_kozcg.push_back( CProxy_KozCG::ckNew(mopt) );
       kozcg = m_kozcg.back();
     }
     else if (solver == "chocg") {
-      m_chocg.push_back( CProxy_ChoCG::ckNew(opt) );
+      m_chocg.push_back( CProxy_ChoCG::ckNew(mopt) );
       chocg = m_chocg.back();
-      m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
+      m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(mopt) );
       cgpre = m_cgpre.back();
-      m_cgmom.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
+      m_cgmom.push_back( tk::CProxy_ConjugateGradients::ckNew(mopt) );
       cgmom = m_cgmom.back();
     }
     else if (solver == "lohcg") {
-      m_lohcg.push_back( CProxy_LohCG::ckNew(opt) );
+      m_lohcg.push_back( CProxy_LohCG::ckNew(mopt) );
       lohcg = m_lohcg.back();
-      m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
+      m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(mopt) );
       cgpre = m_cgpre.back();
     }
     else {
@@ -389,9 +396,9 @@ Transporter::createPartitioner()
     }
 
     // Create empty mesh refiner chare array (bound to discretization)
-    m_refiner.push_back( CProxy_Refiner::ckNew(opt) );
+    m_refiner.push_back( CProxy_Refiner::ckNew(mopt) );
     // Create empty mesh sorter Charm++ chare array (bound to discretization)
-    m_sorter.push_back( CProxy_Sorter::ckNew(opt) );
+    m_sorter.push_back( CProxy_Sorter::ckNew(mopt) );
 
     // Create MeshWriter chare group for mesh
     m_meshwriter.push_back(
@@ -430,6 +437,9 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
        g_cfg.get< tag::virt >()[ meshid ],
        m_nelem[meshid], CkNumPes(), chunksize, remainder ) );
 
+  // Tell meshwriter the total number of chares
+  m_meshwriter[meshid].nchare( meshid, m_nchare[meshid] );
+
   // Store sum of meshids (across all chares, key) for each meshid (value).
   // This is used to look up the mesh id after collectives that sum their data.
   m_meshid[ static_cast<std::size_t>(m_nchare[meshid])*meshid ] = meshid;
@@ -438,7 +448,7 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
   if (++m_nload == m_nelem.size()) {     // all meshes have been loaded
     m_timer[ TimerTag::MESH_PART ];  // start timer measuring mesh partitioning
 
-    // Partition all meshes
+    // Start partitioning all meshes
     for (std::size_t p=0; p<m_partitioner.size(); ++p) {
       m_partitioner[p].partition( m_nchare[p] );
     }
@@ -468,9 +478,6 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
 
     // Print out initial mesh statistics
     meshstat( "Mesh"+es+" read from file" );
-
-    // Tell meshwriter the total number of chares
-    m_meshwriter[meshid].nchare( m_nchare[meshid] );
 
     // Query number of initial mesh refinement steps
     int nref = 0;
@@ -1291,6 +1298,17 @@ Transporter::stat()
 
     // Create "derived-class" workers
     for (std::size_t i=0; i<m_nelem.size(); ++i) m_sorter[i].createWorkers();
+  }
+}
+
+void
+Transporter::transferred()
+// *****************************************************************************
+// Reduction target continuing after mesh-to-mesh solution transfer
+// *****************************************************************************
+{
+  if (++m_ntrans == m_nelem.size()) {    // all meshes have finished transfer
+    m_ntrans = 0;
   }
 }
 

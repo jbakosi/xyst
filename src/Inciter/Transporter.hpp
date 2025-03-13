@@ -173,6 +173,9 @@ class Transporter : public CBase_Transporter {
     //!    workers
     void pdfstat( CkReductionMsg* msg );
 
+    //! Reduction target continuing after mesh-to-mesh solution transfer
+    void transferred();
+
     //! Reduction target computing total volume of IC box
     void boxvol( tk::real v, tk::real summeshid );
 
@@ -202,13 +205,12 @@ class Transporter : public CBase_Transporter {
     ///@{
     //! \brief Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    //! \note This is a Charm++ mainchare, pup() is thus only for
-    //!    checkpoint/restart.
     void pup( PUP::er &p ) override {
       p | m_input;
       p | m_nchare;
       p | m_meshid;
       p | m_ncit;
+      p | m_ntrans;
       p | m_nload;
       p | m_npart;
       p | m_nstat;
@@ -257,6 +259,8 @@ class Transporter : public CBase_Transporter {
     std::unordered_map< std::size_t, std::size_t > m_meshid;
     //! Number of mesh ref corr iter (one per mesh)
     std::vector< std::size_t > m_ncit;
+    //! Number of meshes that have transferred their solution
+    std::size_t m_ntrans;
     //! Number of meshes loaded
     std::size_t m_nload;
     //! Number of meshes partitioned

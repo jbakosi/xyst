@@ -134,7 +134,6 @@ Discretization::Discretization(
     if (thisIndex == 0) {
       transfer::addMesh( thisProxy, m_nchare,
         CkCallback( CkIndex_Discretization::transferInit(), thisProxy ) );
-      std::cout << "transfer::addMesh(), meshid " << m_meshid << "\n";
     }
   }
 }
@@ -154,6 +153,67 @@ Discretization::transferInit()
   std::vector< std::size_t > meshdata{ m_meshid, npoin };
   contribute( meshdata, CkReduction::sum_ulong,
     CkCallback( CkReductionTarget(Transporter,disccreated), m_transporter ) );
+}
+
+void
+Discretization::transfer( tk::Fields& u, CkCallback c )
+// *****************************************************************************
+// Initiate solution transfer (if coupled)
+// *****************************************************************************
+{
+//std::cout << "transfer on mesh " << m_meshid << ", disc.size: " << m_disc.size() << '\n';
+
+  if (m_disc.size() == 1) {     // not coupled
+    c.send();
+  }
+  else {
+
+    m_transfer_complete = c;
+
+    if (m_meshid == 0) {
+std::cout << "setSourceTets on mesh " << m_meshid << '\n';
+      transfer::setSourceTets( thisProxy, thisIndex, &m_inpoel, &m_coord, u );
+    }
+    else {
+std::cout << "setDestPoints on mesh " << m_meshid << '\n';
+      transfer::setDestPoints( thisProxy, thisIndex, &m_coord, u,
+        CkCallback( CkIndex_Discretization::transfer_to_complete(),
+                    thisProxy[thisIndex] ) );
+    }
+
+  }
+}
+
+void
+Discretization::transfer_to_complete()
+// *****************************************************************************
+//! Solution transfer from background to overset mesh completed
+//! \details This is called once transfer on the destination mesh completed.
+//!   Since this is called only on the destination, we also notify the source.
+// *****************************************************************************
+{
+//std::cout << "transfer_to_complete on mesh " << m_meshid << '\n';
+
+  // Notify source of completion
+  if (m_meshid > 0) m_disc[ 0 ][ thisIndex ].transfer_complete();
+
+  // Notify self of completion
+  thisProxy[ thisIndex ].transfer_complete();
+}
+
+void
+Discretization::transfer_complete()
+// *****************************************************************************
+//! Solution transfer completed
+//! \note Single exit point after solution transfer between meshes
+// *****************************************************************************
+{
+std::cout << "transfer_complete on mesh " << m_meshid << '\n';
+
+  m_transfer_complete.send();
+
+  //contribute(
+  //  CkCallback( CkReductionTarget(Transporter,transferred), m_transporter ) );
 }
 
 void

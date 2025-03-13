@@ -9,6 +9,7 @@
 // *****************************************************************************
 
 #include <cassert>
+#include <iostream>     // NOT NEEDED
 
 #include "Transfer.hpp"
 #include "NodeSearch.hpp"
@@ -36,6 +37,21 @@ collisionHandler( [[maybe_unused]] void *param, int nColl, Collision *colls )
   g_transferProxy.ckLocalBranch()->distributeCollisions( nColl, colls );
 }
 
+LibTransfer::LibTransfer( CkArgMsg* msg )
+// *****************************************************************************
+//  Constructor: initialize mesh-to-mesh transfer
+// *****************************************************************************
+{
+  delete msg;
+
+  g_transferProxy = CProxy_Transfer::ckNew();
+
+  // TODO: Need to make sure this is actually correct
+  CollideGrid3d gridMap( CkVector3d(0, 0, 0),CkVector3d(2, 100, 2) );
+  g_collideHandle = CollideCreate( gridMap,
+                      CollideSerialClient( collisionHandler, nullptr ) );
+}
+
 void
 addMesh( CkArrayID p, int nchare, CkCallback cb )
 // *****************************************************************************
@@ -50,38 +66,27 @@ addMesh( CkArrayID p, int nchare, CkCallback cb )
 
 void
 setSourceTets( CkArrayID p,
-               int index,
+               int chare,
                std::vector< std::size_t >* inpoel,
-               std::array< std::vector< double >, 3 >* coords,
+               std::array< std::vector< double >, 3 >* coord,
                const tk::Fields& u )
 // *****************************************************************************
 //! ...
 // *****************************************************************************
 {
-  g_transferProxy.ckLocalBranch()->setSourceTets(p, index, inpoel, coords, u);
+  g_transferProxy.ckLocalBranch()->setSourceTets( p, chare, inpoel, coord, u );
 }
 
 void setDestPoints( CkArrayID p,
-                    int index,
-                    std::array< std::vector< double >, 3 >* coords,
+                    int chare,
+                    std::array< std::vector< double >, 3 >* coord,
                     tk::Fields& u,
                     CkCallback cb )
 // *****************************************************************************
 //! ...
 // *****************************************************************************
 {
-  g_transferProxy.ckLocalBranch()->setDestPoints( p, index, coords, u, cb );
-}
-
-//! ...
-LibMain::LibMain( CkArgMsg* msg ) {
-  delete msg;
-  g_transferProxy = CProxy_Transfer::ckNew();
-
-  // TODO: Need to make sure this is actually correct
-  CollideGrid3d gridMap(CkVector3d(0, 0, 0),CkVector3d(2, 100, 2));
-  g_collideHandle = CollideCreate( gridMap,
-                      CollideSerialClient( collisionHandler, nullptr ) );
+  g_transferProxy.ckLocalBranch()->setDestPoints( p, chare, coord, u, cb );
 }
 
 //! ...
@@ -123,34 +128,34 @@ Transfer::setMesh( CkArrayID p, const MeshData& d )
 
 void
 Transfer::setDestPoints( CkArrayID p,
-                            int index,
-                            std::array< std::vector< double >, 3 >* coords,
+                            int chare,
+                            std::array< std::vector< double >, 3 >* coord,
                             tk::Fields& u,
                             CkCallback cb)
 // *****************************************************************************
 //! ...
 // *****************************************************************************
 {
-  m_destmesh = static_cast<std::size_t>(CkGroupID(p).idx);
-  NodeSearch* w = proxyMap[m_destmesh].m_proxy[index].ckLocal();
+  m_destmesh = static_cast< std::size_t >( CkGroupID(p).idx );
+  NodeSearch* w = proxyMap[ m_destmesh ].m_proxy[ chare ].ckLocal();
   assert( w );
-  w->setDestPoints(coords, u, cb);
+  w->setDestPoints( coord, u, cb );
 }
 
 void
 Transfer::setSourceTets( CkArrayID p,
-                            int index,
-                            std::vector< std::size_t >* inpoel,
-                            std::array< std::vector< double >, 3 >* coords,
-                            const tk::Fields& u )
+                         int chare,
+                         std::vector< std::size_t >* inpoel,
+                         std::array< std::vector< double >, 3 >* coord,
+                         const tk::Fields& u )
 // *****************************************************************************
 //! ...
 // *****************************************************************************
 {
-  m_sourcemesh = static_cast<std::size_t>(CkGroupID(p).idx);
-  NodeSearch* w = proxyMap[m_sourcemesh].m_proxy[index].ckLocal();
+  m_sourcemesh = static_cast< std::size_t >( CkGroupID(p).idx );
+  NodeSearch* w = proxyMap[ m_sourcemesh ].m_proxy[ chare ].ckLocal();
   assert(w);
-  w->setSourceTets(inpoel, coords, u);
+  w->setSourceTets( inpoel, coord, u );
 }
 
 void

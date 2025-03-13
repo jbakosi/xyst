@@ -14,10 +14,11 @@
 
 namespace transfer {
 
-//! ...
-class LibMain : public CBase_LibMain {
+//! Single Charm++ chare used to initialize mesh-to-mesh transfer
+class LibTransfer : public CBase_LibTransfer {
   public:
-    LibMain(CkArgMsg* msg);
+    //! Constructor: initialize mesh-to-mesh transfer
+    explicit LibTransfer( CkArgMsg* msg );
 };
 
 //! ...
@@ -38,15 +39,15 @@ void addMesh( CkArrayID p, int nchare, CkCallback cb );
 
 //! ...
 void setSourceTets( CkArrayID p,
-                    int index,
+                    int chare,
                     std::vector< std::size_t >* inpoel,
-                    std::array< std::vector< double >, 3 >* coords,
+                    std::array< std::vector< double >, 3 >* coord,
                     const tk::Fields& u );
 
 //! ...
 void setDestPoints( CkArrayID p,
-                    int index,
-                    std::array< std::vector< double >, 3 >* coords,
+                    int chare,
+                    std::array< std::vector< double >, 3 >* coord,
                     tk::Fields& u,
                     CkCallback cb );
 
@@ -75,15 +76,15 @@ class Transfer : public CBase_Transfer {
 
     //! ...
     void setSourceTets( CkArrayID p,
-                        int index,
+                        int chare,
                         std::vector< std::size_t >* inpoel,
-                        std::array< std::vector< double >, 3 >* coords,
+                        std::array< std::vector< double >, 3 >* coord,
                         const tk::Fields& u );
 
     //! ...
     void setDestPoints( CkArrayID p,
-                        int index,
-                        std::array< std::vector< double >, 3 >* coords,
+                        int chare,
+                        std::array< std::vector< double >, 3 >* coord,
                         tk::Fields& u,
                         CkCallback cb );
 

@@ -510,7 +510,7 @@ ChoCG::setup( tk::real v )
   Disc()->Boxvol() = v;
 
   // Set initial conditions
-  problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
+  problems::initialize( d->Coord(), m_u, d->T(), /*meshid=*/0, d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
   if (!g_cfg.get< tag::histout, tag::points >().empty()) {
@@ -1057,7 +1057,7 @@ ChoCG::pinit()
         auto p = m_dirbcmaskp[i*nmask+0];     // local node id
         auto mask = m_dirbcmaskp[i*nmask+1];
         if (mask == 1) {                                  // mask == 1: IC value
-          auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
+          auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p], /*meshid=*/0 );
           dirbc[p] = {{ { 1, val } }};
         } else if (mask == 2 && !m_dirbcvalp.empty()) {   // mask == 2: BC value
           auto val = m_np>1 ? 0.0 : m_dirbcvalp[i*nmask+1];
@@ -1101,7 +1101,7 @@ ChoCG::pinit()
       if (pi != end(lid)) {
         auto p = pi->second;
         auto ic = problems::PRESSURE_IC();
-        auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
+        auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p], /*meshid=*/0 );
         auto& b = dirbc[p];
         if (b.empty()) b = {{ { 1, val }} };
       }
@@ -1885,7 +1885,7 @@ ChoCG::writeFields( CkCallback cb )
     const auto& z = coord[2];
     auto an = m_u;
     for (std::size_t i=0; i<an.nunk(); ++i) {
-      auto s = sol( x[i], y[i], z[i], d->T() );
+      auto s = sol( x[i], y[i], z[i], d->T(), /*meshid=*/0 );
       for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
     }
     nodefieldnames.push_back( "velocity_analyticx" );
@@ -1909,7 +1909,7 @@ ChoCG::writeFields( CkCallback cb )
     const auto& z = coord[2];
     auto ap = m_pr;
     for (std::size_t i=0; i<ap.size(); ++i) {
-      ap[i] = pressure_sol( x[i], y[i], z[i] );
+      ap[i] = pressure_sol( x[i], y[i], z[i], /*meshid=*/0 );
     }
     nodefieldnames.push_back( "analytic" );
     nodefields.push_back( ap );

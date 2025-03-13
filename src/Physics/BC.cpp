@@ -58,7 +58,7 @@ dirbc( tk::Fields& U,
 
   for (std::size_t i=0; i<dirbcmask.size()/nmask; ++i) {
     auto p = dirbcmask[i*nmask+0];      // local node id
-    auto u = ic( x[p], y[p], z[p], t ); // evaluate solution/ic
+    auto u = ic( x[p], y[p], z[p], t, /*meshid=*/0 ); // evaluate solution/ic
     problems::box( p, u, boxnodes );    // overwrite with box value
     for (std::size_t c=0; c<ncomp; ++c) {
       auto mask = dirbcmask[i*nmask+1+c];
@@ -100,7 +100,7 @@ dirbcp( tk::Fields& U,
     auto p = dirbcmaskp[i*nmask+0];      // local node id
     auto mask = dirbcmaskp[i*nmask+1];
     if (mask == 1) {                               // mask == 1: IC value
-      U(p,0) = ic( x[p], y[p], z[p] );
+      U(p,0) = ic( x[p], y[p], z[p], /*meshid=*/0 );
     } else if (mask == 2 && !dirbcvalp.empty()) {  // mask == 2: BC value
       U(p,0) = dirbcvalp[i*nmask+1];
     }

@@ -403,7 +403,7 @@ KozCG::setup( tk::real v )
   d->Boxvol() = v;
 
   // Set initial conditions
-  problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
+  problems::initialize( d->Coord(), m_u, d->T(),/*meshid=*/0,  d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
   if (!g_cfg.get< tag::histout, tag::points >().empty()) {
@@ -1368,7 +1368,7 @@ KozCG::writeFields( CkCallback cb )
     auto an = m_u;
     std::vector< tk::real > ap( m_u.nunk() );
     for (std::size_t i=0; i<an.nunk(); ++i) {
-      auto s = sol( x[i], y[i], z[i], d->T() );
+      auto s = sol( x[i], y[i], z[i], d->T(), /*meshid=*/0 );
       s[1] /= s[0];
       s[2] /= s[0];
       s[3] /= s[0];

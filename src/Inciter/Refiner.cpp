@@ -935,7 +935,7 @@ Refiner::writeMesh( const std::string& basefilename,
 
   // Evaluate initial conditions on current mesh at t0
   tk::Fields u( m_coord[0].size(), ncomp );
-  problems::initialize( m_coord, u, t0 );
+  problems::initialize( m_coord, u, t0, /*meshid=*/0 );
 
   // Extract all scalar components from solution for output to file
   //for (std::size_t i=0; i<ncomp; ++i)
@@ -1433,7 +1433,7 @@ Refiner::nodeinit( std::size_t /*npoin*/,
   // Evaluate ICs
 
   // Evaluate ICs for all scalar components integrated
-  problems::initialize( m_coord, u, t0 );
+  problems::initialize( m_coord, u, t0, /*meshid=*/0 );
 
   Assert( u.nunk() == m_coord[0].size(), "Size mismatch" );
   Assert( u.nprop() == nprop, "Size mismatch" );

@@ -1090,7 +1090,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
   const auto& z = coord[2];
 
   for (std::size_t p=0; p<R.nunk(); ++p) {
-    auto s = src( x[p], y[p], z[p], t );
+    auto s = src( x[p], y[p], z[p], t, /*meshid=*/0 );
     for (std::size_t c=0; c<s.size(); ++c) R(p,c) -= s[c] * v[p];
   }
 }

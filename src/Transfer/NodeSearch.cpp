@@ -51,37 +51,36 @@ NodeSearch::NodeSearch( CkArrayID p, MeshData d, CkCallback cb ) :
 }
 
 void
-NodeSearch::setSourceTets(
-    std::vector< std::size_t>* inpoel,
-    std::array< std::vector< double >, 3 >* coords,
-    const tk::Fields& u )
+NodeSearch::setSourceTets( const std::vector< std::size_t >& inpoel,
+                           const std::array< std::vector< double >, 3 >& coord,
+                           const tk::Fields& u )
 // *****************************************************************************
 //  Set the data for the source tetrahedrons to be collided
 //! \param[in] inpoel Pointer to the connectivity data for the source mesh
-//! \param[in] coords Pointer to the coordinate data for the source mesh
+//! \param[in] coord Pointer to the coordinate data for the source mesh
 //! \param[in] u Pointer to the solution data for the source mesh
 // *****************************************************************************
 {
-  m_coord = coords;
+  m_inpoel = const_cast< std::vector< std::size_t >* >( &inpoel );
+  m_coord = const_cast< std::array< std::vector< double >, 3 >* >( &coord );
   m_u = const_cast< tk::Fields* >( &u );
-  m_inpoel = inpoel;
 
   // Send tetrahedron data to the collision detection library
   collideTets();
 }
 
 void
-NodeSearch::setDestPoints( std::array< std::vector< double >, 3 >* coords,
+NodeSearch::setDestPoints( const std::array< std::vector< double >, 3 >& coord,
                            tk::Fields& u,
                            CkCallback cb )
 // *****************************************************************************
 //  Set the data for the destination points to be collided
-//! \param[in] coords Pointer to the coordinate data for the destination mesh
+//! \param[in] coord Pointer to the coordinate data for the destination mesh
 //! \param[in,out] u Pointer to the solution data for the destination mesh
 //! \param[in] cb Callback to call once this chare received all solution data
 // *****************************************************************************
 {
-  m_coord = coords;
+  m_coord = const_cast< std::array< std::vector< double >, 3 >* >( &coord );
   m_u = static_cast< tk::Fields* >( &u );
   m_donecb = cb;
 
@@ -261,8 +260,12 @@ NodeSearch::determineActualCollisions(
       return_data.push_back(data);
     }
   }
-  CkPrintf( "Source chare %i found %i/%i actual collisions\n",
-            thisIndex, numInTet, nColls );
+
+  if (numInTet) {
+    CkPrintf( "Source chare %i found %i/%i actual collisions\n",
+              thisIndex, numInTet, nColls );
+  }
+
   // Send the solution data for the actual collisions back to the dest mesh
   proxy[index].transferSolution( return_data );
 }

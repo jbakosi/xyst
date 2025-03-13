@@ -55,12 +55,12 @@ class NodeSearch : public CBase_NodeSearch {
     #endif
 
     //! Set the source mesh data
-    void setSourceTets( std::vector< std::size_t>* inpoel,
-                        std::array< std::vector< double >, 3 >* coords,
+    void setSourceTets( const std::vector< std::size_t >& inpoel,
+                        const std::array< std::vector< double >, 3 >& coord,
                         const tk::Fields& u );
 
     //! Set the destination mesh data
-    void setDestPoints( std::array< std::vector< double >, 3 >* coords,
+    void setDestPoints( const std::array< std::vector< double >, 3 >& coord,
                         tk::Fields& u,
                         CkCallback cb );
 

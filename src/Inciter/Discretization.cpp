@@ -164,19 +164,21 @@ Discretization::transfer( tk::Fields& u, CkCallback c )
 //std::cout << "transfer on mesh " << m_meshid << ", disc.size: " << m_disc.size() << '\n';
 
   if (m_disc.size() == 1) {     // not coupled
+
     c.send();
+
   }
   else {
 
     m_transfer_complete = c;
 
     if (m_meshid == 0) {
-std::cout << "setSourceTets on mesh " << m_meshid << '\n';
-      transfer::setSourceTets( thisProxy, thisIndex, &m_inpoel, &m_coord, u );
+//std::cout << "setSourceTets on mesh " << m_meshid << '\n';
+      transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord, u );
     }
     else {
-std::cout << "setDestPoints on mesh " << m_meshid << '\n';
-      transfer::setDestPoints( thisProxy, thisIndex, &m_coord, u,
+//std::cout << "setDestPoints on mesh " << m_meshid << '\n';
+      transfer::setDestPoints( thisProxy, thisIndex, m_coord, u,
         CkCallback( CkIndex_Discretization::transfer_to_complete(),
                     thisProxy[thisIndex] ) );
     }
@@ -208,7 +210,7 @@ Discretization::transfer_complete()
 //! \note Single exit point after solution transfer between meshes
 // *****************************************************************************
 {
-std::cout << "transfer_complete on mesh " << m_meshid << '\n';
+std::cout << "transfer_complete: " << m_meshid << ',' << thisIndex << '\n';
 
   m_transfer_complete.send();
 

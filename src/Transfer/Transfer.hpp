@@ -40,14 +40,14 @@ void addMesh( CkArrayID p, int nchare, CkCallback cb );
 //! ...
 void setSourceTets( CkArrayID p,
                     int chare,
-                    std::vector< std::size_t >* inpoel,
-                    std::array< std::vector< double >, 3 >* coord,
+                    const std::vector< std::size_t >& inpoel,
+                    const std::array< std::vector< double >, 3 >& coord,
                     const tk::Fields& u );
 
 //! ...
 void setDestPoints( CkArrayID p,
                     int chare,
-                    std::array< std::vector< double >, 3 >* coord,
+                    const std::array< std::vector< double >, 3 >& coord,
                     tk::Fields& u,
                     CkCallback cb );
 
@@ -77,14 +77,14 @@ class Transfer : public CBase_Transfer {
     //! ...
     void setSourceTets( CkArrayID p,
                         int chare,
-                        std::vector< std::size_t >* inpoel,
-                        std::array< std::vector< double >, 3 >* coord,
+                        const std::vector< std::size_t >& inpoel,
+                        const std::array< std::vector< double >, 3 >& coord,
                         const tk::Fields& u );
 
     //! ...
     void setDestPoints( CkArrayID p,
                         int chare,
-                        std::array< std::vector< double >, 3 >* coord,
+                        const std::array< std::vector< double >, 3 >& coord,
                         tk::Fields& u,
                         CkCallback cb );
 

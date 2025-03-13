@@ -67,8 +67,8 @@ addMesh( CkArrayID p, int nchare, CkCallback cb )
 void
 setSourceTets( CkArrayID p,
                int chare,
-               std::vector< std::size_t >* inpoel,
-               std::array< std::vector< double >, 3 >* coord,
+               const std::vector< std::size_t >& inpoel,
+               const std::array< std::vector< double >, 3 >& coord,
                const tk::Fields& u )
 // *****************************************************************************
 //! ...
@@ -79,7 +79,7 @@ setSourceTets( CkArrayID p,
 
 void setDestPoints( CkArrayID p,
                     int chare,
-                    std::array< std::vector< double >, 3 >* coord,
+                    const std::array< std::vector< double >, 3 >& coord,
                     tk::Fields& u,
                     CkCallback cb )
 // *****************************************************************************
@@ -128,10 +128,10 @@ Transfer::setMesh( CkArrayID p, const MeshData& d )
 
 void
 Transfer::setDestPoints( CkArrayID p,
-                            int chare,
-                            std::array< std::vector< double >, 3 >* coord,
-                            tk::Fields& u,
-                            CkCallback cb)
+                         int chare,
+                         const std::array< std::vector< double >, 3 >& coord,
+                         tk::Fields& u,
+                         CkCallback cb)
 // *****************************************************************************
 //! ...
 // *****************************************************************************
@@ -145,8 +145,8 @@ Transfer::setDestPoints( CkArrayID p,
 void
 Transfer::setSourceTets( CkArrayID p,
                          int chare,
-                         std::vector< std::size_t >* inpoel,
-                         std::array< std::vector< double >, 3 >* coord,
+                         const std::vector< std::size_t >& inpoel,
+                         const std::array< std::vector< double >, 3 >& coord,
                          const tk::Fields& u )
 // *****************************************************************************
 //! ...

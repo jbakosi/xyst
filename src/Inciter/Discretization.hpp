@@ -245,14 +245,23 @@ class Discretization : public CBase_Discretization {
     //! Output time history for a time step
     void history( std::vector< std::vector< tk::real > >&& data );
 
-    //! Initiate solution transfer (if coupled)
+    //! Initiate solution transfer (if coupled) in 'to' direction
     void transfer( tk::Fields& u, CkCallback c );
 
     //! Solution transfer from background to overset mesh completed
+    void transfer_to_dest_complete();
+
+    //! Solution transfer in 'to' direction completed
     void transfer_to_complete();
 
-    //! Solution transfer completed
-    void transfer_complete();
+    //! Initiate solution transfer in 'from' direction
+    void transfer_from();
+
+    //! Solution transfer from overset to background mesh completed
+    void transfer_from_dest_complete();
+
+    //! Solution transfer in 'from' direction completed
+    void transfer_from_complete();
 
     //! Output mesh and fields data (solution dump) to file(s)
     void write( const std::vector< std::size_t >& inpoel,
@@ -387,6 +396,8 @@ class Discretization : public CBase_Discretization {
     std::size_t m_meshid;
     //! Function to call after mesh-to-mesh solution transfer is complete
     CkCallback m_transfer_complete;
+    //! Pointer to solution during mesh-to-mesh solution transfer
+    tk::Fields* m_transfer_sol;
     //! Total number of Discretization chares
     int m_nchare;
     //! Iteration count

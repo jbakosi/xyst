@@ -42,7 +42,7 @@ class NodeSearch : public CBase_NodeSearch {
 
   public:
     //! Constructor
-    explicit NodeSearch( CkArrayID p, MeshData d, CkCallback cb );
+    explicit NodeSearch( CkArrayID p, MeshData mesh, CkCallback cb );
 
     #if defined(__clang__)
       #pragma clang diagnostic push

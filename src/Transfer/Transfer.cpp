@@ -47,7 +47,7 @@ LibTransfer::LibTransfer( CkArgMsg* msg )
   g_transferProxy = CProxy_Transfer::ckNew();
 
   // TODO: Need to make sure this is actually correct
-  CollideGrid3d gridMap( CkVector3d(0, 0, 0),CkVector3d(2, 100, 2) );
+  CollideGrid3d gridMap( CkVector3d(0, 0, 0), CkVector3d(2, 100, 2) );
   g_collideHandle = CollideCreate( gridMap,
                       CollideSerialClient( collisionHandler, nullptr ) );
 }
@@ -61,7 +61,7 @@ addMesh( CkArrayID p, int nchare, CkCallback cb )
 //! \param[in] cb Callback to continue with once finished
 // *****************************************************************************
 {
-  g_transferProxy[ 0 ].addMesh( p, nchare, cb );
+  g_transferProxy[0].addMesh( p, nchare, cb, 0 );
 }
 
 void
@@ -76,6 +76,7 @@ setSourceTets( CkArrayID p,
 {
   g_transferProxy.ckLocalBranch()->setSourceTets( p, chare, inpoel, coord, u );
 }
+
 
 void setDestPoints( CkArrayID p,
                     int chare,
@@ -107,9 +108,9 @@ Transfer::addMesh( CkArrayID p, int nchare, CkCallback cb )
     opts.bindTo(p);
     opts.setNumInitial( nchare );
     MeshData mesh;
-    mesh.m_nchare = nchare;
-    mesh.m_firstchunk = current_chunk;
-    mesh.m_proxy = CProxy_NodeSearch::ckNew(p, mesh, cb, opts);
+    mesh.nchare = nchare;
+    mesh.firstchunk = current_chunk;
+    mesh.proxy = CProxy_NodeSearch::ckNew( p, mesh, cb, opts );
     proxyMap[id] = mesh;
     current_chunk += nchare;
   } else {
@@ -118,12 +119,12 @@ Transfer::addMesh( CkArrayID p, int nchare, CkCallback cb )
 }
 
 void
-Transfer::setMesh( CkArrayID p, const MeshData& d )
+Transfer::setMesh( CkArrayID p, const MeshData& mesh )
 // *****************************************************************************
 //! ...
 // *****************************************************************************
 {
-  proxyMap[static_cast<std::size_t>(CkGroupID(p).idx)] = d;
+  proxyMap[static_cast<std::size_t>(CkGroupID(p).idx)] = mesh;
 }
 
 void
@@ -137,7 +138,7 @@ Transfer::setDestPoints( CkArrayID p,
 // *****************************************************************************
 {
   m_destmesh = static_cast< std::size_t >( CkGroupID(p).idx );
-  NodeSearch* w = proxyMap[ m_destmesh ].m_proxy[ chare ].ckLocal();
+  NodeSearch* w = proxyMap[ m_destmesh ].proxy[ chare ].ckLocal();
   assert( w );
   w->setDestPoints( coord, u, cb );
 }
@@ -153,7 +154,7 @@ Transfer::setSourceTets( CkArrayID p,
 // *****************************************************************************
 {
   m_sourcemesh = static_cast< std::size_t >( CkGroupID(p).idx );
-  NodeSearch* w = proxyMap[ m_sourcemesh ].m_proxy[ chare ].ckLocal();
+  NodeSearch* w = proxyMap[ m_sourcemesh ].proxy[ chare ].ckLocal();
   assert(w);
   w->setSourceTets( inpoel, coord, u );
 }
@@ -169,8 +170,8 @@ Transfer::distributeCollisions( int nColl, Collision* colls )
 // *****************************************************************************
 {
   //CkPrintf("Collisions found: %i\n", nColl);
-  auto first = static_cast< std::size_t >( proxyMap[m_destmesh].m_firstchunk );
-  auto nchare = static_cast< std::size_t >( proxyMap[m_destmesh].m_nchare );
+  auto first = static_cast< std::size_t >( proxyMap[m_destmesh].firstchunk );
+  auto nchare = static_cast< std::size_t >( proxyMap[m_destmesh].nchare );
   std::vector< std::vector< Collision > > separated( nchare );
 
   // Separate collisions based on the destination mesh chare they belong to
@@ -187,10 +188,10 @@ Transfer::distributeCollisions( int nColl, Collision* colls )
   // Send out each list to the destination chares for further processing
   for (std::size_t i=0; i<nchare; ++i) {
     //CkPrintf("Dest mesh chunk %i has %lu\n", i, separated[i].size());
-    proxyMap[ m_destmesh ].m_proxy[ static_cast<int>(i) ].processCollisions(
-        proxyMap[ m_sourcemesh ].m_proxy,
-        proxyMap[ m_sourcemesh ].m_nchare,
-        proxyMap[ m_sourcemesh ].m_firstchunk,
+    proxyMap[ m_destmesh ].proxy[ static_cast<int>(i) ].processCollisions(
+        proxyMap[ m_sourcemesh ].proxy,
+        proxyMap[ m_sourcemesh ].nchare,
+        proxyMap[ m_sourcemesh ].firstchunk,
         static_cast< int >( separated[ i ].size() ),
         separated[ i ].data() );
   }

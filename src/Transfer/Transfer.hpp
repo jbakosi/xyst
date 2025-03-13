@@ -24,13 +24,13 @@ class LibTransfer : public CBase_LibTransfer {
 //! ...
 class MeshData {
   public:
-    CProxy_NodeSearch m_proxy;
-    int m_firstchunk;
-    int m_nchare;
+    CProxy_NodeSearch proxy;
+    int firstchunk;
+    int nchare;
     void pup( PUP::er& p ) {
-      p | m_proxy;
-      p | m_firstchunk;
-      p | m_nchare;
+      p | proxy;
+      p | firstchunk;
+      p | nchare;
     }
 };
 

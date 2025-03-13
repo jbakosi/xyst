@@ -31,22 +31,24 @@ PUPbytes( Collision );
 
 namespace transfer {
 extern CollideHandle g_collideHandle;
+extern CollideHandle g_collideHandle2;
 extern CProxy_Transfer g_transferProxy;
+extern CProxy_Transfer g_transferProxy2;
 }
 
 using transfer::NodeSearch;
 
-NodeSearch::NodeSearch( CkArrayID p, MeshData d, CkCallback cb ) :
-    m_firstchunk( d.m_firstchunk )
+NodeSearch::NodeSearch( CkArrayID p, MeshData mesh, CkCallback cb )
+  : m_firstchunk( mesh.firstchunk )
 // *****************************************************************************
 //  Constructor
 //! \param[in] firstchunk Chunk ID used for the collision detection library
 //! \param[in] cb Callback to inform application that the library is ready
 // *****************************************************************************
 {
+  mesh.proxy = thisProxy;
   CollideRegister( g_collideHandle, m_firstchunk + thisIndex );
-  d.m_proxy = thisProxy;
-  g_transferProxy.ckLocalBranch()->setMesh( p, d );
+  g_transferProxy.ckLocalBranch()->setMesh( p, mesh );
   contribute( cb );
 }
 
@@ -122,6 +124,7 @@ NodeSearch::collideVertices()
     prio[nBoxes] = firstchunk;
     ++nBoxes;
   }
+
   CollideBoxesPrio( g_collideHandle, firstchunk + thisIndex,
                     static_cast<int>(nBoxes), boxes.data(), prio.data() );
 }
@@ -148,6 +151,7 @@ NodeSearch::collideTets() const
       boxes[i].add(CkVector3d(coord[0][p], coord[1][p], coord[2][p]));
     }
   }
+
   CollideBoxesPrio( g_collideHandle, firstchunk + thisIndex,
                     static_cast<int>(nBoxes), boxes.data(), prio.data() );
 }
@@ -261,10 +265,10 @@ NodeSearch::determineActualCollisions(
     }
   }
 
-  if (numInTet) {
-    CkPrintf( "Source chare %i found %i/%i actual collisions\n",
-              thisIndex, numInTet, nColls );
-  }
+  //if (numInTet) {
+  //  CkPrintf( "Source chare %i found %i/%i actual collisions\n",
+  //            thisIndex, numInTet, nColls );
+  //}
 
   // Send the solution data for the actual collisions back to the dest mesh
   proxy[index].transferSolution( return_data );

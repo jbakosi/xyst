@@ -1309,6 +1309,8 @@ Transporter::transferred()
 {
   if (++m_ntrans == m_nelem.size()) {    // all meshes have finished transfer
     m_ntrans = 0;
+    // initiate mesh-to-mesh solution transfer in 'from' direction
+    for (auto& d : m_discretization) d.transfer_from();
   }
 }
 

@@ -65,9 +65,7 @@ class NodeSearch : public CBase_NodeSearch {
                         CkCallback cb );
 
     //! Process potential collisions in the destination mesh
-    void processCollisions( CProxy_NodeSearch proxy,
-                            int nchare,
-                            int offset,
+    void processCollisions( const MeshData& src,
                             int nColls,
                             Collision* colls );
 

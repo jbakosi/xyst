@@ -27,7 +27,7 @@ class MeshData {
   public:
     //! Host proxy of mesh
     CProxy_NodeSearch proxy;
-    //! ...
+    //! Starting chare ID of mesh partition
     int firstchunk;
     //! Number of mesh partitions
     int nchare;
@@ -61,8 +61,8 @@ void setDestPoints( CkArrayID p,
 class Transfer : public CBase_Transfer {
 
   public:
-    //! ...
-    Transfer();
+    //! Constructor
+    explicit Transfer() = default;
 
     #if defined(__clang__)
       #pragma clang diagnostic push
@@ -101,7 +101,7 @@ class Transfer : public CBase_Transfer {
     //! Mesh configuration for each mesh involved in solution transfer
     std::unordered_map< CmiUInt8, MeshData > m_proxyMap;
     //! ...
-    int current_chunk;
+    int m_current_chunk = 0;
     //! Source mesh id
     CmiUInt8 m_src;
     //! Destination mesh id

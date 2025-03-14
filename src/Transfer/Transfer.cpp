@@ -97,9 +97,6 @@ void setDestPoints( CkArrayID p,
   g_transferProxy.ckLocalBranch()->setDestPoints( p, chare, coord, u, cb );
 }
 
-//! ...
-Transfer::Transfer() : current_chunk(0) {}
-
 void
 Transfer::addMesh( CkArrayID p, int nchare, CkCallback cb )
 // *****************************************************************************
@@ -117,10 +114,10 @@ std::cout << "addMesh: " << nchare << ", id:" << id << '\n';
   opts.setNumInitial( nchare );
   MeshData mesh;
   mesh.nchare = nchare;
-  mesh.firstchunk = current_chunk;
+  mesh.firstchunk = m_current_chunk;
   mesh.proxy = CProxy_NodeSearch::ckNew( p, mesh, cb, opts );
   m_proxyMap[ id ] = mesh;
-  current_chunk += nchare;
+  m_current_chunk += nchare;
 }
 
 void
@@ -183,8 +180,9 @@ Transfer::distributeCollisions( int nColl, Collision* colls )
 // *****************************************************************************
 {
   //CkPrintf("Collisions found: %i\n", nColl);
-  auto first = static_cast< std::size_t >( m_proxyMap[m_dst].firstchunk );
-  auto nchare = static_cast< std::size_t >( m_proxyMap[m_dst].nchare );
+  const auto& dst = tk::cref_find( m_proxyMap, m_dst );
+  auto first = static_cast< std::size_t >( dst.firstchunk );
+  auto nchare = static_cast< std::size_t >( dst.nchare );
   std::vector< std::vector< Collision > > separated( nchare );
 
   // Separate collisions based on the destination mesh chare they belong to
@@ -202,10 +200,9 @@ Transfer::distributeCollisions( int nColl, Collision* colls )
   for (std::size_t i=0; i<nchare; ++i) {
     //CkPrintf("Dest mesh chunk %i has %lu\n", i, separated[i].size());
     const auto& src = tk::cref_find( m_proxyMap, m_src );
-    m_proxyMap[ m_dst ].proxy[ static_cast<int>(i) ].processCollisions(
-        src.proxy, src.nchare, src.firstchunk,
-        static_cast< int >( separated[ i ].size() ),
-        separated[ i ].data() );
+    dst.proxy[ static_cast<int>(i) ].processCollisions( src,
+      static_cast< int >( separated[ i ].size() ),
+      separated[ i ].data() );
   }
 }
 

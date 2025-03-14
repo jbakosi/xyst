@@ -46,7 +46,7 @@ NodeSearch::NodeSearch( CkArrayID p, MeshData mesh, CkCallback cb )
 {
 std::cout << "NodeSearch: " << mesh.nchare << '\n';
   mesh.proxy = thisProxy;
-  CollideRegister( g_collideHandle, m_firstchunk + thisIndex );
+  CollideRegister( g_collideHandle, /*ignored*/0 );
   g_transferProxy.ckLocalBranch()->setMesh( p, mesh );
   contribute( cb );
 }
@@ -156,26 +156,22 @@ NodeSearch::collideTets() const
 }
 
 void
-NodeSearch::processCollisions( CProxy_NodeSearch proxy,
-                               int numchares,
-                               int chunkoffset,
+NodeSearch::processCollisions( const MeshData& src,
                                int nColl,
                                Collision* colls )
 // *****************************************************************************
 //  Process potential collisions by sending my points to the source mesh chares
 //  that they potentially collide with.
-//! \param[in] proxy Proxy for the source mesh chares
-//! \param[in] numchares Number of chares in the source mesh chare array
-//! \param[in] chunkoffset First chunk ID of the source mesh
+//! \param[in] src Source mesh config data
 //! \param[in] nColl Number of potential collisions to process
 //! \param[in] colls List of potential collisions
 // *****************************************************************************
 {
   const std::array< std::vector< double >, 3 >& coord = *m_coord;
-  int mychunk = thisIndex + m_firstchunk;
+  int mychunk = m_firstchunk + thisIndex;
 
   std::vector< std::vector< PotentialCollision > >
-    pColls( static_cast<std::size_t>(numchares) );
+    pColls( static_cast<std::size_t>(src.nchare) );
 
   // Separate potential collisions into lists based on the source mesh chare
   // that is involved in the potential collision
@@ -183,11 +179,11 @@ NodeSearch::processCollisions( CProxy_NodeSearch proxy,
     int chareindex;
     PotentialCollision pColl;
     if (colls[i].A.chunk == mychunk) {
-      chareindex = colls[i].B.chunk - chunkoffset;
+      chareindex = colls[i].B.chunk - src.firstchunk;
       pColl.dest_index = static_cast<std::size_t>(colls[i].A.number);
       pColl.source_index = static_cast<std::size_t>(colls[i].B.number);
     } else {
-      chareindex = colls[i].A.chunk - chunkoffset;
+      chareindex = colls[i].A.chunk - src.firstchunk;
       pColl.dest_index = static_cast<std::size_t>(colls[i].B.number);
       pColl.source_index = static_cast<std::size_t>(colls[i].A.number);
     }
@@ -207,13 +203,11 @@ NodeSearch::processCollisions( CProxy_NodeSearch proxy,
   }
 
   // Send out the lists of potential collisions to the source mesh chares
-  for (int i = 0; i < numchares; i++) {
+  for (int i=0; i<src.nchare; ++i) {
     auto I = static_cast< std::size_t >( i );
     m_numsent++;
-    proxy[i].determineActualCollisions( thisProxy,
-                                        thisIndex,
-                                        static_cast<int>(pColls[I].size()),
-                                        pColls[I].data() );
+    src.proxy[i].determineActualCollisions( thisProxy, thisIndex,
+      static_cast<int>(pColls[I].size()), pColls[I].data() );
   }
 }
 

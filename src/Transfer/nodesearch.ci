@@ -20,9 +20,7 @@ module nodesearch {
 
     array [1D] NodeSearch {
       entry NodeSearch( CkArrayID p, MeshData mesh, CkCallback cb );
-      entry void processCollisions( CProxy_NodeSearch proxy,
-                                    int nchares,
-                                    int offset,
+      entry void processCollisions( const MeshData& src,
                                     int nColls,
                                     Collision colls[nColls] );
       entry void determineActualCollisions( CProxy_NodeSearch proxy,

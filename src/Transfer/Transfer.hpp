@@ -99,11 +99,13 @@ class Transfer : public CBase_Transfer {
 
   private:
     //! Mesh configuration for each mesh involved in solution transfer
-    std::unordered_map< CmiUInt8, MeshData > proxyMap;
+    std::unordered_map< CmiUInt8, MeshData > m_proxyMap;
     //! ...
     int current_chunk;
-    //! ...
-    CmiUInt8 m_sourcemesh, m_destmesh;
+    //! Source mesh id
+    CmiUInt8 m_src;
+    //! Destination mesh id
+    CmiUInt8 m_dst;
 };
 
 } // transfer::

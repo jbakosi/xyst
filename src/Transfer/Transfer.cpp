@@ -13,6 +13,7 @@
 
 #include "Transfer.hpp"
 #include "NodeSearch.hpp"
+#include "ContainerUtil.hpp"
 
 namespace transfer {
 
@@ -100,9 +101,7 @@ void setDestPoints( CkArrayID p,
 Transfer::Transfer() : current_chunk(0) {}
 
 void
-Transfer::addMesh( CkArrayID p,
-                   int nchare,
-                   CkCallback cb )
+Transfer::addMesh( CkArrayID p, int nchare, CkCallback cb )
 // *****************************************************************************
 //  Register a mesh to be part of mesh-to-mesh transfer
 //! \param[in] p Charm++ host proxy participating in mesh-to-mesh transfer
@@ -112,7 +111,7 @@ Transfer::addMesh( CkArrayID p,
 {
   auto id = static_cast<std::size_t>(CkGroupID(p).idx);
 std::cout << "addMesh: " << nchare << ", id:" << id << '\n';
-  assert( proxyMap.count(id) == 0 );
+  assert( m_proxyMap.count(id) == 0 );
   CkArrayOptions opts;
   opts.bindTo( p );
   opts.setNumInitial( nchare );
@@ -120,9 +119,8 @@ std::cout << "addMesh: " << nchare << ", id:" << id << '\n';
   mesh.nchare = nchare;
   mesh.firstchunk = current_chunk;
   mesh.proxy = CProxy_NodeSearch::ckNew( p, mesh, cb, opts );
-  proxyMap[ id ] = mesh;
+  m_proxyMap[ id ] = mesh;
   current_chunk += nchare;
-std::cout << "ps addMesh: " << proxyMap.size() << '\n';
 }
 
 void
@@ -131,8 +129,7 @@ Transfer::setMesh( CkArrayID p, const MeshData& mesh )
 //! \param[in] p Charm++ host proxy participating in mesh-to-mesh transfer
 // *****************************************************************************
 {
-  proxyMap[static_cast<std::size_t>(CkGroupID(p).idx)] = mesh;
-std::cout << "ps setMesh: " << proxyMap.size() << '\n';
+  m_proxyMap[static_cast<std::size_t>(CkGroupID(p).idx)] = mesh;
 }
 
 void
@@ -148,9 +145,9 @@ Transfer::setSourceTets( CkArrayID p,
 //! \param[in] u Source solution data
 // *****************************************************************************
 {
-  m_sourcemesh = static_cast< std::size_t >( CkGroupID(p).idx );
-  NodeSearch* w = proxyMap[ m_sourcemesh ].proxy[ chare ].ckLocal();
-std::cout << "ps setSourceTets: " << proxyMap.size() << '\n';
+  m_src = static_cast< std::size_t >( CkGroupID(p).idx );
+  assert( m_proxyMap.count(m_src) );
+  NodeSearch* w = tk::cref_find( m_proxyMap, m_src ).proxy[ chare ].ckLocal();
   assert( w );
   w->setSourceTets( inpoel, coord, u );
 }
@@ -168,9 +165,9 @@ Transfer::setDestPoints( CkArrayID p,
 //! \param[in] cb Callback to call once this chare received all solution data
 // *****************************************************************************
 {
-  m_destmesh = static_cast< std::size_t >( CkGroupID(p).idx );
-  NodeSearch* w = proxyMap[ m_destmesh ].proxy[ chare ].ckLocal();
-std::cout << "ps setDestPoints: " << proxyMap.size() << '\n';
+  m_dst = static_cast< std::size_t >( CkGroupID(p).idx );
+  assert( m_proxyMap.count(m_dst) );
+  NodeSearch* w = tk::cref_find( m_proxyMap, m_dst ).proxy[ chare ].ckLocal();
   assert( w );
   w->setDestPoints( coord, u, cb );
 }
@@ -185,10 +182,9 @@ Transfer::distributeCollisions( int nColl, Collision* colls )
 //! \param[in] colls The list of potential collisions
 // *****************************************************************************
 {
-std::cout << "ps distColl: " << proxyMap.size() << '\n';
   //CkPrintf("Collisions found: %i\n", nColl);
-  auto first = static_cast< std::size_t >( proxyMap[m_destmesh].firstchunk );
-  auto nchare = static_cast< std::size_t >( proxyMap[m_destmesh].nchare );
+  auto first = static_cast< std::size_t >( m_proxyMap[m_dst].firstchunk );
+  auto nchare = static_cast< std::size_t >( m_proxyMap[m_dst].nchare );
   std::vector< std::vector< Collision > > separated( nchare );
 
   // Separate collisions based on the destination mesh chare they belong to
@@ -205,10 +201,9 @@ std::cout << "ps distColl: " << proxyMap.size() << '\n';
   // Send out each list to the destination chares for further processing
   for (std::size_t i=0; i<nchare; ++i) {
     //CkPrintf("Dest mesh chunk %i has %lu\n", i, separated[i].size());
-    proxyMap[ m_destmesh ].proxy[ static_cast<int>(i) ].processCollisions(
-        proxyMap[ m_sourcemesh ].proxy,
-        proxyMap[ m_sourcemesh ].nchare,
-        proxyMap[ m_sourcemesh ].firstchunk,
+    const auto& src = tk::cref_find( m_proxyMap, m_src );
+    m_proxyMap[ m_dst ].proxy[ static_cast<int>(i) ].processCollisions(
+        src.proxy, src.nchare, src.firstchunk,
         static_cast< int >( separated[ i ].size() ),
         separated[ i ].data() );
   }

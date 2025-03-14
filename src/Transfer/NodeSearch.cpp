@@ -156,12 +156,11 @@ NodeSearch::collideTets() const
 }
 
 void
-NodeSearch::processCollisions(
-    CProxy_NodeSearch proxy,
-    int numchares,
-    int chunkoffset,
-    int nColl,
-    Collision* colls )
+NodeSearch::processCollisions( CProxy_NodeSearch proxy,
+                               int numchares,
+                               int chunkoffset,
+                               int nColl,
+                               Collision* colls )
 // *****************************************************************************
 //  Process potential collisions by sending my points to the source mesh chares
 //  that they potentially collide with.

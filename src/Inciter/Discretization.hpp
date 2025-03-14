@@ -80,9 +80,6 @@ class Discretization : public CBase_Discretization {
     //! Configure Charm++ reduction types
     static void registerReducers();
 
-    //! Our mesh has been registered with mesh-to-mesh transfer (if coupled)
-    void transferInit();
-
     //! Resize mesh data structures after mesh refinement
     void resizePostAMR(
       const tk::UnsMesh::Chunk& chunk,
@@ -244,6 +241,9 @@ class Discretization : public CBase_Discretization {
 
     //! Output time history for a time step
     void history( std::vector< std::vector< tk::real > >&& data );
+
+    //! Our mesh has been registered with mesh-to-mesh transfer (if coupled)
+    void transfer_initialized();
 
     //! Initiate solution transfer (if coupled) in 'to' direction
     void transfer( tk::Fields& u, CkCallback c );

@@ -30,10 +30,10 @@ class PotentialCollision {
 class SolutionData {
   public:
     std::size_t dest_index;
-    std::vector< double > solution;
+    std::vector< double > sol;
     void pup( PUP::er& p ) {
       p | dest_index;
-      p | solution;
+      p | sol;
     }
 };
 
@@ -78,7 +78,7 @@ class NodeSearch : public CBase_NodeSearch {
                                     PotentialCollision* colls ) const;
 
     //! Transfer the interpolated solution data back to destination mesh
-    void transferSolution( const std::vector< SolutionData >& soln );
+    void transferSolution( const std::vector< SolutionData >& sol );
 
     /** @name Charm++ pack/unpack serializer member functions */
     ///@{
@@ -106,7 +106,7 @@ class NodeSearch : public CBase_NodeSearch {
     int m_numsent;
     //! The number of messages received by the dest mesh
     int m_numreceived;
-    //! Called once the transfer is complete (m_numsent == m_numreceived)
+    //! Called once a transfer is complete
     CkCallback m_donecb;
 
     //! Initialize dest mesh solution with background data

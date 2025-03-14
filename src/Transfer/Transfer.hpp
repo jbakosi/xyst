@@ -21,12 +21,18 @@ class LibTransfer : public CBase_LibTransfer {
     explicit LibTransfer( CkArgMsg* msg );
 };
 
-//! ...
+//! Mesh configuration for a mesh involved in solution transfer
+//! \details Lightweight data structure identifing a mesh
 class MeshData {
   public:
+    //! Host proxy of mesh
     CProxy_NodeSearch proxy;
+    //! ...
     int firstchunk;
+    //! Number of mesh partitions
     int nchare;
+    //! Pack/Unpack serialize member function
+    //! \param[in,out] p Charm++'s PUP::er serializer object reference
     void pup( PUP::er& p ) {
       p | proxy;
       p | firstchunk;
@@ -34,17 +40,17 @@ class MeshData {
     }
 };
 
-//! Register a mesh to be part of mesh-to-mesh transfer
+//! API for registering a mesh to be part of mesh-to-mesh transfer
 void addMesh( CkArrayID p, int nchare, CkCallback cb );
 
-//! ...
+//! API for configuring source mesh
 void setSourceTets( CkArrayID p,
                     int chare,
                     const std::vector< std::size_t >& inpoel,
                     const std::array< std::vector< double >, 3 >& coord,
                     const tk::Fields& u );
 
-//! ...
+//! API for configuring destination mesh
 void setDestPoints( CkArrayID p,
                     int chare,
                     const std::array< std::vector< double >, 3 >& coord,
@@ -74,14 +80,14 @@ class Transfer : public CBase_Transfer {
     //! ...
     void setMesh( CkArrayID p, const MeshData& d );
 
-    //! ...
+    //! Configure source mesh
     void setSourceTets( CkArrayID p,
                         int chare,
                         const std::vector< std::size_t >& inpoel,
                         const std::array< std::vector< double >, 3 >& coord,
                         const tk::Fields& u );
 
-    //! ...
+    //! Configure destination mesh
     void setDestPoints( CkArrayID p,
                         int chare,
                         const std::array< std::vector< double >, 3 >& coord,
@@ -92,7 +98,7 @@ class Transfer : public CBase_Transfer {
     void distributeCollisions( int nColl, Collision* colls );
 
   private:
-    //! ...
+    //! Mesh configuration for each mesh involved in solution transfer
     std::unordered_map< CmiUInt8, MeshData > proxyMap;
     //! ...
     int current_chunk;

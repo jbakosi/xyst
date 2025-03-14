@@ -129,17 +129,17 @@ Discretization::Discretization(
 
   // Register with mesh-transfer (if coupled)
   if (m_disc.size() == 1) {
-    transferInit();
+    transfer_initialized();
   } else {
     if (thisIndex == 0) {
       transfer::addMesh( thisProxy, m_nchare,
-        CkCallback( CkIndex_Discretization::transferInit(), thisProxy ) );
+        CkCallback(CkIndex_Discretization::transfer_initialized(), thisProxy) );
     }
   }
 }
 
 void
-Discretization::transferInit()
+Discretization::transfer_initialized()
 // *****************************************************************************
 // Our mesh has been registered with the mesh-to-mesh transfer (if coupled)
 // *****************************************************************************
@@ -213,8 +213,9 @@ Discretization::transfer_to_complete()
 {
 std::cout << "transfer_to_complete: " << m_meshid << ',' << thisIndex << '\n';
 
-  contribute(
-    CkCallback( CkReductionTarget(Transporter,transferred), m_transporter ) );
+  m_transfer_complete.send();
+  //contribute(
+  //  CkCallback( CkReductionTarget(Transporter,transferred), m_transporter ) );
 }
 
 void

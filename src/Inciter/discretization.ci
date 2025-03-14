@@ -32,7 +32,7 @@ module discretization {
         const std::map< int, std::unordered_set< std::size_t > >& nodeCommMap,
         int nchare );
       initnode void registerReducers();
-      entry void transferInit();
+      entry void transfer_initialized();
       entry void transfer_to_dest_complete();
       entry void transfer_to_complete();
       entry void transfer_from();

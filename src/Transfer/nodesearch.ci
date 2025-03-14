@@ -19,7 +19,7 @@ module nodesearch {
     class SolutionData;
 
     array [1D] NodeSearch {
-      entry NodeSearch( CkArrayID p, MeshData d, CkCallback cb );
+      entry NodeSearch( CkArrayID p, MeshData mesh, CkCallback cb );
       entry void processCollisions( CProxy_NodeSearch proxy,
                                     int nchares,
                                     int offset,

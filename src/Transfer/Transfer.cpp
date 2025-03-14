@@ -55,13 +55,13 @@ LibTransfer::LibTransfer( CkArgMsg* msg )
 void
 addMesh( CkArrayID p, int nchare, CkCallback cb )
 // *****************************************************************************
-//  Register a mesh to be part of mesh-to-mesh transfer
-//! \param[in] p Charm++ host proxy that holds the mesh
+//  API for registering a mesh to be part of mesh-to-mesh transfer
+//! \param[in] p Charm++ host proxy participating in mesh-to-mesh transfer
 //! \param[in] nchare Number of mesh partitions
 //! \param[in] cb Callback to continue with once finished
 // *****************************************************************************
 {
-  g_transferProxy[0].addMesh( p, nchare, cb, 0 );
+  g_transferProxy[0].addMesh( p, nchare, cb );
 }
 
 void
@@ -71,7 +71,10 @@ setSourceTets( CkArrayID p,
                const std::array< std::vector< double >, 3 >& coord,
                const tk::Fields& u )
 // *****************************************************************************
-//! ...
+//  API for configuring source mesh
+//! \param[in] inpoel Source mesh connectivity
+//! \param[in] coord Source mesh node coordinates
+//! \param[in] u Source solution data
 // *****************************************************************************
 {
   g_transferProxy.ckLocalBranch()->setSourceTets( p, chare, inpoel, coord, u );
@@ -84,7 +87,10 @@ void setDestPoints( CkArrayID p,
                     tk::Fields& u,
                     CkCallback cb )
 // *****************************************************************************
-//! ...
+//  API for configuring destination mesh
+//! \param[in] coord Destination mesh node coordinates
+//! \param[in,out] u Destination mesh solution data
+//! \param[in] cb Callback to call once this chare received all solution data
 // *****************************************************************************
 {
   g_transferProxy.ckLocalBranch()->setDestPoints( p, chare, coord, u, cb );
@@ -94,53 +100,39 @@ void setDestPoints( CkArrayID p,
 Transfer::Transfer() : current_chunk(0) {}
 
 void
-Transfer::addMesh( CkArrayID p, int nchare, CkCallback cb )
+Transfer::addMesh( CkArrayID p,
+                   int nchare,
+                   CkCallback cb )
 // *****************************************************************************
 //  Register a mesh to be part of mesh-to-mesh transfer
-//! \param[in] p Charm++ host proxy that holds the mesh
+//! \param[in] p Charm++ host proxy participating in mesh-to-mesh transfer
 //! \param[in] nchare Number of mesh partitions
 //! \param[in] cb Callback to continue with once finished
 // *****************************************************************************
 {
   auto id = static_cast<std::size_t>(CkGroupID(p).idx);
-  if (proxyMap.count(id) == 0) {
-    CkArrayOptions opts;
-    opts.bindTo(p);
-    opts.setNumInitial( nchare );
-    MeshData mesh;
-    mesh.nchare = nchare;
-    mesh.firstchunk = current_chunk;
-    mesh.proxy = CProxy_NodeSearch::ckNew( p, mesh, cb, opts );
-    proxyMap[id] = mesh;
-    current_chunk += nchare;
-  } else {
-    CkAbort("Uhoh...\n");
-  }
+std::cout << "addMesh: " << nchare << ", id:" << id << '\n';
+  assert( proxyMap.count(id) == 0 );
+  CkArrayOptions opts;
+  opts.bindTo( p );
+  opts.setNumInitial( nchare );
+  MeshData mesh;
+  mesh.nchare = nchare;
+  mesh.firstchunk = current_chunk;
+  mesh.proxy = CProxy_NodeSearch::ckNew( p, mesh, cb, opts );
+  proxyMap[ id ] = mesh;
+  current_chunk += nchare;
+std::cout << "ps addMesh: " << proxyMap.size() << '\n';
 }
 
 void
 Transfer::setMesh( CkArrayID p, const MeshData& mesh )
 // *****************************************************************************
-//! ...
+//! \param[in] p Charm++ host proxy participating in mesh-to-mesh transfer
 // *****************************************************************************
 {
   proxyMap[static_cast<std::size_t>(CkGroupID(p).idx)] = mesh;
-}
-
-void
-Transfer::setDestPoints( CkArrayID p,
-                         int chare,
-                         const std::array< std::vector< double >, 3 >& coord,
-                         tk::Fields& u,
-                         CkCallback cb)
-// *****************************************************************************
-//! ...
-// *****************************************************************************
-{
-  m_destmesh = static_cast< std::size_t >( CkGroupID(p).idx );
-  NodeSearch* w = proxyMap[ m_destmesh ].proxy[ chare ].ckLocal();
-  assert( w );
-  w->setDestPoints( coord, u, cb );
+std::cout << "ps setMesh: " << proxyMap.size() << '\n';
 }
 
 void
@@ -150,13 +142,37 @@ Transfer::setSourceTets( CkArrayID p,
                          const std::array< std::vector< double >, 3 >& coord,
                          const tk::Fields& u )
 // *****************************************************************************
-//! ...
+//  Configure source mesh
+//! \param[in] inpoel Source mesh connectivity
+//! \param[in] coord Source mesh node coordinates
+//! \param[in] u Source solution data
 // *****************************************************************************
 {
   m_sourcemesh = static_cast< std::size_t >( CkGroupID(p).idx );
   NodeSearch* w = proxyMap[ m_sourcemesh ].proxy[ chare ].ckLocal();
-  assert(w);
+std::cout << "ps setSourceTets: " << proxyMap.size() << '\n';
+  assert( w );
   w->setSourceTets( inpoel, coord, u );
+}
+
+void
+Transfer::setDestPoints( CkArrayID p,
+                         int chare,
+                         const std::array< std::vector< double >, 3 >& coord,
+                         tk::Fields& u,
+                         CkCallback cb )
+// *****************************************************************************
+//  Configure destination mesh
+//! \param[in] coord Pointer to the coordinate data for the destination mesh
+//! \param[in,out] u Pointer to the solution data for the destination mesh
+//! \param[in] cb Callback to call once this chare received all solution data
+// *****************************************************************************
+{
+  m_destmesh = static_cast< std::size_t >( CkGroupID(p).idx );
+  NodeSearch* w = proxyMap[ m_destmesh ].proxy[ chare ].ckLocal();
+std::cout << "ps setDestPoints: " << proxyMap.size() << '\n';
+  assert( w );
+  w->setDestPoints( coord, u, cb );
 }
 
 void
@@ -169,6 +185,7 @@ Transfer::distributeCollisions( int nColl, Collision* colls )
 //! \param[in] colls The list of potential collisions
 // *****************************************************************************
 {
+std::cout << "ps distColl: " << proxyMap.size() << '\n';
   //CkPrintf("Collisions found: %i\n", nColl);
   auto first = static_cast< std::size_t >( proxyMap[m_destmesh].firstchunk );
   auto nchare = static_cast< std::size_t >( proxyMap[m_destmesh].nchare );

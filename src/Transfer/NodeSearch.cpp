@@ -31,9 +31,7 @@ PUPbytes( Collision );
 
 namespace transfer {
 extern CollideHandle g_collideHandle;
-extern CollideHandle g_collideHandle2;
 extern CProxy_Transfer g_transferProxy;
-extern CProxy_Transfer g_transferProxy2;
 }
 
 using transfer::NodeSearch;
@@ -46,6 +44,7 @@ NodeSearch::NodeSearch( CkArrayID p, MeshData mesh, CkCallback cb )
 //! \param[in] cb Callback to inform application that the library is ready
 // *****************************************************************************
 {
+std::cout << "NodeSearch: " << mesh.nchare << '\n';
   mesh.proxy = thisProxy;
   CollideRegister( g_collideHandle, m_firstchunk + thisIndex );
   g_transferProxy.ckLocalBranch()->setMesh( p, mesh );
@@ -148,7 +147,7 @@ NodeSearch::collideTets() const
       // Get index of the jth point of the ith tet
       auto p = inpoel[i * 4 + j];
       // Add that point to the tets bounding box
-      boxes[i].add(CkVector3d(coord[0][p], coord[1][p], coord[2][p]));
+      boxes[i].add( CkVector3d( coord[0][p], coord[1][p], coord[2][p] ) );
     }
   }
 
@@ -257,9 +256,9 @@ NodeSearch::determineActualCollisions(
       const auto B = inpoel[e*4+1];
       const auto C = inpoel[e*4+2];
       const auto D = inpoel[e*4+3];
-      data.solution.resize( u.nprop() );
+      data.sol.resize( u.nprop() );
       for (std::size_t c=0; c<u.nprop(); ++c) {
-        data.solution[c] = N[0]*u(A,c) + N[1]*u(B,c) + N[2]*u(C,c) + N[3]*u(D,c);
+        data.sol[c] = N[0]*u(A,c) + N[1]*u(B,c) + N[2]*u(C,c) + N[3]*u(D,c);
       }
       return_data.push_back(data);
     }
@@ -286,7 +285,7 @@ NodeSearch::transferSolution( const std::vector< SolutionData >& sol )
 
   for (std::size_t i=0; i<sol.size(); ++i) {
     for (std::size_t c=0; c<u.nprop(); ++c) {
-      u( sol[i].dest_index, c ) = sol[i].solution[c];
+      u( sol[i].dest_index, c ) = sol[i].sol[c];
     }
   }
 

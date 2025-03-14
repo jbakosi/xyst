@@ -1323,9 +1323,11 @@ LohCG::dt()
   // Actiavate SDAG waits for next time step stage
   thisProxy[ thisIndex ].wait4step();
 
-  // Contribute to minimum dt across all chares and advance to next step
+std::cout << d->MeshId() << ',' << thisIndex << ": " << mindt << '\n';
+
+  // Contribute to minimum dt across all chares
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
-              CkCallback(CkReductionTarget(LohCG,advance), thisProxy) );
+              CkCallback(CkReductionTarget(Transporter,transfer_dt), d->Tr()) );
 }
 
 void
@@ -1335,6 +1337,8 @@ LohCG::advance( tk::real newdt )
 //! \param[in] newdt The smallest dt across the whole problem
 // *****************************************************************************
 {
+std::cout << "adv: " << Disc()->MeshId() << ',' << thisIndex << ": " << newdt << '\n';
+
   // Detect blowup
   auto eps = std::numeric_limits< tk::real >::epsilon();
   if (newdt < eps) m_finished = 1;

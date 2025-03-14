@@ -55,6 +55,8 @@ Transporter::Transporter() :
   m_nchare( m_input.size() ),
   m_ncit( m_nchare.size(), 0 ),
   m_ntrans( 0 ),
+  m_ndt( 0 ),
+  m_mindt( std::numeric_limits< tk::real >::max() ),
   m_nload( 0 ),
   m_npart( 0 ),
   m_nstat( 0 ),
@@ -1311,6 +1313,30 @@ Transporter::transferred()
     m_ntrans = 0;
     // initiate mesh-to-mesh solution transfer in 'from' direction
     for (auto& d : m_discretization) d.transfer_from();
+  }
+}
+
+void
+Transporter::transfer_dt( tk::real dt )
+// *****************************************************************************
+// Reduction target computing the minimum dt for coupled problems
+//! \param[in] dt Minimum dt collected over all chares and all coupled meshes
+// *****************************************************************************
+{
+  if (dt < m_mindt) m_mindt = dt;
+
+  if (++m_ndt == m_nelem.size()) {    // all meshes have contributed
+    m_ndt = 0;
+
+    // continue timestep on all meshes
+    const auto& solver = g_cfg.get< tag::solver >();
+    if (solver == "lohcg") {
+      for (auto& w : m_lohcg) w.advance( m_mindt );
+    }
+    else {
+      Throw( "Unknown solver: " + solver );
+    }
+
   }
 }
 

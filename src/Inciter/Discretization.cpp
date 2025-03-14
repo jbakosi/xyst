@@ -161,6 +161,8 @@ Discretization::transfer( tk::Fields& u, CkCallback c )
 // Initiate solution transfer (if coupled) in 'to' direction
 // *****************************************************************************
 {
+//std::cout << "transfer to on mesh " << m_meshid << ", disc.size: " << m_disc.size() << '\n';
+
   if (m_disc.size() == 1) {     // not coupled
 
     c.send();
@@ -173,9 +175,11 @@ Discretization::transfer( tk::Fields& u, CkCallback c )
 
     // Initiate transfer in 'to' direction
     if (m_meshid == 0) {
+//std::cout << "to setSourceTets on mesh " << m_meshid << '\n';
       transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord, u );
     }
     else {
+//std::cout << "to setDestPoints on mesh " << m_meshid << '\n';
       transfer::setDestPoints( thisProxy, thisIndex, m_coord, u,
         CkCallback( CkIndex_Discretization::transfer_to_dest_complete(),
                     thisProxy[thisIndex] ) );
@@ -187,11 +191,13 @@ Discretization::transfer( tk::Fields& u, CkCallback c )
 void
 Discretization::transfer_to_dest_complete()
 // *****************************************************************************
-//! Solution transfer from background to overset mesh completed
+//  Solution transfer from background to overset mesh completed
 //! \details This is called once transfer on the destination mesh completed.
 //!   Since this is called only on the destination, we also notify the source.
 // *****************************************************************************
 {
+//std::cout << "transfer_to_dest_complete on mesh " << m_meshid << '\n';
+
   // Notify source of completion
   if (m_meshid > 0) m_disc[0][ thisIndex ].transfer_to_complete();
 
@@ -202,9 +208,11 @@ Discretization::transfer_to_dest_complete()
 void
 Discretization::transfer_to_complete()
 // *****************************************************************************
-//! Solution transfer in 'to' direction completed
+//  Solution transfer in 'to' direction completed
 // *****************************************************************************
 {
+std::cout << "transfer_to_complete: " << m_meshid << ',' << thisIndex << '\n';
+
   contribute(
     CkCallback( CkReductionTarget(Transporter,transferred), m_transporter ) );
 }
@@ -217,11 +225,13 @@ Discretization::transfer_from()
 {
   // Initiate transfer in 'from' direction
   if (m_meshid == 0) {
+//std::cout << "from setDestPoints on mesh " << m_meshid << '\n';
     transfer::setDestPoints( thisProxy, thisIndex, m_coord, *m_transfer_sol,
       CkCallback( CkIndex_Discretization::transfer_from_dest_complete(),
                   thisProxy[thisIndex] ) );
   }
   else {
+//std::cout << "from setSourceTets on mesh " << m_meshid << '\n';
     transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord,
                              *m_transfer_sol );
   }
@@ -230,11 +240,13 @@ Discretization::transfer_from()
 void
 Discretization::transfer_from_dest_complete()
 // *****************************************************************************
-//! Solution transfer from overset to background mesh completed
+//  Solution transfer from overset to background mesh completed
 //! \details This is called once transfer on the destination mesh completed.
 //!   Since this is called only on the destination, we also notify the source.
 // *****************************************************************************
 {
+//std::cout << "transfer_to_dest_complete on mesh " << m_meshid << '\n';
+
   // Notify source of completion
   if (m_meshid == 0) m_disc[1][ thisIndex ].transfer_from_complete();
 
@@ -245,9 +257,11 @@ Discretization::transfer_from_dest_complete()
 void
 Discretization::transfer_from_complete()
 // *****************************************************************************
-//! Solution transfer in 'from' direction completed
+//  Solution transfer in 'from' direction completed
 // *****************************************************************************
 {
+std::cout << "transfer_from_complete: " << m_meshid << ',' << thisIndex << '\n';
+
   m_transfer_complete.send();
 }
 

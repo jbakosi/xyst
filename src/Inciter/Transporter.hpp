@@ -176,6 +176,9 @@ class Transporter : public CBase_Transporter {
     //! Reduction target continuing after mesh-to-mesh solution transfer
     void transferred();
 
+    //! Reduction target computing the minimum dt for coupled problems
+    void transfer_dt( tk::real dt );
+
     //! Reduction target computing total volume of IC box
     void boxvol( tk::real v, tk::real summeshid );
 
@@ -211,6 +214,8 @@ class Transporter : public CBase_Transporter {
       p | m_meshid;
       p | m_ncit;
       p | m_ntrans;
+      p | m_ndt;
+      p | m_mindt;
       p | m_nload;
       p | m_npart;
       p | m_nstat;
@@ -261,6 +266,10 @@ class Transporter : public CBase_Transporter {
     std::vector< std::size_t > m_ncit;
     //! Number of meshes that have transferred their solution
     std::size_t m_ntrans;
+    //! Number of meshes that have contributed to dt calculation
+    std::size_t m_ndt;
+    //! Minimum dt across meshes for coupled problems
+    tk::real m_mindt;
     //! Number of meshes loaded
     std::size_t m_nload;
     //! Number of meshes partitioned

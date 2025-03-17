@@ -132,6 +132,9 @@ Config::cmdline( int argc, char** argv )
   // Basic error handling
   ErrChk( not get< tag::input >().empty(),
           "Mandatory input mesh file not specified. Use -i <filename>." );
+  ErrChk( get< tag::input >().size() <= 2,
+          "The maximum number of meshes for coupled problems is 2. If you "
+          "need more, put them into the same mesh file." );
   ErrChk( not get< tag::control >().empty(),
           "Mandatory control file not specified. Use -c <filename>." );
 }
@@ -154,8 +157,8 @@ Config::help( char** argv )
                      "default: " << get< tag::diag >() << "\n" <<
     "  -f            Extra feedback, "
                      "default: " << get< tag::feedback >() << "\n" <<
-    "  -i <in.exo>   Specify an input mesh file. Use it multiple times to "
-                     "specify multiple mesh files.\n"
+    "  -i <in.exo>   Specify an input mesh file. Use it another time to "
+                     "specify a second mesh file for coupled problems.\n"
     "  -l <int>      Load balancing frequency, "
                      "default: " << get< tag::lbfreq >() << "\n" <<
     "  -n            Non-blocking migration, "

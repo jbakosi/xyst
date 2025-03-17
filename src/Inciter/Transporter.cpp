@@ -54,7 +54,6 @@ Transporter::Transporter() :
   m_input{ g_cfg.get< tag::input >() },
   m_nchare( m_input.size() ),
   m_ncit( m_nchare.size(), 0 ),
-  m_ntrans( 0 ),
   m_ndt( 0 ),
   m_mindt( std::numeric_limits< tk::real >::max() ),
   m_nload( 0 ),
@@ -1300,19 +1299,6 @@ Transporter::stat()
 
     // Create "derived-class" workers
     for (std::size_t i=0; i<m_nelem.size(); ++i) m_sorter[i].createWorkers();
-  }
-}
-
-void
-Transporter::transferred()
-// *****************************************************************************
-// Reduction target continuing after mesh-to-mesh solution transfer
-// *****************************************************************************
-{
-  if (++m_ntrans == m_nelem.size()) {    // all meshes have finished transfer
-    m_ntrans = 0;
-    // initiate mesh-to-mesh solution transfer in 'from' direction
-    for (auto& d : m_discretization) d.transfer_from();
   }
 }
 

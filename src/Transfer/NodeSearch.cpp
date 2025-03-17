@@ -44,7 +44,7 @@ NodeSearch::NodeSearch( CkArrayID p, MeshData mesh, CkCallback cb )
 //! \param[in] cb Callback to inform application that the library is ready
 // *****************************************************************************
 {
-std::cout << "NodeSearch: " << mesh.nchare << '\n';
+//std::cout << "NodeSearch: " << mesh.nchare << '\n';
   mesh.proxy = thisProxy;
   CollideRegister( g_collideHandle, /*ignored*/0 );
   g_transferProxy.ckLocalBranch()->setMesh( p, mesh );
@@ -54,17 +54,20 @@ std::cout << "NodeSearch: " << mesh.nchare << '\n';
 void
 NodeSearch::setSourceTets( const std::vector< std::size_t >& inpoel,
                            const std::array< std::vector< double >, 3 >& coord,
-                           const tk::Fields& u )
+                           const tk::Fields& u,
+                           CkCallback cb )
 // *****************************************************************************
 //  Set the data for the source tetrahedrons to be collided
 //! \param[in] inpoel Pointer to the connectivity data for the source mesh
 //! \param[in] coord Pointer to the coordinate data for the source mesh
 //! \param[in] u Pointer to the solution data for the source mesh
+//! \param[in] cb Callback to call when src side of transfer is done
 // *****************************************************************************
 {
   m_inpoel = const_cast< std::vector< std::size_t >* >( &inpoel );
   m_coord = const_cast< std::array< std::vector< double >, 3 >* >( &coord );
   m_u = const_cast< tk::Fields* >( &u );
+  m_done = cb;
 
   // Send tetrahedron data to the collision detection library
   collideTets();
@@ -78,12 +81,12 @@ NodeSearch::setDestPoints( const std::array< std::vector< double >, 3 >& coord,
 //  Set the data for the destination points to be collided
 //! \param[in] coord Pointer to the coordinate data for the destination mesh
 //! \param[in,out] u Pointer to the solution data for the destination mesh
-//! \param[in] cb Callback to call once this chare received all solution data
+//! \param[in] cb Callback to call when dst side of transfer is done
 // *****************************************************************************
 {
   m_coord = const_cast< std::array< std::vector< double >, 3 >* >( &coord );
   m_u = static_cast< tk::Fields* >( &u );
-  m_donecb = cb;
+  m_done = cb;
 
   // Initialize msg counters, callback, and background solution data
   m_numsent = 0;
@@ -175,7 +178,7 @@ NodeSearch::processCollisions( const MeshData& src,
 
   // Separate potential collisions into lists based on the source mesh chare
   // that is involved in the potential collision
-  for (int i = 0; i < nColl; i++) {
+  for (int i=0; i<nColl; ++i) {
     int chareindex;
     PotentialCollision pColl;
     if (colls[i].A.chunk == mychunk) {
@@ -216,7 +219,7 @@ NodeSearch::determineActualCollisions(
     CProxy_NodeSearch proxy,
     int index,
     int nColls,
-    PotentialCollision* colls ) const
+    PotentialCollision* colls )
 // *****************************************************************************
 //  Identify actual collisions by calling intet on all possible collisions, and
 //  interpolate solution values to send back to the destination mesh.
@@ -264,6 +267,10 @@ NodeSearch::determineActualCollisions(
 
   // Send the solution data for the actual collisions back to the dest mesh
   proxy[index].transferSolution( return_data );
+  if (not m_srcnotified) {
+    m_done.send();
+    m_srcnotified = 1;
+  }
 }
 
 void
@@ -285,7 +292,7 @@ NodeSearch::transferSolution( const std::vector< SolutionData >& sol )
   // Inform the caller if we've received all solution data
   m_numreceived++;
   if (m_numreceived == m_numsent) {
-    m_donecb.send();
+    m_done.send();
   }
 }
 

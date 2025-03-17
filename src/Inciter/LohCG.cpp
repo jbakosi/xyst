@@ -1194,7 +1194,10 @@ LohCG::psolved()
 
   if (thisIndex == 0) d->pit( m_cgpre[ thisIndex ].ckLocal()->it() );
 
-  if (m_np != 1) {
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
+  bool test_overset = problem.find("overset") != std::string::npos;
+
+  if (m_np != 1 and !test_overset) {
     // Finalize gradient communications
     fingrad( m_sgrad, m_sgradc );
     // Project velocity to divergence-free subspace
@@ -1212,9 +1215,6 @@ LohCG::psolved()
 
   if (g_cfg.get< tag::nstep >() == 1) {  // test first Poisson solve only
 
-    if (thisIndex == 0) {
-      tk::Print() << "WARNING: Testing first Poisson solve only\n";
-    }
     auto p = m_cgpre[ thisIndex ].ckLocal()->solution();
     for (std::size_t i=0; i<m_u.nunk(); ++i) m_u(i,0) = p[i];
     thisProxy[ thisIndex ].wait4step();

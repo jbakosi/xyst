@@ -175,13 +175,13 @@ Discretization::transfer( tk::Fields& u, CkCallback c )
 
     // Initiate transfer in 'to' direction
     if (m_meshid == 0) {
-//std::cout << "to setSourceTets on mesh " << m_meshid << '\n';
-      transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord, u );
+      transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord, u,
+        CkCallback( CkIndex_Discretization::transfer_from(),
+                    thisProxy[thisIndex] ) );
     }
     else {
-//std::cout << "to setDestPoints on mesh " << m_meshid << '\n';
       transfer::setDestPoints( thisProxy, thisIndex, m_coord, u,
-        CkCallback( CkIndex_Discretization::transfer_to_dest_complete(),
+        CkCallback( CkIndex_Discretization::transfer_from(),
                     thisProxy[thisIndex] ) );
     }
 
@@ -189,81 +189,27 @@ Discretization::transfer( tk::Fields& u, CkCallback c )
 }
 
 void
-Discretization::transfer_to_dest_complete()
-// *****************************************************************************
-//  Solution transfer from background to overset mesh completed
-//! \details This is called once transfer on the destination mesh completed.
-//!   Since this is called only on the destination, we also notify the source.
-// *****************************************************************************
-{
-//std::cout << "transfer_to_dest_complete on mesh " << m_meshid << '\n';
-
-  // Notify source of completion
-  if (m_meshid > 0) m_disc[0][ thisIndex ].transfer_to_complete();
-
-  // Notify self of completion
-  thisProxy[ thisIndex ].transfer_to_complete();
-}
-
-void
-Discretization::transfer_to_complete()
-// *****************************************************************************
-//  Solution transfer in 'to' direction completed
-// *****************************************************************************
-{
-std::cout << "transfer_to_complete: " << m_meshid << ',' << thisIndex << '\n';
-
-  m_transfer_complete.send();
-  //contribute(
-  //  CkCallback( CkReductionTarget(Transporter,transferred), m_transporter ) );
-}
-
-void
 Discretization::transfer_from()
 // *****************************************************************************
-// Initiate solution transfer in 'from' direction
+// Initiate solution transfer from overset to background mesh
 // *****************************************************************************
 {
-  // Initiate transfer in 'from' direction
-  if (m_meshid == 0) {
-//std::cout << "from setDestPoints on mesh " << m_meshid << '\n';
-    transfer::setDestPoints( thisProxy, thisIndex, m_coord, *m_transfer_sol,
-      CkCallback( CkIndex_Discretization::transfer_from_dest_complete(),
-                  thisProxy[thisIndex] ) );
+  if (g_cfg.get< tag::overset, tag::oneway >()) {
+
+    m_transfer_complete.send();
+
   }
   else {
-//std::cout << "from setSourceTets on mesh " << m_meshid << '\n';
-    transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord,
-                             *m_transfer_sol );
+
+    if (m_meshid == 0) {
+      transfer::setDestPoints( thisProxy, thisIndex, m_coord, *m_transfer_sol,
+                               m_transfer_complete );
+    }
+    else {
+      transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord,
+                               *m_transfer_sol, m_transfer_complete );
+    }
   }
-}
-
-void
-Discretization::transfer_from_dest_complete()
-// *****************************************************************************
-//  Solution transfer from overset to background mesh completed
-//! \details This is called once transfer on the destination mesh completed.
-//!   Since this is called only on the destination, we also notify the source.
-// *****************************************************************************
-{
-//std::cout << "transfer_to_dest_complete on mesh " << m_meshid << '\n';
-
-  // Notify source of completion
-  if (m_meshid == 0) m_disc[1][ thisIndex ].transfer_from_complete();
-
-  // Notify self of completion
-  thisProxy[ thisIndex ].transfer_from_complete();
-}
-
-void
-Discretization::transfer_from_complete()
-// *****************************************************************************
-//  Solution transfer in 'from' direction completed
-// *****************************************************************************
-{
-std::cout << "transfer_from_complete: " << m_meshid << ',' << thisIndex << '\n';
-
-  m_transfer_complete.send();
 }
 
 void

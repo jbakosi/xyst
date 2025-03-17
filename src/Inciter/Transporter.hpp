@@ -173,9 +173,6 @@ class Transporter : public CBase_Transporter {
     //!    workers
     void pdfstat( CkReductionMsg* msg );
 
-    //! Reduction target continuing after mesh-to-mesh solution transfer
-    void transferred();
-
     //! Reduction target computing the minimum dt for coupled problems
     void transfer_dt( tk::real dt );
 
@@ -213,7 +210,6 @@ class Transporter : public CBase_Transporter {
       p | m_nchare;
       p | m_meshid;
       p | m_ncit;
-      p | m_ntrans;
       p | m_ndt;
       p | m_mindt;
       p | m_nload;
@@ -264,8 +260,6 @@ class Transporter : public CBase_Transporter {
     std::unordered_map< std::size_t, std::size_t > m_meshid;
     //! Number of mesh ref corr iter (one per mesh)
     std::vector< std::size_t > m_ncit;
-    //! Number of meshes that have transferred their solution
-    std::size_t m_ntrans;
     //! Number of meshes that have contributed to dt calculation
     std::size_t m_ndt;
     //! Minimum dt across meshes for coupled problems

@@ -556,6 +556,22 @@ range( lua_State* L, bool global = false )
 }
 
 static void
+overset( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse overset table from global scope
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  lua_getglobal( L, "overset" );
+
+  auto& tf = cfg.get< tag::overset>();
+  tf.get< tag::oneway >() = boolean( L, "oneway" );
+
+  lua_pop( L, 1 );
+}
+
+static void
 fieldout( lua_State* L, Config& cfg )
 // *****************************************************************************
 // Parse fieldout table from global scope
@@ -1626,6 +1642,7 @@ Config::control()
 
     problem( L, *this );
     mat( L, *this );
+    overset( L, *this );
     fieldout( L, *this );
     fieldout_( L, *this );
     histout( L, *this );

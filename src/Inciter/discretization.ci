@@ -33,11 +33,7 @@ module discretization {
         int nchare );
       initnode void registerReducers();
       entry void transfer_initialized();
-      entry void transfer_to_dest_complete();
-      entry void transfer_to_complete();
       entry void transfer_from();
-      entry void transfer_from_dest_complete();
-      entry void transfer_from_complete();
       entry void vol();
       entry void comvol( int c,
                          const std::vector< std::size_t >& gid,

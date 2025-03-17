@@ -47,7 +47,7 @@ LibTransfer::LibTransfer( CkArgMsg* msg )
 
   g_transferProxy = CProxy_Transfer::ckNew();
 
-  // TODO: Need to make sure this is actually correct
+  // Need to make sure this is actually correct
   CollideGrid3d gridMap( CkVector3d(0, 0, 0), CkVector3d(2, 100, 2) );
   g_collideHandle = CollideCreate( gridMap,
                       CollideSerialClient( collisionHandler, nullptr ) );
@@ -70,7 +70,8 @@ setSourceTets( CkArrayID p,
                int chare,
                const std::vector< std::size_t >& inpoel,
                const std::array< std::vector< double >, 3 >& coord,
-               const tk::Fields& u )
+               const tk::Fields& u,
+               CkCallback cb )
 // *****************************************************************************
 //  API for configuring source mesh
 //! \param[in] inpoel Source mesh connectivity
@@ -78,7 +79,7 @@ setSourceTets( CkArrayID p,
 //! \param[in] u Source solution data
 // *****************************************************************************
 {
-  g_transferProxy.ckLocalBranch()->setSourceTets( p, chare, inpoel, coord, u );
+  g_transferProxy.ckLocalBranch()->setSourceTets( p, chare, inpoel, coord, u, cb );
 }
 
 
@@ -107,7 +108,7 @@ Transfer::addMesh( CkArrayID p, int nchare, CkCallback cb )
 // *****************************************************************************
 {
   auto id = static_cast<std::size_t>(CkGroupID(p).idx);
-std::cout << "addMesh: " << nchare << ", id:" << id << '\n';
+//std::cout << "addMesh: " << nchare << ", id:" << id << '\n';
   assert( m_proxyMap.count(id) == 0 );
   CkArrayOptions opts;
   opts.bindTo( p );
@@ -127,6 +128,7 @@ Transfer::setMesh( CkArrayID p, const MeshData& mesh )
 // *****************************************************************************
 {
   m_proxyMap[static_cast<std::size_t>(CkGroupID(p).idx)] = mesh;
+//std::cout << "setMesh: pe:" << CkMyPe() << ": "; for (const auto& [i,m] : m_proxyMap) std::cout << " groupid:" << i << " firstchunk:" << m.firstchunk << " nchare:" << m.nchare << ' '; std::cout << '\n';
 }
 
 void
@@ -134,7 +136,8 @@ Transfer::setSourceTets( CkArrayID p,
                          int chare,
                          const std::vector< std::size_t >& inpoel,
                          const std::array< std::vector< double >, 3 >& coord,
-                         const tk::Fields& u )
+                         const tk::Fields& u,
+                         CkCallback cb )
 // *****************************************************************************
 //  Configure source mesh
 //! \param[in] inpoel Source mesh connectivity
@@ -146,7 +149,7 @@ Transfer::setSourceTets( CkArrayID p,
   assert( m_proxyMap.count(m_src) );
   NodeSearch* w = tk::cref_find( m_proxyMap, m_src ).proxy[ chare ].ckLocal();
   assert( w );
-  w->setSourceTets( inpoel, coord, u );
+  w->setSourceTets( inpoel, coord, u, cb );
 }
 
 void

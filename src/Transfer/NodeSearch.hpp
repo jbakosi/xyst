@@ -57,7 +57,8 @@ class NodeSearch : public CBase_NodeSearch {
     //! Set the source mesh data
     void setSourceTets( const std::vector< std::size_t >& inpoel,
                         const std::array< std::vector< double >, 3 >& coord,
-                        const tk::Fields& u );
+                        const tk::Fields& u,
+                        CkCallback cb );
 
     //! Set the destination mesh data
     void setDestPoints( const std::array< std::vector< double >, 3 >& coord,
@@ -73,7 +74,7 @@ class NodeSearch : public CBase_NodeSearch {
     void determineActualCollisions( CProxy_NodeSearch proxy,
                                     int index,
                                     int nColls,
-                                    PotentialCollision* colls ) const;
+                                    PotentialCollision* colls );
 
     //! Transfer the interpolated solution data back to destination mesh
     void transferSolution( const std::vector< SolutionData >& sol );
@@ -104,8 +105,10 @@ class NodeSearch : public CBase_NodeSearch {
     int m_numsent;
     //! The number of messages received by the dest mesh
     int m_numreceived;
-    //! Called once a transfer is complete
-    CkCallback m_donecb;
+    //! Set to nonzero once source mesh is notified that source side is done
+    int m_srcnotified = 0;
+    //! Callback to call when transfer is done
+    CkCallback m_done;
 
     //! Initialize dest mesh solution with background data
     void background();

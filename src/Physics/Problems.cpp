@@ -111,10 +111,9 @@ ic( tk::real, tk::real, tk::real, tk::real, std::size_t meshid )
 }
 
 static tk::real
-pic( tk::real, tk::real, tk::real, std::size_t meshid )
+pic( tk::real, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set homogeneous initial conditions for a generic user-defined problem
-//! \param[in] meshid Mesh id to use
 //! \return Value of pressure
 // *****************************************************************************
 {
@@ -126,14 +125,13 @@ pic( tk::real, tk::real, tk::real, std::size_t meshid )
 namespace nonlinear_energy_growth {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing nonlinear energy growth
 //! \param[in] x X coordinate where to evaluate the solution
 //! \param[in] y Y coordinate where to evaluate the solution
 //! \param[in] z Z coordinate where to evaluate the solution
 //! \param[in] t Time where to evaluate the solution
-//! \param[in] meshid Mesh id to use
 //! \return Values of conserved variables
 // *****************************************************************************
 {
@@ -163,14 +161,13 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t meshid )
 }
 
 static std::vector< tk::real >
-src( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t meshid )
+src( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t )
 // *****************************************************************************
 //! Compute and return source term for nonlinear energy growth
 //! \param[in] x X coordinate where to evaluate the source
 //! \param[in] y Y coordinate where to evaluate the source
 //! \param[in] z Z coordinate where to evaluate the source
 //! \param[in] t Time where to evaluate the source
-//! \param[in] meshid Mesh id to use
 //! \return Source for flow variables + transported scalars
 // *****************************************************************************
 {
@@ -227,14 +224,13 @@ src( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t meshid )
 namespace rayleigh_taylor {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing a Rayleigh-Taylor flow
 //! \param[in] x X coordinate where to evaluate the solution
 //! \param[in] y Y coordinate where to evaluate the solution
 //! \param[in] z Z coordinate where to evaluate the solution
 //! \param[in] t Time where to evaluate the solution
-//! \param[in] meshid Mesh id to use
 //! \return Values of conserved variables
 // *****************************************************************************
 {
@@ -339,13 +335,12 @@ src( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t meshid )
 
 namespace sedov {
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real z, tk::real, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real z, tk::real, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing the Sedov blast wave
 //! \param[in] x X coordinate where to evaluate the solution
 //! \param[in] y Y coordinate where to evaluate the solution
 //! \param[in] z Z coordinate where to evaluate the solution
-//! \param[in] meshid Mesh id to use
 //! \return Values of conserved variables
 // *****************************************************************************
 {
@@ -376,11 +371,10 @@ ic( tk::real x, tk::real y, tk::real z, tk::real, std::size_t meshid )
 
 namespace sod {
 static std::vector< tk::real >
-ic( tk::real x, tk::real, tk::real, tk::real, std::size_t meshid )
+ic( tk::real x, tk::real, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing the Sod shocktube
 //! \param[in] x X coordinate where to evaluate the solution
-//! \param[in] meshid Mesh id to use
 //! \return Values of conserved variables
 // *****************************************************************************
 {
@@ -414,12 +408,11 @@ ic( tk::real x, tk::real, tk::real, tk::real, std::size_t meshid )
 namespace taylor_green {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real, tk::real, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing the Taylor-Green vortex
 //! \param[in] x X coordinate where to evaluate the solution
 //! \param[in] y Y coordinate where to evaluate the solution
-//! \param[in] meshid Mesh id to use
 //! \return Values of conserved variables
 // *****************************************************************************
 {
@@ -438,12 +431,11 @@ ic( tk::real x, tk::real y, tk::real, tk::real, std::size_t meshid )
 }
 
 static std::vector< tk::real >
-src( tk::real x, tk::real y, tk::real, tk::real, std::size_t meshid )
+src( tk::real x, tk::real y, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Compute and return source term for a the Taylor-Green vortex
 //! \param[in] x X coordinate where to evaluate the source
 //! \param[in] y Y coordinate where to evaluate the source
-//! \param[in] meshid Mesh id to use
 //! \return Source for flow variables + transported scalars
 // *****************************************************************************
 {
@@ -461,13 +453,12 @@ src( tk::real x, tk::real y, tk::real, tk::real, std::size_t meshid )
 namespace vortical_flow {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real z, tk::real, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real z, tk::real, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing vortical flow
 //! \param[in] x X coordinate where to evaluate the solution
 //! \param[in] y Y coordinate where to evaluate the solution
 //! \param[in] z Z coordinate where to evaluate the solution
-//! \param[in] meshid Mesh id to use
 //! \return Values of conserved variables
 // *****************************************************************************
 {
@@ -521,13 +512,12 @@ src( tk::real x, tk::real y, tk::real z, tk::real, std::size_t meshid )
 namespace slot_cyl {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real, tk::real t, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real, tk::real t, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing slotted cylinder, cone, Gauss hump
 //! \param[in] x X coordinate where to evaluate the solution
 //! \param[in] y Y coordinate where to evaluate the solution
 //! \param[in] t Time where to evaluate the solution
-//! \param[in] meshid Mesh id to use
 //! \return Values of conserved variables
 // *****************************************************************************
 {
@@ -685,13 +675,12 @@ src( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t meshid )
 namespace sheardiff {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real, tk::real t, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real, tk::real t, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing shear-diffusion in 2D
 //! \param[in] x X coordinate where to evaluate the solution
 //! \param[in] y Y coordinate where to evaluate the solution
 //! \param[in] t Time where to evaluate the solution
-//! \param[in] meshid Mesh id to use
 //! \return Values of conserved variables
 //! \see A. Okubo, M.J. Karweit, Diffusion from a continuous source in a uniform
 //!      shear flow, Limnology and Oceanography, 14, 1969,
@@ -743,10 +732,9 @@ ic( tk::real x, tk::real y, tk::real, tk::real t, std::size_t meshid )
 }
 
 static std::vector< tk::real >
-src( tk::real, tk::real, tk::real, tk::real, std::size_t meshid )
+src( tk::real, tk::real, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Compute and return source term for shear-diffusion in 2D
-//! \param[in] meshid Mesh id to use
 //! \return Source for flow variables + transported scalars
 //! \see A. Okubo, M.J. Karweit, Diffusion from a continuous source in a uniform
 //!      shear flow, Limnology and Oceanography, 14, 1969,
@@ -849,10 +837,9 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 namespace poisson {
 
 static std::vector< tk::real >
-ic( tk::real, tk::real, tk::real, tk::real, std::size_t meshid )
+ic( tk::real, tk::real, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set velocity initial conditions for testing a Poisson solve only
-//! \param[in] meshid Mesh id to use
 //! \return Values for initial conditions
 // *****************************************************************************
 {
@@ -874,13 +861,12 @@ pr( tk::real, tk::real, tk::real )
 }
 
 static tk::real
-ic( tk::real x, tk::real y, tk::real z, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real z, std::size_t )
 // *****************************************************************************
 //! Evaluate pressure boundary condition
 //! \param[in] x X coordinate where to evaluate the BC
 //! \param[in] y Y coordinate where to evaluate the BC
 //! \param[in] z Z coordinate where to evaluate the BC
-//! \param[in] meshid Mesh id to use
 //! \return Value for pressure BC
 // *****************************************************************************
 {
@@ -902,13 +888,12 @@ pr( tk::real, tk::real, tk::real )
 }
 
 static tk::real
-ic( tk::real x, tk::real y, tk::real z, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real z, std::size_t )
 // *****************************************************************************
 //! Evaluate pressure boundary condition
 //! \param[in] x X coordinate where to evaluate the BC
 //! \param[in] y Y coordinate where to evaluate the BC
 //! \param[in] z Z coordinate where to evaluate the BC
-//! \param[in] meshid Mesh id to use
 //! \return Value for pressure BC
 // *****************************************************************************
 {
@@ -935,13 +920,12 @@ pr( tk::real x, tk::real y, tk::real z )
 }
 
 static tk::real
-ic( tk::real x, tk::real y, tk::real z, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real z, std::size_t )
 // *****************************************************************************
 //! Evaluate pressure boundary condition
 //! \param[in] x X coordinate where to evaluate the BC
 //! \param[in] y Y coordinate where to evaluate the BC
 //! \param[in] z Z coordinate where to evaluate the BC
-//! \param[in] meshid Mesh id to use
 //! \return Value for pressure BC
 // *****************************************************************************
 {
@@ -965,13 +949,12 @@ pr( tk::real x, tk::real y, tk::real z )
 }
 
 static tk::real
-ic( tk::real x, tk::real y, tk::real z, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real z, std::size_t )
 // *****************************************************************************
 //! Evaluate pressure boundary condition
 //! \param[in] x X coordinate where to evaluate the BC
 //! \param[in] y Y coordinate where to evaluate the BC
 //! \param[in] z Z coordinate where to evaluate the BC
-//! \param[in] meshid Mesh id to use
 //! \return Value for pressure BC
 // *****************************************************************************
 {
@@ -1009,12 +992,11 @@ pg( tk::real x, tk::real y, tk::real )
 }
 
 static tk::real
-ic( tk::real x, tk::real y, tk::real, std::size_t meshid )
+ic( tk::real x, tk::real y, tk::real, std::size_t )
 // *****************************************************************************
 //! Evaluate pressure boundary condition
 //! \param[in] x X coordinate where to evaluate the IC / analytic solution
 //! \param[in] y Y coordinate where to evaluate the IC / analytic solution
-//! \param[in] meshid Mesh id to use
 //! \return Value for pressure
 // *****************************************************************************
 {
@@ -1027,11 +1009,10 @@ ic( tk::real x, tk::real y, tk::real, std::size_t meshid )
 namespace poiseuille {
 
 static std::vector< tk::real >
-ic( tk::real, tk::real y, tk::real, tk::real, std::size_t meshid )
+ic( tk::real, tk::real y, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing the Poisuille problem
 //! \param[in] y Y coordinate where to evaluate the solution
-//! \param[in] meshid Mesh id to use
 //! \return Values of physics variables
 // *****************************************************************************
 {
@@ -1053,11 +1034,10 @@ ic( tk::real, tk::real y, tk::real, tk::real, std::size_t meshid )
 }
 
 static std::vector< tk::real >
-sol( tk::real, tk::real y, tk::real, tk::real, std::size_t meshid )
+sol( tk::real, tk::real y, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set analytic solution of the Poisuille problem
 //! \param[in] y Y coordinate where to evaluate the solution
-//! \param[in] meshid Mesh id to use
 //! \return Values of physics variables
 // *****************************************************************************
 {
@@ -1079,6 +1059,22 @@ sol( tk::real, tk::real y, tk::real, tk::real, std::size_t meshid )
 }
 
 } // poiseuille::
+
+namespace overset_linear {
+
+static std::vector< tk::real >
+ic( tk::real x, tk::real, tk::real, tk::real, std::size_t meshid )
+// *****************************************************************************
+//! Set initial conditions prescribing linear a field to test overset
+//! \param[in] x X coordinate where to set the solution
+//! \param[in] meshid Mesh id to use
+//! \return Values of physics variables
+// *****************************************************************************
+{
+  return { 0.0, meshid == 0 ? x : 0.0, 0.0, 0.0 };
+}
+
+} // overset_linear::
 
 std::function< std::vector< tk::real >
              ( tk::real, tk::real, tk::real, tk::real, std::size_t ) >
@@ -1117,6 +1113,8 @@ IC()
     ic = poisson::ic;
   else if (problem == "poiseuille")
     ic = poiseuille::ic;
+  else if (problem == "overset_linear")
+    ic = overset_linear::ic;
   else
     Throw( "problem type ic not hooked up" );
 

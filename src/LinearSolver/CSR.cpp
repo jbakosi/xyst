@@ -64,7 +64,7 @@ try :
       ja[ia[itmp]-1] = itmp+1;  // put in column index of diagonal
       for (std::size_t n=1, j=psup2[i]+1; j<=psup2[i+1]; ++j) {
         // put in column index of an off-diagonal
-	ja[ia[itmp]-1+(n++)] = psup1[j]*ncomp+k+1;
+        ja[ia[itmp]-1+(n++)] = psup1[j]*ncomp+k+1;
       }
     }
 
@@ -75,7 +75,7 @@ try :
          for (std::size_t l=1; l<rnz[i]; ++l)   // sort column indices of row i
             for (std::size_t e=0; e<rnz[i]-l; ++e)
               if (ja[ia[i*ncomp+k]-1+e] > ja[ia[i*ncomp+k]+e])
-	        std::swap( ja[ia[i*ncomp+k]-1+e], ja[ia[i*ncomp+k]+e] );
+                std::swap( ja[ia[i*ncomp+k]-1+e], ja[ia[i*ncomp+k]+e] );
 
 } // Catch std::exception
   catch (std::exception& se) {

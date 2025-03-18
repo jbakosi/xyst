@@ -923,7 +923,8 @@ LaxCG::BC( tk::real t )
   auto d = Disc();
 
   // Apply Dirichlet BCs
-  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
+  physics::dirbc( d->MeshId(), m_u, t, d->Coord(), d->BoxNodes(),
+                  m_dirbcmasks );
 
   // Apply symmetry BCs
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );

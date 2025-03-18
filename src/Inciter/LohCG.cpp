@@ -302,10 +302,23 @@ LohCG::feop()
 {
   auto d = Disc();
 
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  auto meshid = d->MeshId();
+
   // Prepare Dirichlet boundary conditions data structures
-  setupDirBC( g_cfg.get< tag::bc_dir >(), g_cfg.get< tag::bc_dirval >(),
-              m_u.nprop(), m_dirbcmask, m_dirbcval );
-  const auto& tp = g_cfg.get< tag::pressure >();
+  const auto& bc_dir =
+    multi ? g_cfg.get< tag::bc_dir_ >()[ meshid ]
+          : g_cfg.get< tag::bc_dir >();
+  const auto& bc_dirval =
+    multi ? g_cfg.get< tag::bc_dirval_ >()[ meshid ]
+          : g_cfg.get< tag::bc_dirval >();
+
+  setupDirBC( bc_dir, bc_dirval, m_u.nprop(), m_dirbcmask, m_dirbcval );
+
+  // Prepare pressure Dirichlet boundary conditions data structures
+  const auto& tp =
+    multi ? g_cfg.get< tag::pressure_ >()[ meshid ]
+          : g_cfg.get< tag::pressure >();
   setupDirBC( tp.get< tag::bc_dir >(), tp.get< tag::bc_dirval >(),
               1, m_dirbcmaskp, m_dirbcvalp );
 
@@ -575,6 +588,9 @@ LohCG::streamable()
 // Convert integrals into streamable data structures
 // *****************************************************************************
 {
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  auto meshid = Disc()->MeshId();
+
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
   const auto& is = g_cfg.get< tag::integout, tag::sidesets >();
@@ -617,9 +633,13 @@ LohCG::streamable()
 
   //  Prepare symmetry boundary condition data structures
 
+  const auto& bc_sym =
+    multi ? g_cfg.get< tag::bc_sym_ >()[ meshid ]
+          : g_cfg.get< tag::bc_sym >();
+
   // Query symmetry BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > sym;
-  for (auto s : g_cfg.get< tag::bc_sym >()) {
+  for (auto s : bc_sym) {
     auto k = m_bface.find(s);
     if (k != end(m_bface)) {
       auto& n = sym[ k->first ];
@@ -640,7 +660,7 @@ LohCG::streamable()
   tk::destroy( m_symbcnodes );
   tk::destroy( m_symbcnorms );
   for (auto p : symbcnodeset) {
-    for (const auto& s : g_cfg.get< tag::bc_sym >()) {
+    for (const auto& s : bc_sym) {
       auto m = m_bnorm.find( s );
       if (m != end(m_bnorm)) {
         auto r = m->second.find( p );
@@ -657,9 +677,13 @@ LohCG::streamable()
 
   //  Prepare noslip boundary condition data structures
 
+  const auto& bc_noslip =
+    multi ? g_cfg.get< tag::bc_noslip_ >()[ meshid ]
+          : g_cfg.get< tag::bc_noslip >();
+
   // Query noslip BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > noslip;
-  for (auto s : g_cfg.get< tag::bc_noslip >()) {
+  for (auto s : bc_noslip) {
     auto k = m_bface.find(s);
     if (k != end(m_bface)) {
       auto& n = noslip[ k->first ];
@@ -824,7 +848,8 @@ LohCG::merge()
 
   // Enforce boundary conditions on initial conditions
   auto t = d->T() + d->Dt();
-  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
+  physics::dirbc( d->MeshId(), m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
+                  m_dirbcval );
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
   physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
 
@@ -1208,7 +1233,8 @@ LohCG::psolved()
     }
     // Enforce boundary conditions
     auto t = d->T() + d->Dt();
-    physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval);
+    physics::dirbc( d->MeshId(), m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
+                    m_dirbcval);
     physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
     physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
   }
@@ -1498,8 +1524,10 @@ LohCG::solve()
 
   // Enforce boundary conditions
   auto t = d->T() + m_rkcoef[m_stage] * d->Dt();
-  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
-  physics::dirbcp( m_u, d->Coord(), m_dirbcmaskp, m_dirbcvalp );
+  auto meshid = d->MeshId();
+  physics::dirbc( meshid, m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
+                  m_dirbcval );
+  physics::dirbcp( meshid, m_u, d->Coord(), m_dirbcmaskp, m_dirbcvalp );
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
   physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
 

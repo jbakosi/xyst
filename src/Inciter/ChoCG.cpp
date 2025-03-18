@@ -1346,7 +1346,8 @@ ChoCG::BC( tk::Fields& u, tk::real t )
 {
   auto d = Disc();
 
-  physics::dirbc( u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
+  physics::dirbc( d->MeshId(), u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
+                  m_dirbcval );
   physics::symbc( u, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
   physics::noslipbc( u, m_noslipbcnodes, /*pos=*/0 );
 }

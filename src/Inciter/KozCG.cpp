@@ -598,7 +598,7 @@ KozCG::BC( tk::Fields& u, tk::real t )
   auto d = Disc();
 
   // Apply Dirichlet BCs
-  physics::dirbc( u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
+  physics::dirbc( d->MeshId(), u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
 
   // Apply symmetry BCs
   physics::symbc( u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );

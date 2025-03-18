@@ -27,7 +27,8 @@ namespace physics {
 using inciter::g_cfg;
 
 void
-dirbc( tk::Fields& U,
+dirbc( std::size_t meshid,
+       tk::Fields& U,
        tk::real t,
        const std::array< std::vector< tk::real >, 3 >& coord,
        const std::vector< std::unordered_set< std::size_t > >& boxnodes,
@@ -35,16 +36,15 @@ dirbc( tk::Fields& U,
        const std::vector< double >& dirbcval )
 // *****************************************************************************
 //  Set Dirichlet boundary conditions at nodes
-//! \param[in] t Physical time at which to evaluate BCs
+//! \param[in] meshid Mesh id to use
 //! \param[in] U Solution vector at recent time step
+//! \param[in] t Physical time at which to evaluate BCs
 //! \param[in] coord Mesh node coordinates
 //! \param[in] boxnodes List of nodes at which box user ICs are set
 //! \param[in] dirbcmask Nodes and component masks for Dirichlet BCs
 //! \param[in] dirbcval Nodes and component values for Dirichlet BCs
 // *****************************************************************************
 {
-  if (g_cfg.get< tag::bc_dir >().empty()) return;
-
   auto ncomp = U.nprop();
   auto nmask = ncomp + 1;
 
@@ -58,7 +58,7 @@ dirbc( tk::Fields& U,
 
   for (std::size_t i=0; i<dirbcmask.size()/nmask; ++i) {
     auto p = dirbcmask[i*nmask+0];      // local node id
-    auto u = ic( x[p], y[p], z[p], t, /*meshid=*/0 ); // evaluate solution/ic
+    auto u = ic( x[p], y[p], z[p], t, meshid ); // evaluate solution/ic
     problems::box( p, u, boxnodes );    // overwrite with box value
     for (std::size_t c=0; c<ncomp; ++c) {
       auto mask = dirbcmask[i*nmask+1+c];
@@ -72,20 +72,20 @@ dirbc( tk::Fields& U,
 }
 
 void
-dirbcp( tk::Fields& U,
+dirbcp( std::size_t meshid,
+        tk::Fields& U,
         const std::array< std::vector< tk::real >, 3 >& coord,
         const std::vector< std::size_t >& dirbcmaskp,
         const std::vector< double >& dirbcvalp )
 // *****************************************************************************
 //  Set pressure Dirichlet boundary conditions at nodes
+//! \param[in] meshid Mesh id to use
 //! \param[in] U Solution vector at recent time step
 //! \param[in] coord Mesh node coordinates
 //! \param[in] dirbcmaskp Nodes and component masks for Dirichlet BCs
 //! \param[in] dirbcvalp Nodes and component values for Dirichlet BCs
 // *****************************************************************************
 {
-  if (g_cfg.get< tag::pressure, tag::bc_dir >().empty()) return;
-
   std::size_t nmask = 1 + 1;
 
   Assert( dirbcmaskp.size() % nmask == 0, "Size mismatch" );
@@ -100,7 +100,7 @@ dirbcp( tk::Fields& U,
     auto p = dirbcmaskp[i*nmask+0];      // local node id
     auto mask = dirbcmaskp[i*nmask+1];
     if (mask == 1) {                               // mask == 1: IC value
-      U(p,0) = ic( x[p], y[p], z[p], /*meshid=*/0 );
+      U(p,0) = ic( x[p], y[p], z[p], meshid );
     } else if (mask == 2 && !dirbcvalp.empty()) {  // mask == 2: BC value
       U(p,0) = dirbcvalp[i*nmask+1];
     }
@@ -120,8 +120,6 @@ symbc( tk::Fields& U,
 //! \param[in] pos Position at which the three velocity components are in U
 // *****************************************************************************
 {
-  if (g_cfg.get< tag::bc_sym >().empty()) return;
-
   Assert( symbcnodes.size()*3 == symbcnorms.size(), "Size mismatch" );
 
   for (std::size_t i=0; i<symbcnodes.size(); ++i) {
@@ -148,8 +146,6 @@ noslipbc( tk::Fields& U,
 //! \param[in] pos Position at which the three velocity components are in U
 // *****************************************************************************
 {
-  if (g_cfg.get< tag::bc_noslip >().empty()) return;
-
   for (auto p : noslipbcnodes) U(p,pos+0) = U(p,pos+1) = U(p,pos+2) = 0.0;
 }
 

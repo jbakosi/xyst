@@ -928,6 +928,58 @@ bc_dir_( lua_State* L,
 }
 
 static void
+bc_dirval_( lua_State* L,
+            std::vector< std::vector< std::vector< double > > >& val,
+            std::size_t nf,
+            bool global = false )
+// *****************************************************************************
+// Parse bc_dirval table
+//! \param[in,out] L Lua state
+//! \param[in,out] val Config state to store Dirichlet BC setids and values
+//! \param[in] nf Number of mesh files specified on command line
+//! \param[in] global True to parse from global scope, false from table on stack
+// *****************************************************************************
+{
+  if (nf == 1) return;
+
+  val.resize( nf );
+  std::string basename = "bc_dirval_";
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+
+    if (global) {
+      lua_getglobal( L, name.c_str() );
+    } else {
+      if (lua_istable(L, -1)) lua_getfield( L, -1, name.c_str() ); else return;
+    }
+
+    if (!lua_isnil( L, -1 )) {
+      ErrChk( lua_istable( L, -1 ), "bc_dirval must be a table" );
+      int64_t n = luaL_len( L, -1 );
+      for (int64_t i=1; i<=n; ++i) {
+        lua_geti( L, -1, i );
+        ErrChk( lua_istable( L, -1 ), "bc_dirval table entry must be a table" );
+        val[k].emplace_back();
+        auto& b = val[k].back();
+        int64_t m = luaL_len( L, -1 );
+        for (int64_t j=1; j<=m; ++j) {
+          lua_geti( L, -1, j );
+          ErrChk( lua_isnumber( L, -1 ), "bc_dirval entry must be an real" );
+          b.push_back( static_cast< double >( lua_tonumber( L, -1 ) ) );
+          lua_pop( L, 1 );
+        }
+        lua_pop( L, 1 );
+      }
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
 bc_sym( lua_State* L, std::vector< int >& s, bool global = false )
 // *****************************************************************************
 // Parse bc_sym table from global scope or table
@@ -1627,6 +1679,7 @@ Config::control()
     bc_dir( L, get< tag::bc_dir >(), true );
     bc_dir_( L, get< tag::bc_dir_ >(), get< tag::input >().size(), true );
     bc_dirval( L, get< tag::bc_dirval >(), true );
+    bc_dirval_( L, get< tag::bc_dirval_ >(), get< tag::input >().size(), true );
 
     bc_sym( L, get< tag::bc_sym >(), true );
     bc_sym_( L, get< tag::bc_sym_ >(), get< tag::input >().size(), true );

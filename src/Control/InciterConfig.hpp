@@ -127,6 +127,7 @@ DEFTAG( box_velocity );
 DEFTAG( bc_dir );
 DEFTAG( bc_dirval );
 DEFTAG( bc_dir_ );
+DEFTAG( bc_dirval_ );
 DEFTAG( bc_sym );
 DEFTAG( bc_sym_ );
 DEFTAG( bc_noslip );
@@ -347,6 +348,7 @@ using ConfigMembers = brigand::list<
   , tag::bc_dir, std::vector< std::vector< int > >
   , tag::bc_dirval, std::vector< std::vector< double > >
   , tag::bc_dir_, std::vector< std::vector< std::vector< int > > >
+  , tag::bc_dirval_, std::vector< std::vector< std::vector< double > > >
   , tag::bc_sym, std::vector< int >
   , tag::bc_sym_, std::vector< std::vector< int > >
   , tag::bc_noslip, std::vector< int >

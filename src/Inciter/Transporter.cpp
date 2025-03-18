@@ -1305,8 +1305,8 @@ Transporter::stat()
 void
 Transporter::transfer_dt( tk::real dt )
 // *****************************************************************************
-// Reduction target computing the minimum dt for coupled problems
-//! \param[in] dt Minimum dt collected over all chares and all coupled meshes
+//  Reduction target computing the minimum dt for coupled problems
+//! \param[in] dt Minimum dt collected over all chares and coupled meshes
 // *****************************************************************************
 {
   if (dt < m_mindt) m_mindt = dt;

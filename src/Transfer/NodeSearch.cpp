@@ -68,6 +68,7 @@ NodeSearch::setSourceTets( const std::vector< std::size_t >& inpoel,
   m_coord = const_cast< std::array< std::vector< double >, 3 >* >( &coord );
   m_u = const_cast< tk::Fields* >( &u );
   m_done = cb;
+  m_srcnotified = 0;
 
   // Send tetrahedron data to the collision detection library
   collideTets();

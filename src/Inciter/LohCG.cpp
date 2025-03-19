@@ -1585,6 +1585,17 @@ LohCG::solve()
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
   physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
 
+  // Initiate transfer of updated solution (if coupled)
+  d->transfer( m_u,
+    CkCallback( CkIndex_LohCG::solved(), thisProxy[thisIndex] ) );
+}
+
+void
+LohCG::solved()
+// *****************************************************************************
+//  Solution has been updated
+// *****************************************************************************
+{
   if (++m_stage < m_rkcoef.size()) {
 
     // Start next time step stage

@@ -242,6 +242,9 @@ Transporter::matchsets_multi( std::map< int, std::vector< std::size_t > >& bnd,
   for (auto s : g_cfg.get< tag::integout_ >()[ meshid ].get< tag::sidesets >()){
     usersets.insert(s);
   }
+  for (auto s : g_cfg.get< tag::overset, tag::intergrid_ >()[ meshid ]){
+    usersets.insert(s);
+  }
 
   // Find user-configured side set ids among side sets read from mesh file
   std::unordered_set< int > sidesets_used;

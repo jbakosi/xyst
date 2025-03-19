@@ -128,6 +128,9 @@ class LohCG : public CBase_LohCG {
     //! Receive contributions to velocity divergence on chare-boundaries
     void comdiv( const std::unordered_map< std::size_t, tk::real >& indiv );
 
+    //! Solution has been updated
+    void solved();
+
     //! Evaluate residuals
     void evalres( const std::vector< tk::real >& l2res );
 

@@ -48,6 +48,7 @@ module lohcg {
       entry void pinit();
       entry void psolve();
       entry void psolved();
+      entry void solved();
       entry void feop();
       entry void step();
       entry void sgrad();

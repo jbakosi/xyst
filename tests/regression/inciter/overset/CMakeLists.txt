@@ -16,6 +16,22 @@ add_regression_test(lohcg_overset_linear ${INCITER_EXECUTABLE}
                     BIN_RESULT out.0.e-s.0.1.0
                                out.1.e-s.0.1.0
                     BIN_DIFF_PROG_CONF exodiff.cfg
+                    BIN_DIFF_PROG_ARGS -p
+                    LABELS lohcg overset)
+
+add_regression_test(lohcg_overset_intergrid ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES lohcg_overset_linear.q
+                               half_viscous_sphere_bg_11k.exo
+                               half_viscous_sphere_overset.exo
+                    ARGS -c lohcg_overset_linear.q
+                    ARGS -i half_viscous_sphere_bg_11k.exo
+                         -i half_viscous_sphere_overset.exo
+                    BIN_BASELINE lohcg_overset_intergrid.std.0.exo
+                                 lohcg_overset_intergrid.std.1.exo
+                    BIN_RESULT out.0.e-s.0.1.0
+                               out.1.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff_intergrid.cfg
                     LABELS lohcg overset)
 
 # Parallel + virtualization

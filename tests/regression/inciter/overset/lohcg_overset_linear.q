@@ -14,7 +14,8 @@ part_1 = "rcb"
 part_2 = "phg"
 
 overset = {
-  oneway = true
+  oneway = true,
+  intergrid_2 = { sideset = { 1 } }
 }
 
 problem = {

@@ -161,8 +161,6 @@ Discretization::transfer( tk::Fields& u, CkCallback c )
 // Initiate solution transfer (if coupled) in 'to' direction
 // *****************************************************************************
 {
-//std::cout << "transfer to on mesh " << m_meshid << ", disc.size: " << m_disc.size() << '\n';
-
   if (m_disc.size() == 1) {     // not coupled
 
     c.send();
@@ -209,6 +207,7 @@ Discretization::transfer_from()
       transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord,
                                *m_transfer_sol, m_transfer_complete );
     }
+
   }
 }
 

@@ -182,6 +182,7 @@ class LohCG : public CBase_LohCG {
       p | m_triinpoel;
       p | m_u;
       p | m_un;
+      p | m_flag;
       p | m_grad;
       p | m_gradc;
       p | m_vgrad;
@@ -254,6 +255,8 @@ class LohCG : public CBase_LohCG {
     tk::Fields m_u;
     //! Unknown/solution vector at mesh nodes at previous time step
     tk::Fields m_un;
+    //! Transfer flags at nodes (if coupled)
+    std::vector< int > m_flag;
     //! Gradient in mesh nodes
     tk::Fields m_grad;
     //! Gradient receive buffer

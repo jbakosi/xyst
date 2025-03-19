@@ -73,6 +73,7 @@ try :
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
+  m_flag( m_u.nunk(), 0 ),
   m_grad( m_u.nunk(), ngradcomp() ),
   m_vgrad( m_u.nunk(), 9UL ),
   m_flux( m_u.nunk(), 3UL ),
@@ -704,6 +705,59 @@ LohCG::streamable()
   tk::destroy( m_noslipbcnodes );
   m_noslipbcnodes.insert( m_noslipbcnodes.end(),
                           begin(noslipbcnodeset), end(noslipbcnodeset) );
+
+  //  Prepare integrid-boundary data structures (if coupled)
+
+  if (!multi) return;
+
+  // Access intergrid-boundary side set ids for this mesh
+  const auto& setids = g_cfg.get< tag::overset, tag::intergrid_ >()[ meshid ];
+
+  // Compile unique set of intergrid-boundary side set ids for this mesh
+  std::unordered_set< std::size_t > ibs( begin(setids), end(setids) );
+  if (ibs.empty()) return;
+
+  // Generate unique list of triangle elements on intergrid boundary
+  tk::UnsMesh::FaceSet btri;
+  for (const auto& [ setid, faceids ] : m_bface) {
+    if ( ibs.count( static_cast<std::size_t>(setid) ) ) {
+      for (auto f : faceids) {
+        const auto t = m_triinpoel.data() + f*3;
+        btri.insert( { t[0], t[1], t[2] } );
+      }
+    }
+  }
+
+  // Generate unique list of nodes on intergrid boundary (nodes of domain
+  // elements which share at least a face with the intergrid boundary)
+  const auto& inpoel = Disc()->Inpoel();
+  std::unordered_set< std::size_t > bp;
+  for (std::size_t e=0; e<inpoel.size()/4; e++) {
+    const auto N = inpoel.data() + e*4;
+    for (const auto& [a,b,c] : tk::lpofa) {
+      auto f = btri.find( { N[a], N[b], N[c] } );
+      if (f != end(btri)) {
+        m_flag[N[0]] = m_flag[N[1]] = m_flag[N[2]] = m_flag[N[3]] = 1;
+        bp.insert( N[0] );
+        bp.insert( N[1] );
+        bp.insert( N[2] );
+        bp.insert( N[3] );
+        continue;
+      }
+    }
+  }
+
+  // Add a second layer around the intergrid boundary (nodes of domain
+  // elements that share at least a node with the existing list)
+  for (std::size_t e=0; e<inpoel.size()/4; e++) {
+    const auto N = inpoel.data() + e*4;
+    for (std::size_t i=0; i<4; ++i) {
+      if (bp.count(N[i])) {
+        m_flag[N[0]] = m_flag[N[1]] = m_flag[N[2]] = m_flag[N[3]] = 1;
+        continue;
+      }
+    }
+  }
 }
 
 void
@@ -1711,6 +1765,11 @@ LohCG::writeFields( CkCallback cb )
       nodefields.push_back( an.extract(4+c) );
     }
   }
+
+  nodefieldnames.push_back( "flag" );
+  std::vector< double > tf( m_flag.size() );
+  for (std::size_t i=0; i<m_flag.size(); ++i) tf[i] = m_flag[i];
+  nodefields.push_back( tf );
 
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 

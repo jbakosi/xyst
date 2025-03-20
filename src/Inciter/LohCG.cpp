@@ -73,7 +73,7 @@ try :
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
-  m_flag( g_cfg.get< tag::input >().size() > 1 ? m_u.nunk() : 0, 0 ),
+  m_flag( g_cfg.get< tag::input >().size() > 1 ? m_u.nunk() : 0, -1 ),
   m_grad( m_u.nunk(), ngradcomp() ),
   m_vgrad( m_u.nunk(), 9UL ),
   m_flux( m_u.nunk(), 3UL ),
@@ -728,7 +728,9 @@ LohCG::prep_intergrid()
   bool multi = g_cfg.get< tag::input >().size() > 1;
   if (!multi) return;
 
-  auto meshid = Disc()->MeshId();
+  auto d = Disc();
+  auto meshid = d->MeshId();
+  if (meshid == 0) return;
 
   // Access intergrid-boundary side set ids for this mesh
   const auto& setids = g_cfg.get< tag::overset, tag::intergrid_ >()[ meshid ];
@@ -737,46 +739,46 @@ LohCG::prep_intergrid()
   std::unordered_set< std::size_t > ibs( begin(setids), end(setids) );
   if (ibs.empty()) return;
 
-  // Generate unique list of triangle elements on intergrid boundary
-  tk::UnsMesh::FaceSet btri;
-  for (const auto& [ setid, faceids ] : m_bface) {
-    if ( ibs.count( static_cast<std::size_t>(setid) ) ) {
-      for (auto f : faceids) {
-        const auto t = m_triinpoel.data() + f*3;
-        btri.insert( { t[0], t[1], t[2] } );
-      }
-    }
-  }
-
-  // Generate unique list of nodes on intergrid boundary (nodes of domain
-  // elements which share at least a face with the intergrid boundary)
-  const auto& inpoel = Disc()->Inpoel();
+  // Flag points on intergrid boundary
+  const auto& lid = d->Lid();
   std::unordered_set< std::size_t > bp;
-  for (std::size_t e=0; e<inpoel.size()/4; e++) {
-    const auto N = inpoel.data() + e*4;
-    for (const auto& [a,b,c] : tk::lpofa) {
-      auto f = btri.find( { N[a], N[b], N[c] } );
-      if (f != end(btri)) {
-        m_flag[N[0]] = m_flag[N[1]] = m_flag[N[2]] = m_flag[N[3]] = 1;
-        bp.insert( N[0] );
-        bp.insert( N[1] );
-        bp.insert( N[2] );
-        bp.insert( N[3] );
-        continue;
+  for (const auto& [ setid, n ] : m_bnode) {
+    if (ibs.count( static_cast<std::size_t>(setid) )) {
+      for (auto g : n) {
+        auto i = tk::cref_find(lid,g);
+        m_flag[i] = 1;
+        bp.insert(i);
       }
     }
   }
 
-  // Add a second layer around the intergrid boundary (nodes of domain
-  // elements that share at least a node with the existing list)
-  for (std::size_t e=0; e<inpoel.size()/4; e++) {
-    const auto N = inpoel.data() + e*4;
-    for (std::size_t i=0; i<4; ++i) {
-      if (bp.count(N[i])) {
-        m_flag[N[0]] = m_flag[N[1]] = m_flag[N[2]] = m_flag[N[3]] = 1;
-        continue;
+  // Add a some layers to intergrid boundary
+  const auto& inpoel = d->Inpoel();
+  auto psup = tk::genPsup( inpoel, 4, tk::genEsup( inpoel, 4 ) );
+  auto layers = g_cfg.get< tag::overset, tag::layers_ >()[ meshid ];
+  for (int n=0; n<layers; ++n) {
+    std::unordered_set< std::size_t > add;
+    for (auto p : bp) {
+      for (auto q : tk::Around(psup,p)) {
+        m_flag[q] = 1;
+        add.insert(q);
       }
     }
+    bp.merge( add );
+    add.clear();
+  }
+
+  // Mark next outer layers for transfer in opposite direction
+  for (int n=0; n<layers; ++n) {
+    std::unordered_set< std::size_t > add;
+    for (auto p : bp) {
+      for (auto q : tk::Around(psup,p)) {
+        if (m_flag[q] == -1) m_flag[q] = 0;
+        add.insert(q);
+      }
+    }
+    bp.merge( add );
+    add.clear();
   }
 }
 

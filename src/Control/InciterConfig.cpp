@@ -556,18 +556,22 @@ range( lua_State* L, bool global = false )
 }
 
 static void
-intergrid_( lua_State* L, Config& cfg, std::vector< std::vector< int > >& s )
+intergrid_( lua_State* L, Config& cfg,
+            std::vector< std::vector< int > >& sets,
+            std::vector< int64_t >& lays )
 // *****************************************************************************
 // Parse integrid_* table from table for multple meshes
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
-//! \param[in,out] s State to push back intergrid setids to (outer vec: mesh)
+//! \param[in,out] sets State to push back intergrid setids to (outer vec: mesh)
+//! \param[in,out] lays State to push back intergrid layers to (vec: mesh)
 // *****************************************************************************
 {
   auto nf = cfg.get< tag::input >().size();
   if (nf == 1) return;
 
-  s.resize( nf );
+  sets.resize( nf );
+  lays.resize( nf );
   std::string basename = "intergrid_";
 
   for (std::size_t k=0; k<nf; ++k) {
@@ -576,7 +580,8 @@ intergrid_( lua_State* L, Config& cfg, std::vector< std::vector< int > >& s )
     if (lua_istable(L, -1)) lua_getfield( L, -1, name.c_str() ); else return;
 
     if (!lua_isnil( L, -1 )) {
-      s[k] = sideset( L );
+      sets[k] = sideset( L );
+      lays[k] = sigint( L, "layers", 2 );
     }
 
     lua_pop( L, 1 );
@@ -596,7 +601,7 @@ overset( lua_State* L, Config& cfg )
 
   auto& tf = cfg.get< tag::overset>();
   tf.get< tag::oneway >() = boolean( L, "oneway" );
-  intergrid_( L, cfg, tf.get< tag::intergrid_ >() );
+  intergrid_( L, cfg, tf.get< tag::intergrid_ >(), tf.get< tag::layers_ >() );
 
   lua_pop( L, 1 );
 }

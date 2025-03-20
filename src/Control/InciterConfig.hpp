@@ -94,6 +94,7 @@ DEFTAG( freezetime );
 DEFTAG( overset );
 DEFTAG( oneway );
 DEFTAG( intergrid_ );
+DEFTAG( layers_ );
 DEFTAG( fieldout );
 DEFTAG( fieldout_ );
 DEFTAG( histout );
@@ -252,9 +253,10 @@ using ConfigMembers = brigand::list<
   , tag::freezeflow, double
   , tag::freezetime, double
   , tag::overset, tk::TaggedTuple< brigand::list<
-                     tag::oneway, bool
-                   , tag::intergrid_, std::vector< std::vector< int > >
-                   > >
+                    tag::oneway, bool
+                  , tag::intergrid_, std::vector< std::vector< int > >
+                  , tag::layers_, std::vector< int64_t >
+                  > >
   , tag::fieldout, tk::TaggedTuple< brigand::list<
                      tag::sidesets, std::vector< int >
                    , tag::iter,     uint64_t

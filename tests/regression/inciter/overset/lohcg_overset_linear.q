@@ -15,7 +15,10 @@ part_2 = "phg"
 
 overset = {
   oneway = true,
-  intergrid_2 = { sideset = { 1 } }
+  intergrid_2 = {
+    sideset = { 1 },
+    layers = 2
+  }
 }
 
 problem = {

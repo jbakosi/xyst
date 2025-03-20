@@ -383,6 +383,18 @@ class LohCG : public CBase_LohCG {
     //! Combine own and communicated portions of the boundary point normals
     void bnorm();
 
+    //! Prepare surface integral data strurctures
+    void prep_surfint();
+
+    //! Prepare symmetry boundary condition data structures
+    void prep_symbc();
+
+    //! Prepare no-slip boundary condition data structures
+    void prep_noslipbc();
+
+    //! Prepare integrid-boundary data structures (if coupled)
+    void prep_intergrid();
+
     //! Convert integrals into streamable data structures
     void streamable();
 

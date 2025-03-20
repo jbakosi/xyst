@@ -584,14 +584,11 @@ LohCG::bnorm()
 }
 
 void
-LohCG::streamable()
+LohCG::prep_surfint()
 // *****************************************************************************
-// Convert integrals into streamable data structures
+// Prepare surface integral data strurctures
 // *****************************************************************************
 {
-  bool multi = g_cfg.get< tag::input >().size() > 1;
-  auto meshid = Disc()->MeshId();
-
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
   const auto& is = g_cfg.get< tag::integout, tag::sidesets >();
@@ -609,6 +606,7 @@ LohCG::streamable()
     }
   }
   for (auto& [s,n] : surfintnodes) tk::unique( n );
+
   // Prepare surface integral data
   tk::destroy( m_surfint );
   const auto& gid = Disc()->Gid();
@@ -627,12 +625,18 @@ LohCG::streamable()
       a += 3;
     }
   }
+
   tk::destroy( m_bndpoinint );
+}
 
-  // Generate domain superedges
-  domsuped();
-
-  //  Prepare symmetry boundary condition data structures
+void
+LohCG::prep_symbc()
+// *****************************************************************************
+//  Prepare symmetry boundary condition data structures
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  auto meshid = Disc()->MeshId();
 
   const auto& bc_sym =
     multi ? g_cfg.get< tag::bc_sym_ >()[ meshid ]
@@ -675,8 +679,16 @@ LohCG::streamable()
     }
   }
   tk::destroy( m_bnorm );
+}
 
-  //  Prepare noslip boundary condition data structures
+void
+LohCG::prep_noslipbc()
+// *****************************************************************************
+//  Prepare no-slip boundary condition data structures
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  auto meshid = Disc()->MeshId();
 
   const auto& bc_noslip =
     multi ? g_cfg.get< tag::bc_noslip_ >()[ meshid ]
@@ -705,10 +717,18 @@ LohCG::streamable()
   tk::destroy( m_noslipbcnodes );
   m_noslipbcnodes.insert( m_noslipbcnodes.end(),
                           begin(noslipbcnodeset), end(noslipbcnodeset) );
+}
 
-  //  Prepare integrid-boundary data structures (if coupled)
-
+void
+LohCG::prep_intergrid()
+// *****************************************************************************
+//  Prepare integrid-boundary data structures (if coupled)
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
   if (!multi) return;
+
+  auto meshid = Disc()->MeshId();
 
   // Access intergrid-boundary side set ids for this mesh
   const auto& setids = g_cfg.get< tag::overset, tag::intergrid_ >()[ meshid ];
@@ -758,6 +778,28 @@ LohCG::streamable()
       }
     }
   }
+}
+
+void
+LohCG::streamable()
+// *****************************************************************************
+// Convert integrals into streamable data structures
+// *****************************************************************************
+{
+  // Prepare surface integral data strurctures
+  prep_surfint();
+
+  // Generate domain superedges
+  domsuped();
+
+  // Prepare symmetry boundary condition data structures
+  prep_symbc();
+
+  //  Prepare no-slip boundary condition data structures
+  prep_noslipbc();
+
+  // Prepare integrid-boundary data structures (if coupled)
+  prep_intergrid();
 }
 
 void

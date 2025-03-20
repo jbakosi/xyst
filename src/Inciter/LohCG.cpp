@@ -73,7 +73,7 @@ try :
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
-  m_flag( m_u.nunk(), 0 ),
+  m_flag( g_cfg.get< tag::input >().size() > 1 ? m_u.nunk() : 0, 0 ),
   m_grad( m_u.nunk(), ngradcomp() ),
   m_vgrad( m_u.nunk(), 9UL ),
   m_flux( m_u.nunk(), 3UL ),
@@ -1794,7 +1794,6 @@ LohCG::writeFields( CkCallback cb )
 
   // query function to evaluate analytic solution (if defined)
   auto sol = problems::SOL();
-
   if (sol) {
     const auto& coord = d->Coord();
     const auto& x = coord[0];
@@ -1819,10 +1818,11 @@ LohCG::writeFields( CkCallback cb )
     }
   }
 
-  nodefieldnames.push_back( "flag" );
-  std::vector< double > tf( m_flag.size() );
-  for (std::size_t i=0; i<m_flag.size(); ++i) tf[i] = m_flag[i];
-  nodefields.push_back( tf );
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  if (multi) {
+    nodefieldnames.push_back( "flag" );
+    nodefields.push_back( std::vector< double >( begin(m_flag), end(m_flag) ) );
+  }
 
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 

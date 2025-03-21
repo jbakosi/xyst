@@ -212,6 +212,67 @@ Discretization::transfer_from()
 }
 
 void
+Discretization::intergrid(
+  const std::map< int, std::vector< std::size_t > >& bnode )
+// *****************************************************************************
+//  Prepare integrid-boundary data structures (if coupled)
+//! \param[in] bnode Boundary-node lists mapped to side sets used in input file
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  if (!multi) return;
+  m_transfer_flag.resize( m_coord[0].size(), -1 );
+  if (m_meshid == 0) return;
+
+  // Access intergrid-boundary side set ids for this mesh
+  const auto& setids = g_cfg.get< tag::overset, tag::intergrid_ >()[ m_meshid ];
+
+  // Compile unique set of intergrid-boundary side set ids for this mesh
+  std::unordered_set< std::size_t > ibs( begin(setids), end(setids) );
+  if (ibs.empty()) return;
+
+  // Flag points on intergrid boundary
+  std::unordered_set< std::size_t > bp; // points flagged
+  for (const auto& [setid,n] : bnode) {
+    if (ibs.count( static_cast<std::size_t>(setid) )) {
+      for (auto g : n) {
+        auto i = tk::cref_find(m_lid,g);
+        m_transfer_flag[i] = 1;
+        bp.insert(i);
+      }
+    }
+  }
+
+  // Add a some layers to intergrid boundary
+  auto psup = tk::genPsup( m_inpoel, 4, tk::genEsup( m_inpoel, 4 ) );
+  auto layers = g_cfg.get< tag::overset, tag::layers_ >()[ m_meshid ];
+  for (int n=0; n<layers; ++n) {
+    std::unordered_set< std::size_t > add;
+    for (auto p : bp) {
+      for (auto q : tk::Around(psup,p)) {
+        m_transfer_flag[q] = 1;
+        add.insert(q);
+      }
+    }
+    bp.merge( add );
+    add.clear();
+  }
+
+  // Mark next outer layers for transfer in opposite direction
+  for (int n=0; n<layers; ++n) {
+    std::unordered_set< std::size_t > add;
+    for (auto p : bp) {
+      for (auto q : tk::Around(psup,p)) {
+        if (m_transfer_flag[q] == -1) m_transfer_flag[q] = 0;
+        add.insert(q);
+      }
+    }
+    bp.merge( add );
+    add.clear();
+  }
+}
+
+void
 Discretization::resizePostAMR(
   const tk::UnsMesh::Chunk& chunk,
   const tk::UnsMesh::Coords& coord,

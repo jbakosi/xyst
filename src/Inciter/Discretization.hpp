@@ -221,6 +221,9 @@ class Discretization : public CBase_Discretization {
     //! IC boxnodes accessor
     const std::vector< std::unordered_set< std::size_t > >& BoxNodes() const
     { return m_boxnodes; }
+
+    //! Transfer flags accessor
+    const std::vector< int >& TransferFlag() const { return m_transfer_flag; }
     //@}
 
     //! Set time step size
@@ -250,6 +253,9 @@ class Discretization : public CBase_Discretization {
 
     //! Initiate solution transfer from overset to background mesh
     void transfer_from();
+
+    //! Prepare integrid-boundary data structures (if coupled)
+    void intergrid( const std::map< int, std::vector< std::size_t > >& bnode );
 
     //! Output mesh and fields data (solution dump) to file(s)
     void write( const std::vector< std::size_t >& inpoel,
@@ -320,6 +326,7 @@ class Discretization : public CBase_Discretization {
       p | m_npoin;
       p | m_meshid;
       p | m_transfer_complete;
+      p | m_transfer_flag;
       p | m_nchare;
       p | m_it;
       p | m_itr;
@@ -386,6 +393,8 @@ class Discretization : public CBase_Discretization {
     CkCallback m_transfer_complete;
     //! Pointer to solution during mesh-to-mesh solution transfer
     tk::Fields* m_transfer_sol;
+   //! Transfer flags at nodes (if coupled)
+    std::vector< int > m_transfer_flag;
     //! Total number of Discretization chares
     int m_nchare;
     //! Iteration count

@@ -73,7 +73,6 @@ try :
   m_triinpoel( tk::remap( triinpoel, Disc()->Lid() ) ),
   m_u( Disc()->Gid().size(), g_cfg.get< tag::problem_ncomp >() ),
   m_un( m_u.nunk(), m_u.nprop() ),
-  m_flag( g_cfg.get< tag::input >().size() > 1 ? m_u.nunk() : 0, -1 ),
   m_grad( m_u.nunk(), ngradcomp() ),
   m_vgrad( m_u.nunk(), 9UL ),
   m_flux( m_u.nunk(), 3UL ),
@@ -531,6 +530,9 @@ LohCG::setup( tk::real v )
     d->histheader( std::move(var) );
   }
 
+  // Prepare integrid-boundary data structures (if coupled)
+  d->intergrid( m_bnode );
+
   // Initiate transfer of initial conditions (if coupled)
   d->transfer( m_u,
     CkCallback( CkIndex_LohCG::transfer_complete(), thisProxy[thisIndex] ) );
@@ -720,69 +722,6 @@ LohCG::prep_noslipbc()
 }
 
 void
-LohCG::prep_intergrid()
-// *****************************************************************************
-//  Prepare integrid-boundary data structures (if coupled)
-// *****************************************************************************
-{
-  bool multi = g_cfg.get< tag::input >().size() > 1;
-  if (!multi) return;
-
-  auto d = Disc();
-  auto meshid = d->MeshId();
-  if (meshid == 0) return;
-
-  // Access intergrid-boundary side set ids for this mesh
-  const auto& setids = g_cfg.get< tag::overset, tag::intergrid_ >()[ meshid ];
-
-  // Compile unique set of intergrid-boundary side set ids for this mesh
-  std::unordered_set< std::size_t > ibs( begin(setids), end(setids) );
-  if (ibs.empty()) return;
-
-  // Flag points on intergrid boundary
-  const auto& lid = d->Lid();
-  std::unordered_set< std::size_t > bp;
-  for (const auto& [ setid, n ] : m_bnode) {
-    if (ibs.count( static_cast<std::size_t>(setid) )) {
-      for (auto g : n) {
-        auto i = tk::cref_find(lid,g);
-        m_flag[i] = 1;
-        bp.insert(i);
-      }
-    }
-  }
-
-  // Add a some layers to intergrid boundary
-  const auto& inpoel = d->Inpoel();
-  auto psup = tk::genPsup( inpoel, 4, tk::genEsup( inpoel, 4 ) );
-  auto layers = g_cfg.get< tag::overset, tag::layers_ >()[ meshid ];
-  for (int n=0; n<layers; ++n) {
-    std::unordered_set< std::size_t > add;
-    for (auto p : bp) {
-      for (auto q : tk::Around(psup,p)) {
-        m_flag[q] = 1;
-        add.insert(q);
-      }
-    }
-    bp.merge( add );
-    add.clear();
-  }
-
-  // Mark next outer layers for transfer in opposite direction
-  for (int n=0; n<layers; ++n) {
-    std::unordered_set< std::size_t > add;
-    for (auto p : bp) {
-      for (auto q : tk::Around(psup,p)) {
-        if (m_flag[q] == -1) m_flag[q] = 0;
-        add.insert(q);
-      }
-    }
-    bp.merge( add );
-    add.clear();
-  }
-}
-
-void
 LohCG::streamable()
 // *****************************************************************************
 // Convert integrals into streamable data structures
@@ -799,9 +738,6 @@ LohCG::streamable()
 
   //  Prepare no-slip boundary condition data structures
   prep_noslipbc();
-
-  // Prepare integrid-boundary data structures (if coupled)
-  prep_intergrid();
 }
 
 void
@@ -1823,7 +1759,8 @@ LohCG::writeFields( CkCallback cb )
   bool multi = g_cfg.get< tag::input >().size() > 1;
   if (multi) {
     nodefieldnames.push_back( "flag" );
-    nodefields.push_back( std::vector< double >( begin(m_flag), end(m_flag) ) );
+    const auto& flag = d->TransferFlag();
+    nodefields.push_back( std::vector< double >( begin(flag), end(flag) ) );
   }
 
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );

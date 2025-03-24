@@ -96,9 +96,9 @@ CSR::operator()( std::size_t row, std::size_t col, std::size_t pos ) const
 {
   auto rncomp = row * ncomp;
 
-  for (std::size_t n=0, j=ia[rncomp+pos]-1; j<ia[rncomp+pos+1]-1; ++j, ++n)
+  for (std::size_t j=ia[rncomp+pos]-1; j<ia[rncomp+pos+1]-1; ++j)
     if (col*ncomp+pos+1 == ja[j])
-      return a[ia[rncomp+pos]-1+n];
+      return a[j];
 
   Throw("Sparse matrix index not found");
 }

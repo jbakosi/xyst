@@ -158,7 +158,7 @@ Discretization::transfer_initialized()
 void
 Discretization::transfer( tk::Fields& u, CkCallback c )
 // *****************************************************************************
-// Initiate solution transfer (if coupled) in 'to' direction
+// Initiate solution transfer from background to overset mesh (if coupled)
 // *****************************************************************************
 {
   if (m_disc.size() == 1) {     // not coupled

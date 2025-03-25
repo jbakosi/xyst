@@ -248,7 +248,7 @@ class Discretization : public CBase_Discretization {
     //! Our mesh has been registered with mesh-to-mesh transfer (if coupled)
     void transfer_initialized();
 
-    //! Initiate solution transfer (if coupled) in 'to' direction
+    //! Initiate solution transfer from background to overset mesh (if coupled)
     void transfer( tk::Fields& u, CkCallback c );
 
     //! Initiate solution transfer from overset to background mesh

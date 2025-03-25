@@ -169,8 +169,7 @@ Config::help( char** argv )
                      "default: " << get< tag::rsfreq >() << "\n" <<
     "  -q            Enable quiescence detection, "
                      "default: " << get< tag::quiescence >() << "\n" <<
-    "  -u <real>     Virtualization, "
-                     "default: " << get< tag::virt >() << "\n" <<
+    "  -u <real>     Virtualization, default: 0.0\n" <<
     "  -v            Print revision information\n"
     "\n";
 }

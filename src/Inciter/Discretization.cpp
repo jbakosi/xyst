@@ -245,7 +245,7 @@ Discretization::intergrid(
     }
   }
 
-  // Add a some layers to intergrid boundary
+  // Add some layers to intergrid boundary
   auto psup = tk::genPsup( m_inpoel, 4, tk::genEsup( m_inpoel, 4 ) );
   auto layers = g_cfg.get< tag::overset, tag::layers_ >()[ m_meshid ];
   for (int n=0; n<layers; ++n) {

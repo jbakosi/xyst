@@ -17,22 +17,22 @@ namespace transfer {
 //! ...
 class PotentialCollision {
   public:
-    std::size_t source_index, dest_index;
+    std::size_t src, dst;
     CkVector3d point;
     void pup( PUP::er& p ) {
-      p | source_index;
-      p | dest_index;
+      p | src;
+      p | dst;
       p | point;
     }
 };
 
-//! ...
+//! Solution data interpolated from src to dst mesh
 class SolutionData {
   public:
-    std::size_t dest_index;
+    std::size_t dst;
     std::vector< double > sol;
     void pup( PUP::er& p ) {
-      p | dest_index;
+      p | dst;
       p | sol;
     }
 };
@@ -58,11 +58,14 @@ class NodeSearch : public CBase_NodeSearch {
     void setSourceTets( const std::vector< std::size_t >& inpoel,
                         const std::array< std::vector< double >, 3 >& coord,
                         const tk::Fields& u,
+                        const std::vector< double >& flag,
                         CkCallback cb );
 
     //! Set the destination mesh data
     void setDestPoints( const std::array< std::vector< double >, 3 >& coord,
                         tk::Fields& u,
+                        std::vector< double >& flag,
+                        bool trflag,
                         CkCallback cb );
 
     //! Process potential collisions in the destination mesh
@@ -101,6 +104,10 @@ class NodeSearch : public CBase_NodeSearch {
     std::array< std::vector< double >, 3 >* m_coord;
     //! Pointer to solution in mesh nodes
     tk::Fields* m_u;
+    //! Pointer to transfer flags
+    std::vector< double >* m_flag;
+    //! Transfer flags if true
+    bool m_trflag;
     //! The number of messages sent by the dest mesh
     int m_numsent;
     //! The number of messages received by the dest mesh

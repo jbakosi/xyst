@@ -1759,8 +1759,7 @@ LohCG::writeFields( CkCallback cb )
   bool multi = g_cfg.get< tag::input >().size() > 1;
   if (multi) {
     nodefieldnames.push_back( "flag" );
-    const auto& flag = d->TransferFlag();
-    nodefields.push_back( std::vector< double >( begin(flag), end(flag) ) );
+    nodefields.push_back( d->TransferFlag() );
   }
 
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );

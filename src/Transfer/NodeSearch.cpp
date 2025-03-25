@@ -55,18 +55,21 @@ void
 NodeSearch::setSourceTets( const std::vector< std::size_t >& inpoel,
                            const std::array< std::vector< double >, 3 >& coord,
                            const tk::Fields& u,
+                           const std::vector< double >& flag,
                            CkCallback cb )
 // *****************************************************************************
 //  Set the data for the source tetrahedrons to be collided
 //! \param[in] inpoel Pointer to the connectivity data for the source mesh
 //! \param[in] coord Pointer to the coordinate data for the source mesh
 //! \param[in] u Pointer to the solution data for the source mesh
+//! \param[in] flag Transfer flags
 //! \param[in] cb Callback to call when src side of transfer is done
 // *****************************************************************************
 {
   m_inpoel = const_cast< std::vector< std::size_t >* >( &inpoel );
   m_coord = const_cast< std::array< std::vector< double >, 3 >* >( &coord );
   m_u = const_cast< tk::Fields* >( &u );
+  m_flag = const_cast< std::vector< double >* >( &flag );
   m_done = cb;
   m_srcnotified = 0;
 
@@ -77,16 +80,22 @@ NodeSearch::setSourceTets( const std::vector< std::size_t >& inpoel,
 void
 NodeSearch::setDestPoints( const std::array< std::vector< double >, 3 >& coord,
                            tk::Fields& u,
+                           std::vector< double >& flag,
+                           bool trflag,
                            CkCallback cb )
 // *****************************************************************************
 //  Set the data for the destination points to be collided
 //! \param[in] coord Pointer to the coordinate data for the destination mesh
 //! \param[in,out] u Pointer to the solution data for the destination mesh
+//! \param[in,out] flag Transfer flags
+//! \param[in] trflag Transfer flags if true
 //! \param[in] cb Callback to call when dst side of transfer is done
 // *****************************************************************************
 {
   m_coord = const_cast< std::array< std::vector< double >, 3 >* >( &coord );
   m_u = static_cast< tk::Fields* >( &u );
+  m_flag = const_cast< std::vector< double >* >( &flag );
+  m_trflag = trflag;
   m_done = cb;
 
   // Initialize msg counters, callback, and background solution data
@@ -184,21 +193,20 @@ NodeSearch::processCollisions( const MeshData& src,
     PotentialCollision pColl;
     if (colls[i].A.chunk == mychunk) {
       chareindex = colls[i].B.chunk - src.firstchunk;
-      pColl.dest_index = static_cast<std::size_t>(colls[i].A.number);
-      pColl.source_index = static_cast<std::size_t>(colls[i].B.number);
+      pColl.dst = static_cast<std::size_t>(colls[i].A.number);
+      pColl.src = static_cast<std::size_t>(colls[i].B.number);
     } else {
       chareindex = colls[i].A.chunk - src.firstchunk;
-      pColl.dest_index = static_cast<std::size_t>(colls[i].B.number);
-      pColl.source_index = static_cast<std::size_t>(colls[i].A.number);
+      pColl.dst = static_cast<std::size_t>(colls[i].B.number);
+      pColl.src = static_cast<std::size_t>(colls[i].A.number);
     }
 
     #if defined(STRICT_GNUC)
       #pragma GCC diagnostic push
       #pragma GCC diagnostic ignored "-Wdeprecated-copy"
     #endif
-    pColl.point = { coord[0][pColl.dest_index],
-                    coord[1][pColl.dest_index],
-                    coord[2][pColl.dest_index] };
+    auto dst = pColl.dst;
+    pColl.point = { coord[0][dst], coord[1][dst], coord[2][dst] };
     #if defined(STRICT_GNUC)
       #pragma GCC diagnostic pop
     #endif
@@ -216,11 +224,10 @@ NodeSearch::processCollisions( const MeshData& src,
 }
 
 void
-NodeSearch::determineActualCollisions(
-    CProxy_NodeSearch proxy,
-    int index,
-    int nColls,
-    PotentialCollision* colls )
+NodeSearch::determineActualCollisions( CProxy_NodeSearch proxy,
+                                       int index,
+                                       int nColls,
+                                       PotentialCollision* colls )
 // *****************************************************************************
 //  Identify actual collisions by calling intet on all possible collisions, and
 //  interpolate solution values to send back to the destination mesh.
@@ -232,32 +239,33 @@ NodeSearch::determineActualCollisions(
 {
   const std::vector< std::size_t >& inpoel = *m_inpoel;
   tk::Fields& u = *m_u;
+  std::vector< double >& f = *m_flag;
   //CkPrintf( "Source chare %i received data for %i potential collisions\n",
   //          thisIndex, nColls);
 
-  std::array< double, 4 > N;
-  int numInTet = 0;
-  std::vector< SolutionData > return_data;
-
   // Iterate over my potential collisions and call intet() to determine
   // if an actual collision occurred, and if so interpolate solution to dest
-  for (int i = 0; i < nColls; i++) {
+  int numInTet = 0;
+  std::vector< SolutionData > ret;
+  for (int i=0; i<nColls; ++i) {
     const auto& p = colls[i].point;
     std::vector< double > point{ p.x, p.y, p.z };
-    if (tk::intet( *m_coord, *m_inpoel, point, colls[i].source_index, N )) {
-      numInTet++;
+    std::array< double, 4 > N;
+    if (tk::intet( *m_coord, *m_inpoel, point, colls[i].src, N )) {
+      ++numInTet;
       SolutionData data;
-      data.dest_index = colls[i].dest_index;
-      auto e = colls[i].source_index;
+      data.dst = colls[i].dst;
+      auto e = colls[i].src;
       const auto A = inpoel[e*4+0];
       const auto B = inpoel[e*4+1];
       const auto C = inpoel[e*4+2];
       const auto D = inpoel[e*4+3];
-      data.sol.resize( u.nprop() );
+      data.sol.resize( u.nprop() + 1 );
       for (std::size_t c=0; c<u.nprop(); ++c) {
         data.sol[c] = N[0]*u(A,c) + N[1]*u(B,c) + N[2]*u(C,c) + N[3]*u(D,c);
       }
-      return_data.push_back(data);
+      data.sol.back() = N[0]*f[A] + N[1]*f[B] + N[2]*f[C] + N[3]*f[D];
+      ret.push_back( data );
     }
   }
 
@@ -267,7 +275,7 @@ NodeSearch::determineActualCollisions(
   //}
 
   // Send the solution data for the actual collisions back to the dest mesh
-  proxy[index].transferSolution( return_data );
+  proxy[index].transferSolution( ret );
   if (not m_srcnotified) {
     m_done.send();
     m_srcnotified = 1;
@@ -275,19 +283,22 @@ NodeSearch::determineActualCollisions(
 }
 
 void
-NodeSearch::transferSolution( const std::vector< SolutionData >& sol )
+NodeSearch::transferSolution( const std::vector< SolutionData >& data )
 // *****************************************************************************
 //  Receive the solution data for destination mesh points that collided with the
 //  source mesh tetrahedrons
-//! \param[in] sol List of solutions
+//! \param[in] data List of solutions at nodes (multiple scalars transferred)
 // *****************************************************************************
 {
   tk::Fields& u = *m_u;
+  std::vector< double >& f = *m_flag;
 
-  for (std::size_t i=0; i<sol.size(); ++i) {
+  for (std::size_t i=0; i<data.size(); ++i) {
+    const auto& d = data[i];
     for (std::size_t c=0; c<u.nprop(); ++c) {
-      u( sol[i].dest_index, c ) = sol[i].sol[c];
+      u( d.dst, c ) = d.sol[c];
     }
+    if (m_trflag) f[d.dst] = d.sol.back();
   }
 
   // Inform the caller if we've received all solution data

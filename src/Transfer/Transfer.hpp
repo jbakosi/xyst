@@ -49,6 +49,7 @@ void setSourceTets( CkArrayID p,
                     const std::vector< std::size_t >& inpoel,
                     const std::array< std::vector< double >, 3 >& coord,
                     const tk::Fields& u,
+                    const std::vector< double >& flag,
                     CkCallback cb );
 
 //! API for configuring destination mesh
@@ -56,6 +57,8 @@ void setDestPoints( CkArrayID p,
                     int chare,
                     const std::array< std::vector< double >, 3 >& coord,
                     tk::Fields& u,
+                    std::vector< double >& flag,
+                    bool trflag,
                     CkCallback cb );
 
 //! ...
@@ -87,6 +90,7 @@ class Transfer : public CBase_Transfer {
                         const std::vector< std::size_t >& inpoel,
                         const std::array< std::vector< double >, 3 >& coord,
                         const tk::Fields& u,
+                        const std::vector< double >& flag,
                         CkCallback cb );
 
     //! Configure destination mesh
@@ -94,6 +98,8 @@ class Transfer : public CBase_Transfer {
                         int chare,
                         const std::array< std::vector< double >, 3 >& coord,
                         tk::Fields& u,
+                        std::vector< double >& flag,
+                        bool trflag,
                         CkCallback cb );
 
     //! ...

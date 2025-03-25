@@ -223,7 +223,7 @@ class Discretization : public CBase_Discretization {
     { return m_boxnodes; }
 
     //! Transfer flags accessor
-    const std::vector< int >& TransferFlag() const { return m_transfer_flag; }
+    const std::vector< double >& TransferFlag() const { return m_transfer_flag; }
     //@}
 
     //! Set time step size
@@ -394,7 +394,7 @@ class Discretization : public CBase_Discretization {
     //! Pointer to solution during mesh-to-mesh solution transfer
     tk::Fields* m_transfer_sol;
    //! Transfer flags at nodes (if coupled)
-    std::vector< int > m_transfer_flag;
+    std::vector< double > m_transfer_flag;
     //! Total number of Discretization chares
     int m_nchare;
     //! Iteration count

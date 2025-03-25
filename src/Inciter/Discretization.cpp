@@ -174,11 +174,13 @@ Discretization::transfer( tk::Fields& u, CkCallback c )
     // Initiate transfer in 'to' direction
     if (m_meshid == 0) {
       transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord, u,
+        m_transfer_flag,
         CkCallback( CkIndex_Discretization::transfer_from(),
                     thisProxy[thisIndex] ) );
     }
     else {
       transfer::setDestPoints( thisProxy, thisIndex, m_coord, u,
+        m_transfer_flag, /* transfer flags = */ false,
         CkCallback( CkIndex_Discretization::transfer_from(),
                     thisProxy[thisIndex] ) );
     }
@@ -201,11 +203,11 @@ Discretization::transfer_from()
 
     if (m_meshid == 0) {
       transfer::setDestPoints( thisProxy, thisIndex, m_coord, *m_transfer_sol,
-                               m_transfer_complete );
+         m_transfer_flag, /* transfer flags = */ true, m_transfer_complete );
     }
     else {
       transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord,
-                               *m_transfer_sol, m_transfer_complete );
+        *m_transfer_sol, m_transfer_flag, m_transfer_complete );
     }
 
   }
@@ -221,7 +223,7 @@ Discretization::intergrid(
 {
   bool multi = g_cfg.get< tag::input >().size() > 1;
   if (!multi) return;
-  m_transfer_flag.resize( m_coord[0].size(), -1 );
+  m_transfer_flag.resize( m_coord[0].size(), -1.0 );
   if (m_meshid == 0) return;
 
   // Access intergrid-boundary side set ids for this mesh
@@ -237,7 +239,7 @@ Discretization::intergrid(
     if (ibs.count( static_cast<std::size_t>(setid) )) {
       for (auto g : n) {
         auto i = tk::cref_find(m_lid,g);
-        m_transfer_flag[i] = 1;
+        m_transfer_flag[i] = 1.0;
         bp.insert(i);
       }
     }
@@ -250,7 +252,7 @@ Discretization::intergrid(
     std::unordered_set< std::size_t > add;
     for (auto p : bp) {
       for (auto q : tk::Around(psup,p)) {
-        m_transfer_flag[q] = 1;
+        m_transfer_flag[q] = 1.0;
         add.insert(q);
       }
     }
@@ -263,7 +265,7 @@ Discretization::intergrid(
     std::unordered_set< std::size_t > add;
     for (auto p : bp) {
       for (auto q : tk::Around(psup,p)) {
-        if (m_transfer_flag[q] == -1) m_transfer_flag[q] = 0;
+        if (m_transfer_flag[q] < 0.0) m_transfer_flag[q] = 0.0;
         add.insert(q);
       }
     }

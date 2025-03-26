@@ -39,6 +39,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
                                             -Wno-sign-conversion
                                             -Wno-undef
                                             -Wno-missing-noreturn
+                                            -Wno-dangling-reference
                                             -Wno-old-style-cast)
 endif()
 

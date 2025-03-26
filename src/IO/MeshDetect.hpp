@@ -10,10 +10,10 @@
   \details   Unstructured mesh file format detection functions.
 */
 // *****************************************************************************
-#ifndef MeshDetect_h
-#define MeshDetect_h
+#pragma once
 
 #include <iosfwd>
+#include <cstdint>
 
 namespace tk {
 
@@ -42,5 +42,3 @@ MeshWriterType
 pickOutput( const std::string& filename );
 
 } // tk::
-
-#endif // MeshDetect_h

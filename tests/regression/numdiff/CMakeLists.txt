@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
-
 project(numdiff C)
 
 if(NOT "${CMAKE_C_FLAGS}" MATCHES "std=c99")

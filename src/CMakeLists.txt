@@ -1,6 +1,6 @@
 # Build xyst
 
-cmake_minimum_required(VERSION 3.1.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 project(xyst C CXX)
 

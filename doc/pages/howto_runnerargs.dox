@@ -10,8 +10,6 @@ To configure how ctest executes regression tests, the following cmake variables 
 
   - RUNNER, which sets the parallel/serial test runner, used to run regression
     tests by ctest, default: `charmrun`
-  - RUNNER_NCPUS_ARG, the argument used to specify the number of processors for
-    the test runner, default: `+p`,
   - RUNNER_ARGS, which enables passing extra arguments to the parallel/serial
     test runner, default: `""`,
   - POSTFIX_RUNNER_ARGS, which enables passing extra arguments to the
@@ -44,7 +42,7 @@ Another example that uses the [slurm](https://slurm.schedmd.com) scheduler:
 @code{.sh}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst
 mkdir build && cd build
-cmake -GNinja -DRUNNER=srun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS=--exact ../../src
+cmake -GNinja -DRUNNER=srun -DRUNNER_ARGS=--exact ../../src
 ninja
 srun -n 32 Main/unittest -q
 ctest -j32

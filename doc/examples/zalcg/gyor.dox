@@ -1,0 +1,176 @@
+/*!
+  \page      zalcg_example_gyor ZalCG: Urban-scale pollution from a point source
+
+This example uses @ref inciter_zalcg in @ref inciter_main to compute pollution
+released from a point source in an urban environment. The goal is to
+demonstrate basic capability of the flow solver in @ref inciter_zalcg coupled
+to atmospheric dispersion of a passive scalar that can represent pollution
+concentration.
+
+@section zalcg_example_gyor_equations Equations solved
+
+In this example we solve the Euler equations coupled to a scalar, representing
+pollutant concentration, as
+\f[ \begin{split}
+  \frac{\partial U}{\partial t} + \frac{\partial F_j}{\partial x_j} = 0,\qquad
+  U = \begin{Bmatrix} \rho \\ \rho u_i \\ \rho E \\ c  \end{Bmatrix}, \enskip F_j =
+  \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p) \\ u_j c
+  \end{Bmatrix}
+\end{split} \f]
+where the summation convention on repeated indices has been applied, \f$\rho\f$
+is the density, \f$u_i\f$ is the velocity vector, \f$E=u_iu_i/2+e\f$ is the
+specific total energy, \f$e\f$ is the specific internal energy, and \f$p\f$ is
+the pressure, while \f$c\f$ denotes the concentration of pollution normalized
+by its value at the source.  The system is closed with the ideal gas law
+equation of state
+\f[ \begin{split}
+  p = \rho e (\gamma - 1),
+\end{split} \f]
+where \f$\gamma\f$ is the ratio of specific heats.
+
+@note An Euler solver is obviously not the most physically realistic nor the
+most effective way to compute a nearly constant-density low-Mach-number usually
+turbulent flow, such as an urban-scale pollution scenario. Our goal here is
+simply to demonstrate the applicability of the algorithm.
+
+@section zalcg_example_gyor_problem Problem setup
+
+We configure the @ref inciter_zalcg solver to compute an urban-scale pollution
+problem in a typical city whose computational domain contains many of the
+buildings in downtown Győr, located in North-West of Hungary. The surface mesh
+is displayed with some of its characteristics in the table below.
+       Dimensions, km | h, m | Points    | Tetrahedra
+       :------------: | ---: | --------: | -----------:
+      9.2 x 6.7 x 1.5 | 11.3 | 1,746,029 | 10,058,445
+Here h is the average edge length.
+@m_div{m-col-m-12 m-center-m}
+<img src="images/gyor_mesh.png"/>
+Surface mesh for computing an urban-scale pollutatnt dispersion study in the
+Hungarianc city of Győr.
+@m_enddiv
+
+@note Contact us using the link at the bottom of the page for the mesh file.
+
+Initial conditions are specified by atmospheric conditions at sea level at 15C
+as
+\f[
+\begin{split}
+u_i(x_i) & = (-10, -10, 0) \enskip \mathrm{m/s} \\
+\rho(x_i) & = 1.225 \enskip \mathrm{kg/m}^3 \\
+p(x_i) & = 1.0 \times 10^{5} \enskip \mathrm{Pa}
+\end{split}
+\f]
+and these conditions are also enforced as Dirichlet boundary conditions on the
+top and sides of the brick-shaped domain during time stepping.
+
+The scalar, \f$c\f$, representing pollutant concentration
+is released from a point source at t=10s of the 140s total time simulated. The
+value of the scalar is normalized to the constant value of c=1.0 at the source.
+After verifying that the norms of the velocity component residuals decrease at
+least two orders in magnitude from their initial values, the flow is assumed to
+be stationary, the numerical values of density, momentum, and total energy are
+no longer updated, and the scalar is released.
+
+@section zalcg_example_gyor_sha Code revision to reproduce
+
+To reproduce the results below, use code revision [77cba43f](https://codeberg.org/xyst/xyst/commit/77cba43f695ec297884f4ed7b883124e3ac0d0cc) and the control file below.
+
+@section zalcg_example_gyor_control Control file
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Urban-scale pollution"
+
+-- meshes:
+-- gyor_m1_10M.exo
+
+scalar_release_time = 10.0
+
+term = 140.0
+
+ttyi = 10
+cfl = 0.9
+
+part = "phg"
+
+solver = "zalcg"
+stab2 = true
+stab2coef = 0.2
+
+freezetime = 10.0
+freezeflow = 4.0
+
+problem = {
+  name = "point_src",
+  src = {
+    location = { 1914.0, 1338.0, 20.0 },
+    radius = 10.0,
+    release_time = scalar_release_time
+  }
+}
+
+mat = { spec_heat_ratio = 1.4 }
+
+ic = {
+  density = 1.225,
+  pressure = 1.0e+5,
+  velocity = { -10.0, -10.0, 0.0 }
+}
+
+bc_dir = {
+  { 1, 1, 1, 1, 1, 1, 0 },
+  { 9, 1, 1, 1, 1, 1, 0 }
+}
+
+bc_sym = {
+  sideset = { 10, 21, 22, 23, 24 }
+}
+
+fieldout = {
+  iter = 100,
+  time = 10.0,
+  sideset = { 10, 21, 22, 23, 24 },
+  --range = {
+  --  { scalar_release_time, term, 10.0 }
+  --}
+}
+
+diag = {
+  iter = 10
+}
+@endcode
+
+@section zalcg_example_gyor_run Run on 128 CPU cores in Charm++'s non-SMP mode using SLURM
+
+@code{.bash}
+srun --nodes=1 --ntasks-per-node=128 Main/inciter -c gyor3nodea.q -i gyor_m1_10M.exo
+@endcode
+
+@section zalcg_example_gyor_fieldvis Visualization
+
+[ParaView](https://www.paraview.org) can be used for interactive visualization
+of the numerically computed 3D fields as
+
+@code{.bash}
+paraview out.e-s.0.128.0
+@endcode
+
+Results only on the ground and building surfaces can be visualized by first stitching the partitioned surface output files into single surface output files (one for each surface) followed by invoking paraview on the stitched surface exo files:
+@code{.bash}
+for i in 10 21 22 23 24; do Main/meshconv -i out-surf.$i.e-s.0.128.% -o out-surf.$i.exo; done
+paraview --data="out-surf.10.exo;out-surf.21.exo;out-surf.22.exo;out-surf.23.exo;out-surf.24.exo"
+@endcode
+
+@section zalcg_example_gyor_results Pollution concentration snapshot
+
+The figure below depicts ground-level concentrations at t=90s.
+
+@m_div{m-col-m-10 m-center-m}
+<img src="images/gyor_pointsrc.png"/>
+Surface distributions of a propagating scalar representing pollutant
+concentration in an urban-scale air quality study with stationary winds,
+computed on 128 CPUs.
+@m_enddiv
+
+*/

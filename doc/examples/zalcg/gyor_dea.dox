@@ -32,13 +32,12 @@ pollutant concentration, as
   \begin{Bmatrix} \rho u_j \\ \rho u_iu_j + p\delta_{ij} \\ u_j(\rho E + p) \\ u_j c
   \end{Bmatrix}
 \end{split} \f]
-where the summation convention on repeated indices has been applied,
-\f$\rho\f$ is the density, \f$u_i\f$ is
-the velocity vector, \f$E=u_iu_i/2+e\f$ is the specific
-total energy, \f$e\f$ is the specific internal energy, and
-\f$p\f$ is the pressure. \f$S_\rho\f$,
-\f$S_{u,i}\f$, \f$S_E\f$. The system
-is closed with the ideal gas law equation of state
+where the summation convention on repeated indices has been applied, \f$\rho\f$
+is the density, \f$u_i\f$ is the velocity vector, \f$E=u_iu_i/2+e\f$ is the
+specific total energy, \f$e\f$ is the specific internal energy, and \f$p\f$ is
+the pressure, while \f$c\f$ denotes the concentration of pollution normalized
+by its value at the source.  The system is closed with the ideal gas law
+equation of state
 \f[ \begin{split}
   p = \rho e (\gamma - 1),
 \end{split} \f]
@@ -108,7 +107,7 @@ To reproduce the results below, use code revision [b1a2c26](https://codeberg.org
 @code{.lua}
 -- vim: filetype=lua:
 
-print "Gyor with scalar"
+print "Urban-scale pollution with partition deactivation"
 
 -- meshes:
 -- gyor_m1_10M.exo

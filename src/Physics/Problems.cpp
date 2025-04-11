@@ -1188,7 +1188,10 @@ PRESSURE_IC()
   if ( problem == "userdef" or
        problem == "slot_cyl" or
        problem == "sheardiff" or
-       problem == "poiseuille" )
+       problem == "poiseuille" or
+       problem == "point_src"
+     )
+	 
     ic = userdef::pic;
   else if (problem == "poisson_const")
     ic = poisson_const::ic;
@@ -1218,6 +1221,7 @@ PRESSURE_SOL()
   if ( problem == "userdef" or
        problem == "slot_cyl" or
        problem == "poiseuille" or
+       problem == "point_src" or
        problem == "sheardiff" )
   {
     return {};

@@ -21,14 +21,16 @@ inciter_lohcg, as
 \nabla\mu\nabla\mbox{\boldmath$v$} \\
 \frac{\partial\mbox{c}}{\partial t} + \mbox{\boldmath$v$}\cdot\nabla\mbox{c} &
 = D \nabla^2 c \\
-\frac{1}{c^2}\frac{\partial p}{\partial t} + \nabla\cdot\mbox{\boldmath$v$} &=S
+\frac{1}{\Hat{c}^2}\frac{\partial p}{\partial t} +
+\nabla\cdot\mbox{\boldmath$v$} &=S
 \end{split} \f]
-where \f$\mbox{\boldmath$v$}\f$ is the velocity vector, \f$p\f$ is the
-pressure, and both the pressure and the viscosity \f$\mu\f$ have been
-normalized by the (constant) density. Here \f$D\f$ is the scalar diffusivity.
-Furthermore, \f$S\f$, is a source term that arises from the prescribing a known
-velocity field, used for verification only, specified below. This source term is
-zero when computing practical engineering problems.
+where \f$\Hat{c}\f$ is the (constant) speed of sound, \f$\mbox{\boldmath$v$}\f$
+is the velocity vector, \f$p\f$ is the pressure, and both the pressure and the
+viscosity \f$\mu\f$ have been normalized by the (constant) density. Here
+\f$D\f$ is the scalar diffusivity. Furthermore, \f$S\f$, is a source term that
+arises from the prescribing a known velocity field, used for verification only,
+specified below. This source term is zero when computing practical engineering
+problems.
 
 @note While here we are only interested in the solution of the scalar field and
 that could also be done by prescribing an external velocity field and solving

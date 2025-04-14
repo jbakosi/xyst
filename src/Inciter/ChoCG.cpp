@@ -1562,7 +1562,7 @@ ChoCG::solve()
     if (cstart) {
       for (std::size_t i=0; i<npoin; ++i) {
         for (std::size_t c=0; c<cstart; ++c) {
-          m_un(i,c) = u(i,c);
+          m_u(i,c) = u(i,c);
         }
       }
     }

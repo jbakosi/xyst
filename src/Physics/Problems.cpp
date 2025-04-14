@@ -806,7 +806,15 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
   auto st = release_time;
 
   if (t < st) return;
-
+  
+  //configure scalar location
+  const auto& solver = g_cfg.get< tag::solver >();
+  std::size_t sc = 5;
+  if(solver == "chocg"){
+    sc = 3;
+  } else if(solver =="lohcg"){
+    sc = 4;
+  }
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
@@ -815,7 +823,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
     auto rx = sx - x[i];
     auto ry = sy - y[i];
     auto rz = sz - z[i];
-    if (rx*rx + ry*ry + rz*rz < sr*sr) U(i,5) = 1.0;
+    if (rx*rx + ry*ry + rz*rz < sr*sr) U(i,sc) = 1.0;
   }
 
   return;
@@ -1188,7 +1196,10 @@ PRESSURE_IC()
   if ( problem == "userdef" or
        problem == "slot_cyl" or
        problem == "sheardiff" or
-       problem == "poiseuille" )
+       problem == "poiseuille" or
+       problem == "point_src"
+     )
+	 
     ic = userdef::pic;
   else if (problem == "poisson_const")
     ic = poisson_const::ic;
@@ -1218,6 +1229,7 @@ PRESSURE_SOL()
   if ( problem == "userdef" or
        problem == "slot_cyl" or
        problem == "poiseuille" or
+       problem == "point_src" or
        problem == "sheardiff" )
   {
     return {};

@@ -6,7 +6,8 @@ partitions of the computational domain during parallel flow simulation. The
 deactivation algorithm, implemented in @ref inciter_zalcg in @ref inciter_main,
 is independent of the numerical discretization, the dynamic level of
 approximation, e.g., Euler or Navier-Stokes, turbulence models, etc. For a
-different example with deactivation see @ref zalcg_example_sedov_dea.
+different example with deactivation see @ref zalcg_example_sedov_dea. For a
+similar example but without deactivation see @ref zalcg_example_gyor.
 
 @section zalcg_example_gyor_dea_idea Deactivation
 

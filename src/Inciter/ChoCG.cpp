@@ -1390,6 +1390,10 @@ ChoCG::dt()
     mindt *= cfl;
 
   }
+
+  if (d->T() > g_cfg.get< tag::freezetime >()) {
+    m_freezeflow = g_cfg.get< tag::freezeflow >();
+  }
   mindt *= m_freezeflow;
 
   // Actiavate SDAG waits for next time step stage
@@ -1538,6 +1542,7 @@ ChoCG::solve()
   tk::destroy(m_rhsc);
 
   if (m_stage == 0) m_un = m_u;
+
   tk::Fields u;
   std::size_t cstart = m_freezeflow > 1.0 ? 3 : 0;
   if (cstart) u = m_u;
@@ -1554,11 +1559,6 @@ ChoCG::solve()
     // Continue to advective-diffusive prediction
     pred();
 
-    if (d->T() > g_cfg.get< tag::freezetime >()) {
-      m_freezeflow = g_cfg.get< tag::freezeflow >();
-    }
-
-
     if (cstart) {
       for (std::size_t i=0; i<npoin; ++i) {
         for (std::size_t c=0; c<cstart; ++c) {
@@ -1566,7 +1566,6 @@ ChoCG::solve()
         }
       }
     }
-
 
   } else {
 

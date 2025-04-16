@@ -84,6 +84,7 @@ ChoCG::ChoCG( const CProxy_Discretization& disc,
   m_div( m_u.nunk() ),
   m_stage( 0 ),
   m_finished( 0 ),
+  m_freezeflow( 1.0 ),
   m_rkcoef( rkcoef[ g_cfg.get< tag::rk >() - 1 ] )
 // *****************************************************************************
 //  Constructor
@@ -1390,6 +1391,11 @@ ChoCG::dt()
 
   }
 
+  if (d->T() > g_cfg.get< tag::freezetime >()) {
+    m_freezeflow = g_cfg.get< tag::freezeflow >();
+  }
+  mindt *= m_freezeflow;
+
   // Actiavate SDAG waits for next time step stage
   thisProxy[ thisIndex ].wait4rhs();
   thisProxy[ thisIndex ].wait4div();
@@ -1537,6 +1543,10 @@ ChoCG::solve()
 
   if (m_stage == 0) m_un = m_u;
 
+  tk::Fields u;
+  std::size_t cstart = m_freezeflow > 1.0 ? 3 : 0;
+  if (cstart) u = m_u;
+
   auto eps = std::numeric_limits<tk::real>::epsilon();
   if (g_cfg.get< tag::theta >() < eps || m_stage+1 < m_rkcoef.size()) {
 
@@ -1548,6 +1558,14 @@ ChoCG::solve()
 
     // Continue to advective-diffusive prediction
     pred();
+
+    if (cstart) {
+      for (std::size_t i=0; i<npoin; ++i) {
+        for (std::size_t c=0; c<cstart; ++c) {
+          m_u(i,c) = u(i,c);
+        }
+      }
+    }
 
   } else {
 

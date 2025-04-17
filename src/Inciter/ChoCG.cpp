@@ -1946,7 +1946,8 @@ ChoCG::writeFields( CkCallback cb )
     nodesurfnames.push_back( "velocityz" );
     nodesurfnames.push_back( "divergence" );
     nodesurfnames.push_back( "pressure" );
-    
+
+    nc += ncomp-3;
     for (std::size_t c=0; c<ncomp-3 ; ++c) {
       nodesurfnames.push_back( "c" + std::to_string(c) );
     }
@@ -1969,7 +1970,7 @@ ChoCG::writeFields( CkCallback cb )
         nodesurfs[i+(p++)][j] = s[2];
         nodesurfs[i+(p++)][j] = m_div[n];
         nodesurfs[i+(p++)][j] = m_pr[n];
- 	for (std::size_t c=0; c<ncomp-3; ++c) nodesurfs[i+(p++)+c][j]= s[3+c];
+        for (std::size_t c=0; c<ncomp-3; ++c) nodesurfs[i+(p++)+c][j]= s[3+c];
         ++j;
       }
     }

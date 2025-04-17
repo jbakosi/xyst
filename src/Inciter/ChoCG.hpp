@@ -225,6 +225,7 @@ class ChoCG : public CBase_ChoCG {
       p | m_surfint;
       p | m_stage;
       p | m_finished;
+      p | m_freezeflow;
       p | m_rkcoef;
       p | m_timer;
     }
@@ -343,6 +344,8 @@ class ChoCG : public CBase_ChoCG {
     std::size_t m_stage;
     //! True in the last time step
     int m_finished;
+    //! dt multiplier after flow no longer updated
+    tk::real m_freezeflow;
     //! Runge-Kutta coefficients
     std::vector< tk::real > m_rkcoef;
     //! Timer

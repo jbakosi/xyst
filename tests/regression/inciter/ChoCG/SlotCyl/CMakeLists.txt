@@ -27,6 +27,19 @@ add_regression_test(chocg_slotcyl_damp4 ${INCITER_EXECUTABLE}
                     TEXT_DIFF_PROG_CONF diag.ndiff.cfg
                     LABELS chocg)
 
+add_regression_test(chocg_slotcyl_damp4_freeze ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES slot_cyl_damp4_freeze.q unitsquare_01_3.6k.exo
+                    ARGS -c slot_cyl_damp4_freeze.q -i unitsquare_01_3.6k.exo
+                    BIN_BASELINE slot_cyl_damp4_freeze.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff.cfg
+                    TEXT_BASELINE diag_damp4_freeze.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag.ndiff.cfg
+                    LABELS chocg)
+
+
 # Parallel + virtualization
 
 add_regression_test(chocg_slotcyl_u0.5 ${INCITER_EXECUTABLE}

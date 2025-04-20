@@ -943,7 +943,11 @@ ZalCG::dt()
         mindt *= cfl;
 
       }
-
+      
+      // Freeze flow if configured and apply multiplier on scalar(s)
+      if (d->T() > g_cfg.get< tag::freezetime >()) {
+        m_freezeflow = g_cfg.get< tag::freezeflow >();
+      }
       mindt *= m_freezeflow;
 
     }
@@ -1565,11 +1569,6 @@ ZalCG::solve()
     // Configure and apply scalar source to solution (if defined)
     auto src = problems::PHYS_SRC();
     if (src) src( d->Coord(), d->T(), m_a );
-
-    // Freeze flow if configured and apply multiplier on scalar(s)
-    if (d->T() > g_cfg.get< tag::freezetime >()) {
-      m_freezeflow = g_cfg.get< tag::freezeflow >();
-    }
 
     // Enforce boundary conditions
     BC( m_a, d->T() + d->Dt() );

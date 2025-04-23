@@ -943,7 +943,7 @@ ZalCG::dt()
         mindt *= cfl;
 
       }
-      
+
       // Freeze flow if configured and apply multiplier on scalar(s)
       if (d->T() > g_cfg.get< tag::freezetime >()) {
         m_freezeflow = g_cfg.get< tag::freezeflow >();

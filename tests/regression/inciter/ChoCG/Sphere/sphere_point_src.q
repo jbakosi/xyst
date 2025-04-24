@@ -4,7 +4,7 @@ print "Sphere with scalar point source "
 
 -- mesh: sphere2_*.exo
 
-nstep = 40
+nstep = 20
 ttyi = 1
 cfl = 0.5
 
@@ -50,7 +50,7 @@ fieldout = {
 
 
 diag = {
-  iter = 1,
+  iter = 5,
   format = "scientific",
   precision = 12
 }

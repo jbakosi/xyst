@@ -13,8 +13,7 @@
 # ##############################################################################
 # Function to add code coverage target for all individual coverage targets
 # included. This is very similar to setup_target_for_coverage(), defined above,
-# but compiles a coverage report for all the individual test suites. The
-# TESTRUNNER_ARGS are hard-coded.
+# but compiles a coverage report for all the individual test suites.
 #
 # setup_target_for_all_coverage( <path> <targetname> [DEPENDS dep1 dep2 ... ] )
 #
@@ -69,7 +68,7 @@ FUNCTION(SETUP_TARGET_FOR_ALL_COVERAGE path targetname unittestrunner
     # Zero coverage counters
     COMMAND ${FASTCOV} --zerocounters
     # Run all test suites
-    COMMAND ${unittestrunner} ${unittestrunner_ncpus_arg} ${PROCESSOR_COUNT} Main/${UNITTEST_EXECUTABLE}
+    COMMAND ${unittestrunner} ${unittestrunner_ncpus_arg} ${PROCESSOR_COUNT} ${RUNNER_ARGS} Main/${UNITTEST_EXECUTABLE}
     COMMAND ${CMAKE_CTEST_COMMAND} -j${PROCESSOR_COUNT}
     # Process gcov output for genhtml
     COMMAND ${FASTCOV} --branch-coverage --exceptional-branch-coverage --lcov -o ${OUTPUT}.info --exclude tests/ c++/ include/ brigand/ charm/ decl.h def.h openmpi exodus/ tut/ highwayhash/ zoltan/ moduleinit Control/minilua.h

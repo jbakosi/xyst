@@ -1393,12 +1393,12 @@ ChoCG::dt()
     }
     mindt *= cfl;
 
-  }
+    if (d->T() > g_cfg.get< tag::freezetime >()) {
+      m_freezeflow = g_cfg.get< tag::freezeflow >();
+    }
+    mindt *= m_freezeflow;
 
-  if (d->T() > g_cfg.get< tag::freezetime >()) {
-    m_freezeflow = g_cfg.get< tag::freezeflow >();
   }
-  mindt *= m_freezeflow;
 
   // Actiavate SDAG waits for next time step stage
   thisProxy[ thisIndex ].wait4rhs();

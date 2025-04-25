@@ -1,0 +1,270 @@
+namespace inciter {
+/*!
+  \page      inciter_overset Overset method - work in progress
+
+@tableofcontents{xml}
+
+This page describes some of the basics on how the overset method is designed to
+work in @ref inciter_main, what works so far, and how it can be tested for
+further development. See also the commit message of [0951d401](https://codeberg.org/xyst/xyst/commit/0951d401c20ce272dcbf0ee7b33e006c225284c4).
+
+@section inciter_overset_status Current status of the overset method
+
+- At this time, the code assumes a single background mesh and a single overset
+  mesh. (Multiple overset set meshes could be defined within a single exodus
+  file in the future.)
+- At this time, the overset mesh does not move relative to the background mesh.
+- @ref inciter_lohcg is the only solver the overset method is used with.
+- The latest commit in the overset development starts with the message: *WIP on
+  overset: flags transfer correct, velocity almost modulo symmetry surface*
+- The mesh-to-mesh transfer of solution data relies on Charm++'s *charmcollide*
+  library, called from the code under `src/Transfer/`. This is the reason why
+  the overset functionality now needs to build Charm++ using the *LIBS* target.
+  See `CMakeLists.txt`.
+- Most overset client code functionality is put in class Discretization, because
+  that serves as a base class for all solvers. The idea is to be able to provide
+  overset functionality to any (child) solver, e.g., @ref inciter_riecg, @ref
+  inciter_chocg, @ref inciter_lohcg, etc.
+- Serial and parallel transfer works, including initial mesh refinement, and
+  virtualization, potentially configured differently for different meshes.
+- The zoltan mesh partitioner can also be configured differently for different
+  meshes.
+- Initial and boundary conditions can be specified differently for different
+  meshes.
+- Field output, and integral output can also be specifid differently for
+  different meshes.
+- All overset-related input file data is parsed into data fields with an
+  underscore (_) appended to its name. For example: For single-mesh we have the
+  `part` keyword, for multi-mesh we have the corresponding `part_1` and
+  `part_2` keywords in the input file, specifying the partitioner type for the
+  background and overset meshes, respectively.
+- Symmetry is accounted for during the hole search as well as by shifting the
+  destination points during flags-, and solution transfer. See, respectively,
+  Discretization::holefind() and
+  transfer::NodeSearch::determineActualCollisions(). This shift (by a small
+  number) is required so that points lying on the symmetry surface can be found
+  in both 'to' and 'from' transfer directions. See below.
+
+@section inciter_overset_procedure The overset procedure
+
+1. *Setup hole data structures.* Towards the end of the solver
+initialization/setup Discretization::hole() is called which prepares
+intergrid-boundary data structures of the overset mesh, related to hole-search
+on the background mesh later. The intergrid-boundary is designated by the user
+in the input file in the `intergrid_2` block. The intergrid-boundary is assumed
+to be specified by a list of exodus sidesets. The inside of the
+intergrid-boundary is assumed to be a hole, where the numerical solution is
+undefined. The first step of configuring the hole-search is to collect all
+triangle elements along the intergrid-boundary sidesets and aggregate
+partitions of holes to *each* partition of background mesh. This is because
+once the holes are aggregated, mesh points inside holes on the boundary mesh
+can be detected without further communication.
+Discretization::aggregateHoles() finishes the aggregation step, which is the
+target of the Charm++ reduction to each partition of the background mesh.
+
+2. *Assign transfer flags.* After aggregating data for holes,
+intergrid-boundary data structures are continued to be setup by setting the
+transfer flags at the mesh points on the overset mesh. This is done in
+Discretization::intergrid(). The idea behind the value of the flag at a mesh
+point is that it equals to which mesh solution should be used there: 0.0 for
+background mesh, 1.0 for overset mesh, and negative values mean either
+uninitialized (-2.0) or 'do not touch the solution' (-1.0). Three different
+regions are grown starting from the intergrid-boundary sidesets, each with
+configurable numbers of layers: (1) the intergrid-boundary surface region (flag
+= 1.0), (2) middle (or buffer) region, used for relaxation of the solution
+(flag = -1.0), and (3) transfer region (flag = 0.0).
+
+3. *Hole search.* Concurrently and overlapped to step 2 above, the hole search
+is also executed by calling Discretization::holefind(). Since partitions of
+holes have already been aggregated to each background mesh partition, no
+communication is required at this step. The hole search is based on numerically
+computing integrals based on the hole-cutting algorithm outlined below.  Nodes
+of the background mesh that fall inside holes of the overset mesh are assigned
+the flag value of 2.0.
+
+4. *Transfer flags.* The next step is to initiate transferring the flags from
+the overset to the background mesh. A transfer step, initiated from within
+Discretization::transfer() always consists of two stages: (1) background 'to'
+overset transfer, and (2) background 'from' overset transfer. In the code stage
+(1) is direction 0, and stage (2) is direction 1. Stage (1) is always followed
+by stage (2). During flags-only transfer, only stage (2) has an effect beacuse
+the regions around the overset-boundary have been setup on the overset mesh and
+on the background mesh only flag = 2.0 is assigned to hole points which is not
+needed on the overset mesh.  Transferring the flags is the last step of the
+setup of the overset algorithm for a solver. All next instances of calling
+Discretization::transfer() is to transfer solutions during time stepping.
+Currently, it is assumed that the flags do not change during time stepping,
+i.e., the overset mesh does not move relative to the background mesh.
+
+@section inciter_overset_holecutting Hole-cutting algorithm
+
+This section describes the hole-cutting algorithm implemented in @ref
+inciter_main.
+
+The geometrical problem of hole cutting is as follows. Given two arbitrary 3D
+grids, one of them defining a closed discrete surface. Find all points of the
+other mesh that reside inside the surface. The difficulty of the numerical
+problem lies in the fact that the discrete surface defining the hole and the
+points to be identified have no topological connection, as the surface and the
+set of points in question are defined on different meshes. The problem is
+exacerbated if the two meshes are large, unstructured, decomposed arbitrarily
+and independently, as in distributed-memory calculations.
+
+From potential-flow theory [1] we know that the irrotational velocity field
+\f$\mbox{\boldmath$v$}\f$ at a spatial point \f$\mbox{\boldmath$x$}\f$ of a
+point source with unit-strength located at
+\f$\mbox{\boldmath$x$}'\ne\mbox{\boldmath$x$}\f$ is given by
+\f[
+\mbox{\boldmath$v$}(\mbox{\boldmath$x$}) = \frac{1}{4\pi} \frac{\mbox{\boldmath$r$}}{r^3}
+\f]
+where \f$\mbox{\boldmath$r$}=\mbox{\boldmath$x$}-\mbox{\boldmath$x$}'\f$. Given
+this velocity field, the flow-rate across an arbitrary but closed surface,
+\f$\Gamma\f$, is
+\f[
+\int_\Gamma \mbox{\boldmath$v$}(\mbox{\boldmath$x$}) \cdot \mbox{\boldmath$n$}\,\mathrm{d}\Gamma =
+\left\{ \begin{array}{ll}
+4\pi, & \textrm{if $\mbox{\boldmath$x$}'$ is inside $\Gamma$} \\
+0,    & \textrm{if $\mbox{\boldmath$x$}'$ is outside $\Gamma$}
+ \end{array} \right.
+\f]
+where \f$\mbox{\boldmath$n$}\f$ is the outward-pointing surface normal. In
+other words, in a potential flow with a source the total flux across an
+arbitrary closed surface \f$\Gamma\f$ is either zero if the source is located
+outside the surface or non-zero (and equals \f$4\pi\f$) if the source is
+located inside. The inflow and outflow cancel if the source is outside, while
+both being positive if the source is within the surface. Note that this is
+independent of the closed surface.
+
+A numerical method can then be constructed by evaluating the integral in the
+equation above for an arbitrary discrete hole surface, \f$\Gamma\f$,
+for every point \f$\mbox{\boldmath$x$}'\f$ of the background mesh. If the
+integral is non-zero, the point is inside the hole. In 3D Cartesian coordinates
+the distance function is
+\f[
+\mbox{\boldmath$r$}=\sqrt{ (x-x')^2 + (y-y')^2 + (z-z')^2 }
+\f]
+The algorithm requires surface normals \f$\mbox{\boldmath$n$}\f$, a point
+\f$\mbox{\boldmath$x$}\f$ on each surface element, and the mesh points
+\f$\mbox{\boldmath$x$}'\f$ in question. If the hole surface is decomposed, the
+parts can be first aggregated to each processor holding a part of the
+background mesh, to avoid communication during computing the surface integrals.
+The integral is evaluated for each point in question of the background mesh
+decomposed and distributed to multiple processors. This procedure is concurrent
+and requires a single communication step to aggregate the hole surface as a
+prerequisite of the integral evaluations.
+
+@section inciter_overset_test Testing
+
+Here is an example test exercising overset:
+
+@code{.bash}
+./charmrun +p4 Main/inciter -i ../../tmp/problems/overset/sphere_viscous/half_viscous_sphere_bg_80k.exo -i ../../tmp/problems/overset/sphere_viscous/half_viscous_sphere_overset.exo -c ../../tmp/problems/overset/sphere_viscous/half_viscous_sphere_overset_lohcg.q
+@endcode
+
+@note For the meshes, contact us using the link at the bottom of the page.
+
+Use code revision [0951d401](https://codeberg.org/xyst/xyst/commit/0951d401c20ce272dcbf0ee7b33e006c225284c4) and the control file below.
+
+@code{.lua}
+-- vim: filetype=lua:
+
+print "Viscous half sphere using overset"
+
+-- mesh 1, bakground: half_viscous_sphere_bg_11k.exo
+--                    half_viscous_sphere_bg_1.9M.exo
+--                    half_viscous_sphere_bg_237k.exo
+--                    half_viscous_sphere_bg_80k.exo  (used latest)
+--       sidesets: 2: x- inflow
+--                 3: x+ outflow
+--                 4: z=0 symmetry
+--                 5: y+,y-,z+ farfield
+--
+-- mesh 2, overset: half_viscous_sphere_overset.exo
+--     sidesets: 1: sphere surface
+--               4: z=0 symmetry
+
+nstep = 5
+term = 20.0
+ttyi = 1
+
+cfl = 0.5
+
+solver = "lohcg"
+flux = "damp4"
+stab2 = true
+stab2coef = 0.001
+soundspeed = 100.0
+--rk = 4
+
+part_1 = "rcb"
+part_2 = "phg"
+
+pressure_1 = {
+  iter = 1000,
+  tol = 1.0e-5,
+  pc = "jacobi",
+  bc_dir = { { 3, 1 } }
+}
+
+Re = 10.0
+mat = { dyn_viscosity = 1.0/Re }
+
+ic_1 = { velocity = { 1.0, 0.0, 0.0 } }
+ic_2 = { velocity = { 0.0, 0.0, 0.0 } }
+
+bc_dir_1 = {
+  { 2, 0, 1, 1, 1 },    -- inflow
+  { 3, 1, 0, 0, 0 },    -- outflow
+  { 5, 0, 1, 1, 1 }     -- farfield
+}
+
+bc_noslip_2 = { sideset = { 1 } }
+
+bc_sym_1 = { sideset = { 4 } }
+bc_sym_2 = { sideset = { 4 } }
+
+overset = {
+  intergrid_2 = {
+    layers = { 2, 4, 2 },
+    sideset = { 1 },
+    sym = "z"
+  }
+}
+
+href_1 = {
+  t0 = true,
+  init = { "uniform"}--, "uniform" }
+}
+--href_2 = {
+--  t0 = true,
+--  init = { "uniform"}--, "uniform" }
+--}
+
+fieldout_1 = {
+  iter = 1,
+  sideset = { 4 }
+}
+fieldout_2 = {
+  iter = 1,
+  sideset = { 4 }
+}
+
+integout_2 = {
+  iter = 100,
+  sideset = { 1 },
+  integrals = { "force" }
+}
+
+diag = {
+  iter = 1,
+  format = "scientific",
+  precision = 12
+}
+@endcode
+
+@section inciter_overset_references References
+
+1. Batchelor, G.K. [An Introduction to Fluid Dynamics](https://doi.org/10.1017/CBO9780511800955), Cambridge University Press, 1967.
+
+*/
+} // inciter::

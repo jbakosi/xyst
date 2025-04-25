@@ -109,4 +109,6 @@ scales better to larger problems and larger resources. More details:
 - @ref howtos "Howto pages"
 - @ref papers "Publications"
 - @ref inciter_design "Software design"
+- @ref inciter_amr
+- @ref inciter_overset
 */

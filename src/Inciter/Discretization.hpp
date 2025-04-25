@@ -249,13 +249,27 @@ class Discretization : public CBase_Discretization {
     void transfer_initialized();
 
     //! Initiate solution transfer from background to overset mesh (if coupled)
-    void transfer( tk::Fields& u, CkCallback c );
+    void transfer( tk::Fields& u, CkCallback c, bool trflag );
 
     //! Initiate solution transfer from overset to background mesh
     void transfer_from();
 
     //! Prepare integrid-boundary data structures (if coupled)
     void intergrid( const std::map< int, std::vector< std::size_t > >& bnode );
+
+    //! Communicate holes to background mesh
+    void hole( const std::map< int, std::vector< std::size_t > >& bface,
+               const std::vector< std::size_t >& triinpoel,
+               CkCallback c );
+
+    //! Receive hole data
+    void aggregateHoles( CkReductionMsg* msg );
+
+    //! Hole communication complete
+    void holeComplete();
+
+    //! Find mesh nodes within hols
+    void holefind();
 
     //! Output mesh and fields data (solution dump) to file(s)
     void write( const std::vector< std::size_t >& inpoel,
@@ -327,6 +341,9 @@ class Discretization : public CBase_Discretization {
       p | m_meshid;
       p | m_transfer_complete;
       p | m_transfer_flag;
+      p | m_trflag;
+      p | m_transfer_hole;
+      p | m_holcont;
       p | m_nchare;
       p | m_it;
       p | m_itr;
@@ -393,8 +410,15 @@ class Discretization : public CBase_Discretization {
     CkCallback m_transfer_complete;
     //! Pointer to solution during mesh-to-mesh solution transfer
     tk::Fields* m_transfer_sol;
-   //! Transfer flags at nodes (if coupled)
+    //! Transfer flags at nodes (if coupled)
     std::vector< double > m_transfer_flag;
+    //! Transfer flags if true
+    bool m_trflag;
+    //! Holes tessellation
+    //! \details: Key: hole id, value: list of triangle node coordinates
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_transfer_hole;
+    //! Callback to continue with after hole communication
+    CkCallback m_holcont;
     //! Total number of Discretization chares
     int m_nchare;
     //! Iteration count

@@ -188,6 +188,7 @@ class Refiner : public CBase_Refiner {
       p | m_triinpoel;
       p | m_nchare;
       p | m_mode;
+      p | m_multi;
       p | m_initref;
       p | m_refiner;
       p | m_nref;
@@ -283,6 +284,8 @@ class Refiner : public CBase_Refiner {
     int m_nchare;
     //! True if initial AMR, false if during time stepping
     RefMode m_mode;
+    //! True if coupled (overset)
+    bool m_multi;
     //! Initial mesh refinement type list (in reverse order)
     std::vector< std::string > m_initref;
     //! Number of initial mesh refinement/derefinement steps

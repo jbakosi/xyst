@@ -12,6 +12,7 @@ target_include_directories(Transfer PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
                            ${PROJECT_SOURCE_DIR}/../Base
                            ${PROJECT_SOURCE_DIR}/../Mesh
+                           ${PROJECT_SOURCE_DIR}/../Control
                            ${PROJECT_BINARY_DIR}
                            ${PROJECT_BINARY_DIR}/../Main
                            ${CHARM_INCLUDE_DIRS})

@@ -485,8 +485,10 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
 
     // Query number of initial mesh refinement steps
     int nref = 0;
-    if (g_cfg.get< tag::href_t0 >()) {
-      nref = static_cast<int>(g_cfg.get< tag::href_init >().size());
+    const auto& ht = multi ? g_cfg.get< tag::href_ >()[ meshid ]
+                           : g_cfg.get< tag::href >();
+    if (ht.get< tag::t0 >()) {
+      nref = static_cast<int>( ht.get< tag::init >().size() );
     }
 
     // Query if PE-local reorder is configured
@@ -629,7 +631,10 @@ Transporter::matched( std::size_t summeshid,
     if (refmode == Refiner::RefMode::T0REF) {
 
       if (!g_cfg.get< tag::feedback >()) {
-        const auto& initref = g_cfg.get< tag::href_init >();
+        bool multi = m_input.size() > 1;
+        const auto& ht = multi ? g_cfg.get< tag::href_ >()[ meshid ]
+                               : g_cfg.get< tag::href >();
+        const auto& initref = ht.get< tag::init >();
         print << '\n';
         print.diag( { "meshid", "t0ref", "type", "nref", "nderef", "ncorr" },
                     { std::to_string(meshid),
@@ -844,17 +849,18 @@ Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
 // *****************************************************************************
 {
   auto meshid = tk::cref_find( m_meshid, summeshid );
+  bool multi = m_input.size() > 1;
+  const auto& ht = multi ? g_cfg.get< tag::href_ >()[ meshid ]
+                         : g_cfg.get< tag::href >();
 
   // Update number of mesh points for mesh, since it may have been refined
-  if (g_cfg.get< tag::href_t0 >()) m_npoin[meshid] = npoin;
+  if (ht.get< tag::t0 >()) m_npoin[meshid] = npoin;
 
   if (++m_ndisc == m_nelem.size()) { // all Disc arrays have been created
     m_ndisc = 0;
     tk::Print print;
     m_progMesh.end( print );
-    if (g_cfg.get< tag::href_t0 >()) {
-      meshstat( "Mesh initially refined" );
-    }
+    if (ht.get< tag::t0 >()) meshstat( "Mesh initially refined" );
   }
 
   m_refiner[ meshid ].sendProxy();
@@ -905,10 +911,7 @@ Transporter::diagHeader()
 // Configure and write diagnostics file header
 // *****************************************************************************
 {
-  // Output header for diagnostics output file
-  tk::DiagWriter dw( g_cfg.get< tag::diag >(),
-                     g_cfg.get< tag::diag_format >(),
-                     g_cfg.get< tag::diag_precision >() );
+  // Construct header for diagnostics file output
 
   std::vector< std::string > d;
 
@@ -1035,8 +1038,22 @@ Transporter::diagHeader()
     Throw( "Unknown solver: " + solver );
   }
 
-  // Write diagnostics header
-  dw.header( d );
+  // Output header for diagnostics output file(s)
+  auto basename = g_cfg.get< tag::diag >();
+  auto format = g_cfg.get< tag::diag_format >();
+  auto precision = g_cfg.get< tag::diag_precision >();
+  bool multi = m_input.size() > 1;
+  if (multi) {
+    for (std::size_t k=0; k<m_input.size(); ++k) {
+      std::string name = basename + '.' + std::to_string(k);
+      tk::DiagWriter dw( name, format, precision );
+      dw.header( d );
+    }
+  }
+  else {
+    tk::DiagWriter dw( basename, format, precision );
+    dw.header( d );
+  }
 }
 
 void
@@ -1385,6 +1402,7 @@ Transporter::inthead( const tk::Print& print )
   const auto theta = g_cfg.get< tag::theta >();
   const auto eps = std::numeric_limits< tk::real >::epsilon();
   const auto mom = solver == "chocg" and theta > eps ? 1 : 0;
+  const bool multi = m_input.size() > 1;
 
   print.section( "Time integration" );
   print <<
@@ -1396,7 +1414,8 @@ Transporter::inthead( const tk::Print& print )
   "       EGT - estimated grind wall-clock time (1e-6sec/timestep)\n"
   "       EGP - estimated grind performance: wall-clock time "
                 "(1e-6sec/DOF/timestep)\n"
-  "       flg - status flags, legend:\n"
+  "       flg - status flags, " << (multi?"only for background mesh, ":"")
+                                << "legend:\n"
   "             f - field (volume and surface) output\n"
   "             i - integral output\n"
   "             d - diagnostics output\n"
@@ -1664,11 +1683,10 @@ Transporter::acdiagnostics( CkReductionMsg* msg )
 
   // Append diagnostics file at selected times
   auto filename = g_cfg.get< tag::diag >();
+  auto format = g_cfg.get< tag::diag_format >();
+  auto precision = g_cfg.get< tag::diag_precision >();
   if (m_nelem.size() > 1) filename += '.' + id;
-  tk::DiagWriter dw( filename,
-                     g_cfg.get< tag::diag_format >(),
-                     g_cfg.get< tag::diag_precision >(),
-                     std::ios_base::app );
+  tk::DiagWriter dw( filename, format, precision, std::ios_base::app );
   dw.write( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
 
   const auto& solver = g_cfg.get< tag::solver >();

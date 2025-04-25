@@ -82,9 +82,14 @@ Refiner::Refiner( std::size_t meshid,
   m_triinpoel( triinpoel ),
   m_nchare( nchare ),
   m_mode( RefMode::T0REF ),
-  m_initref( g_cfg.get< tag::href_init >() ),
+  m_multi( g_cfg.get< tag::input >().size() > 1 ),
+  m_initref( m_multi ? g_cfg.get< tag::href_ >()[ meshid ].get< tag::init >()
+                     : g_cfg.get< tag::href, tag::init >() ),
   m_ninitref( m_initref.size() ),
-  m_refiner( g_cfg.get< tag::href_maxlevels >(), m_inpoel ),
+  m_refiner(
+    m_multi ? g_cfg.get< tag::href_ >()[ meshid ].get< tag::maxlevels >()
+            : g_cfg.get< tag::href, tag::maxlevels >(),
+    m_inpoel ),
   m_nref( 0 ),
   m_nbnd( 0 ),
   m_extra( 0 ),
@@ -148,7 +153,9 @@ Refiner::Refiner( std::size_t meshid,
   coarseMesh();
 
   // If initial mesh refinement is configured, start initial mesh refinement.
-  if (g_cfg.get< tag::href_t0 >() && m_ninitref > 0) {
+  const auto& ht = m_multi ? g_cfg.get< tag::href_ >()[ m_meshid ]
+                           : g_cfg.get< tag::href >();
+  if (ht.get< tag::t0 >() && m_ninitref > 0) {
     t0ref();
   } else {
     endt0ref();
@@ -228,8 +235,9 @@ Refiner::reorder()
   // ultimately want, beacuse this deletes its history recorded during initial
   // (t<0) refinement. However, this appears to correctly update the local mesh
   // based on the reordered one (from Sorter) at least when t0ref is off.
-  m_refiner = AMR::mesh_adapter_t(
-    g_cfg.get< tag::href_maxlevels >(), m_inpoel );
+  const auto& ht = m_multi ? g_cfg.get< tag::href_ >()[ m_meshid ]
+                           : g_cfg.get< tag::href >();
+  m_refiner = AMR::mesh_adapter_t( ht.get< tag::maxlevels >(), m_inpoel );
 }
 
 tk::UnsMesh::Coords
@@ -1098,7 +1106,9 @@ Refiner::endt0ref()
   contribute( meshdata, CkReduction::sum_ulong, m_cbr.get< tag::refined >() );
 
   // Free up memory if no dtref
-  if (!g_cfg.get< tag::href_dt >()) {
+  const auto& ht = m_multi ? g_cfg.get< tag::href_ >()[ m_meshid ]
+                           : g_cfg.get< tag::href >();
+  if (!ht.get< tag::dt >()) {
     tk::destroy( m_ginpoel );
     tk::destroy( m_el );
     tk::destroy( m_coordmap );
@@ -1174,8 +1184,10 @@ Refiner::errorsInEdges(
 //!   to edges (2 local node IDs)
 // *****************************************************************************
 {
-  auto errtype = g_cfg.get< tag::href_error >();
-  const auto& refvar = g_cfg.get< tag::href_refvar >();
+  const auto& ht = m_multi ? g_cfg.get< tag::href_ >()[ m_meshid ]
+                           : g_cfg.get< tag::href >();
+  auto errtype = ht.get< tag::error >();
+  const auto& refvar = ht.get< tag::refvar >();
   auto psup = tk::genPsup( m_inpoel, 4, esup );
 
   // Compute errors in ICs and define refinement criteria for edges

@@ -1223,8 +1223,9 @@ KozCG::refine()
   // See if this is the last time step
   if (d->finished()) m_finished = 1;
 
-  auto dtref = g_cfg.get< tag::href_dt >();
-  auto dtfreq = g_cfg.get< tag::href_dtfreq >();
+  const auto& ht = g_cfg.get< tag::href >();
+  auto dtref = ht.get< tag::dt >();
+  auto dtfreq = ht.get< tag::dtfreq >();
 
   // if t>0 refinement enabled and we hit the frequency
   if (dtref && !(d->It() % dtfreq)) {   // refine

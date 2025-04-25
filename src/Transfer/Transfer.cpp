@@ -72,6 +72,7 @@ setSourceTets( CkArrayID p,
                const std::array< std::vector< double >, 3 >& coord,
                const tk::Fields& u,
                const std::vector< double >& flag,
+               bool dir,
                CkCallback cb )
 // *****************************************************************************
 //  API for configuring source mesh
@@ -79,11 +80,12 @@ setSourceTets( CkArrayID p,
 //! \param[in] coord Source mesh node coordinates
 //! \param[in] u Source solution data
 //! \param[in] flag Transfer flags
+//! \param[in] dir Transfer direction: 0: bg to overset, 1: overset to bg
 //! \param[in] cb Callback to continue with once finished
 // *****************************************************************************
 {
   g_transferProxy.ckLocalBranch()->
-    setSourceTets( p, chare, inpoel, coord, u, flag, cb );
+    setSourceTets( p, chare, inpoel, coord, u, flag, dir, cb );
 }
 
 
@@ -93,6 +95,7 @@ void setDestPoints( CkArrayID p,
                     tk::Fields& u,
                     std::vector< double >& flag,
                     bool trflag,
+                    bool dir,
                     CkCallback cb )
 // *****************************************************************************
 //  API for configuring destination mesh
@@ -100,11 +103,12 @@ void setDestPoints( CkArrayID p,
 //! \param[in,out] u Destination mesh solution data
 //! \param[in,out] flag Transfer flags
 //! \param[in] trflag Transfer flags if true
+//! \param[in] dir Transfer direction: 0: bg to overset, 1: overset to bg
 //! \param[in] cb Callback to continue with once finished
 // *****************************************************************************
 {
   g_transferProxy.ckLocalBranch()->
-    setDestPoints( p, chare, coord, u, flag, trflag, cb );
+    setDestPoints( p, chare, coord, u, flag, trflag, dir, cb );
 }
 
 void
@@ -147,6 +151,7 @@ Transfer::setSourceTets( CkArrayID p,
                          const std::array< std::vector< double >, 3 >& coord,
                          const tk::Fields& u,
                          const std::vector< double >& flag,
+                         bool dir,
                          CkCallback cb )
 // *****************************************************************************
 //  Configure source mesh
@@ -154,6 +159,7 @@ Transfer::setSourceTets( CkArrayID p,
 //! \param[in] coord Source mesh node coordinates
 //! \param[in] u Source solution data
 //! \param[in] flag Transfer flags
+//! \param[in] dir Transfer direction: 0: bg to overset, 1: overset to bg
 //! \param[in] cb Callback to continue with once finished
 // *****************************************************************************
 {
@@ -161,7 +167,7 @@ Transfer::setSourceTets( CkArrayID p,
   assert( m_proxyMap.count(m_src) );
   NodeSearch* w = tk::cref_find( m_proxyMap, m_src ).proxy[ chare ].ckLocal();
   assert( w );
-  w->setSourceTets( inpoel, coord, u, flag, cb );
+  w->setSourceTets( inpoel, coord, u, flag, dir, cb );
 }
 
 void
@@ -170,7 +176,8 @@ Transfer::setDestPoints( CkArrayID p,
                          const std::array< std::vector< double >, 3 >& coord,
                          tk::Fields& u,
                          std::vector< double >& flag,
-                         bool flagtr,
+                         bool trflag,
+                         bool dir,
                          CkCallback cb )
 // *****************************************************************************
 //  Configure destination mesh
@@ -178,6 +185,7 @@ Transfer::setDestPoints( CkArrayID p,
 //! \param[in,out] u Pointer to the solution data for the destination mesh
 //! \param[in,out] flag Transfer flags
 //! \param[in] trflag Transfer flags if true
+//! \param[in] dir Transfer direction: 0: bg to overset, 1: overset to bg
 //! \param[in] cb Callback to continue with once finished
 // *****************************************************************************
 {
@@ -185,7 +193,7 @@ Transfer::setDestPoints( CkArrayID p,
   assert( m_proxyMap.count(m_dst) );
   NodeSearch* w = tk::cref_find( m_proxyMap, m_dst ).proxy[ chare ].ckLocal();
   assert( w );
-  w->setDestPoints( coord, u, flag, flagtr, cb );
+  w->setDestPoints( coord, u, flag, trflag, dir, cb );
 }
 
 void

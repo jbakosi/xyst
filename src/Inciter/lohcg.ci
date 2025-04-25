@@ -28,6 +28,8 @@ module lohcg {
                    const std::vector< std::size_t >& triinpoel );
       initnode void registerReducers();
       entry void setup( tk::real v );
+      entry void transferFL();
+      entry void transferIC();
       entry void start();
       entry void evalres( const std::vector< tk::real >& l2ref );
       entry void advance( tk::real newdt );

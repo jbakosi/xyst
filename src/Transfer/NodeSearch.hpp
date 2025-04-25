@@ -59,6 +59,7 @@ class NodeSearch : public CBase_NodeSearch {
                         const std::array< std::vector< double >, 3 >& coord,
                         const tk::Fields& u,
                         const std::vector< double >& flag,
+                        bool dir,
                         CkCallback cb );
 
     //! Set the destination mesh data
@@ -66,6 +67,7 @@ class NodeSearch : public CBase_NodeSearch {
                         tk::Fields& u,
                         std::vector< double >& flag,
                         bool trflag,
+                        bool dir,
                         CkCallback cb );
 
     //! Process potential collisions in the destination mesh
@@ -79,7 +81,7 @@ class NodeSearch : public CBase_NodeSearch {
                                     int nColls,
                                     PotentialCollision* colls );
 
-    //! Transfer the interpolated solution data back to destination mesh
+    //! Transfer the interpolated solution data to destination mesh
     void transferSolution( const std::vector< SolutionData >& sol );
 
     /** @name Charm++ pack/unpack serializer member functions */
@@ -108,6 +110,8 @@ class NodeSearch : public CBase_NodeSearch {
     std::vector< double >* m_flag;
     //! Transfer flags if true
     bool m_trflag;
+    //! Transfer direction: 0: background to overset, 1: overset to background
+    bool m_dir;
     //! The number of messages sent by the dest mesh
     int m_numsent;
     //! The number of messages received by the dest mesh

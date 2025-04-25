@@ -530,15 +530,31 @@ LohCG::setup( tk::real v )
     d->histheader( std::move(var) );
   }
 
-  // Prepare integrid-boundary data structures (if coupled)
-  d->intergrid( m_bnode );
-
-  // Initiate transfer of initial conditions (if coupled)
-  d->transfer( m_u,
-    CkCallback( CkIndex_LohCG::transfer_complete(), thisProxy[thisIndex] ) );
+  // Setup hole data structures (if coupled)
+  d->hole( m_bface, m_triinpoel,
+    CkCallback( CkIndex_LohCG::transferFL(), thisProxy[thisIndex] ) );
 
   // Compute finite element operators
   feop();
+}
+
+void
+LohCG::transferFL()
+// *****************************************************************************
+// Initiate transfer of transfer flags (if coupled)
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  // Prepare integrid-boundary data structures
+  d->intergrid( m_bnode );
+
+  // Find mesh nodes within holes
+  d->holefind();
+
+  // Initiate transfer of transfer flags
+  auto c = CkCallback(CkIndex_LohCG::transfer_complete(), thisProxy[thisIndex]);
+  d->transfer( m_u, c, /* trflag = */ true );
 }
 
 void
@@ -866,14 +882,36 @@ LohCG::domsuped()
 }
 
 void
+LohCG::holeset()
+// *****************************************************************************
+// Set solution in holes (if coupled)
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  if (!multi) return;
+
+  auto d = Disc();
+  if (d->MeshId()) return;
+
+  const auto& flag = d->TransferFlag();
+  Assert( flag.size() == m_u.nunk(), "Size mismatch" );
+  //auto eps = std::numeric_limits< tk::real >::epsilon();
+
+  for (std::size_t i=0; i<m_u.nunk(); ++i) {
+    if (flag[i] > 0.0) {  // zero solution in holes
+      for (std::size_t c=0; c<m_u.nprop(); ++c) m_u(i,c) = 0.0;
+    }
+  }
+}
+
+void
 // cppcheck-suppress unusedFunction
 LohCG::merge()
 // *****************************************************************************
 // Combine own and communicated portions of the integrals
 // *****************************************************************************
 {
-  auto d = Disc();
-
+//std::cout << Disc()->MeshId() << ": " << thisIndex << ":\n";
   // Combine own and communicated contributions to boundary point normals
   bnorm();
 
@@ -881,11 +919,15 @@ LohCG::merge()
   streamable();
 
   // Enforce boundary conditions on initial conditions
+  auto d = Disc();
   auto t = d->T() + d->Dt();
   physics::dirbc( d->MeshId(), m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
                   m_dirbcval );
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
   physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
+
+  // Set solution in holes (if coupled) after initial conditions transfer
+  holeset();
 
   // Start measuring initial div-free time
   m_timer.emplace_back();
@@ -1256,7 +1298,7 @@ LohCG::psolved()
   const auto& problem = inciter::g_cfg.get< tag::problem >();
   bool test_overset = problem.find("overset") != std::string::npos;
 
-  if (m_np != 1 and !test_overset) {
+  if (m_np != 1 and !test_overset and !d->MeshId()) {
     // Finalize gradient communications
     fingrad( m_sgrad, m_sgradc );
     // Project velocity to divergence-free subspace
@@ -1271,7 +1313,22 @@ LohCG::psolved()
                     m_dirbcval);
     physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
     physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
+    // Set solution in holes (if coupled)
+    holeset();
   }
+
+  // Initiate transfer of initial conditions (if coupled)
+  auto c = CkCallback( CkIndex_LohCG::transferIC(), thisProxy[thisIndex] );
+  d->transfer( m_u, c, /* trflag = */ false );
+}
+
+void
+LohCG::transferIC()
+// *****************************************************************************
+// Initiate transfer of initial conditions (if coupled)
+// *****************************************************************************
+{
+  auto d = Disc();
 
   if (g_cfg.get< tag::nstep >() == 1) {  // test first Poisson solve only
 
@@ -1294,8 +1351,11 @@ LohCG::psolved()
                     << " sec\n";
       }
       // Assign initial pressure and start timestepping
-      auto p = m_cgpre[ thisIndex ].ckLocal()->solution();
-      for (std::size_t i=0; i<m_u.nunk(); ++i) m_u(i,0) = p[i];
+      if (!d->MeshId()) {
+        auto p = m_cgpre[ thisIndex ].ckLocal()->solution();
+        for (std::size_t i=0; i<m_u.nunk(); ++i) m_u(i,0) = p[i];
+        holeset();      // set solution in holes (if coupled)
+      }
       writeFields( CkCallback(CkIndex_LohCG::start(), thisProxy[thisIndex]) );
     }
 
@@ -1566,8 +1626,8 @@ LohCG::solve()
   physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
 
   // Initiate transfer of updated solution (if coupled)
-  d->transfer( m_u,
-    CkCallback( CkIndex_LohCG::solved(), thisProxy[thisIndex] ) );
+  auto c = CkCallback( CkIndex_LohCG::solved(), thisProxy[thisIndex] );
+  d->transfer( m_u, c, /* trflag = */ false );
 }
 
 void
@@ -1576,6 +1636,18 @@ LohCG::solved()
 //  Solution has been updated
 // *****************************************************************************
 {
+  auto d = Disc();
+  auto t = d->T() + m_rkcoef[m_stage] * d->Dt();
+  auto meshid = d->MeshId();
+  physics::dirbc( meshid, m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
+                  m_dirbcval );
+  physics::dirbcp( meshid, m_u, d->Coord(), m_dirbcmaskp, m_dirbcvalp );
+  physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
+  physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
+
+  // Set solution in holes (if coupled)
+  holeset();
+
   if (++m_stage < m_rkcoef.size()) {
 
     // Start next time step stage
@@ -1611,8 +1683,9 @@ LohCG::refine()
   // See if this is the last time step
   if (d->finished()) m_finished = 1;
 
-  auto dtref = g_cfg.get< tag::href_dt >();
-  auto dtfreq = g_cfg.get< tag::href_dtfreq >();
+  const auto& ht = g_cfg.get< tag::href >();
+  auto dtref = ht.get< tag::dt >();
+  auto dtfreq = ht.get< tag::dtfreq >();
 
   // if t>0 refinement enabled and we hit the frequency
   if (dtref && !(d->It() % dtfreq)) {   // refine
@@ -1769,14 +1842,20 @@ LohCG::writeFields( CkCallback cb )
   std::vector< std::string > nodesurfnames;
   std::vector< std::vector< tk::real > > nodesurfs;
 
-  const auto& f = g_cfg.get< tag::fieldout, tag::sidesets >();
+  const auto& ft = multi ? g_cfg.get< tag::fieldout_ >()[ d->MeshId() ]
+                         : g_cfg.get< tag::fieldout >();
+  const auto& f = ft.get< tag::sidesets >();
 
   if (!f.empty()) {
-    std::size_t nc = 4;
+    auto ns = ncomp + 1;
     nodesurfnames.push_back( "pressure" );
     nodesurfnames.push_back( "velocityx" );
     nodesurfnames.push_back( "velocityy" );
     nodesurfnames.push_back( "velocityz" );
+    if (multi) {
+      ++ns;
+      nodesurfnames.push_back( "flag" );
+    }
 
     auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
     std::set< int > outsets( begin(f), end(f) );
@@ -1785,7 +1864,7 @@ LohCG::writeFields( CkCallback cb )
       if (b == end(bnode)) continue;
       const auto& nodes = b->second;
       auto i = nodesurfs.size();
-      nodesurfs.insert( end(nodesurfs), nc,
+      nodesurfs.insert( end(nodesurfs), ns,
                         std::vector< tk::real >( nodes.size() ) );
       std::size_t j = 0;
       for (auto n : nodes) {
@@ -1795,6 +1874,7 @@ LohCG::writeFields( CkCallback cb )
         nodesurfs[i+(p++)][j] = s[1];
         nodesurfs[i+(p++)][j] = s[2];
         nodesurfs[i+(p++)][j] = s[3];
+        if (multi) nodesurfs[i+(p++)][j] = d->TransferFlag()[n];
         ++j;
       }
     }

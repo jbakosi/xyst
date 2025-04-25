@@ -14,10 +14,9 @@ part_1 = "rcb"
 part_2 = "phg"
 
 overset = {
-  oneway = true,
   intergrid_2 = {
     sideset = { 1 },
-    layers = 2
+    layers = { 2, 4, 2 }
   }
 }
 

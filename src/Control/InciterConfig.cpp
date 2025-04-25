@@ -37,6 +37,9 @@
 #include "Writer.hpp"
 
 namespace inciter {
+
+extern int g_nrestart;
+
 namespace ctr {
 
 static constexpr auto largeint = std::numeric_limits< int64_t >::max();
@@ -90,7 +93,7 @@ Config::cmdline( int argc, char** argv )
         get< tag::feedback >() = true;
         break;
       case 'i':
-        get< tag::input >().push_back( optarg );
+        if (!g_nrestart) get< tag::input >().push_back( optarg );
         break;
       case 'l':
         get< tag::lbfreq >() = std::stoul( optarg );
@@ -108,7 +111,7 @@ Config::cmdline( int argc, char** argv )
         get< tag::quiescence >() = true;
         break;
       case 'u':
-        get< tag::virt >().push_back( std::stod( optarg ) );
+        if (!g_nrestart) get< tag::virt >().push_back( std::stod( optarg ) );
         break;
       case 'v':
         print << '\n';
@@ -557,13 +560,15 @@ range( lua_State* L, bool global = false )
 static void
 intergrid_( lua_State* L, Config& cfg,
             std::vector< std::vector< int > >& sets,
-            std::vector< int64_t >& lays )
+            std::vector< std::vector< uint64_t > >& lays,
+            std::vector< std::string >& syms )
 // *****************************************************************************
 // Parse integrid_* table from table for multple meshes
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 //! \param[in,out] sets State to push back intergrid setids to (outer vec: mesh)
-//! \param[in,out] lays State to push back intergrid layers to (vec: mesh)
+//! \param[in,out] lays State to push back intergrid layers to (outer vec: mesh)
+//! \param[in,out] syms State to push back holes-ymmetries to (vec: mesh)
 // *****************************************************************************
 {
   auto nf = cfg.get< tag::input >().size();
@@ -571,6 +576,7 @@ intergrid_( lua_State* L, Config& cfg,
 
   sets.resize( nf );
   lays.resize( nf );
+  syms.resize( nf );
   std::string basename = "intergrid_";
 
   for (std::size_t k=0; k<nf; ++k) {
@@ -580,7 +586,8 @@ intergrid_( lua_State* L, Config& cfg,
 
     if (!lua_isnil( L, -1 )) {
       sets[k] = sideset( L );
-      lays[k] = sigint( L, "layers", 2 );
+      lays[k] = unsigints( L, "layers" );
+      syms[k] = string( L, "sym", "" );
     }
 
     lua_pop( L, 1 );
@@ -599,8 +606,10 @@ overset( lua_State* L, Config& cfg )
   lua_getglobal( L, "overset" );
 
   auto& tf = cfg.get< tag::overset>();
-  tf.get< tag::oneway >() = boolean( L, "oneway" );
-  intergrid_( L, cfg, tf.get< tag::intergrid_ >(), tf.get< tag::layers_ >() );
+  intergrid_( L, cfg,
+              tf.get< tag::intergrid_ >(),
+              tf.get< tag::layers_ >(),
+              tf.get< tag::sym_ >() );
 
   lua_pop( L, 1 );
 }
@@ -1456,22 +1465,58 @@ problem( lua_State* L, Config& cfg )
 static void
 href( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse href table
+// Parse href table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "href" );
 
-  cfg.get< tag::href_t0 >() = boolean( L, "t0" );
-  cfg.get< tag::href_dt >() = boolean( L, "dt" );
-  cfg.get< tag::href_dtfreq >() = unsigint( L, "dtfreq", 5 );
-  cfg.get< tag::href_init >() = stringlist( L, "init" );
-  cfg.get< tag::href_refvar >() = unsigints( L, "refvar" );
-  cfg.get< tag::href_error >() = string( L, "error", "jump" );
-  cfg.get< tag::href_maxlevels >() = unsigint( L, "maxlevels", 2 );
+  auto& ht = cfg.get< tag::href >();
+  ht.get< tag::t0 >() = boolean( L, "t0" );
+  ht.get< tag::dt >() = boolean( L, "dt" );
+  ht.get< tag::dtfreq >() = unsigint( L, "dtfreq", 5 );
+  ht.get< tag::init >() = stringlist( L, "init" );
+  ht.get< tag::refvar >() = unsigints( L, "refvar" );
+  ht.get< tag::error >() = string( L, "error", "jump" );
+  ht.get< tag::maxlevels >() = unsigint( L, "maxlevels", 2 );
 
   lua_pop( L, 1 );
+}
+
+
+static void
+href_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse href table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "href_";
+  auto& ht = cfg.get< tag::href_ >();
+  ht.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& htk = ht[k];
+    htk.get< tag::t0 >() = boolean( L, "t0" );
+    htk.get< tag::dt >() = boolean( L, "dt" );
+    htk.get< tag::dtfreq >() = unsigint( L, "dtfreq", 5 );
+    htk.get< tag::init >() = stringlist( L, "init" );
+    htk.get< tag::refvar >() = unsigints( L, "refvar" );
+    htk.get< tag::error >() = string( L, "error", "jump" );
+    htk.get< tag::maxlevels >() = unsigint( L, "maxlevels", 6 );
+
+    lua_pop( L, 1 );
+
+  }
 }
 
 static void
@@ -1738,6 +1783,7 @@ Config::control()
     integout_( L, *this );
     diag( L, *this );
     href( L, *this );
+    href_( L, *this );
     deactivate( L, *this );
     pressure( L, *this );
     pressure_( L, *this );

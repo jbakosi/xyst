@@ -18,7 +18,8 @@ add_library(Inciter
             DiagReducer.cpp
             PartsReducer.cpp
             NodeDiagnostics.cpp
-            IntegralReducer.cpp)
+            IntegralReducer.cpp
+            HoleReducer.cpp)
 
 target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/..

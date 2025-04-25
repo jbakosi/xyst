@@ -92,9 +92,9 @@ DEFTAG( release_time );
 DEFTAG( freezeflow );
 DEFTAG( freezetime );
 DEFTAG( overset );
-DEFTAG( oneway );
 DEFTAG( intergrid_ );
 DEFTAG( layers_ );
+DEFTAG( sym_ );
 DEFTAG( fieldout );
 DEFTAG( fieldout_ );
 DEFTAG( histout );
@@ -144,13 +144,13 @@ DEFTAG( mat_spec_gas_const );
 DEFTAG( mat_heat_conductivity );
 DEFTAG( mat_dyn_viscosity );
 DEFTAG( mat_dyn_diffusivity );
-DEFTAG( href_t0 );
-DEFTAG( href_dt );
-DEFTAG( href_dtfreq );
-DEFTAG( href_maxlevels );
-DEFTAG( href_error );
-DEFTAG( href_init );
-DEFTAG( href_refvar );
+DEFTAG( href );
+DEFTAG( href_ );
+DEFTAG( dtfreq );
+DEFTAG( maxlevels );
+DEFTAG( error );
+DEFTAG( init );
+DEFTAG( refvar );
 } // tag::
 
 namespace inciter {
@@ -253,9 +253,9 @@ using ConfigMembers = brigand::list<
   , tag::freezeflow, double
   , tag::freezetime, double
   , tag::overset, tk::TaggedTuple< brigand::list<
-                    tag::oneway, bool
-                  , tag::intergrid_, std::vector< std::vector< int > >
-                  , tag::layers_, std::vector< int64_t >
+                    tag::intergrid_, std::vector< std::vector< int > >
+                  , tag::layers_, std::vector< std::vector< uint64_t > >
+                  , tag::sym_, std::vector< std::string >
                   > >
   , tag::fieldout, tk::TaggedTuple< brigand::list<
                      tag::sidesets, std::vector< int >
@@ -389,13 +389,27 @@ using ConfigMembers = brigand::list<
   , tag::mat_heat_conductivity, double
   , tag::mat_dyn_viscosity, double
   , tag::mat_dyn_diffusivity, double
-  , tag::href_t0, bool
-  , tag::href_dt, bool
-  , tag::href_dtfreq, uint64_t
-  , tag::href_maxlevels, uint64_t
-  , tag::href_refvar, std::vector< uint64_t >
-  , tag::href_error, std::string
-  , tag::href_init, std::vector< std::string >
+  , tag::href, tk::TaggedTuple< brigand::list<
+                   tag::t0, bool
+                 , tag::dt, bool
+                 , tag::dtfreq, uint64_t
+                 , tag::maxlevels, uint64_t
+                 , tag::refvar, std::vector< uint64_t >
+                 , tag::error, std::string
+                 , tag::init, std::vector< std::string >
+              > >
+  , tag::href_, std::vector<
+                  tk::TaggedTuple< brigand::list<
+                    tag::t0, bool
+                  , tag::dt, bool
+                  , tag::dtfreq, uint64_t
+                  , tag::maxlevels, uint64_t
+                  , tag::refvar, std::vector< uint64_t >
+                  , tag::error, std::string
+                  , tag::init, std::vector< std::string >
+                  > >
+                >
+
 >;
 
 //! Config is a TaggedTuple specialized to Inciter

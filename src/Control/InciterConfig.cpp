@@ -1456,8 +1456,12 @@ problem( lua_State* L, Config& cfg )
      ++n;
   }
 
-       if (solver == "chocg") n -= 2;
-  else if (solver == "lohcg") n -= 1;
+  if (solver == "chocg") {
+    n -= 2;
+  }
+  else if (solver == "lohcg") {
+    n -= 1;
+  }
 
   lua_pop( L, 1 );
 }

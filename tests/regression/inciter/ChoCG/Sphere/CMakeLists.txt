@@ -38,10 +38,23 @@ add_regression_test(chocg_viscous_sphere ${INCITER_EXECUTABLE}
                                         int.ndiff.cfg
                     LABELS chocg)
 
+add_regression_test(chocg_sphere_point_src ${INCITER_EXECUTABLE}
+                    NUMPES 1
+                    INPUTFILES sphere_point_src.q sphere2_5K.exo
+                    ARGS -c sphere_point_src.q -i sphere2_5K.exo
+                    BIN_BASELINE chocg_sphere_point_src.std.exo
+                                 chocg_sphere_point_src_surf.1.std.exo
+                    BIN_RESULT out.e-s.0.1.0
+                               out-surf.1.e-s.0.1.0
+                    BIN_DIFF_PROG_CONF exodiff-surf.cfg
+                    TEXT_BASELINE diag_sphere_point_src.std
+                    TEXT_RESULT diag
+                    TEXT_DIFF_PROG_CONF diag-surf.ndiff.cfg
+                    LABELS chocg)
+
 # Parallel + virtualization
 
-add_regression_test(chocg_inviscid_sphere_u0.6
-                    ${INCITER_EXECUTABLE}
+add_regression_test(chocg_inviscid_sphere_u0.6 ${INCITER_EXECUTABLE}
                     NUMPES 2 PPN 1
                     INPUTFILES inviscid_sphere.q sphere2_5K.exo
                     ARGS -c inviscid_sphere.q -i sphere2_5K.exo -u 0.6

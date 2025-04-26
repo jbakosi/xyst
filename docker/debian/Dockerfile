@@ -36,7 +36,7 @@ FROM debian:stable
 # Install system-wide prerequisites
 RUN apt-get update -y && apt-get install -y git cmake g++ gfortran ninja-build bzip2 zlib1g-dev libnetcdf-mpi-dev
 
-# Install Charm++ in both non-SMP and SMP mode
+# Install Charm++
 WORKDIR /etc/
 #RUN git sparse-checkout init
 #RUN git sparse-checkout set src cmake CMakeLists.txt build buildcmake &&

@@ -47,8 +47,6 @@ fieldout = {
   time = 0.0
 }
 
-
-
 diag = {
   iter = 5,
   format = "scientific",

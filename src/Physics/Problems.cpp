@@ -34,11 +34,12 @@ ic( tk::real, tk::real, tk::real, tk::real )
 //! \return Values of conserved variables
 // *****************************************************************************
 {
+  const auto& ncomp = g_cfg.get< tag::problem_ncomp >();
+
   // pressure-based solvers
 
   const auto& solver = g_cfg.get< tag::solver >();
   if (solver == "chocg") {
-    const auto& ncomp = g_cfg.get< tag::problem_ncomp >();
     std::vector< tk::real > u( ncomp, 0.0 );
     auto ic_velocity = g_cfg.get< tag::ic_velocity >();
     auto large = std::numeric_limits< double >::max();
@@ -48,7 +49,6 @@ ic( tk::real, tk::real, tk::real, tk::real )
     return u;
   }
   else if (solver == "lohcg") {
-    const auto& ncomp = g_cfg.get< tag::problem_ncomp >();
     std::vector< tk::real > u( ncomp, 0.0 );
     auto ic_velocity = g_cfg.get< tag::ic_velocity >();
     auto large = std::numeric_limits< double >::max();
@@ -64,7 +64,7 @@ ic( tk::real, tk::real, tk::real, tk::real )
   const auto& ic_velocity = g_cfg.get< tag::ic_velocity >();
   ErrChk( ic_velocity.size() == 3, "ic_velocity must have 3 components" );
 
-  std::vector< tk::real > u( 5, 0.0 );
+  std::vector< tk::real > u( ncomp, 0.0 );
 
   u[0] = ic_density;
   u[1] = u[0] * ic_velocity[0];
@@ -754,22 +754,6 @@ src( tk::real, tk::real, tk::real, tk::real )
 
 namespace point_src {
 
-static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real z, tk::real t )
-// *****************************************************************************
-//! Set initial conditions for point source problem
-//! \param[in] x X coordinate where to evaluate initial conditions
-//! \param[in] y Y coordinate where to evaluate initial conditions
-//! \param[in] z Z coordinate where to evaluate initial conditions
-//! \param[in] t Time where to evaluate initial conditions
-//! \return Values of conserved variables
-// *****************************************************************************
-{
-  auto u = userdef::ic( x, y, z, t );
-  u.push_back( 0.0 );
-  return u;
-}
-
 static void
 src( const std::array< std::vector< tk::real >, 3 >& coord,
      tk::real t,
@@ -1070,7 +1054,7 @@ IC()
   std::function< std::vector< tk::real >
                ( tk::real, tk::real, tk::real, tk::real ) > ic;
 
-  if (problem == "userdef")
+  if (problem == "userdef" or problem == "point_src")
     ic = userdef::ic;
   else if (problem == "nonlinear_energy_growth")
     ic = nonlinear_energy_growth::ic;
@@ -1088,8 +1072,6 @@ IC()
     ic = slot_cyl::ic;
   else if (problem == "sheardiff")
     ic = sheardiff::ic;
-  else if (problem == "point_src")
-    ic = point_src::ic;
   else if (problem.find("poisson") != std::string::npos)
     ic = poisson::ic;
   else if (problem == "poiseuille")

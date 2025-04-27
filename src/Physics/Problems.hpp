@@ -18,12 +18,12 @@ namespace problems {
 
 //! Query user config and assign function to set initial conditions
 std::function< std::vector< tk::real >
-             ( tk::real, tk::real, tk::real, tk::real ) >
+             ( tk::real, tk::real, tk::real, tk::real, std::size_t ) >
 IC();
 
 //! Query user config and assign function to query analytic solutions
 std::function< std::vector< tk::real >
-             ( tk::real, tk::real, tk::real, tk::real ) >
+             ( tk::real, tk::real, tk::real, tk::real, std::size_t ) >
 SOL();
 
 //! Set inital conditions
@@ -32,14 +32,15 @@ initialize(
   const std::array< std::vector< tk::real >, 3 >& coord,
   tk::Fields& U,
   tk::real t,
+  std::size_t meshid,
   const std::vector< std::unordered_set<std::size_t> >& boxnodes = {} );
 
 //! Query user config and assign function to set pressure initial conditions
-std::function< tk::real( tk::real, tk::real, tk::real ) >
+std::function< tk::real( tk::real, tk::real, tk::real, std::size_t ) >
 PRESSURE_IC();
 
 //! Query user config and assign function to query analytic pressure solutions
-std::function< tk::real( tk::real, tk::real, tk::real ) >
+std::function< tk::real( tk::real, tk::real, tk::real, std::size_t ) >
 PRESSURE_SOL();
 
 //! Assign function to query pressure gradient at a point
@@ -52,11 +53,11 @@ PRESSURE_RHS();
 
 //! Set pressure initial condition
 tk::real
-initialize( tk::real x, tk::real y, tk::real z );
+initialize( tk::real x, tk::real y, tk::real z, std::size_t meshid );
 
 //! Query user config and assign function to add a source term
 std::function< std::vector< tk::real >
-  ( tk::real, tk::real, tk::real, tk::real ) >
+  ( tk::real, tk::real, tk::real, tk::real, std::size_t ) >
 SRC();
 
 //  Query user config and assign function to apply source to numerical solution

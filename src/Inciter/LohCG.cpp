@@ -188,7 +188,7 @@ LohCG::ngradcomp() const
 // *****************************************************************************
 {
   std::size_t n = 0;
-  const auto& req = g_cfg.get< tag::integout_integrals >();
+  const auto& req = g_cfg.get< tag::integout, tag::integrals >();
 
   if (g_cfg.get< tag::flux >() == "damp4" or
       std::find( begin(req), end(req), "force") != end(req))
@@ -302,10 +302,24 @@ LohCG::feop()
 {
   auto d = Disc();
 
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  auto meshid = d->MeshId();
+
   // Prepare Dirichlet boundary conditions data structures
-  setupDirBC( g_cfg.get< tag::bc_dir >(), g_cfg.get< tag::bc_dirval >(),
-              m_u.nprop(), m_dirbcmask, m_dirbcval );
-  setupDirBC( g_cfg.get< tag::pre_bc_dir >(), g_cfg.get< tag::pre_bc_dirval >(),
+  const auto& bc_dir =
+    multi ? g_cfg.get< tag::bc_dir_ >()[ meshid ]
+          : g_cfg.get< tag::bc_dir >();
+  const auto& bc_dirval =
+    multi ? g_cfg.get< tag::bc_dirval_ >()[ meshid ]
+          : g_cfg.get< tag::bc_dirval >();
+
+  setupDirBC( bc_dir, bc_dirval, m_u.nprop(), m_dirbcmask, m_dirbcval );
+
+  // Prepare pressure Dirichlet boundary conditions data structures
+  const auto& tp =
+    multi ? g_cfg.get< tag::pressure_ >()[ meshid ]
+          : g_cfg.get< tag::pressure >();
+  setupDirBC( tp.get< tag::bc_dir >(), tp.get< tag::bc_dirval >(),
               1, m_dirbcmaskp, m_dirbcvalp );
 
   // Compute local contributions to boundary normals and integrals
@@ -501,13 +515,13 @@ LohCG::setup( tk::real v )
   auto d = Disc();
 
   // Store user-defined box IC volume
-  Disc()->Boxvol() = v;
+  d->Boxvol() = v;
 
   // Set initial conditions
-  problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
+  problems::initialize( d->Coord(), m_u, d->T(), d->MeshId(), d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
-  if (!g_cfg.get< tag::histout >().empty()) {
+  if (!g_cfg.get< tag::histout, tag::points >().empty()) {
     std::vector< std::string > var
       {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
     auto ncomp = m_u.nprop();
@@ -516,8 +530,31 @@ LohCG::setup( tk::real v )
     d->histheader( std::move(var) );
   }
 
+  // Setup hole data structures (if coupled)
+  d->hole( m_bface, m_triinpoel,
+    CkCallback( CkIndex_LohCG::transferFL(), thisProxy[thisIndex] ) );
+
   // Compute finite element operators
   feop();
+}
+
+void
+LohCG::transferFL()
+// *****************************************************************************
+// Initiate transfer of transfer flags (if coupled)
+// *****************************************************************************
+{
+  auto d = Disc();
+
+  // Prepare integrid-boundary data structures
+  d->intergrid( m_bnode );
+
+  // Find mesh nodes within holes
+  d->holefind();
+
+  // Initiate transfer of transfer flags
+  auto c = CkCallback(CkIndex_LohCG::transfer_complete(), thisProxy[thisIndex]);
+  d->transfer( m_u, c, /* trflag = */ true );
 }
 
 void
@@ -565,14 +602,14 @@ LohCG::bnorm()
 }
 
 void
-LohCG::streamable()
+LohCG::prep_surfint()
 // *****************************************************************************
-// Convert integrals into streamable data structures
+// Prepare surface integral data strurctures
 // *****************************************************************************
 {
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
-  const auto& is = g_cfg.get< tag::integout >();
+  const auto& is = g_cfg.get< tag::integout, tag::sidesets >();
   std::set< int > outsets( begin(is), end(is) );
   for (auto s : outsets) {
     auto m = m_bface.find(s);
@@ -587,6 +624,7 @@ LohCG::streamable()
     }
   }
   for (auto& [s,n] : surfintnodes) tk::unique( n );
+
   // Prepare surface integral data
   tk::destroy( m_surfint );
   const auto& gid = Disc()->Gid();
@@ -605,16 +643,26 @@ LohCG::streamable()
       a += 3;
     }
   }
+
   tk::destroy( m_bndpoinint );
+}
 
-  // Generate domain superedges
-  domsuped();
+void
+LohCG::prep_symbc()
+// *****************************************************************************
+//  Prepare symmetry boundary condition data structures
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  auto meshid = Disc()->MeshId();
 
-  //  Prepare symmetry boundary condition data structures
+  const auto& bc_sym =
+    multi ? g_cfg.get< tag::bc_sym_ >()[ meshid ]
+          : g_cfg.get< tag::bc_sym >();
 
   // Query symmetry BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > sym;
-  for (auto s : g_cfg.get< tag::bc_sym >()) {
+  for (auto s : bc_sym) {
     auto k = m_bface.find(s);
     if (k != end(m_bface)) {
       auto& n = sym[ k->first ];
@@ -635,7 +683,7 @@ LohCG::streamable()
   tk::destroy( m_symbcnodes );
   tk::destroy( m_symbcnorms );
   for (auto p : symbcnodeset) {
-    for (const auto& s : g_cfg.get< tag::bc_sym >()) {
+    for (const auto& s : bc_sym) {
       auto m = m_bnorm.find( s );
       if (m != end(m_bnorm)) {
         auto r = m->second.find( p );
@@ -649,12 +697,24 @@ LohCG::streamable()
     }
   }
   tk::destroy( m_bnorm );
+}
 
-  //  Prepare noslip boundary condition data structures
+void
+LohCG::prep_noslipbc()
+// *****************************************************************************
+//  Prepare no-slip boundary condition data structures
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  auto meshid = Disc()->MeshId();
+
+  const auto& bc_noslip =
+    multi ? g_cfg.get< tag::bc_noslip_ >()[ meshid ]
+          : g_cfg.get< tag::bc_noslip >();
 
   // Query noslip BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > noslip;
-  for (auto s : g_cfg.get< tag::bc_noslip >()) {
+  for (auto s : bc_noslip) {
     auto k = m_bface.find(s);
     if (k != end(m_bface)) {
       auto& n = noslip[ k->first ];
@@ -675,6 +735,25 @@ LohCG::streamable()
   tk::destroy( m_noslipbcnodes );
   m_noslipbcnodes.insert( m_noslipbcnodes.end(),
                           begin(noslipbcnodeset), end(noslipbcnodeset) );
+}
+
+void
+LohCG::streamable()
+// *****************************************************************************
+// Convert integrals into streamable data structures
+// *****************************************************************************
+{
+  // Prepare surface integral data strurctures
+  prep_surfint();
+
+  // Generate domain superedges
+  domsuped();
+
+  // Prepare symmetry boundary condition data structures
+  prep_symbc();
+
+  //  Prepare no-slip boundary condition data structures
+  prep_noslipbc();
 }
 
 void
@@ -803,14 +882,36 @@ LohCG::domsuped()
 }
 
 void
+LohCG::holeset()
+// *****************************************************************************
+// Set solution in holes (if coupled)
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  if (!multi) return;
+
+  auto d = Disc();
+  if (d->MeshId()) return;
+
+  const auto& flag = d->TransferFlag();
+  Assert( flag.size() == m_u.nunk(), "Size mismatch" );
+  //auto eps = std::numeric_limits< tk::real >::epsilon();
+
+  for (std::size_t i=0; i<m_u.nunk(); ++i) {
+    if (flag[i] > 0.0) {  // zero solution in holes
+      for (std::size_t c=0; c<m_u.nprop(); ++c) m_u(i,c) = 0.0;
+    }
+  }
+}
+
+void
 // cppcheck-suppress unusedFunction
 LohCG::merge()
 // *****************************************************************************
 // Combine own and communicated portions of the integrals
 // *****************************************************************************
 {
-  auto d = Disc();
-
+//std::cout << Disc()->MeshId() << ": " << thisIndex << ":\n";
   // Combine own and communicated contributions to boundary point normals
   bnorm();
 
@@ -818,10 +919,15 @@ LohCG::merge()
   streamable();
 
   // Enforce boundary conditions on initial conditions
+  auto d = Disc();
   auto t = d->T() + d->Dt();
-  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
+  physics::dirbc( d->MeshId(), m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
+                  m_dirbcval );
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
   physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
+
+  // Set solution in holes (if coupled) after initial conditions transfer
+  holeset();
 
   // Start measuring initial div-free time
   m_timer.emplace_back();
@@ -1029,6 +1135,7 @@ LohCG::pinit()
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
+  const auto& tp = g_cfg.get< tag::pressure >();
 
   // Combine own and communicated contributions to velocity divergence
   for (const auto& [g,r] : m_divc) m_div[ tk::cref_find(lid,g) ] += r;
@@ -1037,7 +1144,7 @@ LohCG::pinit()
   // Configure Dirichlet BCs
   std::unordered_map< std::size_t,
     std::vector< std::pair< int, tk::real > > > dirbc;
-  if (!g_cfg.get< tag::pre_bc_dir >().empty()) {
+  if (!tp.get< tag::bc_dir >().empty()) {
     auto ic = problems::PRESSURE_IC();
     std::size_t nmask = 1 + 1;
     Assert( m_dirbcmaskp.size() % nmask == 0, "Size mismatch" );
@@ -1045,7 +1152,7 @@ LohCG::pinit()
       auto p = m_dirbcmaskp[i*nmask+0];     // local node id
       auto mask = m_dirbcmaskp[i*nmask+1];
       if (mask == 1) {                                  // mask == 1: IC value
-        auto val = ic( x[p], y[p], z[p] );
+        auto val = ic( x[p], y[p], z[p], /*meshid=*/0 );
         dirbc[p] = {{ { 1, val } }};
       } else if (mask == 2 && !m_dirbcvalp.empty()) {   // mask == 2: BC value
         auto val = m_dirbcvalp[i*nmask+1];
@@ -1060,7 +1167,7 @@ LohCG::pinit()
   if (pg) {
     // Collect Neumann BC elements
     std::vector< std::uint8_t > besym( m_triinpoel.size(), 0 );
-    for (auto s : g_cfg.get< tag::pre_bc_sym >()) {
+    for (auto s : tp.get< tag::bc_sym >()) {
       auto k = m_bface.find(s);
       if (k != end(m_bface)) for (auto f : k->second) besym[f] = 1;
     }
@@ -1084,13 +1191,13 @@ LohCG::pinit()
   }
 
   // Set hydrostat
-  auto h = g_cfg.get< tag::pre_hydrostat >();
+  auto h = tp.get< tag::hydrostat >();
   if (h != std::numeric_limits< uint64_t >::max()) {
     auto pi = lid.find( h );
     if (pi != end(lid)) {
       auto p = pi->second;
       auto ic = problems::PRESSURE_IC();
-      auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
+      auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p], /*meshid=*/0 );
       auto& b = dirbc[p];
       if (b.empty()) b = {{ { 1, val }} };
     }
@@ -1106,7 +1213,7 @@ LohCG::pinit()
   }
 
   // Initialize Poisson solve
-  const auto& pc = g_cfg.get< tag::pre_pc >();
+  const auto& pc = tp.get< tag::pc >();
   m_cgpre[ thisIndex ].ckLocal()->init( {}, m_div, neubc, dirbc, true, pc,
     CkCallback( CkIndex_LohCG::psolve(), thisProxy[thisIndex] ) );
 }
@@ -1117,9 +1224,10 @@ LohCG::psolve()
 //  Solve Poisson equation
 // *****************************************************************************
 {
-  auto iter = g_cfg.get< tag::pre_iter >();
-  auto tol = g_cfg.get< tag::pre_tol >();
-  auto verbose = g_cfg.get< tag::pre_verbose >();
+  const auto& tp = g_cfg.get< tag::pressure >();
+  auto iter = tp.get< tag::iter >();
+  auto tol = tp.get< tag::tol >();
+  auto verbose = tp.get< tag::verbose >();
 
   auto c = m_np != 1 ?
            CkCallback( CkIndex_LohCG::sgrad(), thisProxy[thisIndex] ) :
@@ -1187,7 +1295,10 @@ LohCG::psolved()
 
   if (thisIndex == 0) d->pit( m_cgpre[ thisIndex ].ckLocal()->it() );
 
-  if (m_np != 1) {
+  const auto& problem = inciter::g_cfg.get< tag::problem >();
+  bool test_overset = problem.find("overset") != std::string::npos;
+
+  if (m_np != 1 and !test_overset and !d->MeshId()) {
     // Finalize gradient communications
     fingrad( m_sgrad, m_sgradc );
     // Project velocity to divergence-free subspace
@@ -1198,10 +1309,26 @@ LohCG::psolved()
     }
     // Enforce boundary conditions
     auto t = d->T() + d->Dt();
-    physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval);
+    physics::dirbc( d->MeshId(), m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
+                    m_dirbcval);
     physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
     physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
+    // Set solution in holes (if coupled)
+    holeset();
   }
+
+  // Initiate transfer of initial conditions (if coupled)
+  auto c = CkCallback( CkIndex_LohCG::transferIC(), thisProxy[thisIndex] );
+  d->transfer( m_u, c, /* trflag = */ false );
+}
+
+void
+LohCG::transferIC()
+// *****************************************************************************
+// Initiate transfer of initial conditions (if coupled)
+// *****************************************************************************
+{
+  auto d = Disc();
 
   if (g_cfg.get< tag::nstep >() == 1) {  // test first Poisson solve only
 
@@ -1224,8 +1351,11 @@ LohCG::psolved()
                     << " sec\n";
       }
       // Assign initial pressure and start timestepping
-      auto p = m_cgpre[ thisIndex ].ckLocal()->solution();
-      for (std::size_t i=0; i<m_u.nunk(); ++i) m_u(i,0) = p[i];
+      if (!d->MeshId()) {
+        auto p = m_cgpre[ thisIndex ].ckLocal()->solution();
+        for (std::size_t i=0; i<m_u.nunk(); ++i) m_u(i,0) = p[i];
+        holeset();      // set solution in holes (if coupled)
+      }
       writeFields( CkCallback(CkIndex_LohCG::start(), thisProxy[thisIndex]) );
     }
 
@@ -1313,9 +1443,9 @@ LohCG::dt()
   // Actiavate SDAG waits for next time step stage
   thisProxy[ thisIndex ].wait4step();
 
-  // Contribute to minimum dt across all chares and advance to next step
+  // Contribute to minimum dt across all chares (and meshes if coupled)
   contribute( sizeof(tk::real), &mindt, CkReduction::min_double,
-              CkCallback(CkReductionTarget(LohCG,advance), thisProxy) );
+              CkCallback(CkReductionTarget(Transporter,transfer_dt), d->Tr()) );
 }
 
 void
@@ -1488,10 +1618,35 @@ LohCG::solve()
 
   // Enforce boundary conditions
   auto t = d->T() + m_rkcoef[m_stage] * d->Dt();
-  physics::dirbc( m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
-  physics::dirbcp( m_u, d->Coord(), m_dirbcmaskp, m_dirbcvalp );
+  auto meshid = d->MeshId();
+  physics::dirbc( meshid, m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
+                  m_dirbcval );
+  physics::dirbcp( meshid, m_u, d->Coord(), m_dirbcmaskp, m_dirbcvalp );
   physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
   physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
+
+  // Initiate transfer of updated solution (if coupled)
+  auto c = CkCallback( CkIndex_LohCG::solved(), thisProxy[thisIndex] );
+  d->transfer( m_u, c, /* trflag = */ false );
+}
+
+void
+LohCG::solved()
+// *****************************************************************************
+//  Solution has been updated
+// *****************************************************************************
+{
+  auto d = Disc();
+  auto t = d->T() + m_rkcoef[m_stage] * d->Dt();
+  auto meshid = d->MeshId();
+  physics::dirbc( meshid, m_u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
+                  m_dirbcval );
+  physics::dirbcp( meshid, m_u, d->Coord(), m_dirbcmaskp, m_dirbcvalp );
+  physics::symbc( m_u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
+  physics::noslipbc( m_u, m_noslipbcnodes, /*pos=*/1 );
+
+  // Set solution in holes (if coupled)
+  holeset();
 
   if (++m_stage < m_rkcoef.size()) {
 
@@ -1528,8 +1683,9 @@ LohCG::refine()
   // See if this is the last time step
   if (d->finished()) m_finished = 1;
 
-  auto dtref = g_cfg.get< tag::href_dt >();
-  auto dtfreq = g_cfg.get< tag::href_dtfreq >();
+  const auto& ht = g_cfg.get< tag::href >();
+  auto dtref = ht.get< tag::dt >();
+  auto dtfreq = ht.get< tag::dtfreq >();
 
   // if t>0 refinement enabled and we hit the frequency
   if (dtref && !(d->It() % dtfreq)) {   // refine
@@ -1649,7 +1805,6 @@ LohCG::writeFields( CkCallback cb )
 
   // query function to evaluate analytic solution (if defined)
   auto sol = problems::SOL();
-
   if (sol) {
     const auto& coord = d->Coord();
     const auto& x = coord[0];
@@ -1657,7 +1812,7 @@ LohCG::writeFields( CkCallback cb )
     const auto& z = coord[2];
     auto an = m_u;
     for (std::size_t i=0; i<an.nunk(); ++i) {
-      auto s = sol( x[i], y[i], z[i], d->T() );
+      auto s = sol( x[i], y[i], z[i], d->T(), /*meshid=*/0 );
       for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
     }
     nodefieldnames.push_back( "pressure_analytic" );
@@ -1674,6 +1829,12 @@ LohCG::writeFields( CkCallback cb )
     }
   }
 
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  if (multi) {
+    nodefieldnames.push_back( "flag" );
+    nodefields.push_back( d->TransferFlag() );
+  }
+
   Assert( nodefieldnames.size() == nodefields.size(), "Size mismatch" );
 
   // Surface output
@@ -1681,14 +1842,20 @@ LohCG::writeFields( CkCallback cb )
   std::vector< std::string > nodesurfnames;
   std::vector< std::vector< tk::real > > nodesurfs;
 
-  const auto& f = g_cfg.get< tag::fieldout >();
+  const auto& ft = multi ? g_cfg.get< tag::fieldout_ >()[ d->MeshId() ]
+                         : g_cfg.get< tag::fieldout >();
+  const auto& f = ft.get< tag::sidesets >();
 
   if (!f.empty()) {
-    std::size_t nc = 4;
+    auto ns = ncomp + 1;
     nodesurfnames.push_back( "pressure" );
     nodesurfnames.push_back( "velocityx" );
     nodesurfnames.push_back( "velocityy" );
     nodesurfnames.push_back( "velocityz" );
+    if (multi) {
+      ++ns;
+      nodesurfnames.push_back( "flag" );
+    }
 
     auto bnode = tk::bfacenodes( m_bface, m_triinpoel );
     std::set< int > outsets( begin(f), end(f) );
@@ -1697,7 +1864,7 @@ LohCG::writeFields( CkCallback cb )
       if (b == end(bnode)) continue;
       const auto& nodes = b->second;
       auto i = nodesurfs.size();
-      nodesurfs.insert( end(nodesurfs), nc,
+      nodesurfs.insert( end(nodesurfs), ns,
                         std::vector< tk::real >( nodes.size() ) );
       std::size_t j = 0;
       for (auto n : nodes) {
@@ -1707,6 +1874,7 @@ LohCG::writeFields( CkCallback cb )
         nodesurfs[i+(p++)][j] = s[1];
         nodesurfs[i+(p++)][j] = s[2];
         nodesurfs[i+(p++)][j] = s[3];
+        if (multi) nodesurfs[i+(p++)][j] = d->TransferFlag()[n];
         ++j;
       }
     }
@@ -1780,7 +1948,7 @@ LohCG::integrals()
     ints[ DT ][ 0 ] = d->Dt();
 
     // Compute integrals requested for surfaces requested
-    const auto& reqv = g_cfg.get< tag::integout_integrals >();
+    const auto& reqv = g_cfg.get< tag::integout, tag::integrals >();
     std::unordered_set< std::string > req( begin(reqv), end(reqv) );
     if (req.count("mass_flow_rate")) {
       for (const auto& [s,sint] : m_surfint) {

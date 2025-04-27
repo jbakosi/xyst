@@ -40,7 +40,7 @@ Refiner::Refiner( std::size_t meshid,
                   const CProxy_Transporter& transporter,
                   const CProxy_Sorter& sorter,
                   const tk::CProxy_MeshWriter& meshwriter,
-                  const CProxy_Discretization& discretization,
+                  const std::vector< CProxy_Discretization >& discretization,
                   const CProxy_RieCG& riecg,
                   const CProxy_LaxCG& laxcg,
                   const CProxy_ZalCG& zalcg,
@@ -82,9 +82,14 @@ Refiner::Refiner( std::size_t meshid,
   m_triinpoel( triinpoel ),
   m_nchare( nchare ),
   m_mode( RefMode::T0REF ),
-  m_initref( g_cfg.get< tag::href_init >() ),
+  m_multi( g_cfg.get< tag::input >().size() > 1 ),
+  m_initref( m_multi ? g_cfg.get< tag::href_ >()[ meshid ].get< tag::init >()
+                     : g_cfg.get< tag::href, tag::init >() ),
   m_ninitref( m_initref.size() ),
-  m_refiner( g_cfg.get< tag::href_maxlevels >(), m_inpoel ),
+  m_refiner(
+    m_multi ? g_cfg.get< tag::href_ >()[ meshid ].get< tag::maxlevels >()
+            : g_cfg.get< tag::href, tag::maxlevels >(),
+    m_inpoel ),
   m_nref( 0 ),
   m_nbnd( 0 ),
   m_extra( 0 ),
@@ -100,7 +105,7 @@ Refiner::Refiner( std::size_t meshid,
 //! \param[in] transporter Transporter (host) proxy
 //! \param[in] sorter Mesh reordering (sorter) proxy
 //! \param[in] meshwriter Mesh writer proxy
-//! \param[in] discretization Discretization base proxy
+//! \param[in] discretization Discretization proxy for all meshes
 //! \param[in] riecg Discretization scheme proxy
 //! \param[in] laxcg Discretization scheme proxy
 //! \param[in] zalcg Discretization scheme proxy
@@ -148,7 +153,9 @@ Refiner::Refiner( std::size_t meshid,
   coarseMesh();
 
   // If initial mesh refinement is configured, start initial mesh refinement.
-  if (g_cfg.get< tag::href_t0 >() && m_ninitref > 0) {
+  const auto& ht = m_multi ? g_cfg.get< tag::href_ >()[ m_meshid ]
+                           : g_cfg.get< tag::href >();
+  if (ht.get< tag::t0 >() && m_ninitref > 0) {
     t0ref();
   } else {
     endt0ref();
@@ -201,11 +208,11 @@ Refiner::sendProxy()
 // *****************************************************************************
 {
   // Make sure (bound) Discretization chare is already created and accessible
-  Assert( m_disc[ thisIndex ].ckLocal() != nullptr,
+  Assert( m_disc[ m_meshid ][ thisIndex ].ckLocal() != nullptr,
           "About to dereference nullptr" );
 
   // Pass Refiner Charm++ chare proxy to fellow (bound) Discretization object
-  m_disc[ thisIndex ].ckLocal()->setRefiner( thisProxy );
+  m_disc[ m_meshid ][ thisIndex ].ckLocal()->setRefiner( thisProxy );
 }
 
 void
@@ -228,8 +235,9 @@ Refiner::reorder()
   // ultimately want, beacuse this deletes its history recorded during initial
   // (t<0) refinement. However, this appears to correctly update the local mesh
   // based on the reordered one (from Sorter) at least when t0ref is off.
-  m_refiner = AMR::mesh_adapter_t(
-    g_cfg.get< tag::href_maxlevels >(), m_inpoel );
+  const auto& ht = m_multi ? g_cfg.get< tag::href_ >()[ m_meshid ]
+                           : g_cfg.get< tag::href >();
+  m_refiner = AMR::mesh_adapter_t( ht.get< tag::maxlevels >(), m_inpoel );
 }
 
 tk::UnsMesh::Coords
@@ -935,7 +943,7 @@ Refiner::writeMesh( const std::string& basefilename,
 
   // Evaluate initial conditions on current mesh at t0
   tk::Fields u( m_coord[0].size(), ncomp );
-  problems::initialize( m_coord, u, t0 );
+  problems::initialize( m_coord, u, t0, /*meshid=*/0 );
 
   // Extract all scalar components from solution for output to file
   //for (std::size_t i=0; i<ncomp; ++i)
@@ -1089,9 +1097,8 @@ Refiner::endt0ref()
   // create sorter Charm++ chare array elements using dynamic insertion
   m_sorter[ thisIndex ].insert( m_meshid, m_host, m_meshwriter, m_cbs,
     m_disc, m_riecg, m_laxcg, m_zalcg, m_kozcg, m_chocg, m_lohcg, m_cgpre,
-    m_cgmom,
-    CkCallback(CkIndex_Refiner::reorder(), thisProxy[thisIndex]), m_ginpoel,
-    m_coordmap, m_el, m_bface, m_triinpoel, m_bnode, m_nchare );
+    m_cgmom, CkCallback( CkIndex_Refiner::reorder(), thisProxy[thisIndex] ),
+    m_ginpoel, m_coordmap, m_el, m_bface, m_triinpoel, m_bnode, m_nchare );
 
   // Compute final number of cells across whole problem
   std::vector< std::size_t >
@@ -1099,7 +1106,9 @@ Refiner::endt0ref()
   contribute( meshdata, CkReduction::sum_ulong, m_cbr.get< tag::refined >() );
 
   // Free up memory if no dtref
-  if (!g_cfg.get< tag::href_dt >()) {
+  const auto& ht = m_multi ? g_cfg.get< tag::href_ >()[ m_meshid ]
+                           : g_cfg.get< tag::href >();
+  if (!ht.get< tag::dt >()) {
     tk::destroy( m_ginpoel );
     tk::destroy( m_el );
     tk::destroy( m_coordmap );
@@ -1175,8 +1184,10 @@ Refiner::errorsInEdges(
 //!   to edges (2 local node IDs)
 // *****************************************************************************
 {
-  auto errtype = g_cfg.get< tag::href_error >();
-  const auto& refvar = g_cfg.get< tag::href_refvar >();
+  const auto& ht = m_multi ? g_cfg.get< tag::href_ >()[ m_meshid ]
+                           : g_cfg.get< tag::href >();
+  auto errtype = ht.get< tag::error >();
+  const auto& refvar = ht.get< tag::refvar >();
   auto psup = tk::genPsup( m_inpoel, 4, esup );
 
   // Compute errors in ICs and define refinement criteria for edges
@@ -1434,7 +1445,7 @@ Refiner::nodeinit( std::size_t /*npoin*/,
   // Evaluate ICs
 
   // Evaluate ICs for all scalar components integrated
-  problems::initialize( m_coord, u, t0 );
+  problems::initialize( m_coord, u, t0, /*meshid=*/0 );
 
   Assert( u.nunk() == m_coord[0].size(), "Size mismatch" );
   Assert( u.nprop() == nprop, "Size mismatch" );
@@ -1464,7 +1475,7 @@ Refiner::updateMesh()
 
   // Get nodal communication map from Discretization worker
   if ( m_mode == RefMode::DTREF) {
-    m_nodeCommMap = m_disc[ thisIndex ].ckLocal()->NodeCommMap();
+    m_nodeCommMap = m_disc[ m_meshid ][ thisIndex ].ckLocal()->NodeCommMap();
   }
 
   // Update mesh and solution after refinement

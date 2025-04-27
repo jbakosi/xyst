@@ -40,7 +40,7 @@ advedge( const tk::real supint[],
          std::size_t q,
          tk::real f[],
          const std::function< std::vector< tk::real >
-                 ( tk::real, tk::real, tk::real, tk::real ) >& src )
+           ( tk::real, tk::real, tk::real, tk::real, std::size_t ) >& src )
 // *****************************************************************************
 //! Compute advection fluxes on a single edge
 //! \param[in] supint Edge integral
@@ -124,8 +124,8 @@ advedge( const tk::real supint[],
   if (src) {
     if (steady) t = (tp[p] + tp[q])/2.0;
     auto coef = dt/4.0;
-    auto sL = src( x[p], y[p], z[p], t );
-    auto sR = src( x[q], y[q], z[q], t );
+    auto sL = src( x[p], y[p], z[p], t, /*meshid=*/0 );
+    auto sR = src( x[q], y[q], z[q], t, /*meshid=*/0 );
     // flow + scalar
     for (std::size_t c=0; c<ncomp; ++c) {
       ue[c] += coef*(sL[c] + sR[c]);
@@ -159,7 +159,7 @@ advedge( const tk::real supint[],
     auto xe = (x[p] + x[q])/2.0;
     auto ye = (y[p] + y[q])/2.0;
     auto ze = (z[p] + z[q])/2.0;
-    auto se = src( xe, ye, ze, t+dt/2.0 );
+    auto se = src( xe, ye, ze, t+dt/2.0, /*meshid=*/0 );
     // flow + scalar
     for (std::size_t c=0; c<ncomp; ++c) {
       f[ncomp+c] = coef*se[c];

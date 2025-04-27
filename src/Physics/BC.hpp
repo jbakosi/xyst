@@ -17,21 +17,21 @@ namespace physics {
 
 //! Set Dirichlet boundary conditions at nodes
 void
-dirbc(
-  tk::Fields& U,
-  tk::real t,
-  const std::array< std::vector< tk::real >, 3 >& coord,
-  const std::vector< std::unordered_set< std::size_t > >& boxnodes,
-  const std::vector< std::size_t >& dirbcmask,
-  const std::vector< double >& dirbcval = {} );
+dirbc( std::size_t meshid,
+       tk::Fields& U,
+       tk::real t,
+       const std::array< std::vector< tk::real >, 3 >& coord,
+       const std::vector< std::unordered_set< std::size_t > >& boxnodes,
+       const std::vector< std::size_t >& dirbcmask,
+       const std::vector< double >& dirbcval = {} );
 
 //! Set pressure Dirichlet boundary conditions at nodes
 void
-dirbcp(
-  tk::Fields& U,
-  const std::array< std::vector< tk::real >, 3 >& coord,
-  const std::vector< std::size_t >& dirbcmaskp,
-  const std::vector< double >& dirbcvalp = {} );
+dirbcp( std::size_t meshid,
+        tk::Fields& U,
+        const std::array< std::vector< tk::real >, 3 >& coord,
+        const std::vector< std::size_t >& dirbcmaskp,
+        const std::vector< double >& dirbcvalp = {} );
 
 //! Set symmetry boundary conditions at nodes
 void

@@ -9,8 +9,8 @@
 #            All rights reserved. See the LICENSE file for details.
 # \brief     Install xyst external libraries ready for CI
 # \details
-#   This image is intended to prepare a docker image that contains the external
-#   libraries pre-installed. The image is parked at
+#   This docker file is intended to prepare a docker image that contains the
+#   external libraries pre-installed. The image is parked at
 #
 #   https://hub.docker.com/repository/docker/jbakosi/
 #
@@ -32,11 +32,11 @@
 FROM debian:stable
 
 # Install system-wide prerequisites
-RUN apt-get update -y && apt-get install -y git cmake g++ clang ninja-build bzip2 zlib1g-dev libnetcdf-dev
+RUN apt-get update -y && apt-get install -y git cmake g++ clang ninja-build bzip2 zlib1g-dev libnetcdf-dev wget
 
-# Install OpenMPI
-ADD https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.4.tar.bz2 /openmpi/
-RUN cd /openmpi/ && tar xjf openmpi-4.1.4.tar.bz2 && cd openmpi-4.1.4 && ./configure CC=clang CXX=clang++ --prefix=/opt/openmpi && make -sj$(grep -c processor /proc/cpuinfo) install
+## Install OpenMPI
+RUN wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.4.tar.bz2
+RUN mkdir /openmpi && cd /openmpi && tar xjf ../openmpi-4.1.4.tar.bz2 && cd openmpi-4.1.4 && ./configure CC=clang CXX=clang++ --prefix=/opt/openmpi && make -sj$(grep -c processor /proc/cpuinfo) install
 ENV CC /opt/openmpi/bin/mpicc
 ENV CXX /opt/openmpi/bin/mpicxx
 ENV PATH /opt/openmpi/bin:$PATH
@@ -46,9 +46,11 @@ RUN rm -rf /openmpi
 # Install Charm++ in both non-SMP and SMP mode
 RUN git clone https://github.com/charmplusplus/charm && cd charm && git checkout v7.0.0-rc2
 ADD charm-fortran.patch /charm
+ADD migratable_charmcollide.patch /charm
 RUN cd charm && patch -p1 -t -i charm-fortran.patch && rm charm-fortran.patch
-RUN cd charm && mkdir nonsmp && cd nonsmp && cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DSMP=off -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-non-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
-RUN cd charm && mkdir smp && cd smp && cmake -DSMP=on -DTARGET=charm -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
+RUN cd charm && patch -p1 -t -i migratable_charmcollide.patch && rm migratable_charmcollide.patch
+RUN cd charm && mkdir nonsmp && cd nonsmp && cmake -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DSMP=off -DTARGET=LIBS -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-non-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
+RUN cd charm && mkdir smp && cd smp && cmake -DSMP=on -DTARGET=LIBS -DNETWORK=mpi -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/charm-smp .. && make -sj$(grep -c processor /proc/cpuinfo) install
 RUN rm -rf charm
 
 # # Clone
@@ -56,6 +58,6 @@ RUN rm -rf charm
 # RUN git clone https://codeberg.org/xyst/xyst.git && cd xyst && git checkout $COMMIT && git log -1 HEAD
 # # Build
 # ARG CHARM_INSTALL_DIR
-# RUN cd xyst && mkdir -p build && cd build && cmake -GNinja -DCHARM_INSTALL_DIR=${CHARM_INSTALL_DIR} -DRUNNER=mpirun -DRUNNER_NCPUS_ARG=-n -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
+# RUN cd xyst && mkdir -p build && cd build && cmake -GNinja -DCHARM_INSTALL_DIR=${CHARM_INSTALL_DIR} -DRUNNER=mpirun -DRUNNER_ARGS="--allow-run-as-root -oversubscribe --bind-to none" -DPOSTFIX_RUNNER_ARGS=+setcpuaffinity ../src && ninja
 # # Test
-# RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q && ctest -j$(grep -c processor /proc/cpuinfo) --output-on-failure
+# RUN cd xyst/build && mpirun --allow-run-as-root -n $(grep -c processor /proc/cpuinfo) Main/unittest -q +setcpuaffinity && ctest -j$(grep -c processor /proc/cpuinfo) --output-on-failure

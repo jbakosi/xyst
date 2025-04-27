@@ -1,0 +1,29 @@
+// *****************************************************************************
+/*!
+  \file      src/Transfer/transfer.ci
+  \copyright 2020-2021 Charmworks, Inc.,
+             2022-2025 J. Bakosi
+             All rights reserved. See the LICENSE file for details.
+  \brief     Charm++ module interface file for transfer between 3D meshes
+*/
+// *****************************************************************************
+
+module transfer {
+
+  extern module nodesearch;
+
+  namespace transfer {
+
+    readonly transfer::CProxy_Transfer g_transferProxy;
+    readonly CollideHandle g_collideHandle;
+
+    mainchare LibTransfer {
+      entry LibTransfer( CkArgMsg* msg );
+    };
+
+    group [migratable] Transfer {
+      entry Transfer();
+      entry void addMesh( CkArrayID p, int nchare, CkCallback cb );
+    };
+  }
+};

@@ -1591,7 +1591,8 @@ intet( const std::array< std::vector< real >, 3 >& coord,
        const std::vector< std::size_t >& inpoel,
        const std::vector< real >& p,
        std::size_t e,
-       std::array< real, 4 >& N )
+       std::array< real, 4 >& N,
+       const std::array< real, 3 >& eps )
 // *****************************************************************************
 //  Determine if a point is in a tetrahedron
 //! \param[in] coord Mesh node coordinates
@@ -1599,6 +1600,7 @@ intet( const std::array< std::vector< real >, 3 >& coord,
 //! \param[in] p Point coordinates
 //! \param[in] e Mesh cell index
 //! \param[in,out] N Shapefunctions evaluated at the point
+//! \param[in] eps Optionally shift point coordinates in x,y,z
 //! \return True if ppoint is in mesh cell
 //! \see Lohner, An Introduction to Applied CFD Techniques, Wiley, 2008
 // *****************************************************************************
@@ -1617,9 +1619,9 @@ intet( const std::array< std::vector< real >, 3 >& coord,
   const auto& z = coord[2];
 
   // Point coordinates
-  const auto& xp = p[0];
-  const auto& yp = p[1];
-  const auto& zp = p[2];
+  const auto& xp = p[0] + eps[0];
+  const auto& yp = p[1] + eps[1];
+  const auto& zp = p[2] + eps[2];
 
   // Evaluate linear shapefunctions at point locations using Cramer's Rule
   //    | xp |   | x1 x2 x3 x4 |   | N1 |
@@ -1669,8 +1671,8 @@ intet( const std::array< std::vector< real >, 3 >& coord,
   N[3] = DetX4/DetX;
 
   // if min( N^i, 1-N^i ) > 0 for all i, point is in cell
-  if ( std::min(N[0],1.0-N[0]) > 0 && std::min(N[1],1.0-N[1]) > 0 &&
-       std::min(N[2],1.0-N[2]) > 0 && std::min(N[3],1.0-N[3]) > 0 )
+  if ( std::min(N[0],1.0-N[0]) > 0.0 && std::min(N[1],1.0-N[1]) > 0.0 &&
+       std::min(N[2],1.0-N[2]) > 0.0 && std::min(N[3],1.0-N[3]) > 0.0 )
   {
     return true;
   } else {

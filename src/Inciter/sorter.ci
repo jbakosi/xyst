@@ -32,7 +32,7 @@ module sorter {
                     const CProxy_Transporter& transporter,
                     const tk::CProxy_MeshWriter& meshwriter,
                     const tk::SorterCallback& cbs,
-                    const CProxy_Discretization& discretization,
+                    const std::vector< CProxy_Discretization >& discretization,
                     const CProxy_RieCG& riecg,
                     const CProxy_LaxCG& laxcg,
                     const CProxy_ZalCG& zalcg,

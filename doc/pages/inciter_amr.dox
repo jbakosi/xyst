@@ -1,6 +1,6 @@
 namespace inciter {
 /*!
-  \page      inciter_amr Adaptive Mesh Refinement (TetAMR)
+  \page      inciter_amr Adaptive mesh refinement - work in progress
 
 @tableofcontents{xml}
 

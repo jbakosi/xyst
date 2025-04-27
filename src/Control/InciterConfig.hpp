@@ -44,21 +44,20 @@ DEFTAG( dt );
 DEFTAG( turkel );
 DEFTAG( soundspeed );
 DEFTAG( velinf );
-DEFTAG( pre_iter );
-DEFTAG( pre_tol );
-DEFTAG( pre_verbose );
-DEFTAG( pre_hydrostat );
-DEFTAG( pre_pc );
-DEFTAG( pre_bc_dir );
-DEFTAG( pre_bc_dirval );
-DEFTAG( pre_bc_sym );
+DEFTAG( presure );
+DEFTAG( tol );
+DEFTAG( verbose );
+DEFTAG( hydrostat );
+DEFTAG( pc );
 DEFTAG( mom_iter );
 DEFTAG( mom_tol );
 DEFTAG( mom_verbose );
 DEFTAG( mom_pc );
 DEFTAG( reorder );
 DEFTAG( part );
+DEFTAG( part_ );
 DEFTAG( zoltan_params );
+DEFTAG( zoltan_params_ );
 DEFTAG( solver );
 DEFTAG( stab );
 DEFTAG( stab2 );
@@ -92,56 +91,66 @@ DEFTAG( radius );
 DEFTAG( release_time );
 DEFTAG( freezeflow );
 DEFTAG( freezetime );
+DEFTAG( overset );
+DEFTAG( intergrid_ );
+DEFTAG( layers_ );
+DEFTAG( sym_ );
 DEFTAG( fieldout );
-DEFTAG( fieldout_iter );
-DEFTAG( fieldout_time );
-DEFTAG( fieldout_range );
+DEFTAG( fieldout_ );
 DEFTAG( histout );
-DEFTAG( histout_iter );
-DEFTAG( histout_time );
-DEFTAG( histout_range );
-DEFTAG( histout_precision );
-DEFTAG( histout_format );
+DEFTAG( histout_ );
 DEFTAG( integout );
-DEFTAG( integout_iter );
-DEFTAG( integout_time );
-DEFTAG( integout_range );
-DEFTAG( integout_precision );
-DEFTAG( integout_format );
-DEFTAG( integout_integrals );
+DEFTAG( integout_ );
+DEFTAG( iter );
+DEFTAG( time );
+DEFTAG( range );
+DEFTAG( sidesets );
+DEFTAG( points );
+DEFTAG( integrals );
+DEFTAG( precision );
+DEFTAG( format );
 DEFTAG( ic );
-DEFTAG( x );
-DEFTAG( y );
-DEFTAG( z );
-DEFTAG( ic_density );
-DEFTAG( ic_pressure );
-DEFTAG( ic_energy );
-DEFTAG( ic_temperature );
-DEFTAG( ic_velocity );
+DEFTAG( ic_ );
+DEFTAG( density );
+DEFTAG( pressure );
+DEFTAG( pressure_ );
+DEFTAG( energy );
+DEFTAG( temperature );
+DEFTAG( velocity );
+DEFTAG( boxes );
+DEFTAG( box_x );
+DEFTAG( box_y );
+DEFTAG( box_z );
+DEFTAG( box_density );
+DEFTAG( box_pressure );
+DEFTAG( box_energy );
+DEFTAG( box_temperature );
+DEFTAG( box_velocity );
 DEFTAG( bc_dir );
 DEFTAG( bc_dirval );
+DEFTAG( bc_dir_ );
+DEFTAG( bc_dirval_ );
 DEFTAG( bc_sym );
+DEFTAG( bc_sym_ );
 DEFTAG( bc_noslip );
+DEFTAG( bc_noslip_ );
 DEFTAG( bc_far );
-DEFTAG( bc_far_density );
-DEFTAG( bc_far_pressure );
-DEFTAG( bc_far_velocity );
+DEFTAG( bc_far_ );
 DEFTAG( bc_pre );
-DEFTAG( bc_pre_density );
-DEFTAG( bc_pre_pressure );
+DEFTAG( bc_pre_ );
 DEFTAG( mat_spec_heat_ratio );
 DEFTAG( mat_spec_heat_const_vol );
 DEFTAG( mat_spec_gas_const );
 DEFTAG( mat_heat_conductivity );
 DEFTAG( mat_dyn_viscosity );
 DEFTAG( mat_dyn_diffusivity );
-DEFTAG( href_t0 );
-DEFTAG( href_dt );
-DEFTAG( href_dtfreq );
-DEFTAG( href_maxlevels );
-DEFTAG( href_error );
-DEFTAG( href_init );
-DEFTAG( href_refvar );
+DEFTAG( href );
+DEFTAG( href_ );
+DEFTAG( dtfreq );
+DEFTAG( maxlevels );
+DEFTAG( error );
+DEFTAG( init );
+DEFTAG( refvar );
 } // tag::
 
 namespace inciter {
@@ -151,7 +160,7 @@ namespace ctr {
 //! Member data for tagged tuple
 using ConfigMembers = brigand::list<
     tag::commit, std::string
-  , tag::input, std::string
+  , tag::input, std::vector< std::string >
   , tag::control, std::string
   , tag::output, std::string
   , tag::diag, std::string
@@ -160,7 +169,7 @@ using ConfigMembers = brigand::list<
   , tag::diag_format, std::string
   , tag::checkpoint, std::string
   , tag::quiescence, bool
-  , tag::virt, double
+  , tag::virt, std::vector< double >
   , tag::nonblocking, bool
   , tag::benchmark, bool
   , tag::feedback, bool
@@ -178,21 +187,37 @@ using ConfigMembers = brigand::list<
   , tag::turkel, double
   , tag::soundspeed, double
   , tag::velinf, std::vector< double >
-  , tag::pre_iter, uint64_t
-  , tag::pre_tol, double
-  , tag::pre_verbose, uint64_t
-  , tag::pre_hydrostat, uint64_t
-  , tag::pre_pc, std::string
-  , tag::pre_bc_dir, std::vector< std::vector< int > >
-  , tag::pre_bc_dirval, std::vector< std::vector< double > >
-  , tag::pre_bc_sym, std::vector< int >
+  , tag::pressure, tk::TaggedTuple< brigand::list<
+                     tag::iter,      uint64_t
+                   , tag::tol,       double
+                   , tag::verbose,   uint64_t
+                   , tag::hydrostat, uint64_t
+                   , tag::pc,        std::string
+                   , tag::bc_dir,    std::vector< std::vector< int > >
+                   , tag::bc_dirval, std::vector< std::vector< double > >
+                   , tag::bc_sym,    std::vector< int >
+                   > >
+  , tag::pressure_, std::vector<
+                      tk::TaggedTuple< brigand::list<
+                        tag::iter,      uint64_t
+                      , tag::tol,       double
+                      , tag::verbose,   uint64_t
+                      , tag::hydrostat, uint64_t
+                      , tag::pc,        std::string
+                      , tag::bc_dir,    std::vector< std::vector< int > >
+                      , tag::bc_dirval, std::vector< std::vector< double > >
+                      , tag::bc_sym,    std::vector< int >
+                      > >
+                    >
   , tag::mom_iter, uint64_t
   , tag::mom_tol, double
   , tag::mom_verbose, uint64_t
   , tag::mom_pc, std::string
   , tag::reorder, bool
   , tag::part, std::string
+  , tag::part_, std::vector< std::string >
   , tag::zoltan_params, std::vector< std::string >
+  , tag::zoltan_params_, std::vector< std::vector< std::string > >
   , tag::solver, std::string
   , tag::stab, bool
   , tag::stab2, bool
@@ -227,64 +252,164 @@ using ConfigMembers = brigand::list<
                       > >
   , tag::freezeflow, double
   , tag::freezetime, double
-  , tag::fieldout, std::vector< int >
-  , tag::fieldout_iter, uint64_t
-  , tag::fieldout_time, double
-  , tag::fieldout_range, std::vector< std::vector< double > >
-  , tag::histout, std::vector< std::vector< double > >
-  , tag::histout_iter, uint64_t
-  , tag::histout_time, double
-  , tag::histout_range, std::vector< std::vector< double > >
-  , tag::histout_precision, std::streamsize
-  , tag::histout_format, std::string
-  , tag::integout, std::vector< int >
-  , tag::integout_iter, uint64_t
-  , tag::integout_time, double
-  , tag::integout_range, std::vector< std::vector< double > >
-  , tag::integout_precision, std::streamsize
-  , tag::integout_format, std::string
-  , tag::integout_integrals, std::vector< std::string >
-  , tag::ic, std::vector<
-               tk::TaggedTuple< brigand::list<
-                   tag::x,              std::vector< double >
-                 , tag::y,              std::vector< double >
-                 , tag::z,              std::vector< double >
-                 , tag::ic_density,     double
-                 , tag::ic_pressure,    double
-                 , tag::ic_energy,      double
-                 , tag::ic_temperature, double
-                 , tag::ic_velocity,    std::vector< double >
-               > >
-             >
-  , tag::ic_density, double
-  , tag::ic_pressure, double
-  , tag::ic_energy, double
-  , tag::ic_temperature, double
-  , tag::ic_velocity,  std::vector< double >
+  , tag::overset, tk::TaggedTuple< brigand::list<
+                    tag::intergrid_, std::vector< std::vector< int > >
+                  , tag::layers_, std::vector< std::vector< uint64_t > >
+                  , tag::sym_, std::vector< std::string >
+                  > >
+  , tag::fieldout, tk::TaggedTuple< brigand::list<
+                     tag::sidesets, std::vector< int >
+                   , tag::iter,     uint64_t
+                   , tag::time,     double
+                   , tag::range,    std::vector< std::vector< double > >
+                   > >
+  , tag::fieldout_, std::vector<
+                      tk::TaggedTuple< brigand::list<
+                        tag::sidesets, std::vector< int >
+                      , tag::iter,     uint64_t
+                      , tag::time,     double
+                      , tag::range,    std::vector< std::vector< double > >
+                      > >
+                    >
+  , tag::histout, tk::TaggedTuple< brigand::list<
+                    tag::points,    std::vector< std::vector< double > >
+                  , tag::iter,      uint64_t
+                  , tag::time,      double
+                  , tag::range,     std::vector< std::vector< double > >
+                  , tag::precision, std::streamsize
+                  , tag::format,    std::string
+                  > >
+  , tag::histout_, std::vector<
+                     tk::TaggedTuple< brigand::list<
+                       tag::points,    std::vector< std::vector< double > >
+                     , tag::iter,      uint64_t
+                     , tag::time,      double
+                     , tag::range,     std::vector< std::vector< double > >
+                     , tag::precision, std::streamsize
+                     , tag::format,    std::string
+                     > >
+                   >
+  , tag::integout, tk::TaggedTuple< brigand::list<
+                    tag::sidesets, std::vector< int >
+                  , tag::integrals, std::vector< std::string >
+                  , tag::iter, uint64_t
+                  , tag::time, double
+                  , tag::range, std::vector< std::vector< double > >
+                  , tag::precision, std::streamsize
+                  , tag::format, std::string
+                  > >
+  , tag::integout_, std::vector<
+                      tk::TaggedTuple< brigand::list<
+                        tag::sidesets, std::vector< int >
+                      , tag::integrals, std::vector< std::string >
+                      , tag::iter, uint64_t
+                      , tag::time, double
+                      , tag::range, std::vector< std::vector< double > >
+                      , tag::precision, std::streamsize
+                      , tag::format, std::string
+                      > >
+                   >
+  , tag::ic, tk::TaggedTuple< brigand::list<
+               tag::density,     double
+             , tag::pressure,    double
+             , tag::energy,      double
+             , tag::temperature, double
+             , tag::velocity,    std::vector< double >
+             , tag::boxes, std::vector<
+                 tk::TaggedTuple< brigand::list<
+                     tag::box_x,           std::vector< double >
+                   , tag::box_y,           std::vector< double >
+                   , tag::box_z,           std::vector< double >
+                   , tag::box_density,     double
+                   , tag::box_pressure,    double
+                   , tag::box_energy,      double
+                   , tag::box_temperature, double
+                   , tag::box_velocity,    std::vector< double >
+                 > >
+               >
+             > >
+  , tag::ic_, std::vector<
+                tk::TaggedTuple< brigand::list<
+                  tag::density,     double
+                , tag::pressure,    double
+                , tag::energy,      double
+                , tag::temperature, double
+                , tag::velocity,    std::vector< double >
+                , tag::boxes, std::vector<
+                    tk::TaggedTuple< brigand::list<
+                        tag::box_x,           std::vector< double >
+                      , tag::box_y,           std::vector< double >
+                      , tag::box_z,           std::vector< double >
+                      , tag::box_density,     double
+                      , tag::box_pressure,    double
+                      , tag::box_energy,      double
+                      , tag::box_temperature, double
+                      , tag::box_velocity,    std::vector< double >
+                    > >
+                  >
+                > >
+              >
   , tag::bc_dir, std::vector< std::vector< int > >
   , tag::bc_dirval, std::vector< std::vector< double > >
+  , tag::bc_dir_, std::vector< std::vector< std::vector< int > > >
+  , tag::bc_dirval_, std::vector< std::vector< std::vector< double > > >
   , tag::bc_sym, std::vector< int >
+  , tag::bc_sym_, std::vector< std::vector< int > >
   , tag::bc_noslip, std::vector< int >
-  , tag::bc_far, std::vector< int >
-  , tag::bc_far_density, double
-  , tag::bc_far_pressure, double
-  , tag::bc_far_velocity, std::vector< double >
-  , tag::bc_pre, std::vector< std::vector< int > >
-  , tag::bc_pre_density, std::vector< double >
-  , tag::bc_pre_pressure, std::vector< double >
+  , tag::bc_noslip_, std::vector< std::vector< int > >
+  , tag::bc_far, tk::TaggedTuple< brigand::list<
+                     tag::sidesets, std::vector< int >
+                   , tag::density,  double
+                   , tag::pressure, double
+                   , tag::velocity, std::vector< double >
+                 > >
+  , tag::bc_far_, std::vector<
+                    tk::TaggedTuple< brigand::list<
+                      tag::sidesets, std::vector< int >
+                    , tag::density,  double
+                    , tag::pressure, double
+                    , tag::velocity, std::vector< double >
+                    > >
+                  >
+  , tag::bc_pre, tk::TaggedTuple< brigand::list<
+                   tag::sidesets, std::vector< std::vector< int > >
+                 , tag::density,  std::vector< double >
+                 , tag::pressure, std::vector< double >
+                 > >
+  , tag::bc_pre_, std::vector<
+                    tk::TaggedTuple< brigand::list<
+                      tag::sidesets, std::vector< std::vector< int > >
+                    , tag::density,  std::vector< double >
+                    , tag::pressure, std::vector< double >
+                    > >
+                  >
   , tag::mat_spec_heat_ratio, double
   , tag::mat_spec_heat_const_vol, double
   , tag::mat_spec_gas_const, double
   , tag::mat_heat_conductivity, double
   , tag::mat_dyn_viscosity, double
   , tag::mat_dyn_diffusivity, double
-  , tag::href_t0, bool
-  , tag::href_dt, bool
-  , tag::href_dtfreq, uint64_t
-  , tag::href_maxlevels, uint64_t
-  , tag::href_refvar, std::vector< uint64_t >
-  , tag::href_error, std::string
-  , tag::href_init, std::vector< std::string >
+  , tag::href, tk::TaggedTuple< brigand::list<
+                   tag::t0, bool
+                 , tag::dt, bool
+                 , tag::dtfreq, uint64_t
+                 , tag::maxlevels, uint64_t
+                 , tag::refvar, std::vector< uint64_t >
+                 , tag::error, std::string
+                 , tag::init, std::vector< std::string >
+              > >
+  , tag::href_, std::vector<
+                  tk::TaggedTuple< brigand::list<
+                    tag::t0, bool
+                  , tag::dt, bool
+                  , tag::dtfreq, uint64_t
+                  , tag::maxlevels, uint64_t
+                  , tag::refvar, std::vector< uint64_t >
+                  , tag::error, std::string
+                  , tag::init, std::vector< std::string >
+                  > >
+                >
+
 >;
 
 //! Config is a TaggedTuple specialized to Inciter

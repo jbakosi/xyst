@@ -22,12 +22,16 @@
 #include "InciterConfig.hpp"
 #include "Print.hpp"
 #include "Around.hpp"
+#include "PDFReducer.hpp"
 #include "XystBuildConfig.hpp"
 #include "Box.hpp"
+#include "Transfer.hpp"
+#include "HoleReducer.hpp"
 
 namespace inciter {
 
 static CkReduction::reducerType PDFMerger;
+static CkReduction::reducerType HoleMerger;
 extern ctr::Config g_cfg;
 
 } // inciter::
@@ -36,6 +40,7 @@ using inciter::Discretization;
 
 Discretization::Discretization(
   std::size_t meshid,
+  const std::vector< CProxy_Discretization >& disc,
   const CProxy_Transporter& transporter,
   const tk::CProxy_MeshWriter& meshwriter,
   const tk::UnsMesh::CoordMap& coordmap,
@@ -53,12 +58,13 @@ Discretization::Discretization(
   m_physFieldFloor( 0.0 ),
   m_physHistFloor( 0.0 ),
   m_physIntegFloor( 0.0 ),
-  m_rangeFieldFloor( g_cfg.get< tag::fieldout_range >().size(), 0.0 ),
-  m_rangeHistFloor( g_cfg.get< tag::histout_range >().size(), 0.0 ),
-  m_rangeIntegFloor( g_cfg.get< tag::integout_range >().size(), 0.0 ),
+  m_rangeFieldFloor( g_cfg.get< tag::fieldout, tag::range >().size(), 0.0 ),
+  m_rangeHistFloor( g_cfg.get< tag::histout, tag::range >().size(), 0.0 ),
+  m_rangeIntegFloor( g_cfg.get< tag::integout, tag::range >().size(), 0.0 ),
   m_dt( g_cfg.get< tag::dt >() ),
   m_dtn( m_dt ),
   m_nvol( 0 ),
+  m_disc( disc ),
   m_transporter( transporter ),
   m_meshwriter( meshwriter ),
   m_el( el ),     // fills m_inpoel, m_gid, m_lid
@@ -79,6 +85,7 @@ Discretization::Discretization(
 // *****************************************************************************
 //  Constructor
 //! \param[in] meshid Mesh ID
+//! \param[in] disc Discretization proxy for all meshes
 //! \param[in] transporter Host (Transporter) proxy
 //! \param[in] meshwriter Mesh writer proxy
 //! \param[in] coordmap Coordinates of mesh nodes and their global IDs
@@ -110,7 +117,7 @@ Discretization::Discretization(
 
   // Find host elements of user-specified points where time histories are
   // saved, and save the shape functions evaluated at the point locations
-  const auto& pt = g_cfg.get< tag::histout >();
+  const auto& pt = g_cfg.get< tag::histout, tag::points >();
   for (std::size_t p=0; p<pt.size(); ++p) {
     std::array< tk::real, 4 > N;
     const auto& l = pt[p];
@@ -122,6 +129,23 @@ Discretization::Discretization(
     }
   }
 
+  // Register with mesh-transfer (if coupled)
+  if (m_disc.size() == 1) {
+    transfer_initialized();
+  } else {
+    if (thisIndex == 0) {
+      transfer::addMesh( thisProxy, m_nchare,
+        CkCallback(CkIndex_Discretization::transfer_initialized(), thisProxy) );
+    }
+  }
+}
+
+void
+Discretization::transfer_initialized()
+// *****************************************************************************
+// Our mesh has been registered with the mesh-to-mesh transfer (if coupled)
+// *****************************************************************************
+{
   // Compute number of mesh points owned
   std::size_t npoin = m_gid.size();
   for (auto g : m_gid) if (tk::slave( m_nodeCommMap, g, thisIndex ) ) --npoin;
@@ -131,6 +155,325 @@ Discretization::Discretization(
   std::vector< std::size_t > meshdata{ m_meshid, npoin };
   contribute( meshdata, CkReduction::sum_ulong,
     CkCallback( CkReductionTarget(Transporter,disccreated), m_transporter ) );
+}
+
+void
+Discretization::transfer( tk::Fields& u, CkCallback c, bool trflag )
+// *****************************************************************************
+// Initiate solution transfer from background to overset mesh (if coupled)
+// *****************************************************************************
+{
+  if (m_disc.size() == 1) {     // not coupled
+
+    c.send();
+
+  }
+  else {
+
+    m_transfer_complete = c;
+    m_transfer_sol = static_cast< tk::Fields* >( &u );
+    m_trflag = trflag;
+
+    // Initiate transfer in 'to' direction
+    if (!m_meshid) {
+      transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord, u,
+        m_transfer_flag, /*transfer direction=*/ 0,
+        CkCallback( CkIndex_Discretization::transfer_from(),
+                    thisProxy[thisIndex] ) );
+    }
+    else {
+      transfer::setDestPoints( thisProxy, thisIndex, m_coord, u,
+        m_transfer_flag, m_trflag, /*transfer direction=*/ 0,
+        CkCallback( CkIndex_Discretization::transfer_from(),
+                    thisProxy[thisIndex] ) );
+    }
+
+  }
+}
+
+void
+Discretization::transfer_from()
+// *****************************************************************************
+// Initiate solution transfer from overset to background mesh
+// *****************************************************************************
+{
+  if (!m_meshid) {
+    transfer::setDestPoints( thisProxy, thisIndex, m_coord, *m_transfer_sol,
+      m_transfer_flag, m_trflag, /*transfer direction=*/ 1,
+      m_transfer_complete );
+  }
+  else {
+    transfer::setSourceTets( thisProxy, thisIndex, m_inpoel, m_coord,
+      *m_transfer_sol, m_transfer_flag, /*transfer direction=*/ 1,
+      m_transfer_complete );
+  }
+}
+
+void
+Discretization::intergrid(
+  const std::map< int, std::vector< std::size_t > >& bnode )
+// *****************************************************************************
+//  Prepare integrid-boundary data structures (if coupled)
+//! \param[in] bnode Boundary-node lists mapped to side sets used in input file
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  if (!multi) return;
+  m_transfer_flag.resize( m_coord[0].size(), -2.0 );
+  if (!m_meshid) return;
+
+  // Access intergrid-boundary side set ids for this mesh
+  const auto& setids = g_cfg.get< tag::overset, tag::intergrid_ >()[ m_meshid ];
+
+  // Compile unique set of intergrid-boundary side set ids for this mesh
+  std::unordered_set< std::size_t > ibs( begin(setids), end(setids) );
+  if (ibs.empty()) return;
+
+  // Flag points on intergrid boundary
+  std::unordered_set< std::size_t > bp; // points flagged
+  for (const auto& [setid,n] : bnode) {
+    if (ibs.count( static_cast<std::size_t>(setid) )) {
+      for (auto g : n) {
+        auto i = tk::cref_find(m_lid,g);
+        m_transfer_flag[i] = 2.0;
+        bp.insert(i);
+      }
+    }
+  }
+
+  // Configure number of layers
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  const auto& layers = g_cfg.get< tag::overset, tag::layers_ >()[ m_meshid ];
+  std::uint64_t ilays = 2;      // default number of inner layers
+  std::uint64_t mlays = 4;      // default number of middle layers
+  std::uint64_t olays = 2;      // default number of outer layers
+  if (layers.size() == 3) {
+    ilays = layers[0];
+    mlays = layers[1];
+    olays = layers[2];
+  }
+
+  // Add some layers to intergrid boundary
+  auto psup = tk::genPsup( m_inpoel, 4, tk::genEsup( m_inpoel, 4 ) );
+  for (std::uint64_t n=0; n<ilays; ++n) {
+    std::unordered_set< std::size_t > add;
+    for (auto p : bp) {
+      for (auto q : tk::Around(psup,p)) {
+        if (std::abs(m_transfer_flag[q]+2.0) < eps) m_transfer_flag[q] = 1.0;
+        add.insert(q);
+      }
+    }
+    bp.merge( add );
+    add.clear();
+  }
+
+  // Mark middle layers for buffering / relaxation
+  for (std::uint64_t n=0; n<mlays; ++n) {
+    std::unordered_set< std::size_t > add;
+    for (auto p : bp) {
+      for (auto q : tk::Around(psup,p)) {
+        if (std::abs(m_transfer_flag[q]+2.0) < eps) m_transfer_flag[q] = -1.0;
+        add.insert(q);
+      }
+    }
+    bp.merge( add );
+    add.clear();
+  }
+
+  // Mark outer layers for solution transfer from background to overset
+  for (std::uint64_t n=0; n<olays; ++n) {
+    std::unordered_set< std::size_t > add;
+    for (auto p : bp) {
+      for (auto q : tk::Around(psup,p)) {
+        if (std::abs(m_transfer_flag[q]+2.0) < eps) m_transfer_flag[q] = 0.0;
+        add.insert(q);
+      }
+    }
+    bp.merge( add );
+    add.clear();
+  }
+}
+
+void
+Discretization::hole(
+  const std::map< int, std::vector< std::size_t > >& bface,
+  const std::vector< std::size_t >& triinpoel,
+  CkCallback c )
+// *****************************************************************************
+//  Prepare integrid-boundary data structures (if coupled)
+//! \param[in] bface Boundary-face lists mapped to side sets used in input file
+//! \param[in] triinpoel Boundary-face connectivity (local ids)
+//! \param[in] c Call to continue with when done
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  if (!multi) { c.send(); return; }
+
+  m_holcont = c;
+
+  std::unordered_map< std::size_t, std::vector< tk::real > > hol;
+
+  if (m_meshid) {
+    // Access intergrid-boundary side set ids for this mesh
+    const auto& setids = g_cfg.get< tag::overset, tag::intergrid_ >()[m_meshid];
+    // Compile unique set of intergrid-boundary side set ids for this mesh
+    std::unordered_set< std::size_t > ibs( begin(setids), end(setids) );
+
+    const auto& x = m_coord[0];
+    const auto& y = m_coord[1];
+    const auto& z = m_coord[2];
+
+    // Collect faces on intergrid boundary
+    auto& h = hol[0];   // a single hole for now (given by multiple side sets)
+    for (const auto& [setid,faceids] : bface) {
+      if (ibs.count( static_cast<std::size_t>(setid) )) {
+        for (auto f : faceids) {
+          const auto t = triinpoel.data() + f*3;
+          h.push_back( x[t[0]] );
+          h.push_back( y[t[0]] );
+          h.push_back( z[t[0]] );
+          h.push_back( x[t[1]] );
+          h.push_back( y[t[1]] );
+          h.push_back( z[t[1]] );
+          h.push_back( x[t[2]] );
+          h.push_back( y[t[2]] );
+          h.push_back( z[t[2]] );
+        }
+      }
+    }
+
+    // overset mesh sends hole-parts to background mesh for assembly
+    // (allreduce to all partitions of mesh 0)
+    auto stream = serialize( hol );
+    contribute( stream.first, stream.second.get(), HoleMerger,
+     CkCallback(CkIndex_Discretization::aggregateHoles(nullptr), m_disc[0]) );
+  }
+}
+
+void
+Discretization::aggregateHoles( CkReductionMsg* msg )
+// *****************************************************************************
+//  Receive hole data from other meshes
+//! \param[in] msg Aggregated hole data
+//! \note Only background mesh (mesh 0) is supposed to call this.
+// *****************************************************************************
+{
+  std::unordered_map< std::size_t, std::vector< tk::real > > inhol;
+
+  PUP::fromMem creator( msg->getData() );
+  creator | inhol;
+  delete msg;
+
+  for (auto&& [hid,data] : inhol) {
+    auto& hole = m_transfer_hole[ hid ];
+    std::move( begin(data), end(data), std::back_inserter(hole) );
+  }
+
+  // back to sender overset mesh so it can continue (enough to this partition)
+  m_disc[ 1 ][ thisIndex ].holeComplete();
+
+  // background mesh also complete
+  m_holcont.send();
+}
+
+void
+Discretization::holeComplete()
+// *****************************************************************************
+// Hole communication complete
+// *****************************************************************************
+{
+  m_holcont.send();
+}
+
+void
+Discretization::holefind()
+// *****************************************************************************
+// Find mesh nodes within holes
+// *****************************************************************************
+{
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  if (!multi) return;
+  if (m_meshid or m_transfer_hole.empty()) return;
+
+  // account for hole symmetry if specified
+  const auto& sym = g_cfg.get< tag::overset, tag::sym_ >()[ 1 ];
+
+  // collect face centers and normals for hole surface
+  std::vector< tk::real > face;
+  for (const auto& [hid,tricoord] : m_transfer_hole) { // for each hole
+    for (std::size_t t=0; t<tricoord.size()/9; ++t) {  // each hole triangle
+      const auto f = tricoord.data() + t*9;
+      auto x0 = f[0];
+      auto y0 = f[1];
+      auto z0 = f[2];
+      auto x1 = f[3];
+      auto y1 = f[4];
+      auto z1 = f[5];
+      auto x2 = f[6];
+      auto y2 = f[7];
+      auto z2 = f[8];
+      auto cx = (x0 + x1 + x2) / 3.0;
+      auto cy = (y0 + y1 + y2) / 3.0;
+      auto cz = (z0 + z1 + z2) / 3.0;
+      const std::array< tk::real, 3 >
+        ba{ x1-x0, y1-y0, z1-z0 }, ca{ x2-x0, y2-y0, z2-z0 };
+      auto [nx,ny,nz] = tk::cross( ba, ca );
+      nx /= -2.0;
+      ny /= -2.0;
+      nz /= -2.0;
+      face.push_back( cx );
+      face.push_back( cy );
+      face.push_back( cz );
+      face.push_back( nx );
+      face.push_back( ny );
+      face.push_back( nz );
+      if (sym == "z") {         // augment hole with symmetric part
+        face.push_back( cx );
+        face.push_back( cy );
+        face.push_back( -cz );
+        face.push_back( nx );
+        face.push_back( ny );
+        face.push_back( -nz );
+      }
+    }
+  }
+
+  const auto& x = m_coord[0];
+  const auto& y = m_coord[1];
+  const auto& z = m_coord[2];
+  auto npoin = x.size();
+
+  // compute integral for finding hole nodes on background mesh
+  auto inteps = 1.0;
+  auto intval = 4.0 * M_PI;
+  std::unordered_set< std::size_t > hp; // hole points
+  for (std::size_t i=0; i<npoin; ++i) {
+    tk::real holeint = 0.0;
+    for (std::size_t t=0; t<face.size()/6; ++t) {
+      const auto f = face.data() + t*6;
+      auto dx = f[0] - x[i];
+      auto dy = f[1] - y[i];
+      auto dz = f[2] - z[i];
+      auto r = std::pow( dx*dx + dy*dy + dz*dz, 1.5 );
+      auto vx = dx / r;
+      auto vy = dy / r;
+      auto vz = dz / r;
+      holeint += vx*f[3] + vy*f[4] + vz*f[5];
+    }
+    if (std::abs(holeint - intval) < inteps) {
+      m_transfer_flag[i] = 2.0;
+      hp.insert(i);
+    }
+  }
+
+  // grow hole by one extra layer
+  auto psup = tk::genPsup( m_inpoel, 4, tk::genEsup( m_inpoel, 4 ) );
+  auto eps = std::numeric_limits< tk::real >::epsilon();
+  for (auto p : hp) {
+    for (auto q : tk::Around(psup,p)) {
+      if (std::abs(m_transfer_flag[q]+2.0) < eps) m_transfer_flag[q] = 2.0;
+    }
+  }
 }
 
 void
@@ -187,6 +530,7 @@ Discretization::registerReducers()
 // *****************************************************************************
 {
   PDFMerger = CkReduction::addReducer( tk::mergeUniPDFs );
+  HoleMerger = CkReduction::addReducer( mergeHole );
 }
 
 tk::UnsMesh::Coords
@@ -564,7 +908,11 @@ Discretization::write(
     fieldoutput = true;
   }
 
-  const auto& f = g_cfg.get< tag::fieldout >();
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  const auto& ft = multi ? g_cfg.get< tag::fieldout_ >()[ m_meshid ]
+                         : g_cfg.get< tag::fieldout >();
+
+  const auto& f = ft.get< tag::sidesets >();
   std::set< int > outsets( begin(f), end(f) );
 
   m_meshwriter[ CkNodeFirst( CkMyNode() ) ].
@@ -598,29 +946,32 @@ Discretization::next()
 {
   // Update floor of physics time divided by output interval times
   const auto eps = std::numeric_limits< tk::real >::epsilon();
-  const auto ft = g_cfg.get< tag::fieldout_time >();
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  const auto& ftab = multi ? g_cfg.get< tag::fieldout_ >()[ m_meshid ]
+                           : g_cfg.get< tag::fieldout >();
+  const auto ft = ftab.get< tag::time >();
   if (ft > eps) m_physFieldFloor = std::floor( m_t / ft );
-  const auto ht = g_cfg.get< tag::histout_time >();
+  const auto ht = g_cfg.get< tag::histout, tag::time >();
   if (ht > eps) m_physHistFloor = std::floor( m_t / ht );
-  const auto it = g_cfg.get< tag::integout_time >();
+  const auto it = g_cfg.get< tag::integout, tag::time >();
   if (it > eps) m_physIntegFloor = std::floor( m_t / it );
 
   // Update floors of physics time divided by output interval times for ranges
-  const auto& rf = g_cfg.get< tag::fieldout_range >();
+  const auto& rf = ftab.get< tag::range >();
   for (std::size_t i=0; i<rf.size(); ++i) {
     if (m_t > rf[i][0] and m_t < rf[i][1]) {
       m_rangeFieldFloor[i] = std::floor( m_t / rf[i][2] );
     }
   }
 
-  const auto& rh = g_cfg.get< tag::histout_range >();
+  const auto& rh = g_cfg.get< tag::histout, tag::range >();
   for (std::size_t i=0; i<rh.size(); ++i) {
     if (m_t > rh[i][0] and m_t < rh[i][1]) {
       m_rangeHistFloor[i] = std::floor( m_t / rh[i][2] );
     }
   }
 
-  const auto& ri = g_cfg.get< tag::integout_range >();
+  const auto& ri = g_cfg.get< tag::integout, tag::range >();
   for (std::size_t i=0; i<ri.size(); ++i) {
     if (m_t > ri[i][0] and m_t < ri[i][1]) {
       m_rangeIntegFloor[i] = std::floor( m_t / ri[i][2] );
@@ -696,9 +1047,9 @@ Discretization::histheader( std::vector< std::string >&& names )
 // *****************************************************************************
 {
   for (const auto& h : m_histdata) {
-    auto prec = g_cfg.get< tag::histout_precision >();
+    auto prec = g_cfg.get< tag::histout, tag:: precision >();
     tk::DiagWriter hw( histfilename( h.get< tag::id >(), prec ),
-                       g_cfg.get< tag::histout_format >(),
+                       g_cfg.get< tag::histout, tag::format >(),
                        prec );
     hw.header( names );
   }
@@ -715,9 +1066,9 @@ Discretization::history( std::vector< std::vector< tk::real > >&& data )
 
   std::size_t i = 0;
   for (const auto& h : m_histdata) {
-    auto prec = g_cfg.get< tag::histout_precision >();
+    auto prec = g_cfg.get< tag::histout, tag::precision >();
     tk::DiagWriter hw( histfilename( h.get< tag::id >(), prec ),
-                       g_cfg.get< tag::histout_format >(),
+                       g_cfg.get< tag::histout, tag::format >(),
                        prec,
                        std::ios_base::app );
     hw.write( m_it, m_t, m_dt, data[i] );
@@ -734,7 +1085,11 @@ Discretization::fielditer() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  return m_it % g_cfg.get< tag::fieldout_iter >() == 0;
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  const auto& ft = multi ? g_cfg.get< tag::fieldout_ >()[ m_meshid ]
+                         : g_cfg.get< tag::fieldout >();
+
+  return m_it % ft.get< tag::iter >() == 0;
 }
 
 bool
@@ -747,7 +1102,10 @@ Discretization::fieldtime() const
   if (g_cfg.get< tag::benchmark >()) return false;
 
   auto eps = std::numeric_limits< tk::real >::epsilon();
-  auto ft = g_cfg.get< tag::fieldout_time >();
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  const auto& ftab = multi ? g_cfg.get< tag::fieldout_ >()[ m_meshid ]
+                           : g_cfg.get< tag::fieldout >();
+  auto ft = ftab.get< tag::time >();
 
   if (ft < eps) return false;
 
@@ -767,7 +1125,10 @@ Discretization::fieldrange() const
 
   bool output = false;
 
-  const auto& rf = g_cfg.get< tag::fieldout_range >();
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  const auto& ftab = multi ? g_cfg.get< tag::fieldout_ >()[ m_meshid ]
+                           : g_cfg.get< tag::fieldout >();
+  const auto& rf = ftab.get< tag::range >();
   for (std::size_t i=0; i<rf.size(); ++i) {
     if (m_t > rf[i][0] and m_t < rf[i][1]) {
       output |= std::floor(m_t/rf[i][2]) - m_rangeFieldFloor[i] > eps;
@@ -786,8 +1147,8 @@ Discretization::histiter() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  auto hist = g_cfg.get< tag::histout_iter >();
-  const auto& hist_points = g_cfg.get< tag::histout >();
+  auto hist = g_cfg.get< tag::histout, tag::iter >();
+  const auto& hist_points = g_cfg.get< tag::histout, tag::points >();
 
   return m_it % hist == 0 and not hist_points.empty();
 }
@@ -802,7 +1163,7 @@ Discretization::histtime() const
   if (g_cfg.get< tag::benchmark >()) return false;
 
   auto eps = std::numeric_limits< tk::real >::epsilon();
-  auto ht = g_cfg.get< tag::histout_time >();
+  auto ht = g_cfg.get< tag::histout, tag::time >();
 
   if (ht < eps) return false;
 
@@ -822,7 +1183,7 @@ Discretization::histrange() const
 
   bool output = false;
 
-  const auto& rh = g_cfg.get< tag::histout_range >();
+  const auto& rh = g_cfg.get< tag::histout, tag::range >();
   for (std::size_t i=0; i<rh.size(); ++i) {
     if (m_t > rh[i][0] and m_t < rh[i][1]) {
       output |= std::floor(m_t/rh[i][2]) - m_rangeHistFloor[i] > eps;
@@ -841,8 +1202,8 @@ Discretization::integiter() const
 {
   if (g_cfg.get< tag::benchmark >()) return false;
 
-  auto integ = g_cfg.get< tag::integout_iter >();
-  const auto& sidesets_integral = g_cfg.get< tag::integout >();
+  auto integ = g_cfg.get< tag::integout, tag::iter >();
+  const auto& sidesets_integral = g_cfg.get< tag::integout, tag::sidesets >();
 
   return m_it % integ == 0 and not sidesets_integral.empty();
 }
@@ -857,7 +1218,7 @@ Discretization::integtime() const
   if (g_cfg.get< tag::benchmark >()) return false;
 
   auto eps = std::numeric_limits< tk::real >::epsilon();
-  auto it = g_cfg.get< tag::integout_time >();
+  auto it = g_cfg.get< tag::integout, tag::time >();
 
   if (it < eps) return false;
 
@@ -877,7 +1238,7 @@ Discretization::integrange() const
 
   bool output = false;
 
-  const auto& ri = g_cfg.get< tag::integout_range >();
+  const auto& ri = g_cfg.get< tag::integout, tag::range >();
   for (std::size_t i=0; i<ri.size(); ++i) {
     if (m_t > ri[i][0] and m_t < ri[i][1]) {
       output |= std::floor(m_t/ri[i][2]) - m_rangeIntegFloor[i] > eps;

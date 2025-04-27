@@ -22,6 +22,18 @@
 using tk::MeshWriter;
 
 void
+MeshWriter::nchare( std::size_t meshid, int n )
+// *****************************************************************************
+//  Set the total number of chares
+//! \param[in] meshid Mesh whose number of chares to set
+//! \param[in] n Total number of chares across the whole problem (for a mesh)
+// *****************************************************************************
+{
+  Assert( meshid < m_nchare.size(), "Size mismatch" );
+  m_nchare[ meshid ] = n;
+}
+
+void
 MeshWriter::write(
   std::size_t meshid,
   bool meshoutput,
@@ -88,7 +100,7 @@ MeshWriter::write(
     // Write volume mesh and field names
     ExodusIIMeshWriter ev( vf, ExoWriter::CREATE );
     // Write chare mesh (do not write side sets in parallel)
-    if (m_nchare == 1) {
+    if (m_nchare[meshid] == 1) {
       ev.writeMesh( tk::UnsMesh( inpoel, coord, bnode ) );
     } else {
       ev.writeMesh< 4 >( inpoel, coord );
@@ -214,10 +226,10 @@ MeshWriter::filename( const std::string& basefilename,
 // *****************************************************************************
 {
   return basefilename + (surfid ? "-surf." + std::to_string(surfid) : "")
-         + (m_nmesh > 1 ? '.' + std::to_string(meshid) : "")
+         + (m_nchare.size() > 1 ? '.' + std::to_string(meshid) : "")
          + ".e-s"
          + '.' + std::to_string( itr )        // iteration count with new mesh
-         + '.' + std::to_string( m_nchare )   // total number of workers
+         + '.' + std::to_string( m_nchare[meshid] ) // total number of workers
          + '.' + std::to_string( chareid );   // new file per worker
 }
 

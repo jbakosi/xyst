@@ -143,8 +143,10 @@ KozCG::setupBC()
   ErrChk( m_dirbcmasks.size() % nmask == 0, "Dirichlet BC masks incomplete" );
 
   // Query pressure BC nodes associated to side sets
+  const auto& pbc = g_cfg.get< tag::bc_pre >();
+  const auto& pbc_sets = pbc.get< tag::sidesets >();
   std::unordered_map< int, std::unordered_set< std::size_t > > pre;
-  for (const auto& ss : g_cfg.get< tag::bc_pre >()) {
+  for (const auto& ss : pbc_sets) {
     for (const auto& s : ss) {
       auto k = m_bface.find(s);
       if (k != end(m_bface)) {
@@ -160,7 +162,7 @@ KozCG::setupBC()
   }
 
   // Augment Pressure BC nodes with nodes not necessarily part of faces
-  for (const auto& s : g_cfg.get< tag::bc_pre >()) {
+  for (const auto& s : pbc_sets) {
     auto k = m_bnode.find(s[0]);
     if (k != end(m_bnode)) {
       auto& n = pre[ k->first ];
@@ -171,18 +173,19 @@ KozCG::setupBC()
   }
 
   // Prepare density and pressure values for pressure BC nodes
-  const auto& pbc_set = g_cfg.get< tag::bc_pre >();
-  if (!pbc_set.empty()) {
-    const auto& pbc_r = g_cfg.get< tag::bc_pre_density >();
-    ErrChk( pbc_r.size() == pbc_set.size(), "Pressure BC density unspecified" );
-    const auto& pbc_p = g_cfg.get< tag::bc_pre_pressure >();
-    ErrChk( pbc_p.size() == pbc_set.size(), "Pressure BC pressure unspecified" );
+  if (!pbc_sets.empty()) {
+    const auto& pbc_r = pbc.get< tag::density >();
+    ErrChk( pbc_r.size() == pbc_sets.size(),
+            "Pressure BC density unspecified" );
+    const auto& pbc_p = pbc.get< tag::pressure >();
+    ErrChk( pbc_p.size() == pbc_sets.size(),
+            "Pressure BC pressure unspecified" );
     tk::destroy( m_prebcnodes );
     tk::destroy( m_prebcvals );
     for (const auto& [s,n] : pre) {
       m_prebcnodes.insert( end(m_prebcnodes), begin(n), end(n) );
-      for (std::size_t p=0; p<pbc_set.size(); ++p) {
-        for (auto u : pbc_set[p]) {
+      for (std::size_t p=0; p<pbc_sets.size(); ++p) {
+        for (auto u : pbc_sets[p]) {
           if (s == u) {
             for (std::size_t i=0; i<n.size(); ++i) {
               m_prebcvals.push_back( pbc_r[p] );
@@ -213,7 +216,7 @@ KozCG::setupBC()
 
   // Query farfield BC nodes associated to side sets
   std::unordered_map< int, std::unordered_set< std::size_t > > far;
-  for (auto s : g_cfg.get< tag::bc_far >()) {
+  for (auto s : g_cfg.get< tag::bc_far, tag::sidesets >()) {
     auto k = m_bface.find(s);
     if (k != end(m_bface)) {
       auto& n = far[ k->first ];
@@ -400,10 +403,10 @@ KozCG::setup( tk::real v )
   d->Boxvol() = v;
 
   // Set initial conditions
-  problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
+  problems::initialize( d->Coord(), m_u, d->T(),/*meshid=*/0,  d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
-  if (!g_cfg.get< tag::histout >().empty()) {
+  if (!g_cfg.get< tag::histout, tag::points >().empty()) {
     std::vector< std::string > var
       {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
     auto ncomp = m_u.nprop();
@@ -484,7 +487,7 @@ KozCG::streamable()
 {
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
-  const auto& is = g_cfg.get< tag::integout >();
+  const auto& is = g_cfg.get< tag::integout, tag::sidesets >();
   std::set< int > outsets( begin(is), end(is) );
   for (auto s : outsets) {
     auto m = m_bface.find(s);
@@ -540,7 +543,7 @@ KozCG::streamable()
   tk::destroy( m_farbcnodes );
   tk::destroy( m_farbcnorms );
   for (auto p : m_farbcnodeset) {
-    for (const auto& s : g_cfg.get< tag::bc_far >()) {
+    for (const auto& s : g_cfg.get< tag::bc_far, tag::sidesets >()) {
       auto n = m_bnorm.find(s);
       if (n != end(m_bnorm)) {
         auto a = n->second.find(p);
@@ -595,7 +598,7 @@ KozCG::BC( tk::Fields& u, tk::real t )
   auto d = Disc();
 
   // Apply Dirichlet BCs
-  physics::dirbc( u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
+  physics::dirbc( d->MeshId(), u, t, d->Coord(), d->BoxNodes(), m_dirbcmasks );
 
   // Apply symmetry BCs
   physics::symbc( u, m_symbcnodes, m_symbcnorms, /*pos=*/1 );
@@ -1220,8 +1223,9 @@ KozCG::refine()
   // See if this is the last time step
   if (d->finished()) m_finished = 1;
 
-  auto dtref = g_cfg.get< tag::href_dt >();
-  auto dtfreq = g_cfg.get< tag::href_dtfreq >();
+  const auto& ht = g_cfg.get< tag::href >();
+  auto dtref = ht.get< tag::dt >();
+  auto dtfreq = ht.get< tag::dtfreq >();
 
   // if t>0 refinement enabled and we hit the frequency
   if (dtref && !(d->It() % dtfreq)) {   // refine
@@ -1365,7 +1369,7 @@ KozCG::writeFields( CkCallback cb )
     auto an = m_u;
     std::vector< tk::real > ap( m_u.nunk() );
     for (std::size_t i=0; i<an.nunk(); ++i) {
-      auto s = sol( x[i], y[i], z[i], d->T() );
+      auto s = sol( x[i], y[i], z[i], d->T(), /*meshid=*/0 );
       s[1] /= s[0];
       s[2] /= s[0];
       s[3] /= s[0];
@@ -1393,7 +1397,7 @@ KozCG::writeFields( CkCallback cb )
   std::vector< std::string > nodesurfnames;
   std::vector< std::vector< tk::real > > nodesurfs;
 
-  const auto& f = g_cfg.get< tag::fieldout >();
+  const auto& f = g_cfg.get< tag::fieldout, tag::sidesets >();
 
   if (!f.empty()) {
     nodesurfnames.push_back( "density" );
@@ -1511,7 +1515,7 @@ KozCG::integrals()
     ints[ DT ][ 0 ] = d->Dt();
 
     // Compute integrals requested for surfaces requested
-    const auto& reqv = g_cfg.get< tag::integout_integrals >();
+    const auto& reqv = g_cfg.get< tag::integout, tag::integrals >();
     std::unordered_set< std::string > req( begin(reqv), end(reqv) );
     if (req.count("mass_flow_rate")) {
       for (const auto& [s,sint] : m_surfint) {

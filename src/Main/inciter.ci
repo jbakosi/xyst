@@ -25,6 +25,7 @@ mainmodule inciter {
   extern module chocg;
   extern module lohcg;
   extern module lbswitch;
+  extern module transfer;
 
   readonly CProxy_Main mainProxy;
   readonly tk::CProxy_LBSwitch LBSwitchProxy;

@@ -151,6 +151,8 @@ class Main : public CBase_Main {
       if (CkMyPe() != 0) return;
       tk::setSignalHandlers();
       using inciter::g_cfg;
+      // increase number of restarts (available for Transporter on PE 0)
+      ++inciter::g_nrestart;
       // Parse command line after restart
       g_cfg.cmdline( reinterpret_cast<CkArgMsg*>(msg)->argc,
                      reinterpret_cast<CkArgMsg*>(msg)->argv );
@@ -159,8 +161,6 @@ class Main : public CBase_Main {
       tk::echoRunEnv( reinterpret_cast<CkArgMsg*>(msg)->argc,
                       reinterpret_cast<CkArgMsg*>(msg)->argv,
                       g_cfg.get< tag::quiescence >() );
-      // increase number of restarts (available for Transporter on PE 0)
-      ++inciter::g_nrestart;
       mainProxy = thisProxy;
       if (g_cfg.get< tag::quiescence >()) {
         CkStartQD( CkCallback( CkIndex_Main::quiescence(), thisProxy ) );

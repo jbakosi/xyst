@@ -37,6 +37,7 @@
 
 #include "NoWarning/inciter.decl.h"
 #include "NoWarning/partitioner.decl.h"
+#include "NoWarning/transfer.decl.h"
 
 extern CProxy_Main mainProxy;
 
@@ -53,6 +54,8 @@ Transporter::Transporter() :
   m_input{ g_cfg.get< tag::input >() },
   m_nchare( m_input.size() ),
   m_ncit( m_nchare.size(), 0 ),
+  m_ndt( 0 ),
+  m_mindt( std::numeric_limits< tk::real >::max() ),
   m_nload( 0 ),
   m_npart( 0 ),
   m_nstat( 0 ),
@@ -88,8 +91,9 @@ Transporter::Transporter() :
   // constdt is zero.
   if ( nstep != 0 && term > t0 && constdt < term-t0 ) {
 
-    // Enable SDAG waits for collecting mesh statistics
+    // Enable SDAG waits
     thisProxy.wait4stat();
+    thisProxy.wait4part();
 
     // Configure and write diagnostics file header
     diagHeader();
@@ -118,9 +122,12 @@ Transporter::Transporter( CkMigrateMessage* m ) :
 }
 
 bool
-Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
+Transporter::matchsets( std::map< int, std::vector< std::size_t > >& bnd,
+                        const std::string& filename )
 // *****************************************************************************
-// Verify that side sets specified in the control file exist in mesh file
+// Verify that side sets referred to in the control file exist in mesh file
+//! \param[in,out] bnd Node or face lists mapped to side set ids
+//! \param[in] filename Mesh file name whose BCs are processed
 //! \details This function does two things: (1) it verifies that the side
 //!   sets used in the input file (either to which boundary conditions (BC)
 //!   are assigned or listed as field output by the user in the
@@ -131,36 +138,33 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
 //!   and node lists associated to side sets that the user did not set BCs or
 //!   listed as field output on (as they will not need processing further since
 //!   they will not be used).
-//! \param[in,out] bnd Node or face lists mapped to side set ids
 //! \return True if sidesets have been used and found in mesh
 // *****************************************************************************
 {
   std::unordered_set< int > usersets;
 
-  // Collect side sets at which BCs are set
+  // Collect side sets referred to
 
   for (const auto& s : g_cfg.get< tag::bc_dir >()) {
-    if (!s.empty()) usersets.insert( s[0] );
+    if (!s.empty()) usersets.insert(s[0]);
   }
 
-  for (auto s : g_cfg.get< tag::bc_sym >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::bc_sym >()) usersets.insert(s);
 
-  for (auto s : g_cfg.get< tag::bc_far >()) usersets.insert( s );
- 
-  for (const auto& s : g_cfg.get< tag::bc_pre >()) {
-    if (!s.empty()) usersets.insert( s[0] );
-  }
- 
-  for (const auto& s : g_cfg.get< tag::pre_bc_dir >()) {
-    if (!s.empty()) usersets.insert( s[0] );
+  for (auto s : g_cfg.get< tag::bc_far, tag::sidesets >()) usersets.insert(s);
+
+  for (const auto& s : g_cfg.get< tag::bc_pre, tag::sidesets >()) {
+    if (!s.empty()) usersets.insert(s[0]);
   }
 
-  for (auto s : g_cfg.get< tag::pre_bc_sym >()) usersets.insert( s );
+  for (const auto& s : g_cfg.get< tag::pressure, tag::bc_dir >()) {
+    if (!s.empty()) usersets.insert(s[0]);
+  }
 
-  // Add sidesets requested for field output
-  for (auto s : g_cfg.get< tag::fieldout >()) usersets.insert( s );
-  // Add sidesets requested for integral output
-  for (auto s : g_cfg.get< tag::integout >()) usersets.insert( s );
+  for (auto s : g_cfg.get< tag::pressure, tag::bc_sym >()) usersets.insert(s);
+
+  for (auto s : g_cfg.get< tag::fieldout, tag::sidesets >()) usersets.insert(s);
+  for (auto s : g_cfg.get< tag::integout, tag::sidesets >()) usersets.insert(s);
 
   // Find user-configured side set ids among side sets read from mesh file
   std::unordered_set< int > sidesets_used;
@@ -168,11 +172,91 @@ Transporter::matchBCs( std::map< int, std::vector< std::size_t > >& bnd )
     if (bnd.find(i) != end(bnd))  // used set found among side sets in file
       sidesets_used.insert( i );  // store side set id configured as BC
     else {
-      Throw( "Boundary conditions specified on side set " + std::to_string(i) +
-             " which does not exist in mesh file" );
+      Throw( "Side set " + std::to_string(i) + " referred to in control file "
+             " but does not exist in mesh file '" + filename + "'" );
     }
   }
  
+  // Remove sidesets not used (will not process those further)
+  tk::erase_if( bnd, [&]( auto& item ) {
+    return sidesets_used.find( item.first ) == end(sidesets_used);
+  });
+
+  return not bnd.empty();
+}
+
+bool
+Transporter::matchsets_multi( std::map< int, std::vector< std::size_t > >& bnd,
+                              const std::string& filename,
+                              std::size_t meshid )
+// *****************************************************************************
+// Verify that side sets referred to in the control file exist in mesh file
+//! \note Multi-mesh version, used with overset methods.
+//! \param[in,out] bnd Node or face lists mapped to side set ids
+//! \param[in] filename Mesh file name whose BCs are processed
+//! \details This function does two things: (1) it verifies that the side
+//!   sets used in the input file (either to which boundary conditions (BC)
+//!   are assigned or listed as field output by the user in the
+//!   input file) all exist among the side sets read from the input mesh
+//!   file and errors out if at least one does not, and (2) it matches the
+//!   side set ids at which the user has configured BCs (or listed as an output
+//!   surface) to side set ids read from the mesh file and removes those face
+//!   and node lists associated to side sets that the user did not set BCs or
+//!   listed as field output on (as they will not need processing further since
+//!   they will not be used).
+//! \param[in] meshid Mesh id whose side sets are interrogated
+//! \return True if sidesets have been used and found in mesh
+// *****************************************************************************
+{
+  std::unordered_set< int > usersets;
+
+  // Collect side sets referred to
+
+  for (const auto& s : g_cfg.get< tag::bc_dir_ >()[ meshid ]) {
+    if (!s.empty()) usersets.insert(s[0]);
+  }
+
+  for (auto s : g_cfg.get< tag::bc_sym_ >()[ meshid ]) usersets.insert(s);
+
+  for (auto s : g_cfg.get< tag::bc_far_ >()[ meshid ].get< tag::sidesets >()) {
+    usersets.insert(s);
+  }
+
+  for (const auto& s :
+         g_cfg.get< tag::bc_pre_ >()[ meshid ].get< tag::sidesets >())
+  {
+    if (!s.empty()) usersets.insert(s[0]);
+  }
+
+  const auto& tp = g_cfg.get< tag::pressure_ >()[ meshid ];
+  for (const auto& s : tp.get< tag::bc_dir >()) {
+    if (!s.empty()) usersets.insert(s[0]);
+  }
+  for (auto s : tp.get< tag::bc_sym >()) {
+    usersets.insert(s);
+  }
+
+  for (auto s : g_cfg.get< tag::fieldout_ >()[ meshid ].get< tag::sidesets >()){
+    usersets.insert(s);
+  }
+  for (auto s : g_cfg.get< tag::integout_ >()[ meshid ].get< tag::sidesets >()){
+    usersets.insert(s);
+  }
+  for (auto s : g_cfg.get< tag::overset, tag::intergrid_ >()[ meshid ]){
+    usersets.insert(s);
+  }
+
+  // Find user-configured side set ids among side sets read from mesh file
+  std::unordered_set< int > sidesets_used;
+  for (auto i : usersets) {       // for all side sets used in control file
+    if (bnd.find(i) != end(bnd))  // used set found among side sets in file
+      sidesets_used.insert( i );  // store side set id configured as BC
+    else {
+      Throw( "Side set " + std::to_string(i) + " referred to in control file "
+             " but does not exist in mesh file '" + filename + "'" );
+    }
+  }
+
   // Remove sidesets not used (will not process those further)
   tk::erase_if( bnd, [&]( auto& item ) {
     return sidesets_used.find( item.first ) == end(sidesets_used);
@@ -226,8 +310,18 @@ Transporter::createPartitioner()
   // Start preparing mesh(es)
   print.section( "Reading mesh" + std::string(m_input.size()>1?"es":"") );
 
-  // Read boundary (side set) data from a list of input mesh files
   std::size_t meshid = 0;
+  bool multi = m_input.size() > 1;
+
+  // Create empty discretization chare array for all meshes
+  std::vector< CkArrayOptions > opt;
+  for (std::size_t i=0; i<m_input.size(); ++i) {
+    m_discretization.push_back( CProxy_Discretization::ckNew() );
+    opt.emplace_back();
+    opt.back().bindTo( m_discretization.back() );
+  }
+
+  // Create Partitioner Charm++ chare nodegroup for all meshes
   for (const auto& filename : m_input) {
     // Create mesh reader for reading side sets from file
     tk::ExodusIIMeshReader mr( filename );
@@ -245,17 +339,21 @@ Transporter::createPartitioner()
     bool bcs_set = false;
     // Read node lists on side sets
     bnode = mr.readSidesetNodes();
-    // Verify boundarty condition (BC) side sets used exist in mesh file
-    bcs_set = matchBCs( bnode );
-    bcs_set = bcs_set || matchBCs( bface );
+    // Verify that side sets referred to in the control file exist in mesh file
+    if (multi) {
+      bcs_set = matchsets_multi( bnode, filename, meshid );
+      bcs_set = bcs_set || matchsets_multi( bface, filename, meshid );
+    }
+    else {
+      bcs_set = matchsets( bnode, filename );
+      bcs_set = bcs_set || matchsets( bface, filename );
+    }
 
     // Warn on no BCs
-    if (!bcs_set) print << "\n>>> WARNING: No boundary conditions set\n\n";
-
-    // Create empty discretization chare array
-    m_discretization.push_back( CProxy_Discretization::ckNew() );
-    CkArrayOptions opt;
-    opt.bindTo( m_discretization.back() );
+    if (!bcs_set) {
+      print << "\n>>> WARNING: No boundary conditions set for mesh "
+                + std::to_string(meshid) + ": " + filename + "\n\n";
+    }
 
     // Create empty discretization scheme chare array (bound to discretization)
     CProxy_RieCG riecg;
@@ -265,35 +363,36 @@ Transporter::createPartitioner()
     CProxy_ChoCG chocg;
     CProxy_LohCG lohcg;
     tk::CProxy_ConjugateGradients cgpre, cgmom;
+    const auto& mopt = opt[ meshid ];
     const auto& solver = g_cfg.get< tag::solver >();
     if (solver == "riecg") {
-      m_riecg.push_back( CProxy_RieCG::ckNew(opt) );
+      m_riecg.push_back( CProxy_RieCG::ckNew(mopt) );
       riecg = m_riecg.back();
     }
     else if (solver == "laxcg") {
-      m_laxcg.push_back( CProxy_LaxCG::ckNew(opt) );
+      m_laxcg.push_back( CProxy_LaxCG::ckNew(mopt) );
       laxcg = m_laxcg.back();
     }
     else if (solver == "zalcg") {
-      m_zalcg.push_back( CProxy_ZalCG::ckNew(opt) );
+      m_zalcg.push_back( CProxy_ZalCG::ckNew(mopt) );
       zalcg = m_zalcg.back();
     }
     else if (solver == "kozcg") {
-      m_kozcg.push_back( CProxy_KozCG::ckNew(opt) );
+      m_kozcg.push_back( CProxy_KozCG::ckNew(mopt) );
       kozcg = m_kozcg.back();
     }
     else if (solver == "chocg") {
-      m_chocg.push_back( CProxy_ChoCG::ckNew(opt) );
+      m_chocg.push_back( CProxy_ChoCG::ckNew(mopt) );
       chocg = m_chocg.back();
-      m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
+      m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(mopt) );
       cgpre = m_cgpre.back();
-      m_cgmom.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
+      m_cgmom.push_back( tk::CProxy_ConjugateGradients::ckNew(mopt) );
       cgmom = m_cgmom.back();
     }
     else if (solver == "lohcg") {
-      m_lohcg.push_back( CProxy_LohCG::ckNew(opt) );
+      m_lohcg.push_back( CProxy_LohCG::ckNew(mopt) );
       lohcg = m_lohcg.back();
-      m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(opt) );
+      m_cgpre.push_back( tk::CProxy_ConjugateGradients::ckNew(mopt) );
       cgpre = m_cgpre.back();
     }
     else {
@@ -301,9 +400,9 @@ Transporter::createPartitioner()
     }
 
     // Create empty mesh refiner chare array (bound to discretization)
-    m_refiner.push_back( CProxy_Refiner::ckNew(opt) );
+    m_refiner.push_back( CProxy_Refiner::ckNew(mopt) );
     // Create empty mesh sorter Charm++ chare array (bound to discretization)
-    m_sorter.push_back( CProxy_Sorter::ckNew(opt) );
+    m_sorter.push_back( CProxy_Sorter::ckNew(mopt) );
 
     // Create MeshWriter chare group for mesh
     m_meshwriter.push_back(
@@ -314,7 +413,7 @@ Transporter::createPartitioner()
     m_partitioner.push_back(
       CProxy_Partitioner::ckNew( meshid, filename, cbp, cbr, cbs,
         thisProxy, m_refiner.back(), m_sorter.back(), m_meshwriter.back(),
-        m_discretization.back(), riecg, laxcg, zalcg, kozcg, chocg, lohcg,
+        m_discretization, riecg, laxcg, zalcg, kozcg, chocg, lohcg,
         cgpre, cgmom, bface, faces, bnode ) );
 
     ++meshid;
@@ -337,44 +436,59 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
   // Compute load distribution given total work (nelem) and user-specified
   // virtualization
   uint64_t chunksize, remainder;
-  m_nchare[meshid] = static_cast<int>(
+  m_nchare[ meshid ] = static_cast<int>(
     tk::linearLoadDistributor(
-       g_cfg.get< tag::virt >(),
+       g_cfg.get< tag::virt >()[ meshid ],
        m_nelem[meshid], CkNumPes(), chunksize, remainder ) );
+
+  // Tell meshwriter the total number of chares
+  m_meshwriter[meshid].nchare( meshid, m_nchare[meshid] );
 
   // Store sum of meshids (across all chares, key) for each meshid (value).
   // This is used to look up the mesh id after collectives that sum their data.
   m_meshid[ static_cast<std::size_t>(m_nchare[meshid])*meshid ] = meshid;
   Assert( meshid < m_nelem.size(), "MeshId indexing out" );
 
-  // Partition first mesh
-  if (meshid == 0) {
-    m_timer[ TimerTag::MESH_PART ];  // start timer measuring mesh partitioning
-    m_partitioner[0].partition( m_nchare[0] );
-  }
-
   if (++m_nload == m_nelem.size()) {     // all meshes have been loaded
+    m_timer[ TimerTag::MESH_PART ];  // start timer measuring mesh partitioning
+
+    // Start partitioning all meshes
+    for (std::size_t p=0; p<m_partitioner.size(); ++p) {
+      m_partitioner[p].partition( m_nchare[p] );
+    }
+
     m_nload = 0;
     auto print = tk::Print();
+    bool multi = m_input.size() > 1;
+    std::string es = multi ? "es" : "";
 
     auto& timer = tk::ref_find( m_timer, TimerTag::MESH_READ );
     timer.second = timer.first.dsec();
     print << "Mesh read time: " + std::to_string( timer.second ) + " sec\n";
 
     // Print out mesh partitioning configuration
-    print.section( "Partitioning mesh" );
-    print.item( "Partitioner", g_cfg.get< tag::part >() );
-    print.item( "Virtualization", g_cfg.get< tag::virt >() );
-    // Print out initial mesh statistics
-    meshstat( "Mesh read from file" );
+    print.section( "Partitioning mesh"+es );
 
-    // Tell meshwriter the total number of chares
-    m_meshwriter[meshid].nchare( m_nchare[meshid] );
+    if (multi) {
+      print.item( "Partitioner (per mesh)",
+                  tk::parameters( g_cfg.get< tag::part_ >() ) );
+      print.item( "Virtualization (per mesh)",
+                  tk::parameters( g_cfg.get< tag::virt >() ) );
+    }
+    else {
+      print.item( "Partitioner", g_cfg.get< tag::part >() );
+      print.item( "Virtualization", g_cfg.get< tag::virt >()[ 0 ] );
+    }
+
+    // Print out initial mesh statistics
+    meshstat( "Mesh"+es+" read from file" );
 
     // Query number of initial mesh refinement steps
     int nref = 0;
-    if (g_cfg.get< tag::href_t0 >()) {
-      nref = static_cast<int>(g_cfg.get< tag::href_init >().size());
+    const auto& ht = multi ? g_cfg.get< tag::href_ >()[ meshid ]
+                           : g_cfg.get< tag::href >();
+    if (ht.get< tag::t0 >()) {
+      nref = static_cast<int>( ht.get< tag::init >().size() );
     }
 
     // Query if PE-local reorder is configured
@@ -382,25 +496,21 @@ Transporter::load( std::size_t meshid, std::size_t nelem )
     if (g_cfg.get< tag::reorder >()) nreord = m_nchare[0];
 
     print << '\n';
-    m_progMesh.start( print, "Preparing mesh", {{ CkNumPes(), CkNumPes(), nref,
-      m_nchare[0], m_nchare[0], nreord, nreord }} );
+    m_progMesh.start( print, "Preparing mesh"+es, {{ CkNumPes(), CkNumPes(),
+      nref, m_nchare[0], m_nchare[0], nreord, nreord }} );
   }
 }
 
 void
-Transporter::partitioned( std::size_t meshid )
+Transporter::partitioned()
 // *****************************************************************************
-// Reduction target: a mesh has been partitioned
-//! \param[in] meshid Mesh id
+// Reduction target: all meshes have been partitioned
 // *****************************************************************************
 {
   if (++m_npart == m_nelem.size()) {     // all meshes have been partitioned
     m_npart = 0;
     auto& timer = tk::ref_find( m_timer, TimerTag::MESH_PART );
     timer.second = timer.first.dsec();
-    m_timer[ TimerTag::MESH_DIST ];  // start timer measuring mesh distribution
-  } else { // partition next mesh
-    m_partitioner[meshid+1].partition( m_nchare[meshid+1] );
   }
 }
 
@@ -413,8 +523,6 @@ Transporter::distributed( std::size_t meshid )
 // *****************************************************************************
 {
   m_partitioner[meshid].refine();
-  auto& timer = tk::ref_find( m_timer, TimerTag::MESH_DIST );
-  timer.second = timer.first.dsec();
 }
 
 void
@@ -523,7 +631,10 @@ Transporter::matched( std::size_t summeshid,
     if (refmode == Refiner::RefMode::T0REF) {
 
       if (!g_cfg.get< tag::feedback >()) {
-        const auto& initref = g_cfg.get< tag::href_init >();
+        bool multi = m_input.size() > 1;
+        const auto& ht = multi ? g_cfg.get< tag::href_ >()[ meshid ]
+                               : g_cfg.get< tag::href >();
+        const auto& initref = ht.get< tag::init >();
         print << '\n';
         print.diag( { "meshid", "t0ref", "type", "nref", "nderef", "ncorr" },
                     { std::to_string(meshid),
@@ -738,17 +849,18 @@ Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
 // *****************************************************************************
 {
   auto meshid = tk::cref_find( m_meshid, summeshid );
+  bool multi = m_input.size() > 1;
+  const auto& ht = multi ? g_cfg.get< tag::href_ >()[ meshid ]
+                         : g_cfg.get< tag::href >();
 
   // Update number of mesh points for mesh, since it may have been refined
-  if (g_cfg.get< tag::href_t0 >()) m_npoin[meshid] = npoin;
+  if (ht.get< tag::t0 >()) m_npoin[meshid] = npoin;
 
   if (++m_ndisc == m_nelem.size()) { // all Disc arrays have been created
     m_ndisc = 0;
     tk::Print print;
     m_progMesh.end( print );
-    if (g_cfg.get< tag::href_t0 >()) {
-      meshstat( "Mesh initially refined" );
-    }
+    if (ht.get< tag::t0 >()) meshstat( "Mesh initially refined" );
   }
 
   m_refiner[ meshid ].sendProxy();
@@ -799,10 +911,7 @@ Transporter::diagHeader()
 // Configure and write diagnostics file header
 // *****************************************************************************
 {
-  // Output header for diagnostics output file
-  tk::DiagWriter dw( g_cfg.get< tag::diag >(),
-                     g_cfg.get< tag::diag_format >(),
-                     g_cfg.get< tag::diag_precision >() );
+  // Construct header for diagnostics file output
 
   std::vector< std::string > d;
 
@@ -929,8 +1038,22 @@ Transporter::diagHeader()
     Throw( "Unknown solver: " + solver );
   }
 
-  // Write diagnostics header
-  dw.header( d );
+  // Output header for diagnostics output file(s)
+  auto basename = g_cfg.get< tag::diag >();
+  auto format = g_cfg.get< tag::diag_format >();
+  auto precision = g_cfg.get< tag::diag_precision >();
+  bool multi = m_input.size() > 1;
+  if (multi) {
+    for (std::size_t k=0; k<m_input.size(); ++k) {
+      std::string name = basename + '.' + std::to_string(k);
+      tk::DiagWriter dw( name, format, precision );
+      dw.header( d );
+    }
+  }
+  else {
+    tk::DiagWriter dw( basename, format, precision );
+    dw.header( d );
+  }
 }
 
 void
@@ -939,18 +1062,19 @@ Transporter::integralsHeader()
 // Configure and write integrals file header
 // *****************************************************************************
 {
-  const auto& sidesets_integral = g_cfg.get< tag::integout >();
+  const auto& ti = g_cfg.get< tag::integout >();
+  const auto& sidesets_integral = ti.get< tag::sidesets  >();
 
   if (sidesets_integral.empty()) return;
 
   auto filename = g_cfg.get< tag::output >() + ".int";
   tk::DiagWriter dw( filename,
-                     g_cfg.get< tag::integout_format >(),
-                     g_cfg.get< tag::integout_precision >() );
+                     ti.get< tag::format >(),
+                     ti.get< tag::precision >() );
 
   // Collect variables names for integral output
   std::vector< std::string > var;
-  const auto& reqv = g_cfg.get< tag::integout_integrals >();
+  const auto& reqv = ti.get< tag::integrals >();
   std::unordered_set< std::string > req( begin(reqv), end(reqv) );
   for (auto s : sidesets_integral) {
     if (req.count( "mass_flow_rate" )) {
@@ -1154,9 +1278,6 @@ Transporter::stat()
     auto& t = tk::ref_find( m_timer, TimerTag::MESH_PART );
     print << '\n';
     print << "Mesh partitioning time: " + std::to_string(t.second) + " sec\n";
-    t = tk::ref_find( m_timer, TimerTag::MESH_DIST );
-    print << "Mesh distribution time: " + std::to_string(t.second) + " sec\n";
-
 
     for (std::size_t i=0; i<m_nelem.size(); ++i) {
       if (m_nelem.size() > 1) {
@@ -1198,6 +1319,30 @@ Transporter::stat()
 
     // Create "derived-class" workers
     for (std::size_t i=0; i<m_nelem.size(); ++i) m_sorter[i].createWorkers();
+  }
+}
+
+void
+Transporter::transfer_dt( tk::real dt )
+// *****************************************************************************
+//  Reduction target computing the minimum dt for coupled problems
+//! \param[in] dt Minimum dt collected over all chares and coupled meshes
+// *****************************************************************************
+{
+  if (dt < m_mindt) m_mindt = dt;
+
+  if (++m_ndt == m_nelem.size()) {    // all meshes have contributed
+    m_ndt = 0;
+
+    // continue timestep on all meshes
+    const auto& solver = g_cfg.get< tag::solver >();
+    if (solver == "lohcg") {
+      for (auto& w : m_lohcg) w.advance( m_mindt );
+    }
+    else {
+      Throw( "Unknown solver: " + solver );
+    }
+
   }
 }
 
@@ -1257,6 +1402,7 @@ Transporter::inthead( const tk::Print& print )
   const auto theta = g_cfg.get< tag::theta >();
   const auto eps = std::numeric_limits< tk::real >::epsilon();
   const auto mom = solver == "chocg" and theta > eps ? 1 : 0;
+  const bool multi = m_input.size() > 1;
 
   print.section( "Time integration" );
   print <<
@@ -1268,7 +1414,8 @@ Transporter::inthead( const tk::Print& print )
   "       EGT - estimated grind wall-clock time (1e-6sec/timestep)\n"
   "       EGP - estimated grind performance: wall-clock time "
                 "(1e-6sec/DOF/timestep)\n"
-  "       flg - status flags, legend:\n"
+  "       flg - status flags, " << (multi?"only for background mesh, ":"")
+                                << "legend:\n"
   "             f - field (volume and surface) output\n"
   "             i - integral output\n"
   "             d - diagnostics output\n"
@@ -1536,11 +1683,10 @@ Transporter::acdiagnostics( CkReductionMsg* msg )
 
   // Append diagnostics file at selected times
   auto filename = g_cfg.get< tag::diag >();
+  auto format = g_cfg.get< tag::diag_format >();
+  auto precision = g_cfg.get< tag::diag_precision >();
   if (m_nelem.size() > 1) filename += '.' + id;
-  tk::DiagWriter dw( filename,
-                     g_cfg.get< tag::diag_format >(),
-                     g_cfg.get< tag::diag_precision >(),
-                     std::ios_base::app );
+  tk::DiagWriter dw( filename, format, precision, std::ios_base::app );
   dw.write( static_cast<uint64_t>(d[ITER][0]), d[TIME][0], d[DT][0], diag );
 
   const auto& solver = g_cfg.get< tag::solver >();
@@ -1573,7 +1719,8 @@ Transporter::integrals( CkReductionMsg* msg )
   creator | d;
   delete msg;
 
-  const auto& sidesets_integral = g_cfg.get< tag::integout >();
+  const auto& ti = g_cfg.get< tag::integout >();
+  const auto& sidesets_integral = ti.get< tag::sidesets >();
   // cppcheck-suppress
   if (not sidesets_integral.empty()) {
 
@@ -1589,8 +1736,8 @@ Transporter::integrals( CkReductionMsg* msg )
     // Append integrals file at selected times
     auto filename = g_cfg.get< tag::output >() + ".int";
     tk::DiagWriter dw( filename,
-                       g_cfg.get< tag::integout_format >(),
-                       g_cfg.get< tag::integout_precision >(),
+                       ti.get< tag::format >(),
+                       ti.get< tag::precision >(),
                        std::ios_base::app );
     // cppcheck-suppress containerOutOfBounds
     dw.write( static_cast<uint64_t>(tk::cref_find( d[ITER], 0 )),

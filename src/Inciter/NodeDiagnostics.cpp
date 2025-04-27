@@ -89,7 +89,7 @@ NodeDiagnostics::rhocompute( Discretization& d,
     const auto& y = coord[1];
     const auto& z = coord[2];
     for (std::size_t i=0; i<u.nunk(); ++i) {
-      auto s = sol( x[i], y[i], z[i], d.T()+d.Dt() );
+      auto s = sol( x[i], y[i], z[i], d.T()+d.Dt(), /*meshid=*/0 );
       s[1] /= s[0];
       s[2] /= s[0];
       s[3] /= s[0];
@@ -195,7 +195,7 @@ NodeDiagnostics::precompute( Discretization& d,
     const auto& y = coord[1];
     const auto& z = coord[2];
     for (std::size_t i=0; i<p.size(); ++i) {
-      ap[i] = pressure_sol( x[i], y[i], z[i] );
+      ap[i] = pressure_sol( x[i], y[i], z[i], /*meshid=*/0 );
     }
   }
 
@@ -210,7 +210,7 @@ NodeDiagnostics::precompute( Discretization& d,
     const auto& y = coord[1];
     const auto& z = coord[2];
     for (std::size_t i=0; i<u.nunk(); ++i) {
-      auto s = sol( x[i], y[i], z[i], d.T()+d.Dt() );
+      auto s = sol( x[i], y[i], z[i], d.T()+d.Dt(), /*meshid=*/0 );
       for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
     }
   }
@@ -313,7 +313,7 @@ NodeDiagnostics::accompute( Discretization& d,
     const auto& y = coord[1];
     const auto& z = coord[2];
     for (std::size_t i=0; i<u.nunk(); ++i) {
-      auto s = sol( x[i], y[i], z[i], d.T()+d.Dt() );
+      auto s = sol( x[i], y[i], z[i], d.T()+d.Dt(), /*meshid=*/0 );
       for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
     }
   }

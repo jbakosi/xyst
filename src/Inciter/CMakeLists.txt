@@ -18,7 +18,8 @@ add_library(Inciter
             DiagReducer.cpp
             PartsReducer.cpp
             NodeDiagnostics.cpp
-            IntegralReducer.cpp)
+            IntegralReducer.cpp
+            HoleReducer.cpp)
 
 target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/..
@@ -33,6 +34,7 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_SOURCE_DIR}/../Inciter
                            ${PROJECT_SOURCE_DIR}/../Physics
                            ${PROJECT_SOURCE_DIR}/../LinearSolver
+                           ${PROJECT_SOURCE_DIR}/../Transfer
                            ${CHARM_INCLUDE_DIRS}
                            ${MPI_C_INCLUDE_DIRS}
                            ${NETCDF_INCLUDE_DIRS}
@@ -41,6 +43,7 @@ target_include_directories(Inciter PUBLIC
                            ${PROJECT_BINARY_DIR}/../IO
                            ${PROJECT_BINARY_DIR}/../Mesh
                            ${PROJECT_BINARY_DIR}/../LinearSolver
+                           ${PROJECT_BINARY_DIR}/../Transfer
                            ${PROJECT_BINARY_DIR}/../Main)
 
 add_library(MeshRefinement

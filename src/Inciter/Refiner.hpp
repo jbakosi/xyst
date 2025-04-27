@@ -66,27 +66,28 @@ class Refiner : public CBase_Refiner {
     };
 
     //! Constructor
-    explicit Refiner( std::size_t meshid,
-                      const CProxy_Transporter& transporter,
-                      const CProxy_Sorter& sorter,
-                      const tk::CProxy_MeshWriter& meshwriter,
-                      const CProxy_Discretization& discretization,
-                      const CProxy_RieCG& riecg,
-                      const CProxy_LaxCG& laxcg,
-                      const CProxy_ZalCG& zalcg,
-                      const CProxy_KozCG& kozcg,
-                      const CProxy_ChoCG& chocg,
-                      const CProxy_LohCG& lohcg,
-                      const tk::CProxy_ConjugateGradients& cgpre,
-                      const tk::CProxy_ConjugateGradients& cgmom,
-                      const tk::RefinerCallback& cbr,
-                      const tk::SorterCallback& cbs,
-                      const std::vector< std::size_t >& ginpoel,
-                      const tk::UnsMesh::CoordMap& coordmap,
-                      const std::map< int, std::vector< std::size_t > >& bface,
-                      const std::vector< std::size_t >& triinpoel,
-                      const std::map< int, std::vector< std::size_t > >& bnode,
-                      int nchare );
+    explicit
+    Refiner( std::size_t meshid,
+             const CProxy_Transporter& transporter,
+             const CProxy_Sorter& sorter,
+             const tk::CProxy_MeshWriter& meshwriter,
+             const std::vector< CProxy_Discretization >& discretization,
+             const CProxy_RieCG& riecg,
+             const CProxy_LaxCG& laxcg,
+             const CProxy_ZalCG& zalcg,
+             const CProxy_KozCG& kozcg,
+             const CProxy_ChoCG& chocg,
+             const CProxy_LohCG& lohcg,
+             const tk::CProxy_ConjugateGradients& cgpre,
+             const tk::CProxy_ConjugateGradients& cgmom,
+             const tk::RefinerCallback& cbr,
+             const tk::SorterCallback& cbs,
+             const std::vector< std::size_t >& ginpoel,
+             const tk::UnsMesh::CoordMap& coordmap,
+             const std::map< int, std::vector< std::size_t > >& bface,
+             const std::vector< std::size_t >& triinpoel,
+             const std::map< int, std::vector< std::size_t > >& bnode,
+             int nchare );
 
     #if defined(__clang__)
       #pragma clang diagnostic push
@@ -187,6 +188,7 @@ class Refiner : public CBase_Refiner {
       p | m_triinpoel;
       p | m_nchare;
       p | m_mode;
+      p | m_multi;
       p | m_initref;
       p | m_refiner;
       p | m_nref;
@@ -232,8 +234,8 @@ class Refiner : public CBase_Refiner {
     CProxy_Sorter m_sorter;
     //! Mesh writer proxy
     tk::CProxy_MeshWriter m_meshwriter;
-    //! Discretization base proxy
-    CProxy_Discretization m_disc;
+    //! Discretization proxy for all meshes
+    std::vector< CProxy_Discretization > m_disc;
     //! Discretization scheme proxy
     CProxy_RieCG m_riecg;
     //! Discretization scheme proxy
@@ -282,6 +284,8 @@ class Refiner : public CBase_Refiner {
     int m_nchare;
     //! True if initial AMR, false if during time stepping
     RefMode m_mode;
+    //! True if coupled (overset)
+    bool m_multi;
     //! Initial mesh refinement type list (in reverse order)
     std::vector< std::string > m_initref;
     //! Number of initial mesh refinement/derefinement steps

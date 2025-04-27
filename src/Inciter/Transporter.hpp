@@ -77,8 +77,8 @@ class Transporter : public CBase_Transporter {
     //! Reduction target: the mesh has been read from file on all PEs
     void load( std::size_t meshid, std::size_t nelem );
 
-    //! Reduction target: a mesh has been partitioned
-    void partitioned( std::size_t meshid );
+    //! Reduction target: all meshes have been partitioned
+    void partitioned();
 
     //! \brief Reduction target: all Solver (PEs) have computed the number of
     //!   chares they will recieve contributions from during linear solution
@@ -173,6 +173,9 @@ class Transporter : public CBase_Transporter {
     //!    workers
     void pdfstat( CkReductionMsg* msg );
 
+    //! Reduction target computing the minimum dt for coupled problems
+    void transfer_dt( tk::real dt );
+
     //! Reduction target computing total volume of IC box
     void boxvol( tk::real v, tk::real summeshid );
 
@@ -202,13 +205,13 @@ class Transporter : public CBase_Transporter {
     ///@{
     //! \brief Pack/Unpack serialize member function
     //! \param[in,out] p Charm++'s PUP::er serializer object reference
-    //! \note This is a Charm++ mainchare, pup() is thus only for
-    //!    checkpoint/restart.
     void pup( PUP::er &p ) override {
       p | m_input;
       p | m_nchare;
       p | m_meshid;
       p | m_ncit;
+      p | m_ndt;
+      p | m_mindt;
       p | m_nload;
       p | m_npart;
       p | m_nstat;
@@ -257,6 +260,10 @@ class Transporter : public CBase_Transporter {
     std::unordered_map< std::size_t, std::size_t > m_meshid;
     //! Number of mesh ref corr iter (one per mesh)
     std::vector< std::size_t > m_ncit;
+    //! Number of meshes that have contributed to dt calculation
+    std::size_t m_ndt;
+    //! Minimum dt across meshes for coupled problems
+    tk::real m_mindt;
     //! Number of meshes loaded
     std::size_t m_nload;
     //! Number of meshes partitioned
@@ -318,7 +325,7 @@ class Transporter : public CBase_Transporter {
     //! Average mesh statistics (one per mesh)
     std::vector< std::array< tk::real, 6 > > m_avgstat;
     //! Timer tags
-    enum class TimerTag { MESH_READ=0, MESH_PART, MESH_DIST };
+    enum class TimerTag { MESH_READ=0, MESH_PART };
     //! Timers
     std::map< TimerTag, std::pair< tk::Timer, tk::real > > m_timer;
     //! Progress object for preparing mesh
@@ -341,8 +348,14 @@ class Transporter : public CBase_Transporter {
     //! Echo diagnostics on mesh statistics
     void stat();
 
-    //! Verify boundary condition (BC) side sets used exist in mesh file
-    bool matchBCs( std::map< int, std::vector< std::size_t > >& bnd );
+    //! Verify that side sets referred to in the control file exist in mesh file
+    bool matchsets( std::map< int, std::vector< std::size_t > >& bnd,
+                    const std::string& filenamne );
+
+    //! Verify that side sets referred to in the control file exist in mesh file
+    bool matchsets_multi( std::map< int, std::vector< std::size_t > >& bnd,
+                          const std::string& filenamne,
+                          std::size_t meshid );
 
     //! Print out mesh statistics
     void meshstat( const std::string& header ) const;

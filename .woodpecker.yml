@@ -1,25 +1,25 @@
 matrix:
   include:
     - BUILDTYPE: Release
-      IMAGE: "xyst-gnu"
+      IMAGE: "xyst-gnu-overset"
       CHARM_INSTALL_DIR: "/charm-non-smp"
     - BUILDTYPE: Debug
-      IMAGE: "xyst-gnu"
+      IMAGE: "xyst-gnu-overset"
       CHARM_INSTALL_DIR: "/charm-non-smp"
     - BUILDTYPE: Release
-      IMAGE: "xyst-clang"
+      IMAGE: "xyst-clang-overset"
       CHARM_INSTALL_DIR: "/charm-smp"
       POSTFIX_RUNNER_ARGS: "+setcpuaffinity"
     - BUILDTYPE: Debug
-      IMAGE: "xyst-clang"
+      IMAGE: "xyst-clang-overset"
       CHARM_INSTALL_DIR: "/charm-non-smp"
 
 steps:
   build:
     image: jbakosi/${IMAGE}
-    #pull: true
+    pull: true
     commands:
-     - mkdir build && cd build && cmake -GNinja -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCHARM_INSTALL_DIR=${CHARM_INSTALL_DIR} -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DRUNNER=mpirun -DRUNNER_ARGS="--allow-run-as-root -oversubscribe" -DPOSTFIX_RUNNER_ARGS=${POSTFIX_RUNNER_ARGS} ../src && ninja
+     - mkdir build && cd build && cmake -GNinja -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCHARM_INSTALL_DIR=${CHARM_INSTALL_DIR} -DCMAKE_BUILD_TYPE=${BUILDTYPE} -DRUNNER=mpirun -DRUNNER_ARGS="--allow-run-as-root -oversubscribe -quiet" -DPOSTFIX_RUNNER_ARGS=${POSTFIX_RUNNER_ARGS} ../src && ninja
 
   test:
     image: jbakosi/${IMAGE}

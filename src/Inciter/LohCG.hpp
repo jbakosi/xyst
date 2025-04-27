@@ -80,6 +80,12 @@ class LohCG : public CBase_LohCG {
     //! Start setup for solution
     void setup( tk::real v );
 
+    //! Initiate transfer of transfer flags (if coupled)
+    void transferFL();
+
+    //! Continue after transfer of initial conditions (if coupled)
+    void transferIC();
+
     //! Initialize Poisson solve
     void pinit();
 
@@ -127,6 +133,9 @@ class LohCG : public CBase_LohCG {
 
     //! Receive contributions to velocity divergence on chare-boundaries
     void comdiv( const std::unordered_map< std::size_t, tk::real >& indiv );
+
+    //! Solution has been updated
+    void solved();
 
     //! Evaluate residuals
     void evalres( const std::vector< tk::real >& l2res );
@@ -368,6 +377,9 @@ class LohCG : public CBase_LohCG {
     prelhs( const std::pair< std::vector< std::size_t >,
                              std::vector< std::size_t > >& psup );
 
+    //! Set solution in holes (if coupled)
+    void holeset();
+
     //! Compute chare-boundary edges
     void bndEdges();
 
@@ -376,6 +388,15 @@ class LohCG : public CBase_LohCG {
 
     //! Combine own and communicated portions of the boundary point normals
     void bnorm();
+
+    //! Prepare surface integral data strurctures
+    void prep_surfint();
+
+    //! Prepare symmetry boundary condition data structures
+    void prep_symbc();
+
+    //! Prepare no-slip boundary condition data structures
+    void prep_noslipbc();
 
     //! Convert integrals into streamable data structures
     void streamable();

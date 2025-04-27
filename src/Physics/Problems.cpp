@@ -28,12 +28,14 @@ using inciter::g_cfg;
 namespace userdef {
 
 static std::vector< tk::real >
-ic( tk::real, tk::real, tk::real, tk::real )
+ic( tk::real, tk::real, tk::real, tk::real, std::size_t meshid )
 // *****************************************************************************
 //! Set homogeneous initial conditions for a generic user-defined problem
+//! \param[in] meshid Mesh id to use
 //! \return Values of conserved variables
 // *****************************************************************************
 {
+  bool multi = g_cfg.get< tag::input >().size() > 1;
   const auto& ncomp = g_cfg.get< tag::problem_ncomp >();
 
   // pressure-based solvers
@@ -41,7 +43,7 @@ ic( tk::real, tk::real, tk::real, tk::real )
   const auto& solver = g_cfg.get< tag::solver >();
   if (solver == "chocg") {
     std::vector< tk::real > u( ncomp, 0.0 );
-    auto ic_velocity = g_cfg.get< tag::ic_velocity >();
+    const auto& ic_velocity = g_cfg.get< tag::ic, tag::velocity >();
     auto large = std::numeric_limits< double >::max();
     if (std::abs(ic_velocity[0] - large) > 1.0e-12) u[0] = ic_velocity[0];
     if (std::abs(ic_velocity[1] - large) > 1.0e-12) u[1] = ic_velocity[1];
@@ -50,7 +52,11 @@ ic( tk::real, tk::real, tk::real, tk::real )
   }
   else if (solver == "lohcg") {
     std::vector< tk::real > u( ncomp, 0.0 );
-    auto ic_velocity = g_cfg.get< tag::ic_velocity >();
+
+    const auto& ic_velocity =
+      multi ? g_cfg.get< tag::ic_ >()[ meshid ].get< tag::velocity >()
+            : g_cfg.get< tag::ic, tag::velocity >();
+
     auto large = std::numeric_limits< double >::max();
     if (std::abs(ic_velocity[0] - large) > 1.0e-12) u[1] = ic_velocity[0];
     if (std::abs(ic_velocity[1] - large) > 1.0e-12) u[2] = ic_velocity[1];
@@ -59,9 +65,9 @@ ic( tk::real, tk::real, tk::real, tk::real )
   }
 
   // density-based solvers
-
-  auto ic_density = g_cfg.get< tag::ic_density >();
-  const auto& ic_velocity = g_cfg.get< tag::ic_velocity >();
+  const auto& tic = g_cfg.get< tag::ic >();
+  auto ic_density = tic.get< tag::density >();
+  const auto& ic_velocity = tic.get< tag::velocity >();
   ErrChk( ic_velocity.size() == 3, "ic_velocity must have 3 components" );
 
   std::vector< tk::real > u( ncomp, 0.0 );
@@ -71,9 +77,9 @@ ic( tk::real, tk::real, tk::real, tk::real )
   u[2] = u[0] * ic_velocity[1];
   u[3] = u[0] * ic_velocity[2];
 
-  auto ic_pressure = g_cfg.get< tag::ic_pressure >();
-  auto ic_energy = g_cfg.get< tag::ic_energy >();
-  auto ic_temperature = g_cfg.get< tag::ic_temperature >();
+  auto ic_pressure = tic.get< tag::pressure >();
+  auto ic_energy = tic.get< tag::energy >();
+  auto ic_temperature = tic.get< tag::temperature >();
 
   auto largereal = std::numeric_limits< double >::max();
 
@@ -104,7 +110,7 @@ ic( tk::real, tk::real, tk::real, tk::real )
 }
 
 static tk::real
-pic( tk::real, tk::real, tk::real )
+pic( tk::real, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set homogeneous initial conditions for a generic user-defined problem
 //! \return Value of pressure
@@ -118,7 +124,7 @@ pic( tk::real, tk::real, tk::real )
 namespace nonlinear_energy_growth {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real z, tk::real t )
+ic( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing nonlinear energy growth
 //! \param[in] x X coordinate where to evaluate the solution
@@ -154,7 +160,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
 }
 
 static std::vector< tk::real >
-src( tk::real x, tk::real y, tk::real z, tk::real t )
+src( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t )
 // *****************************************************************************
 //! Compute and return source term for nonlinear energy growth
 //! \param[in] x X coordinate where to evaluate the source
@@ -217,7 +223,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
 namespace rayleigh_taylor {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real z, tk::real t )
+ic( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing a Rayleigh-Taylor flow
 //! \param[in] x X coordinate where to evaluate the solution
@@ -252,13 +258,14 @@ ic( tk::real x, tk::real y, tk::real z, tk::real t )
 }
 
 static std::vector< tk::real >
-src( tk::real x, tk::real y, tk::real z, tk::real t )
+src( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t meshid )
 // *****************************************************************************
 //! Compute and return source term for a Rayleigh-Taylor flow
 //! \param[in] x X coordinate where to evaluate the source
 //! \param[in] y Y coordinate where to evaluate the source
 //! \param[in] z Z coordinate where to evaluate the source
 //! \param[in] t Time where to evaluate the source
+//! \param[in] meshid Mesh id to use
 //! \return Source for flow variables + transported scalars
 // *****************************************************************************
 {
@@ -272,7 +279,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
   auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
 
   // evaluate solution at x,y,z,t
-  auto U = ic( x, y, z, t );
+  auto U = ic( x, y, z, t, meshid );
 
   // density, velocity, energy, pressure
   auto rho = U[0];
@@ -327,7 +334,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
 
 namespace sedov {
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real z, tk::real )
+ic( tk::real x, tk::real y, tk::real z, tk::real, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing the Sedov blast wave
 //! \param[in] x X coordinate where to evaluate the solution
@@ -363,7 +370,7 @@ ic( tk::real x, tk::real y, tk::real z, tk::real )
 
 namespace sod {
 static std::vector< tk::real >
-ic( tk::real x, tk::real, tk::real, tk::real )
+ic( tk::real x, tk::real, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing the Sod shocktube
 //! \param[in] x X coordinate where to evaluate the solution
@@ -400,7 +407,7 @@ ic( tk::real x, tk::real, tk::real, tk::real )
 namespace taylor_green {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real, tk::real )
+ic( tk::real x, tk::real y, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing the Taylor-Green vortex
 //! \param[in] x X coordinate where to evaluate the solution
@@ -423,7 +430,7 @@ ic( tk::real x, tk::real y, tk::real, tk::real )
 }
 
 static std::vector< tk::real >
-src( tk::real x, tk::real y, tk::real, tk::real )
+src( tk::real x, tk::real y, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Compute and return source term for a the Taylor-Green vortex
 //! \param[in] x X coordinate where to evaluate the source
@@ -445,7 +452,7 @@ src( tk::real x, tk::real y, tk::real, tk::real )
 namespace vortical_flow {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real z, tk::real )
+ic( tk::real x, tk::real y, tk::real z, tk::real, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing vortical flow
 //! \param[in] x X coordinate where to evaluate the solution
@@ -471,12 +478,13 @@ ic( tk::real x, tk::real y, tk::real z, tk::real )
 }
 
 static std::vector< tk::real >
-src( tk::real x, tk::real y, tk::real z, tk::real )
+src( tk::real x, tk::real y, tk::real z, tk::real, std::size_t meshid )
 // *****************************************************************************
 //! Compute and return source term for vortical flow
 //! \param[in] x X coordinate where to evaluate the source
 //! \param[in] y Y coordinate where to evaluate the source
 //! \param[in] z Z coordinate where to evaluate the source
+//! \param[in] meshid Mesh id to use
 //! \return Source for flow variables + transported scalars
 // *****************************************************************************
 {
@@ -486,7 +494,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real )
   // ratio of specific heats
   auto g = g_cfg.get< tag::mat_spec_heat_ratio >();
   // evaluate solution at x,y,z
-  auto u = ic( x, y, z, 0.0 );
+  auto u = ic( x, y, z, 0.0, meshid );
 
   std::vector< tk::real > s( 5, 0.0 );
   // momentum source
@@ -503,7 +511,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real )
 namespace slot_cyl {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real, tk::real t )
+ic( tk::real x, tk::real y, tk::real, tk::real t, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing slotted cylinder, cone, Gauss hump
 //! \param[in] x X coordinate where to evaluate the solution
@@ -618,18 +626,19 @@ ic( tk::real x, tk::real y, tk::real, tk::real t )
 }
 
 static std::vector< tk::real >
-src( tk::real x, tk::real y, tk::real z, tk::real t )
+src( tk::real x, tk::real y, tk::real z, tk::real t, std::size_t meshid )
 // *****************************************************************************
 //! Compute and return source term for slotted cylinder, cone, Gauss hump
 //! \param[in] x X coordinate where to evaluate the source
 //! \param[in] y Y coordinate where to evaluate the source
 //! \param[in] z Z coordinate where to evaluate the source
 //! \param[in] t Time where to evaluate the source
+//! \param[in] meshid Mesh id to use
 //! \return Source for flow variables + transported scalars
 // *****************************************************************************
 {
   // evaluate solution at x,y,z,t
-  auto u = ic( x, y, z, t );
+  auto u = ic( x, y, z, t, meshid );
 
   // configure number of scalar components
   std::size_t ncomp = 6;
@@ -665,7 +674,7 @@ src( tk::real x, tk::real y, tk::real z, tk::real t )
 namespace sheardiff {
 
 static std::vector< tk::real >
-ic( tk::real x, tk::real y, tk::real, tk::real t )
+ic( tk::real x, tk::real y, tk::real, tk::real t, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing shear-diffusion in 2D
 //! \param[in] x X coordinate where to evaluate the solution
@@ -722,7 +731,7 @@ ic( tk::real x, tk::real y, tk::real, tk::real t )
 }
 
 static std::vector< tk::real >
-src( tk::real, tk::real, tk::real, tk::real )
+src( tk::real, tk::real, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Compute and return source term for shear-diffusion in 2D
 //! \return Source for flow variables + transported scalars
@@ -818,7 +827,7 @@ src( const std::array< std::vector< tk::real >, 3 >& coord,
 namespace poisson {
 
 static std::vector< tk::real >
-ic( tk::real, tk::real, tk::real, tk::real )
+ic( tk::real, tk::real, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set velocity initial conditions for testing a Poisson solve only
 //! \return Values for initial conditions
@@ -842,7 +851,7 @@ pr( tk::real, tk::real, tk::real )
 }
 
 static tk::real
-ic( tk::real x, tk::real y, tk::real z )
+ic( tk::real x, tk::real y, tk::real z, std::size_t )
 // *****************************************************************************
 //! Evaluate pressure boundary condition
 //! \param[in] x X coordinate where to evaluate the BC
@@ -869,7 +878,7 @@ pr( tk::real, tk::real, tk::real )
 }
 
 static tk::real
-ic( tk::real x, tk::real y, tk::real z )
+ic( tk::real x, tk::real y, tk::real z, std::size_t )
 // *****************************************************************************
 //! Evaluate pressure boundary condition
 //! \param[in] x X coordinate where to evaluate the BC
@@ -901,7 +910,7 @@ pr( tk::real x, tk::real y, tk::real z )
 }
 
 static tk::real
-ic( tk::real x, tk::real y, tk::real z )
+ic( tk::real x, tk::real y, tk::real z, std::size_t )
 // *****************************************************************************
 //! Evaluate pressure boundary condition
 //! \param[in] x X coordinate where to evaluate the BC
@@ -930,7 +939,7 @@ pr( tk::real x, tk::real y, tk::real z )
 }
 
 static tk::real
-ic( tk::real x, tk::real y, tk::real z )
+ic( tk::real x, tk::real y, tk::real z, std::size_t )
 // *****************************************************************************
 //! Evaluate pressure boundary condition
 //! \param[in] x X coordinate where to evaluate the BC
@@ -973,7 +982,7 @@ pg( tk::real x, tk::real y, tk::real )
 }
 
 static tk::real
-ic( tk::real x, tk::real y, tk::real )
+ic( tk::real x, tk::real y, tk::real, std::size_t )
 // *****************************************************************************
 //! Evaluate pressure boundary condition
 //! \param[in] x X coordinate where to evaluate the IC / analytic solution
@@ -990,7 +999,7 @@ ic( tk::real x, tk::real y, tk::real )
 namespace poiseuille {
 
 static std::vector< tk::real >
-ic( tk::real, tk::real y, tk::real, tk::real )
+ic( tk::real, tk::real y, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set initial conditions prescribing the Poisuille problem
 //! \param[in] y Y coordinate where to evaluate the solution
@@ -1015,7 +1024,7 @@ ic( tk::real, tk::real y, tk::real, tk::real )
 }
 
 static std::vector< tk::real >
-sol( tk::real, tk::real y, tk::real, tk::real )
+sol( tk::real, tk::real y, tk::real, tk::real, std::size_t )
 // *****************************************************************************
 //! Set analytic solution of the Poisuille problem
 //! \param[in] y Y coordinate where to evaluate the solution
@@ -1041,8 +1050,24 @@ sol( tk::real, tk::real y, tk::real, tk::real )
 
 } // poiseuille::
 
+namespace overset_linear {
+
+static std::vector< tk::real >
+ic( tk::real x, tk::real, tk::real, tk::real, std::size_t meshid )
+// *****************************************************************************
+//! Set initial conditions prescribing linear a field to test overset
+//! \param[in] x X coordinate where to set the solution
+//! \param[in] meshid Mesh id to use
+//! \return Values of physics variables
+// *****************************************************************************
+{
+  return { 0.0, meshid == 0 ? x : 0.0, 0.0, 0.0 };
+}
+
+} // overset_linear::
+
 std::function< std::vector< tk::real >
-             ( tk::real, tk::real, tk::real, tk::real ) >
+             ( tk::real, tk::real, tk::real, tk::real, std::size_t ) >
 IC()
 // *****************************************************************************
 //  Query user config and assign function to set initial conditions
@@ -1052,7 +1077,7 @@ IC()
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
   std::function< std::vector< tk::real >
-               ( tk::real, tk::real, tk::real, tk::real ) > ic;
+               ( tk::real, tk::real, tk::real, tk::real, std::size_t ) > ic;
 
   if (problem == "userdef" or problem == "point_src")
     ic = userdef::ic;
@@ -1076,6 +1101,8 @@ IC()
     ic = poisson::ic;
   else if (problem == "poiseuille")
     ic = poiseuille::ic;
+  else if (problem == "overset_linear")
+    ic = overset_linear::ic;
   else
     Throw( "problem type ic not hooked up" );
 
@@ -1083,7 +1110,7 @@ IC()
 }
 
 std::function< std::vector< tk::real >
-             ( tk::real, tk::real, tk::real, tk::real ) >
+             ( tk::real, tk::real, tk::real, tk::real, std::size_t ) >
 SOL()
 // *****************************************************************************
 //  Query user config and assign function to query analytic solutions
@@ -1107,12 +1134,14 @@ void
 initialize( const std::array< std::vector< tk::real >, 3 >& coord,
             tk::Fields& U,
             tk::real t,
+            std::size_t meshid,
             const std::vector< std::unordered_set< std::size_t > >& boxnodes )
 // *****************************************************************************
 //  Set inital conditions
 //! \param[in] coord Mesh node coordinates
 //! \param[in,out] U Array of unknowns
 //! \param[in] t Physical time
+//! \param[in] meshid Mesh id to use
 //! \param[in] boxnodes Nodes at which box user ICs are set (for each box IC)
 // *****************************************************************************
 {
@@ -1127,7 +1156,7 @@ initialize( const std::array< std::vector< tk::real >, 3 >& coord,
   for (std::size_t i=0; i<x.size(); ++i) {
 
     // Set background ICs
-    auto s = ic( x[i], y[i], z[i], t );
+    auto s = ic( x[i], y[i], z[i], t, meshid );
     Assert( s.size() == U.nprop(), "Size mismatch" );
 
     // Initialize user-defined ICs in boxes
@@ -1164,7 +1193,7 @@ PRESSURE_RHS()
   return pr;
 }
 
-std::function< tk::real( tk::real, tk::real, tk::real ) >
+std::function< tk::real( tk::real, tk::real, tk::real, std::size_t ) >
 PRESSURE_IC()
 // *****************************************************************************
 //  Query user config and assign function to set pressure initial conditions
@@ -1173,7 +1202,7 @@ PRESSURE_IC()
 {
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
-  std::function< tk::real( tk::real, tk::real, tk::real ) > ic;
+  std::function< tk::real( tk::real, tk::real, tk::real, std::size_t ) > ic;
 
   if ( problem == "userdef" or
        problem == "slot_cyl" or
@@ -1199,7 +1228,7 @@ PRESSURE_IC()
   return ic;
 }
 
-std::function< tk::real( tk::real, tk::real, tk::real ) >
+std::function< tk::real( tk::real, tk::real, tk::real, std::size_t ) >
 PRESSURE_SOL()
 // *****************************************************************************
 //  Query user config and assign function to query analytic pressure solutions
@@ -1237,18 +1266,19 @@ PRESSURE_GRAD()
 }
 
 tk::real
-initialize( tk::real x, tk::real y, tk::real z )
+initialize( tk::real x, tk::real y, tk::real z, std::size_t meshid )
 // *****************************************************************************
 //  Evaluate initial condition for pressure
 //! \param[in] x X coordinate where to evaluate the pressure initial condition
 //! \param[in] y Y coordinate where to evaluate the pressure initial condition
 //! \param[in] z Z coordinate where to evaluate the pressure initial condition
+//! \param[in] meshid Mesh id to use
 //! \return Pressure initial condition
 // *****************************************************************************
 {
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
-  std::function< tk::real( tk::real, tk::real, tk::real ) > ic;
+  std::function< tk::real( tk::real, tk::real, tk::real, std::size_t ) > ic;
 
   if (problem == "poisson_const")
     ic = poisson_const::ic;
@@ -1261,11 +1291,11 @@ initialize( tk::real x, tk::real y, tk::real z )
   else
     Throw( "problem type not hooked up" );
 
-  return ic( x, y, z );
+  return ic( x, y, z, meshid );
 }
 
 std::function< std::vector< tk::real >
-                 ( tk::real, tk::real, tk::real, tk::real ) >
+                 ( tk::real, tk::real, tk::real, tk::real, std::size_t ) >
 SRC()
 // *****************************************************************************
 //  Query user config and assign function to add a source term
@@ -1275,7 +1305,8 @@ SRC()
   const auto& problem = inciter::g_cfg.get< tag::problem >();
 
   std::function<
-    std::vector< tk::real >( tk::real, tk::real, tk::real, tk::real ) > src;
+    std::vector< tk::real >
+               ( tk::real, tk::real, tk::real, tk::real, std::size_t ) > src;
 
   if (problem == "nonlinear_energy_growth")
     src = nonlinear_energy_growth::src;

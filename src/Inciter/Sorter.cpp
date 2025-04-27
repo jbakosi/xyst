@@ -31,7 +31,7 @@ Sorter::Sorter( std::size_t meshid,
                 const CProxy_Transporter& transporter,
                 const tk::CProxy_MeshWriter& meshwriter,
                 const tk::SorterCallback& cbs,
-                const CProxy_Discretization& discretization,
+                const std::vector< CProxy_Discretization >& discretization,
                 const CProxy_RieCG& riecg,
                 const CProxy_LaxCG& laxcg,
                 const CProxy_ZalCG& zalcg,
@@ -88,7 +88,7 @@ Sorter::Sorter( std::size_t meshid,
 //! \param[in] transporter Transporter (host) Charm++ proxy
 //! \param[in] meshwriter Mesh writer Charm++ proxy
 //! \param[in] cbs Charm++ callbacks for Sorter
-//! \param[in] discretization Discretization Charm++ proxy
+//! \param[in] discretization Discretization Charm++ proxy for all meshes
 //! \param[in] riecg RieCG Charm++ proxy
 //! \param[in] laxcg RieCG Charm++ proxy
 //! \param[in] zalcg ZalCG Charm++ proxy
@@ -547,8 +547,8 @@ Sorter::createDiscWorkers()
   // Create worker array element using Charm++ dynamic chare array element
   // insertion.
 
-  m_discretization[ thisIndex ].insert( m_meshid, m_host,
-    m_meshwriter, m_coordmap, m_el, m_nodeCommMap, m_nchare );
+  m_discretization[ m_meshid ][ thisIndex ].insert( m_meshid, m_discretization,
+    m_host, m_meshwriter, m_coordmap, m_el, m_nodeCommMap, m_nchare );
 
   contribute( sizeof(std::size_t), &m_meshid, CkReduction::nop,
               m_cbs.get< tag::discinserted >() );
@@ -561,35 +561,35 @@ Sorter::createWorkers()
 // *****************************************************************************
 {
   // Make sure (bound) base is already created and accessible
-  Assert( m_discretization[ thisIndex ].ckLocal() != nullptr,
+  Assert( m_discretization[ m_meshid ][ thisIndex ].ckLocal() != nullptr,
           "About to pass nullptr" );
 
   // Create worker array element using Charm++ dynamic chare array element
   // insertion.
   const auto& solver = g_cfg.get< tag::solver >();
   if (solver == "riecg") {
-    m_riecg[ thisIndex ].insert( m_discretization, m_bface, m_bnode,
-                                 m_triinpoel );
+    m_riecg[ thisIndex ].insert( m_discretization[ m_meshid ],
+                                 m_bface, m_bnode, m_triinpoel );
   }
   else if (solver == "laxcg") {
-    m_laxcg[ thisIndex ].insert( m_discretization, m_bface, m_bnode,
-                                 m_triinpoel );
+    m_laxcg[ thisIndex ].insert( m_discretization[ m_meshid ],
+                                 m_bface, m_bnode, m_triinpoel );
   }
   else if (solver == "zalcg") {
-    m_zalcg[ thisIndex ].insert( m_discretization, m_bface, m_bnode,
-                                 m_triinpoel );
+    m_zalcg[ thisIndex ].insert( m_discretization[ m_meshid ],
+                                 m_bface, m_bnode, m_triinpoel );
   }
   else if (solver == "kozcg") {
-    m_kozcg[ thisIndex ].insert( m_discretization, m_bface, m_bnode,
-                                 m_triinpoel );
+    m_kozcg[ thisIndex ].insert( m_discretization[ m_meshid ],
+                                 m_bface, m_bnode, m_triinpoel );
   }
   else if (solver == "chocg") {
-    m_chocg[ thisIndex ].insert( m_discretization, m_cgpre, m_cgmom, m_bface,
-                                 m_bnode, m_triinpoel );
+    m_chocg[ thisIndex ].insert( m_discretization[ m_meshid ], m_cgpre, m_cgmom,
+                                 m_bface, m_bnode, m_triinpoel );
   }
   else if (solver == "lohcg") {
-    m_lohcg[ thisIndex ].insert( m_discretization, m_cgpre, m_bface, m_bnode,
-                                 m_triinpoel );
+    m_lohcg[ thisIndex ].insert( m_discretization[ m_meshid ], m_cgpre,
+                                 m_bface, m_bnode, m_triinpoel );
   }
   else {
     Throw( "Unknown solver: " + solver );

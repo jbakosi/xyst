@@ -24,6 +24,7 @@ module discretization {
     array [1D] Discretization {
       entry Discretization(
         std::size_t meshid,
+        const std::vector< CProxy_Discretization >& disc,
         const CProxy_Transporter& transporter,
         const tk::CProxy_MeshWriter& meshwriter,
         const tk::UnsMesh::CoordMap& coordmap,
@@ -31,6 +32,10 @@ module discretization {
         const std::map< int, std::unordered_set< std::size_t > >& nodeCommMap,
         int nchare );
       initnode void registerReducers();
+      entry void transfer_initialized();
+      entry void transfer_from();
+      entry [reductiontarget] void aggregateHoles( CkReductionMsg* msg );
+      entry void holeComplete();
       entry void vol();
       entry void comvol( int c,
                          const std::vector< std::size_t >& gid,

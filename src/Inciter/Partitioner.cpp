@@ -48,7 +48,7 @@ Partitioner::Partitioner(
   const CProxy_Refiner& refiner,
   const CProxy_Sorter& sorter,
   const tk::CProxy_MeshWriter& meshwriter,
-  const CProxy_Discretization& discretization,
+  const std::vector< CProxy_Discretization >& discretization,
   const CProxy_RieCG& riecg,
   const CProxy_LaxCG& laxcg,
   const CProxy_ZalCG& zalcg,
@@ -93,7 +93,7 @@ Partitioner::Partitioner(
 //! \param[in] refiner Mesh refiner proxy
 //! \param[in] sorter Mesh reordering (sorter) proxy
 //! \param[in] meshwriter Mesh writer proxy
-//! \param[in] discretization Discretization base
+//! \param[in] discretization Discretization proxy for all meshes
 //! \param[in] riecg Discretization scheme
 //! \param[in] laxcg Discretization scheme
 //! \param[in] zalcg Discretization scheme
@@ -134,7 +134,10 @@ Partitioner::Partitioner(
   // Compute unqiue mesh graph if needed
   std::unordered_map< int, std::unordered_map< std::size_t,
                              std::unordered_set< std::size_t > > > graph;
-  if ( g_cfg.get< tag::part >() == "phg" ) {
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  const auto& alg = multi ? g_cfg.get< tag::part_ >()[ m_meshid ]
+                          : g_cfg.get< tag::part >();
+  if ( alg == "phg" ) {
     // Generate global node ids for the mesh on this compute node
     const auto gid = tk::uniquecopy( m_ginpoel );
     // Generate points surrounding points of this sub-graph with local node ids
@@ -309,8 +312,11 @@ Partitioner::partition( int nchare )
                                   "number of compute nodes" );
 
   m_nchare = nchare;
-  const auto& alg = g_cfg.get< tag::part >();
-  const auto& params = g_cfg.get< tag::zoltan_params >();
+  bool multi = g_cfg.get< tag::input >().size() > 1;
+  const auto& alg = multi ? g_cfg.get< tag::part_ >()[ m_meshid ]
+                          : g_cfg.get< tag::part >();
+  const auto& params = multi ? g_cfg.get< tag::zoltan_params_ >()[ m_meshid ]
+                             : g_cfg.get< tag::zoltan_params >();
 
   if ( alg == "phg" ) {
 

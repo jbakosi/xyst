@@ -37,6 +37,9 @@
 #include "Writer.hpp"
 
 namespace inciter {
+
+extern int g_nrestart;
+
 namespace ctr {
 
 static constexpr auto largeint = std::numeric_limits< int64_t >::max();
@@ -90,7 +93,7 @@ Config::cmdline( int argc, char** argv )
         get< tag::feedback >() = true;
         break;
       case 'i':
-        get< tag::input >() = optarg;
+        if (!g_nrestart) get< tag::input >().push_back( optarg );
         break;
       case 'l':
         get< tag::lbfreq >() = std::stoul( optarg );
@@ -108,7 +111,7 @@ Config::cmdline( int argc, char** argv )
         get< tag::quiescence >() = true;
         break;
       case 'u':
-        get< tag::virt >() = std::stod( optarg );
+        if (!g_nrestart) get< tag::virt >().push_back( std::stod( optarg ) );
         break;
       case 'v':
         print << '\n';
@@ -123,8 +126,18 @@ Config::cmdline( int argc, char** argv )
     help( argv );
     CkExit( EXIT_FAILURE );
   }
+
+  // Augment virtualization parameters if necessary
+  auto& vir = get< tag::virt>();
+  auto inps = get< tag::input >().size();
+  if (inps > vir.size()) vir.resize( inps, 0.0 );
+
+  // Basic error handling
   ErrChk( not get< tag::input >().empty(),
           "Mandatory input mesh file not specified. Use -i <filename>." );
+  ErrChk( get< tag::input >().size() <= 2,
+          "The maximum number of meshes for coupled problems is 2. If you "
+          "need more, put them into the same mesh file." );
   ErrChk( not get< tag::control >().empty(),
           "Mandatory control file not specified. Use -c <filename>." );
 }
@@ -147,7 +160,8 @@ Config::help( char** argv )
                      "default: " << get< tag::diag >() << "\n" <<
     "  -f            Extra feedback, "
                      "default: " << get< tag::feedback >() << "\n" <<
-    "  -i <in.exo>   Specify input mesh file\n"
+    "  -i <in.exo>   Specify an input mesh file. Use it another time to "
+                     "specify a second mesh file for coupled problems.\n"
     "  -l <int>      Load balancing frequency, "
                      "default: " << get< tag::lbfreq >() << "\n" <<
     "  -n            Non-blocking migration, "
@@ -158,8 +172,7 @@ Config::help( char** argv )
                      "default: " << get< tag::rsfreq >() << "\n" <<
     "  -q            Enable quiescence detection, "
                      "default: " << get< tag::quiescence >() << "\n" <<
-    "  -u <real>     Virtualization, "
-                     "default: " << get< tag::virt >() << "\n" <<
+    "  -u <real>     Virtualization, default: 0.0\n" <<
     "  -v            Print revision information\n"
     "\n";
 }
@@ -545,44 +558,134 @@ range( lua_State* L, bool global = false )
 }
 
 static void
+intergrid_( lua_State* L, Config& cfg,
+            std::vector< std::vector< int > >& sets,
+            std::vector< std::vector< uint64_t > >& lays,
+            std::vector< std::string >& syms )
+// *****************************************************************************
+// Parse integrid_* table from table for multple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+//! \param[in,out] sets State to push back intergrid setids to (outer vec: mesh)
+//! \param[in,out] lays State to push back intergrid layers to (outer vec: mesh)
+//! \param[in,out] syms State to push back holes-ymmetries to (vec: mesh)
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  sets.resize( nf );
+  lays.resize( nf );
+  syms.resize( nf );
+  std::string basename = "intergrid_";
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    if (lua_istable(L, -1)) lua_getfield( L, -1, name.c_str() ); else return;
+
+    if (!lua_isnil( L, -1 )) {
+      sets[k] = sideset( L );
+      lays[k] = unsigints( L, "layers" );
+      syms[k] = string( L, "sym", "" );
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
+overset( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse overset table from global scope
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  lua_getglobal( L, "overset" );
+
+  auto& tf = cfg.get< tag::overset>();
+  intergrid_( L, cfg,
+              tf.get< tag::intergrid_ >(),
+              tf.get< tag::layers_ >(),
+              tf.get< tag::sym_ >() );
+
+  lua_pop( L, 1 );
+}
+
+static void
 fieldout( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse fieldout table
+// Parse fieldout table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "fieldout" );
 
-  cfg.get< tag::fieldout_iter >() = unsigint( L, "iter" );
-  cfg.get< tag::fieldout_time >() = real( L, "time" );
-  cfg.get< tag::fieldout_range >() = range( L );
-  cfg.get< tag::fieldout >() = sideset( L );
+  auto& tf = cfg.get< tag::fieldout >();
+  tf.get< tag::sidesets >() = sideset( L );
+  tf.get< tag::iter >() = unsigint( L, "iter" );
+  tf.get< tag::time >() = real( L, "time" );
+  tf.get< tag::range >() = range( L );
 
   lua_pop( L, 1 );
 }
 
 static void
+fieldout_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse fieldout_* table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "fieldout_";
+  auto& tf = cfg.get< tag::fieldout_ >();
+  tf.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& tfk = tf[k];
+    tfk.get< tag::sidesets >() = sideset( L );
+    tfk.get< tag::iter >() = unsigint( L, "iter" );
+    tfk.get< tag::time >() = real( L, "time" );
+    tfk.get< tag::range >() = range( L );
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
 histout( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse histout table
+// Parse histout table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "histout" );
 
-  cfg.get< tag::histout_iter >() = unsigint( L, "iter" );
-  cfg.get< tag::histout_time >() = real( L, "time" );
-  cfg.get< tag::histout_range >() = range( L );
-  cfg.get< tag::histout_precision >() = sigint( L, "precision", 8 );
-  cfg.get< tag::histout_format >() = string( L, "format" );
+  auto& th = cfg.get< tag::histout >();
+  th.get< tag::iter >() = unsigint( L, "iter" );
+  th.get< tag::time >() = real( L, "time" );
+  th.get< tag::range >() = range( L );
+  th.get< tag::precision >() = sigint( L, "precision", 8 );
+  th.get< tag::format >() = string( L, "format" );
 
   if (lua_istable( L, -1 )) {
     lua_getfield( L, -1, "points" );
     if (!lua_isnil( L, -1 )) {
       ErrChk( lua_istable( L, -1 ), "histout points must be a table" );
-      auto& r = cfg.get< tag::histout >();
+      auto& r = th.get< tag::points >();
       int64_t n = luaL_len( L, -1 );
       for (int64_t i=1; i<=n; ++i) {
         lua_geti( L, -1, i );
@@ -606,24 +709,117 @@ histout( lua_State* L, Config& cfg )
 }
 
 static void
+histout_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse histout_* table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "histout_";
+  auto& th = cfg.get< tag::histout_ >();
+  th.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& thk = th[k];
+
+    thk.get< tag::iter >() = unsigint( L, "iter" );
+    thk.get< tag::time >() = real( L, "time" );
+    thk.get< tag::range >() = range( L );
+    thk.get< tag::precision >() = sigint( L, "precision", 8 );
+    thk.get< tag::format >() = string( L, "format" );
+
+    if (lua_istable( L, -1 )) {
+      lua_getfield( L, -1, "points" );
+      if (!lua_isnil( L, -1 )) {
+        ErrChk( lua_istable( L, -1 ), "histout points must be a table" );
+        auto& r = thk.get< tag::points >();
+        int64_t n = luaL_len( L, -1 );
+        for (int64_t i=1; i<=n; ++i) {
+          lua_geti( L, -1, i );
+          ErrChk( lua_istable( L, -1 ), "histout point must be a table" );
+          r.emplace_back();
+          auto& p = r.back();
+          int64_t m = luaL_len( L, -1 );
+          for (int64_t j=1; j<=m; ++j) {
+            lua_geti( L, -1, j );
+            ErrChk( lua_isnumber(L,-1), "point coordinate must be a number" );
+            p.push_back( lua_tonumber( L, -1 ) );
+            lua_pop( L, 1 );
+          }
+          lua_pop( L, 1 );
+        }
+      }
+      lua_pop( L, 1 );
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
 integout( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse integout table
+// Parse integout table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "integout" );
 
-  cfg.get< tag::integout_iter >() = unsigint( L, "iter" );
-  cfg.get< tag::integout_time >() = real( L, "time" );
-  cfg.get< tag::integout_range >() = range( L );
-  cfg.get< tag::integout_precision >() = sigint( L, "precision", 8 );
-  cfg.get< tag::integout_format >() = string( L, "format" );
-  cfg.get< tag::integout >() = sideset( L );
-  cfg.get< tag::integout_integrals >() = stringlist( L, "integrals" );
+  auto& ti = cfg.get< tag::integout >();
+  ti.get< tag::sidesets >() = sideset( L );
+  ti.get< tag::integrals >() = stringlist( L, "integrals" );
+  ti.get< tag::iter >() = unsigint( L, "iter" );
+  ti.get< tag::time >() = real( L, "time" );
+  ti.get< tag::range >() = range( L );
+  ti.get< tag::precision >() = sigint( L, "precision", 8 );
+  ti.get< tag::format >() = string( L, "format" );
 
   lua_pop( L, 1 );
+}
+
+static void
+integout_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse integout_* table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "integout_";
+  auto& ti = cfg.get< tag::integout_ >();
+  ti.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& tik = ti[k];
+
+    tik.get< tag::sidesets >() = sideset( L );
+    tik.get< tag::integrals >() = stringlist( L, "integrals" );
+    tik.get< tag::iter >() = unsigint( L, "iter" );
+    tik.get< tag::time >() = real( L, "time" );
+    tik.get< tag::range >() = range( L );
+    tik.get< tag::precision >() = sigint( L, "precision", 8 );
+    tik.get< tag::format >() = string( L, "format" );
+
+    lua_pop( L, 1 );
+
+  }
 }
 
 static void
@@ -722,9 +918,114 @@ bc_dirval( lua_State* L,
 }
 
 static void
+bc_dir_( lua_State* L,
+         std::vector< std::vector< std::vector< int > > >& mask,
+         std::size_t nf,
+         bool global = false )
+// *****************************************************************************
+// Parse bc_dir_* table from global scope or table for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] mask State to push back Dirichlet BC setids and mask to
+//!                (outer vec: mesh)
+//! \param[in] nf Number of mesh files specified on command line
+//! \param[in] global True to parse from global scope, false from table on stack
+// *****************************************************************************
+{
+  if (nf == 1) return;
+
+  mask.resize( nf );
+  std::string basename = "bc_dir_";
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+
+    if (global) {
+      lua_getglobal( L, name.c_str() );
+    } else {
+      if (lua_istable(L, -1)) lua_getfield( L, -1, name.c_str() ); else return;
+    }
+
+    if (!lua_isnil( L, -1 )) {
+      ErrChk( lua_istable( L, -1 ), name + " must be a table" );
+      int64_t n = luaL_len( L, -1 );
+      for (int64_t i=1; i<=n; ++i) {
+        lua_geti( L, -1, i );
+        ErrChk( lua_istable( L, -1 ), name + " table entry must be a table" );
+        mask[k].emplace_back();
+        auto& b = mask[k].back();
+        int64_t m = luaL_len( L, -1 );
+        for (int64_t j=1; j<=m; ++j) {
+          lua_geti( L, -1, j );
+          ErrChk( lua_isinteger( L, -1 ), name + " entry must be an integer" );
+          b.push_back( static_cast< int >( lua_tointeger( L, -1 ) ) );
+          lua_pop( L, 1 );
+        }
+        lua_pop( L, 1 );
+      }
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
+bc_dirval_( lua_State* L,
+            std::vector< std::vector< std::vector< double > > >& val,
+            std::size_t nf,
+            bool global = false )
+// *****************************************************************************
+// Parse bc_dirval table
+//! \param[in,out] L Lua state
+//! \param[in,out] val Config state to store Dirichlet BC setids and values
+//! \param[in] nf Number of mesh files specified on command line
+//! \param[in] global True to parse from global scope, false from table on stack
+// *****************************************************************************
+{
+  if (nf == 1) return;
+
+  val.resize( nf );
+  std::string basename = "bc_dirval_";
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+
+    if (global) {
+      lua_getglobal( L, name.c_str() );
+    } else {
+      if (lua_istable(L, -1)) lua_getfield( L, -1, name.c_str() ); else return;
+    }
+
+    if (!lua_isnil( L, -1 )) {
+      ErrChk( lua_istable( L, -1 ), "bc_dirval must be a table" );
+      int64_t n = luaL_len( L, -1 );
+      for (int64_t i=1; i<=n; ++i) {
+        lua_geti( L, -1, i );
+        ErrChk( lua_istable( L, -1 ), "bc_dirval table entry must be a table" );
+        val[k].emplace_back();
+        auto& b = val[k].back();
+        int64_t m = luaL_len( L, -1 );
+        for (int64_t j=1; j<=m; ++j) {
+          lua_geti( L, -1, j );
+          ErrChk( lua_isnumber( L, -1 ), "bc_dirval entry must be an real" );
+          b.push_back( static_cast< double >( lua_tonumber( L, -1 ) ) );
+          lua_pop( L, 1 );
+        }
+        lua_pop( L, 1 );
+      }
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
 bc_sym( lua_State* L, std::vector< int >& s, bool global = false )
 // *****************************************************************************
-// Parse bc_sym table
+// Parse bc_sym table from global scope or table
 //! \param[in,out] L Lua state
 //! \param[in] global True to parse from global scope, false from table on stack
 //! \param[in,out] s Config state
@@ -744,12 +1045,49 @@ bc_sym( lua_State* L, std::vector< int >& s, bool global = false )
 }
 
 static void
+bc_sym_( lua_State* L,
+         std::vector< std::vector< int > >& s,
+         std::size_t nf,
+         bool global = false )
+// *****************************************************************************
+// Parse bc_sym table from global scope or table for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] s State to push back symmetry BC to (outer vec: mesh)
+//! \param[in] nf Number of mesh files specified on command line
+//! \param[in] global True to parse from global scope, false from table on stack
+// *****************************************************************************
+{
+  if (nf == 1) return;
+
+  s.resize( nf );
+  std::string basename = "bc_sym_";
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+
+    if (global) {
+      lua_getglobal( L, name.c_str() );
+    } else {
+      if (lua_istable(L, -1)) lua_getfield( L, -1, name.c_str() ); else return;
+    }
+
+    if (!lua_isnil( L, -1 )) {
+      s[k] = sideset( L );
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
 bc_noslip( lua_State* L, std::vector< int >& s, bool global = false )
 // *****************************************************************************
-// Parse bc_noslip table
+// Parse bc_noslip table from global scope or table
 //! \param[in,out] L Lua state
+//! \param[in,out] s State to push back no-slip BC setids to
 //! \param[in] global True to parse from global scope, false from table on stack
-//! \param[in,out] s Config state
 // *****************************************************************************
 {
   if (global) {
@@ -766,27 +1104,96 @@ bc_noslip( lua_State* L, std::vector< int >& s, bool global = false )
 }
 
 static void
+bc_noslip_( lua_State* L,
+            std::vector< std::vector< int > >& s,
+            std::size_t nf,
+            bool global = false )
+// *****************************************************************************
+// Parse bc_noslip_* table from global scope or table for multple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] s State to push back no-slip BC setids to (outer vec: mesh)
+//! \param[in] nf Number of mesh files specified on command line
+//! \param[in] global True to parse from global scope, false from table on stack
+// *****************************************************************************
+{
+  if (nf == 1) return;
+
+  s.resize( nf );
+  std::string basename = "bc_noslip_";
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+
+    if (global) {
+      lua_getglobal( L, name.c_str() );
+    } else {
+      if (lua_istable(L, -1)) lua_getfield( L, -1, name.c_str() ); else return;
+    }
+
+    if (!lua_isnil( L, -1 )) {
+      s[k] = sideset( L );
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
 bc_far( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse bc_far table
+// Parse bc_far table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "bc_far" );
 
-  cfg.get< tag::bc_far >() = sideset( L );
-  cfg.get< tag::bc_far_velocity >() = vector( L, "velocity" );
-  cfg.get< tag::bc_far_density >() = real( L, "density" );
-  cfg.get< tag::bc_far_pressure >() = real( L, "pressure" );
+  auto& tf = cfg.get< tag::bc_far >();
+  tf.get< tag::sidesets >() = sideset( L );
+  tf.get< tag::velocity >() = vector( L, "velocity" );
+  tf.get< tag::density >() = real( L, "density" );
+  tf.get< tag::pressure >() = real( L, "pressure" );
 
   lua_pop( L, 1 );
 }
 
 static void
+bc_far_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse bc_far_* table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "bc_far_";
+  auto& tf = cfg.get< tag::bc_far_ >();
+  tf.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& tfk = tf[k];
+    tfk.get< tag::sidesets >() = sideset( L );
+    tfk.get< tag::velocity >() = vector( L, "velocity" );
+    tfk.get< tag::density >() = real( L, "density" );
+    tfk.get< tag::pressure >() = real( L, "pressure" );
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
 bc_pre( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse bc_pre table
+// Parse bc_pre table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
@@ -798,9 +1205,10 @@ bc_pre( lua_State* L, Config& cfg )
       lua_getfield( L, -1, name );
       if (!lua_isnil( L, -1 )) {
         ErrChk( lua_istable( L, -1 ), "bc_pre must be a table" );
-        cfg.get< tag::bc_pre >().push_back( sideset( L ) );
-        cfg.get< tag::bc_pre_density >().push_back( real(L,"density") );
-        cfg.get< tag::bc_pre_pressure >().push_back( real(L,"pressure") );
+        auto& tb = cfg.get< tag::bc_pre >();
+        tb.get< tag::sidesets >().push_back( sideset( L ) );
+        tb.get< tag::density >().push_back( real(L,"density") );
+        tb.get< tag::pressure >().push_back( real(L,"pressure") );
       }
       lua_pop( L, 1 );
     };
@@ -813,20 +1221,63 @@ bc_pre( lua_State* L, Config& cfg )
 }
 
 static void
+bc_pre_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse bc_pre_* table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "bc_pre_";
+  auto& tb = cfg.get< tag::bc_pre_ >();
+  tb.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+    auto& tbk = tb[k];
+
+    if (lua_istable( L, -1 )) {
+      auto bc_pre_set = [&]( const char* n ) {
+        lua_getfield( L, -1, n );
+        if (!lua_isnil( L, -1 )) {
+          ErrChk( lua_istable( L, -1 ), "bc_pre must be a table" );
+          tbk.get< tag::sidesets >().push_back( sideset( L ) );
+          tbk.get< tag::density >().push_back( real(L,"density") );
+          tbk.get< tag::pressure >().push_back( real(L,"pressure") );
+        }
+        lua_pop( L, 1 );
+      };
+
+      bc_pre_set( "inlet" );
+      bc_pre_set( "outlet" );
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
 ic( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse ic table
+// Parse ic table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "ic" );
 
-  cfg.get< tag::ic_velocity >() = vector( L, "velocity" );
-  cfg.get< tag::ic_density >() = real( L, "density" );
-  cfg.get< tag::ic_pressure >() = real( L, "pressure" );
-  cfg.get< tag::ic_energy >() = real( L, "energy" );
-  cfg.get< tag::ic_temperature >() = real( L, "temperature" );
+  auto& tic = cfg.get< tag::ic >();
+  tic.get< tag::velocity >() = vector( L, "velocity" );
+  tic.get< tag::density >() = real( L, "density" );
+  tic.get< tag::pressure >() = real( L, "pressure" );
+  tic.get< tag::energy >() = real( L, "energy" );
+  tic.get< tag::temperature >() = real( L, "temperature" );
 
   auto box_extent = [&]( const char* axis, auto& v ) {
     lua_getfield( L, -1, axis );
@@ -847,21 +1298,21 @@ ic( lua_State* L, Config& cfg )
     lua_getfield( L, -1, "boxes" );
     if (!lua_isnil( L, -1 )) {
       ErrChk( lua_istable( L, -1 ), "ic boxes must be a table" );
-      auto& boxes = cfg.get< tag::ic >();
+      auto& boxes = tic.get< tag::boxes >();
       int64_t n = luaL_len( L, -1 );
       for (int64_t i=1; i<=n; ++i) {
         lua_geti( L, -1, i );
         ErrChk( lua_istable( L, -1 ), "ic box must be a table" );
         boxes.emplace_back();
         auto& box = boxes.back();
-        box_extent( "x", box.get< tag::x >() );
-        box_extent( "y", box.get< tag::y >() );
-        box_extent( "z", box.get< tag::z >() );
-        box.get< tag::ic_velocity >() = vector( L, "velocity" );
-        box.get< tag::ic_density >() = real( L, "density" );
-        box.get< tag::ic_pressure >() = real( L, "pressure" );
-        box.get< tag::ic_energy >() = real( L, "energy" );
-        box.get< tag::ic_temperature >() = real( L, "temperature" );
+        box_extent( "x", box.get< tag::box_x >() );
+        box_extent( "y", box.get< tag::box_y >() );
+        box_extent( "z", box.get< tag::box_z >() );
+        box.get< tag::box_velocity >() = vector( L, "velocity" );
+        box.get< tag::box_density >() = real( L, "density" );
+        box.get< tag::box_pressure >() = real( L, "pressure" );
+        box.get< tag::box_energy >() = real( L, "energy" );
+        box.get< tag::box_temperature >() = real( L, "temperature" );
         lua_pop( L, 1 );
       }
     }
@@ -869,6 +1320,78 @@ ic( lua_State* L, Config& cfg )
   }
 
   lua_pop( L, 1 );
+}
+
+static void
+ic_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse ic table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "ic_";
+  auto& tic = cfg.get< tag::ic_ >();
+  tic.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& tick = tic[k];
+    tick.get< tag::velocity >() = vector( L, "velocity" );
+    tick.get< tag::density >() = real( L, "density" );
+    tick.get< tag::pressure >() = real( L, "pressure" );
+    tick.get< tag::energy >() = real( L, "energy" );
+    tick.get< tag::temperature >() = real( L, "temperature" );
+
+    auto box_extent = [&]( const char* axis, auto& v ) {
+      lua_getfield( L, -1, axis );
+      if (!lua_isnil( L, -1 )) {
+        ErrChk( lua_istable( L, -1 ), name + " box extents must be a table" );
+        int64_t n = luaL_len( L, -1 );
+        for (int64_t i=1; i<=n; ++i) {
+          lua_geti( L, -1, i );
+          ErrChk( lua_isnumber( L, -1 ), name + " extent must be a number" );
+          v.push_back( lua_tonumber( L, -1 ) );
+          lua_pop( L, 1 );
+        }
+      }
+      lua_pop( L, 1 );
+    };
+
+    if (lua_istable( L, -1 )) {
+      lua_getfield( L, -1, "boxes" );
+      if (!lua_isnil( L, -1 )) {
+        ErrChk( lua_istable( L, -1 ), name + " boxes must be a table" );
+        auto& boxes = tick.get< tag::boxes >();
+        int64_t n = luaL_len( L, -1 );
+        for (int64_t i=1; i<=n; ++i) {
+          lua_geti( L, -1, i );
+          ErrChk( lua_istable( L, -1 ), name + " box must be a table" );
+          boxes.emplace_back();
+          auto& box = boxes.back();
+          box_extent( "x", box.get< tag::box_x >() );
+          box_extent( "y", box.get< tag::box_y >() );
+          box_extent( "z", box.get< tag::box_z >() );
+          box.get< tag::box_velocity >() = vector( L, "velocity" );
+          box.get< tag::box_density >() = real( L, "density" );
+          box.get< tag::box_pressure >() = real( L, "pressure" );
+          box.get< tag::box_energy >() = real( L, "energy" );
+          box.get< tag::box_temperature >() = real( L, "temperature" );
+          lua_pop( L, 1 );
+        }
+      }
+      lua_pop( L, 1 );
+    }
+
+    lua_pop( L, 1 );
+
+  }
 }
 
 static void
@@ -946,22 +1469,58 @@ problem( lua_State* L, Config& cfg )
 static void
 href( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse href table
+// Parse href table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "href" );
 
-  cfg.get< tag::href_t0 >() = boolean( L, "t0" );
-  cfg.get< tag::href_dt >() = boolean( L, "dt" );
-  cfg.get< tag::href_dtfreq >() = unsigint( L, "dtfreq", 5 );
-  cfg.get< tag::href_init >() = stringlist( L, "init" );
-  cfg.get< tag::href_refvar >() = unsigints( L, "refvar" );
-  cfg.get< tag::href_error >() = string( L, "error", "jump" );
-  cfg.get< tag::href_maxlevels >() = unsigint( L, "maxlevels", 2 );
+  auto& ht = cfg.get< tag::href >();
+  ht.get< tag::t0 >() = boolean( L, "t0" );
+  ht.get< tag::dt >() = boolean( L, "dt" );
+  ht.get< tag::dtfreq >() = unsigint( L, "dtfreq", 5 );
+  ht.get< tag::init >() = stringlist( L, "init" );
+  ht.get< tag::refvar >() = unsigints( L, "refvar" );
+  ht.get< tag::error >() = string( L, "error", "jump" );
+  ht.get< tag::maxlevels >() = unsigint( L, "maxlevels", 2 );
 
   lua_pop( L, 1 );
+}
+
+
+static void
+href_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse href table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "href_";
+  auto& ht = cfg.get< tag::href_ >();
+  ht.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& htk = ht[k];
+    htk.get< tag::t0 >() = boolean( L, "t0" );
+    htk.get< tag::dt >() = boolean( L, "dt" );
+    htk.get< tag::dtfreq >() = unsigint( L, "dtfreq", 5 );
+    htk.get< tag::init >() = stringlist( L, "init" );
+    htk.get< tag::refvar >() = unsigints( L, "refvar" );
+    htk.get< tag::error >() = string( L, "error", "jump" );
+    htk.get< tag::maxlevels >() = unsigint( L, "maxlevels", 6 );
+
+    lua_pop( L, 1 );
+
+  }
 }
 
 static void
@@ -988,23 +1547,127 @@ deactivate( lua_State* L, Config& cfg )
 static void
 pressure( lua_State* L, Config& cfg )
 // *****************************************************************************
-// Parse pressure table
+// Parse pressure table from global scope
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 // *****************************************************************************
 {
   lua_getglobal( L, "pressure" );
 
-  cfg.get< tag::pre_iter >() = unsigint( L, "iter", 10 );
-  cfg.get< tag::pre_tol >() = real( L, "tol", 1.0e-3 );
-  cfg.get< tag::pre_verbose >() = unsigint( L, "verbose", 0 );
-  cfg.get< tag::pre_hydrostat >() = unsigint( L, "hydrostat" );
-  cfg.get< tag::pre_pc >() = string( L, "pc", "none" );
-  bc_dir( L, cfg.get< tag::pre_bc_dir >() );
-  bc_dirval( L, cfg.get< tag::pre_bc_dirval >() );
-  bc_sym( L, cfg.get< tag::pre_bc_sym >() );
+  auto& tp = cfg.get< tag::pressure >();
+  tp.get< tag::iter >() = unsigint( L, "iter", 10 );
+  tp.get< tag::tol >() = real( L, "tol", 1.0e-3 );
+  tp.get< tag::verbose >() = unsigint( L, "verbose", 0 );
+  tp.get< tag::hydrostat >() = unsigint( L, "hydrostat" );
+  tp.get< tag::pc >() = string( L, "pc", "none" );
+  bc_dir( L, tp.get< tag::bc_dir >() );
+  bc_dirval( L, tp.get< tag::bc_dirval >() );
+  bc_sym( L, tp.get< tag::bc_sym >() );
 
   lua_pop( L, 1 );
+}
+
+static void
+pressure_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse pressure_* table from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "pressure_";
+  auto& tp = cfg.get< tag::pressure_ >();
+  tp.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    auto& tpk = tp[k];
+    tpk.get< tag::iter >() = unsigint( L, "iter", 10 );
+    tpk.get< tag::tol >() = real( L, "tol", 1.0e-3 );
+    tpk.get< tag::verbose >() = unsigint( L, "verbose", 0 );
+    tpk.get< tag::hydrostat >() = unsigint( L, "hydrostat" );
+    tpk.get< tag::pc >() = string( L, "pc", "none" );
+    bc_dir( L, tpk.get< tag::bc_dir >() );
+    bc_dirval( L, tpk.get< tag::bc_dirval >() );
+    bc_sym( L, tpk.get< tag::bc_sym >() );
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
+part_( lua_State* L, Config& cfg, const char* def = "default" )
+// *****************************************************************************
+// Parse part_* field from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+//! \param[in] def Default if does not exist
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "part_";
+  auto& vp = cfg.get< tag::part_ >();
+  if (vp.size() != nf ) vp.resize( nf, def );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+
+    if (!lua_isnil( L, -1 )) {
+      ErrChk( lua_isstring( L, -1 ), std::string(name) + " must be a string" );
+      vp[k] = lua_tostring( L, -1 );
+    }
+
+    lua_pop( L, 1 );
+
+  }
+}
+
+static void
+zoltan_params_( lua_State* L, Config& cfg )
+// *****************************************************************************
+// Parse zoltan_params_* field from global scope for multiple meshes
+//! \param[in,out] L Lua state
+//! \param[in,out] cfg Config state
+// *****************************************************************************
+{
+  auto nf = cfg.get< tag::input >().size();
+  if (nf == 1) return;
+
+  std::string basename = "zoltan_params_";
+  auto& vl = cfg.get< tag::zoltan_params_ >();
+  vl.resize( nf );
+
+  for (std::size_t k=0; k<nf; ++k) {
+
+    std::string name = basename + std::to_string(k+1);
+    lua_getglobal( L, name.c_str() );
+    auto& v = vl[k];
+
+    if (!lua_isnil( L, -1 )) {
+      ErrChk( lua_istable( L, -1 ), "stringlist must be a table" );
+      int64_t n = luaL_len( L, -1 );
+      for (int64_t i=1; i<=n; ++i) {
+        lua_geti( L, -1, i );
+        ErrChk( lua_isstring( L, -1 ), "stringlist components must be strings" );
+        v.push_back( lua_tostring( L, -1 ) );
+        lua_pop( L, 1 );
+      }
+    }
+
+    lua_pop( L, 1 );
+
+  }
 }
 
 static void
@@ -1074,8 +1737,13 @@ Config::control()
     get< tag::steady >() = boolean( L, "steady", false, true );
     get< tag::residual >() = real( L, "residual", 0.0, true );
     get< tag::rescomp >() = unsigint( L, "rescomp", 1, true );
+
     get< tag::part >() = string( L, "part", "rcb", true );
+    part_( L, *this, "rcb" );
+
     get< tag::zoltan_params >() = stringlist( L, "zoltan_params", true );
+    zoltan_params_( L, *this );
+
     get< tag::solver >() = string( L, "solver", "riecg", true );
     get< tag::stab >() = boolean( L, "stab", true, true );
     get< tag::stab2 >() = boolean( L, "stab2", false, true );
@@ -1089,21 +1757,40 @@ Config::control()
     get< tag::freezetime >() = real( L, "freezetime", 0.0, true );
 
     ic( L, *this );
+    ic_( L, *this );
+
     bc_dir( L, get< tag::bc_dir >(), true );
+    bc_dir_( L, get< tag::bc_dir_ >(), get< tag::input >().size(), true );
     bc_dirval( L, get< tag::bc_dirval >(), true );
+    bc_dirval_( L, get< tag::bc_dirval_ >(), get< tag::input >().size(), true );
+
     bc_sym( L, get< tag::bc_sym >(), true );
+    bc_sym_( L, get< tag::bc_sym_ >(), get< tag::input >().size(), true );
+
     bc_noslip( L, get< tag::bc_noslip >(), true );
+    bc_noslip_( L, get< tag::bc_noslip_ >(), get< tag::input >().size(), true );
+
     bc_far( L, *this );
+    bc_far_( L, *this );
+
     bc_pre( L, *this );
+    bc_pre_( L, *this );
+
     problem( L, *this );
     mat( L, *this );
+    overset( L, *this );
     fieldout( L, *this );
+    fieldout_( L, *this );
     histout( L, *this );
+    histout_( L, *this );
     integout( L, *this );
+    integout_( L, *this );
     diag( L, *this );
     href( L, *this );
+    href_( L, *this );
     deactivate( L, *this );
     pressure( L, *this );
+    pressure_( L, *this );
     momentum( L, *this );
     lb( L, *this );
 

@@ -17,7 +17,6 @@
 #include "Timer.hpp"
 #include "Fields.hpp"
 #include "PUPUtil.hpp"
-#include "PDFReducer.hpp"
 #include "UnsMesh.hpp"
 #include "History.hpp"
 
@@ -58,6 +57,7 @@ class Discretization : public CBase_Discretization {
     explicit
       Discretization(
         std::size_t meshid,
+        const std::vector< CProxy_Discretization >& disc,
         const CProxy_Transporter& transporter,
         const tk::CProxy_MeshWriter& meshwriter,
         const tk::UnsMesh::CoordMap& coordmap,
@@ -221,6 +221,9 @@ class Discretization : public CBase_Discretization {
     //! IC boxnodes accessor
     const std::vector< std::unordered_set< std::size_t > >& BoxNodes() const
     { return m_boxnodes; }
+
+    //! Transfer flags accessor
+    const std::vector< double >& TransferFlag() const { return m_transfer_flag; }
     //@}
 
     //! Set time step size
@@ -241,6 +244,32 @@ class Discretization : public CBase_Discretization {
 
     //! Output time history for a time step
     void history( std::vector< std::vector< tk::real > >&& data );
+
+    //! Our mesh has been registered with mesh-to-mesh transfer (if coupled)
+    void transfer_initialized();
+
+    //! Initiate solution transfer from background to overset mesh (if coupled)
+    void transfer( tk::Fields& u, CkCallback c, bool trflag );
+
+    //! Initiate solution transfer from overset to background mesh
+    void transfer_from();
+
+    //! Prepare integrid-boundary data structures (if coupled)
+    void intergrid( const std::map< int, std::vector< std::size_t > >& bnode );
+
+    //! Communicate holes to background mesh
+    void hole( const std::map< int, std::vector< std::size_t > >& bface,
+               const std::vector< std::size_t >& triinpoel,
+               CkCallback c );
+
+    //! Receive hole data
+    void aggregateHoles( CkReductionMsg* msg );
+
+    //! Hole communication complete
+    void holeComplete();
+
+    //! Find mesh nodes within hols
+    void holefind();
 
     //! Output mesh and fields data (solution dump) to file(s)
     void write( const std::vector< std::size_t >& inpoel,
@@ -310,6 +339,11 @@ class Discretization : public CBase_Discretization {
     void pup( PUP::er &p ) override {
       p | m_npoin;
       p | m_meshid;
+      p | m_transfer_complete;
+      p | m_transfer_flag;
+      p | m_trflag;
+      p | m_transfer_hole;
+      p | m_holcont;
       p | m_nchare;
       p | m_it;
       p | m_itr;
@@ -327,6 +361,7 @@ class Discretization : public CBase_Discretization {
       p | m_dtn;
       p | m_nvol;
       p | m_boxnodes;
+      p | m_disc;
       p | m_transporter;
       p | m_meshwriter;
       p | m_refiner;
@@ -371,6 +406,19 @@ class Discretization : public CBase_Discretization {
     std::size_t m_npoin;
     //! Mesh ID
     std::size_t m_meshid;
+    //! Function to call after mesh-to-mesh solution transfer is complete
+    CkCallback m_transfer_complete;
+    //! Pointer to solution during mesh-to-mesh solution transfer
+    tk::Fields* m_transfer_sol;
+    //! Transfer flags at nodes (if coupled)
+    std::vector< double > m_transfer_flag;
+    //! Transfer flags if true
+    bool m_trflag;
+    //! Holes tessellation
+    //! \details: Key: hole id, value: list of triangle node coordinates
+    std::unordered_map< std::size_t, std::vector< tk::real > > m_transfer_hole;
+    //! Callback to continue with after hole communication
+    CkCallback m_holcont;
     //! Total number of Discretization chares
     int m_nchare;
     //! Iteration count
@@ -411,6 +459,8 @@ class Discretization : public CBase_Discretization {
     std::size_t m_nvol;
     //! List of nodes at which box user ICs are set for each IC box
     std::vector< std::unordered_set< std::size_t > > m_boxnodes;
+    //! Discretization proxy for all meshes
+    std::vector< CProxy_Discretization > m_disc;
     //! Transporter proxy
     CProxy_Transporter m_transporter;
     //! Mesh writer proxy

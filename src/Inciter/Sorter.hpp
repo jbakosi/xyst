@@ -62,7 +62,7 @@ class Sorter : public CBase_Sorter {
                      const CProxy_Transporter& transporter,
                      const tk::CProxy_MeshWriter& meshwriter,
                      const tk::SorterCallback& cbs,
-                     const CProxy_Discretization& discretization,
+                     const std::vector< CProxy_Discretization >& discretization,
                      const CProxy_RieCG& riecg,
                      const CProxy_LaxCG& laxcg,
                      const CProxy_ZalCG& zalcg,
@@ -189,8 +189,8 @@ class Sorter : public CBase_Sorter {
     tk::CProxy_MeshWriter m_meshwriter;
     //! Charm++ callbacks associated to compile-time tags for sorter
     tk::SorterCallback m_cbs;
-    //! Discretization base proxy
-    CProxy_Discretization m_discretization;
+    //! Discretization proxy for all meshes
+    std::vector< CProxy_Discretization > m_discretization;
     //! Discretization scheme proxy
     CProxy_RieCG m_riecg;
     //! Discretization scheme proxy

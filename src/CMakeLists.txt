@@ -14,11 +14,6 @@ include(BuildType)
 
 option(AMPI "Use Charm++'s AMPI instead of MPI" OFF)
 
-if (NOT AMPI)
-  find_package(MPI REQUIRED)
-  set(COMPILER ${MPI_CXX_COMPILER})
-endif()
-
 set(BUILD_SHARED_LIBS ON CACHE
     BOOL "Build shared libraries. Possible values: ON | OFF")
 
@@ -181,7 +176,7 @@ if(AMPI)
   set(CHARM_NETWORK "netlrts")
   set(XYST_AMPI AMPI)   # will become compiler define
 else()
-  set(CHARM_TARGET "Charm++")
+  set(CHARM_TARGET "LIBS")
   set(CHARM_NETWORK "mpi")
 endif()
 
@@ -202,7 +197,9 @@ if(NOT CHARM_FOUND)
       PREFIX charm
       GIT_REPOSITORY ${CHARM_REPOSITORY}
       GIT_TAG v7.0.0-rc2
-      PATCH_COMMAND patch -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch
+      PATCH_COMMAND
+    patch -p1 -t -i ${PROJECT_SOURCE_DIR}/../cmake/charm-fortran.patch &&
+    patch -p1 -t -i ${PROJECT_SOURCE_DIR}/../cmake/migratable_charmcollide.patch
       CMAKE_ARGS -D TARGET=${CHARM_TARGET}
                  -D NETWORK=${CHARM_NETWORK}
                  -D SMP=${SMP}
@@ -222,6 +219,9 @@ endif()
 
 if(AMPI)
   set(COMPILER ${AMPI_CXX_COMPILER})
+else()
+  find_package(MPI REQUIRED)
+  set(COMPILER ${MPI_CXX_COMPILER})
 endif()
 
 message(STATUS "C++ compiler: " ${COMPILER})
@@ -357,6 +357,7 @@ if (ENABLE_TESTS)
   add_subdirectory(UnitTest)
 endif()
 add_subdirectory(Main)
+add_subdirectory(Transfer)
 
 # Configure regression tests
 if (ENABLE_TESTS)

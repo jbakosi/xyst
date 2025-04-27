@@ -310,7 +310,8 @@ ChoCG::feop()
   // Prepare Dirichlet boundary conditions data structures
   setupDirBC( g_cfg.get< tag::bc_dir >(), g_cfg.get< tag::bc_dirval >(),
               m_u.nprop(), m_dirbcmask, m_dirbcval );
-  setupDirBC( g_cfg.get< tag::pre_bc_dir >(), g_cfg.get< tag::pre_bc_dirval >(),
+  const auto& tp = g_cfg.get< tag::pressure >();
+  setupDirBC( tp.get< tag::bc_dir >(), tp.get< tag::bc_dirval >(),
               1, m_dirbcmaskp, m_dirbcvalp );
 
   // Compute local contributions to boundary normals and integrals
@@ -510,10 +511,10 @@ ChoCG::setup( tk::real v )
   Disc()->Boxvol() = v;
 
   // Set initial conditions
-  problems::initialize( d->Coord(), m_u, d->T(), d->BoxNodes() );
+  problems::initialize( d->Coord(), m_u, d->T(), /*meshid=*/0, d->BoxNodes() );
 
   // Query time history field output labels from all PDEs integrated
-  if (!g_cfg.get< tag::histout >().empty()) {
+  if (!g_cfg.get< tag::histout, tag::points >().empty()) {
     std::vector< std::string > var
       {"density", "xvelocity", "yvelocity", "zvelocity", "energy", "pressure"};
     auto ncomp = m_u.nprop();
@@ -578,7 +579,7 @@ ChoCG::streamable()
 {
   // Query surface integral output nodes
   std::unordered_map< int, std::vector< std::size_t > > surfintnodes;
-  const auto& is = g_cfg.get< tag::integout >();
+  const auto& is = g_cfg.get< tag::integout, tag::sidesets >();
   std::set< int > outsets( begin(is), end(is) );
   for (auto s : outsets) {
     auto m = m_bface.find(s);
@@ -1033,6 +1034,7 @@ ChoCG::pinit()
   const auto& x = coord[0];
   const auto& y = coord[1];
   const auto& z = coord[2];
+  const auto& tp = g_cfg.get< tag::pressure >();
 
   // Combine own and communicated contributions to velocity divergence
   for (const auto& [g,r] : m_divc) m_div[ tk::cref_find(lid,g) ] += r;
@@ -1048,7 +1050,7 @@ ChoCG::pinit()
 
   if (m_np < 3) {       // only during startup and first time step
     // Configure Dirichlet BCs
-    if (!g_cfg.get< tag::pre_bc_dir >().empty()) {
+    if (!tp.get< tag::bc_dir >().empty()) {
       auto ic = problems::PRESSURE_IC();
       std::size_t nmask = 1 + 1;
       Assert( m_dirbcmaskp.size() % nmask == 0, "Size mismatch" );
@@ -1056,7 +1058,7 @@ ChoCG::pinit()
         auto p = m_dirbcmaskp[i*nmask+0];     // local node id
         auto mask = m_dirbcmaskp[i*nmask+1];
         if (mask == 1) {                                  // mask == 1: IC value
-          auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
+          auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p], /*meshid=*/0 );
           dirbc[p] = {{ { 1, val } }};
         } else if (mask == 2 && !m_dirbcvalp.empty()) {   // mask == 2: BC value
           auto val = m_np>1 ? 0.0 : m_dirbcvalp[i*nmask+1];
@@ -1070,7 +1072,7 @@ ChoCG::pinit()
     if (pg) {
       // Collect Neumann BC elements
       std::vector< std::uint8_t > besym( m_triinpoel.size(), 0 );
-      for (auto s : g_cfg.get< tag::pre_bc_sym >()) {
+      for (auto s : tp.get< tag::bc_sym >()) {
         auto k = m_bface.find(s);
         if (k != end(m_bface)) for (auto f : k->second) besym[f] = 1;
       }
@@ -1094,13 +1096,13 @@ ChoCG::pinit()
     }
 
     // Set hydrostat
-    auto h = g_cfg.get< tag::pre_hydrostat >();
+    auto h = tp.get< tag::hydrostat >();
     if (h != std::numeric_limits< uint64_t >::max()) {
       auto pi = lid.find( h );
       if (pi != end(lid)) {
         auto p = pi->second;
         auto ic = problems::PRESSURE_IC();
-        auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p] );
+        auto val = m_np>1 ? 0.0 : ic( x[p], y[p], z[p], /*meshid=*/0 );
         auto& b = dirbc[p];
         if (b.empty()) b = {{ { 1, val }} };
       }
@@ -1118,7 +1120,7 @@ ChoCG::pinit()
 
   // Initialize Poisson solve setting ICs and BCs
   m_cgpre[ thisIndex ].ckLocal()->
-    init( {}, m_div, neubc, dirbc, m_np<3, g_cfg.get< tag::pre_pc >(),
+    init( {}, m_div, neubc, dirbc, m_np<3, tp.get< tag::pc >(),
           CkCallback( CkIndex_ChoCG::psolve(), thisProxy[thisIndex] ) );
 }
 
@@ -1128,9 +1130,10 @@ ChoCG::psolve()
 //  Solve Poisson equation
 // *****************************************************************************
 {
-  auto iter = g_cfg.get< tag::pre_iter >();
-  auto tol = g_cfg.get< tag::pre_tol >();
-  auto verbose = g_cfg.get< tag::pre_verbose >();
+  const auto& tp = g_cfg.get< tag::pressure >();
+  auto iter = tp.get< tag::iter >();
+  auto tol = tp.get< tag::tol >();
+  auto verbose = tp.get< tag::verbose >();
 
   auto c = m_np != 1 ?
            CkCallback( CkIndex_ChoCG::sgrad(), thisProxy[thisIndex] ) :
@@ -1344,7 +1347,8 @@ ChoCG::BC( tk::Fields& u, tk::real t )
 {
   auto d = Disc();
 
-  physics::dirbc( u, t, d->Coord(), d->BoxNodes(), m_dirbcmask, m_dirbcval );
+  physics::dirbc( d->MeshId(), u, t, d->Coord(), d->BoxNodes(), m_dirbcmask,
+                  m_dirbcval );
   physics::symbc( u, m_symbcnodes, m_symbcnorms, /*pos=*/0 );
   physics::noslipbc( u, m_noslipbcnodes, /*pos=*/0 );
 }
@@ -1730,8 +1734,9 @@ ChoCG::refine()
   // See if this is the last time step
   if (d->finished()) m_finished = 1;
 
-  auto dtref = g_cfg.get< tag::href_dt >();
-  auto dtfreq = g_cfg.get< tag::href_dtfreq >();
+  const auto& ht = g_cfg.get< tag::href >();
+  auto dtref = ht.get< tag::dt >();
+  auto dtfreq = ht.get< tag::dtfreq >();
 
   // if t>0 refinement enabled and we hit the frequency
   if (dtref && !(d->It() % dtfreq)) {   // refine
@@ -1900,7 +1905,7 @@ ChoCG::writeFields( CkCallback cb )
     const auto& z = coord[2];
     auto an = m_u;
     for (std::size_t i=0; i<an.nunk(); ++i) {
-      auto s = sol( x[i], y[i], z[i], d->T() );
+      auto s = sol( x[i], y[i], z[i], d->T(), /*meshid=*/0 );
       for (std::size_t c=0; c<s.size(); ++c) an(i,c) = s[c];
     }
     nodefieldnames.push_back( "velocity_analyticx" );
@@ -1924,7 +1929,7 @@ ChoCG::writeFields( CkCallback cb )
     const auto& z = coord[2];
     auto ap = m_pr;
     for (std::size_t i=0; i<ap.size(); ++i) {
-      ap[i] = pressure_sol( x[i], y[i], z[i] );
+      ap[i] = pressure_sol( x[i], y[i], z[i], /*meshid=*/0 );
     }
     nodefieldnames.push_back( "analytic" );
     nodefields.push_back( ap );
@@ -1937,7 +1942,7 @@ ChoCG::writeFields( CkCallback cb )
   std::vector< std::string > nodesurfnames;
   std::vector< std::vector< tk::real > > nodesurfs;
 
-  const auto& f = g_cfg.get< tag::fieldout >();
+  const auto& f = g_cfg.get< tag::fieldout, tag::sidesets >();
 
   if (!f.empty()) {
     std::size_t nc = 5;
@@ -2043,7 +2048,7 @@ ChoCG::integrals()
     ints[ DT ][ 0 ] = d->Dt();
 
     // Compute integrals requested for surfaces requested
-    const auto& reqv = g_cfg.get< tag::integout_integrals >();
+    const auto& reqv = g_cfg.get< tag::integout, tag::integrals >();
     std::unordered_set< std::string > req( begin(reqv), end(reqv) );
     if (req.count("mass_flow_rate")) {
       for (const auto& [s,sint] : m_surfint) {

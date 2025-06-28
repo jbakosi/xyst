@@ -8,7 +8,13 @@ rendered at [https://xyst.cc/coverage.html](https://xyst.cc/coverage.html).
 
 @section howto_coverage_build How to generate test code coverage and static analysis pages
 
-To clone and build the test code coverage and static analysis pages do
+Install prerequisites: _Debian-based linux_
+
+@code{.sh}
+apt install doxygen python3-pygments python3-jinja2 texlive-latex-base texlive-latex-extra texlive-fonts-extra lcov cppcheck
+@endcode
+
+Then to clone and build the test code coverage and static analysis pages do
 
 @code{.sh}
 git clone https://codeberg.org/xyst/xyst.git && cd xyst

@@ -47,6 +47,14 @@ FUNCTION(SETUP_TARGET_FOR_ALL_COVERAGE path targetname unittestrunner
   cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"
                         ${ARGN})
 
+  IF(NOT GCOV)
+    MESSAGE(FATAL_ERROR "gcov not found! Aborting...")
+  ENDIF()
+
+  IF(NOT LCOV)
+    MESSAGE(FATAL_ERROR "lcov not found! Aborting...")
+  ENDIF()
+
   IF(NOT FASTCOV)
     MESSAGE(FATAL_ERROR "fastcov not found! Aborting...")
   ENDIF()

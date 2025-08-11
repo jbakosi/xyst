@@ -5,7 +5,7 @@
 <img src="images/Eo_circle_deep-orange_letter-x.svg"/>
 @m_enddiv
 
-_Xyst_ is a Navier-Stokes solver for engineering flows.
+_Xyst_ is a [Navier-Stokes](https://en.wikipedia.org/wiki/Navier%E2%80%93Stokes_equations) solver for engineering flows.
 
 The goal of this project is to simulate engineering problems with a
 production-quality code that is extensible and maintainable, using hardware
@@ -21,6 +21,8 @@ balancing enables redistribution of heterogeneous computational load based on
 real-time CPU load measurement at negligible cost. The runtime system also
 features automatic checkpointing, fault tolerance, resilience against hardware
 failure, and supports power-, and energy-aware computation.
+
+@m_div{m-button m-success} <a href="https://link.xyst.cc/Hidalgo2-196K">@m_div{m-big}HiDALGO2: _Scaling to new heights: Xyst code excites with unprecedented 196K core run on LUMI supercomputer_@m_enddiv</a> @m_enddiv
 
 @section mainpage_tools Tools
 

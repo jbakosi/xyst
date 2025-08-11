@@ -53,6 +53,7 @@
   #pragma GCC diagnostic ignored "-Wunused-parameter"
   #pragma GCC diagnostic ignored "-Wdeprecated-copy"
   #pragma GCC diagnostic ignored "-Wextra"
+  #pragma GCC diagnostic ignored "-Wtemplate-id-cdtor"
 #endif
 
 #include "../Transfer/nodesearch.decl.h"

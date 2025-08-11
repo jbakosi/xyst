@@ -20,6 +20,11 @@
 
 namespace unittest {
 
+#if defined(STRICT_GNUC)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunused-result"
+#endif
+
 //! \brief Ensure equality of all element of a vector of Ts (e.g., floating
 //!   point numbers) up to some precision
 //! \param[in] msg Message to output if the vectors are not equal
@@ -53,6 +58,10 @@ void veceq( const std::string& msg,
               [ &msg, &prec ]( T s, T d )
               { tut::ensure_equals( msg, s, d, prec ); return true; } );
 }
+
+#if defined(STRICT_GNUC)
+  #pragma GCC diagnostic pop
+#endif
 
 } // unittest::
 

@@ -88,7 +88,7 @@ FUNCTION(SETUP_TARGET_FOR_ALL_COVERAGE path targetname unittestrunner
             ${CMAKE_SOURCE_DIR}/../doc/xyst.lcov.prolog
             ${CMAKE_BINARY_DIR}
     # Generate HTML report
-    COMMAND ${GENHTML} --legend --rc genhtml_branch_coverage=1 --demangle-cpp --css-file xyst.gcov.css --ignore-errors source --html-prolog xyst.lcov.prolog -o ${OUTPUT} ${OUTPUT}.info
+    COMMAND ${GENHTML} --legend --rc branch_coverage=1 --demangle-cpp --css-file xyst.gcov.css --ignore-errors unsupported --ignore-errors inconsistent --ignore-errors corrupt --html-prolog xyst.lcov.prolog -o ${OUTPUT} ${OUTPUT}.info
     # Customize page headers in generated html
     COMMAND find ${OUTPUT} -type f -exec ${SED} -i "s/LCOV - code coverage report/Xyst test code coverage report/g" {} +
     COMMAND find ${OUTPUT} -type f -exec ${SED} -i "s/<td class=\"headerItem\">Test:<\\/td>/<td class=\"headerItem\">Commit:<\\/td>/g" {} +

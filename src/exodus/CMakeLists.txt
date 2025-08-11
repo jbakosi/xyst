@@ -113,6 +113,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
                                          -Wno-zero-as-null-pointer-constant
                                          -Wno-cast-function-type
                                          -Wno-double-promotion
+                                         -Wno-dangling-reference
                                          -Wno-sign-conversion)
 endif()
 target_link_libraries(exodiff PUBLIC exodus

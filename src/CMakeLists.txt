@@ -1,6 +1,6 @@
 # Build xyst
 
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 project(xyst C CXX)
 
@@ -149,10 +149,15 @@ string(REGEX REPLACE "[\r\n]" "" BUILD_DATE_SIMPLE "${BUILD_DATE_SIMPLE}")
 # Include support for multiarch path names
 include(GNUInstallDirs)
 
-include(ProcessorCount)
-ProcessorCount(PROCESSOR_COUNT)
-if(PROCESSOR_COUNT EQUAL 0)
-  set(PROCESSOR_COUNT "1")
+# Determine number of CPUs available
+if (DEFINED ENV{SLURM_NPROCS})
+  set(PROCESSOR_COUNT $ENV{SLURM_NPROCS})
+else()
+  include(ProcessorCount)
+  ProcessorCount(PROCESSOR_COUNT)
+  if(PROCESSOR_COUNT EQUAL 0)     # if ncpus could not be determined, assign 1
+    set(PROCESSOR_COUNT "1")
+  endif()
 endif()
 message(STATUS "Found ${PROCESSOR_COUNT} PEs")
 
@@ -190,7 +195,7 @@ if(NOT CHARM_FOUND)
   endif()
   message(STATUS "Will build charm++ from: ${CHARM_REPOSITORY}")
   build_external_project(charm "
-    cmake_minimum_required(VERSION 3.0)
+    cmake_minimum_required(VERSION 3.10)
     project(charm CXX)
     include(ExternalProject)
     ExternalProject_add(charm
@@ -203,6 +208,7 @@ if(NOT CHARM_FOUND)
       CMAKE_ARGS -D TARGET=${CHARM_TARGET}
                  -D NETWORK=${CHARM_NETWORK}
                  -D SMP=${SMP}
+                 -D CMK_AMPI_WITH_ROMIO=0
                  -D ENABLE_FORTRAN=off
                  #-D SYNCFT=on
                  -D CMAKE_BUILD_TYPE=Release ${CHARM_OPTS}
@@ -247,7 +253,7 @@ endif()
 option(BUILD_DOC "Build docmentation" OFF)
 if (BUILD_DOC)
   # Find Python: required for code coverage (fastcov) and doc (m.css)
-  find_package(PythonInterp 3.6 QUIET)
+  find_package(Python3 3.6 QUIET)
   # Attempt to find tools required for code coverage analysis
   include(DetectCodeCoverage)
   # Set compiler flags to perform code coverage analysis
@@ -368,8 +374,8 @@ endif()
 
 # Configure building documentation and web page
 if (BUILD_DOC)
-  find_package(MCSS QUIET)
-  if (DOXYGEN_FOUND AND MCSS_FOUND AND PYTHONINTERP_FOUND AND PYGMENTS_FOUND AND
+  find_package(MCSS)
+  if (DOXYGEN_FOUND AND MCSS_FOUND AND Python3_Interpreter_FOUND AND PYGMENTS_FOUND AND
       JINJA2_FOUND AND LATEX_FOUND)
 
     if (Git_FOUND)
@@ -404,17 +410,6 @@ if (BUILD_DOC)
 
   # Setup code coverage targets
   if(CODE_COVERAGE)
-    # Determine number of CPUs available
-    if (DEFINED ENV{SLURM_NPROCS})
-      set(PROCESSOR_COUNT $ENV{SLURM_NPROCS})
-    else()
-      include(ProcessorCount)
-      ProcessorCount(PROCESSOR_COUNT)
-      if(PROCESSOR_COUNT EQUAL 0)     # if ncpus could not be determined, assign 1
-        set(PROCESSOR_COUNT "1")
-      endif()
-    endif()
-    message(STATUS "Found ${PROCESSOR_COUNT} PEs")
     include(CppCheck)
     include(CodeCoverage)
     setup_target_for_all_coverage(doc/html/${CMAKE_BUILD_TYPE} test_coverage

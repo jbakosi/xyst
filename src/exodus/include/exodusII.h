@@ -15,7 +15,9 @@
 
 #include "exodus_config.h"
 
+#define NETCDF_ENABLE_LEGACY_MACROS
 #include "netcdf.h"
+#undef NETCDF_ENABLE_LEGACY_MACROS
 
 #if defined(NC_HAVE_META_H)
 #include "netcdf_meta.h"

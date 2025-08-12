@@ -10,8 +10,7 @@
              warnings
 */
 // *****************************************************************************
-#ifndef nowarning_unittest_def_h
-#define nowarning_unittest_def_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -29,6 +28,7 @@
   #pragma clang diagnostic ignored "-Wmissing-noreturn"
   #pragma clang diagnostic ignored "-Wsuggest-override"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wswitch-default"
@@ -45,5 +45,3 @@
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // nowarning_unittest_def_h

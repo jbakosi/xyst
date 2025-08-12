@@ -23,17 +23,22 @@ set(suplib_cpp_src
 add_library(suplib_cpp ${suplib_cpp_src})
 target_include_directories(suplib_cpp PUBLIC suplib_cpp)
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-  target_compile_options(suplib_cpp PRIVATE -Wno-documentation-unknown-command
-                                            -Wno-signed-enum-bitfield
-                                            -Wno-switch-enum
-                                            -Wno-missing-prototypes
-                                            -Wno-sign-conversion
-                                            -Wno-undef
-                                            -Wno-covered-switch-default
-                                            -Wno-unused-template
-                                            -Wno-missing-noreturn
-                                            -Wno-extra-semi-stmt
-                                            -Wno-old-style-cast)
+  target_compile_options(suplib_cpp PRIVATE
+     -Wno-documentation-unknown-command
+     -Wno-signed-enum-bitfield
+     -Wno-switch-enum
+     -Wno-switch-default
+     -Wno-missing-prototypes
+     -Wno-sign-conversion
+     -Wno-undef
+     -Wno-deprecated-literal-operator
+     -Wno-deprecated-redundant-constexpr-static-def
+     -Wno-covered-switch-default
+     -Wno-unused-template
+     -Wno-missing-noreturn
+     -Wno-extra-semi-stmt
+     -Wno-unsafe-buffer-usage
+     -Wno-old-style-cast)
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   target_compile_options(suplib_cpp PRIVATE -Wno-switch-enum
                                             -Wno-sign-conversion
@@ -95,11 +100,14 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
                                          -Wno-weak-template-vtables
                                          -Wno-zero-as-null-pointer-constant
                                          -Wno-disabled-macro-expansion
+                                         -Wno-deprecated-literal-operator
+                                         -Wno-switch-default
                                          -Wno-missing-prototypes
                                          -Wno-signed-enum-bitfield
                                          -Wno-missing-variable-declarations
                                          -Wno-double-promotion
                                          -Wno-extra-semi-stmt
+                                         -Wno-unsafe-buffer-usage
                                          -Wno-sign-conversion
                                          -Wno-shorten-64-to-32
                                          -Wno-implicit-float-conversion

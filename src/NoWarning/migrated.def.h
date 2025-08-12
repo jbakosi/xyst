@@ -10,8 +10,7 @@
              warnings
 */
 // *****************************************************************************
-#ifndef nowarning_migrated_base_def_h
-#define nowarning_migrated_base_def_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -22,6 +21,7 @@
   #pragma clang diagnostic ignored "-Wshorten-64-to-32"
   #pragma clang diagnostic ignored "-Wunused-variable"
   #pragma clang diagnostic ignored "-Wcast-qual"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wcast-qual"
@@ -35,5 +35,3 @@
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // nowarning_migrated_base_def_h

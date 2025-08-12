@@ -10,14 +10,14 @@
              warnings
 */
 // *****************************************************************************
-#ifndef nowarning_sip_hash_h
-#define nowarning_sip_hash_h
+#pragma once
 
 #include "Compiler.hpp"
 
 #if defined(__clang__)
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wshorten-64-to-32"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #endif
 
 #include <highwayhash/sip_hash.h>
@@ -25,5 +25,3 @@
 #if defined(__clang__)
   #pragma clang diagnostic pop
 #endif
-
-#endif // nowarning_sip_hash_h

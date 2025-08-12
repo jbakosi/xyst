@@ -9,8 +9,7 @@
   \brief     Include tut/tut.hpp with turning off specific compiler warnings
 */
 // *****************************************************************************
-#ifndef nowarning_tut_h
-#define nowarning_tut_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -32,6 +31,7 @@
   #pragma clang diagnostic ignored "-Wmismatched-tags"
   #pragma clang diagnostic ignored "-Wsign-conversion"
   #pragma clang diagnostic ignored "-Wsuggest-override"
+  #pragma clang diagnostic ignored "-Wswitch-default"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
@@ -49,5 +49,3 @@
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // nowarning_tut_h

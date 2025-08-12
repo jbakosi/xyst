@@ -9,8 +9,7 @@
   \brief     Include refiner.decl.h with turning off specific compiler warnings.
 */
 // *****************************************************************************
-#ifndef nowarning_refiner_decl_h
-#define nowarning_refiner_decl_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -42,6 +41,7 @@
   #pragma clang diagnostic ignored "-Wundefined-func-template"
   #pragma clang diagnostic ignored "-Wsign-compare"
   #pragma clang diagnostic ignored "-Wunused-private-field"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wextra"
@@ -61,5 +61,3 @@
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // nowarning_refiner_decl_h

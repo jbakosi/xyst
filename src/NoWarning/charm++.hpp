@@ -9,8 +9,7 @@
   \brief     Include charm++.h with turning off specific compiler warnings
 */
 // *****************************************************************************
-#ifndef nowarning_charmpp_h
-#define nowarning_charmpp_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -34,6 +33,7 @@
   #pragma clang diagnostic ignored "-Wcast-align"
   #pragma clang diagnostic ignored "-Wshadow"
   #pragma clang diagnostic ignored "-Wcovered-switch-default"
+  #pragma clang diagnostic ignored "-Wswitch-default"
   #pragma clang diagnostic ignored "-Wswitch-enum"
   #pragma clang diagnostic ignored "-Wdeprecated"
   #pragma clang diagnostic ignored "-Wmismatched-tags"
@@ -50,6 +50,7 @@
   #pragma clang diagnostic ignored "-Wsuggest-override"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
   #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wredundant-decls"
@@ -84,5 +85,3 @@
 #elif defined(__INTEL_COMPILER)
   #pragma warning( pop )
 #endif
-
-#endif // nowarning_charmpp_h

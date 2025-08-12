@@ -9,8 +9,7 @@
   \brief     Include sorter.def.h with turning off specific compiler warnings.
 */
 // *****************************************************************************
-#ifndef nowarning_sorter_def_h
-#define nowarning_sorter_def_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -27,6 +26,7 @@
   #pragma clang diagnostic ignored "-Wmissing-noreturn"
   #pragma clang diagnostic ignored "-Wsuggest-override"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -41,5 +41,3 @@
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // nowarning_sorter_def_h

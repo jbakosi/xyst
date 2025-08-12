@@ -10,8 +10,7 @@
              compiler warnings
 */
 // *****************************************************************************
-#ifndef nowarning_lbswitch_decl_h
-#define nowarning_lbswitch_decl_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -54,6 +53,7 @@
   #pragma clang diagnostic ignored "-Wsuggest-override"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
   #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wcast-qual"
@@ -81,5 +81,3 @@
 #elif defined(__INTEL_COMPILER)
   #pragma warning( pop )
 #endif
-
-#endif // nowarning_lbswitch_decl_h

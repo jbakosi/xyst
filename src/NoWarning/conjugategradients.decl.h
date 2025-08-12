@@ -34,6 +34,7 @@
   #pragma clang diagnostic ignored "-Wcast-qual"
   #pragma clang diagnostic ignored "-Wshadow-field-in-constructor"
   #pragma clang diagnostic ignored "-Wswitch-enum"
+  #pragma clang diagnostic ignored "-Wswitch-default"
   #pragma clang diagnostic ignored "-Wcovered-switch-default"
   #pragma clang diagnostic ignored "-Wzero-length-array"
   #pragma clang diagnostic ignored "-Wheader-hygiene"
@@ -49,6 +50,7 @@
   #pragma clang diagnostic ignored "-Wunused-template"
   #pragma clang diagnostic ignored "-Wsuggest-override"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wcast-qual"

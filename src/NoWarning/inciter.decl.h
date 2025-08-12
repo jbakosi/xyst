@@ -10,8 +10,7 @@
              warnings
 */
 // *****************************************************************************
-#ifndef nowarning_inciter_decl_h
-#define nowarning_inciter_decl_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -50,6 +49,7 @@
   #pragma clang diagnostic ignored "-Wunneeded-internal-declaration"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
   #pragma clang diagnostic ignored "-Wunused-template"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -81,5 +81,3 @@
 #elif defined(__INTEL_COMPILER)
   #pragma warning( pop )
 #endif
-
-#endif // nowarning_inciter_decl_h

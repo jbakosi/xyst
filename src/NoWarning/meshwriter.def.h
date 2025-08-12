@@ -10,8 +10,7 @@
              warnings
 */
 // *****************************************************************************
-#ifndef nowarning_meshwriter_def_h
-#define nowarning_meshwriter_def_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -26,6 +25,7 @@
   #pragma clang diagnostic ignored "-Wcast-qual"
   #pragma clang diagnostic ignored "-Wsuggest-override"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wcast-qual"
@@ -41,5 +41,3 @@
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // nowarning_meshwriter_def_h

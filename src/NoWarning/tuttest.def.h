@@ -27,6 +27,7 @@
   #pragma clang diagnostic ignored "-Wunused-variable"
   #pragma clang diagnostic ignored "-Wcast-qual"
   #pragma clang diagnostic ignored "-Wsuggest-override"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"

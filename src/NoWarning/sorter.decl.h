@@ -9,8 +9,7 @@
   \brief     Include sorter.decl.h with turning off specific compiler warnings.
 */
 // *****************************************************************************
-#ifndef nowarning_sorter_decl_h
-#define nowarning_sorter_decl_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -20,6 +19,7 @@
   #pragma clang diagnostic ignored "-Wold-style-cast"
   #pragma clang diagnostic ignored "-Wshorten-64-to-32"
   #pragma clang diagnostic ignored "-Wunused-parameter"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -32,5 +32,3 @@
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic pop
 #endif
-
-#endif // nowarning_sorter_decl_h

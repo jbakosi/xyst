@@ -9,8 +9,7 @@
   \brief     Include tuttest.decl.h with turning off specific compiler warnings
 */
 // *****************************************************************************
-#ifndef nowarning_tuttest_decl_h
-#define nowarning_tuttest_decl_h
+#pragma once
 
 #include "Compiler.hpp"
 
@@ -22,6 +21,7 @@
   #pragma clang diagnostic ignored "-Wextra-semi"
   #pragma clang diagnostic ignored "-Wextra-semi-stmt"
   #pragma clang diagnostic ignored "-Wcovered-switch-default"
+  #pragma clang diagnostic ignored "-Wswitch-default"
   #pragma clang diagnostic ignored "-Wundef"
   #pragma clang diagnostic ignored "-Wdocumentation"
   #pragma clang diagnostic ignored "-Wdocumentation-unknown-command"
@@ -51,6 +51,7 @@
   #pragma clang diagnostic ignored "-Wsuggest-override"
   #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
   #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
+  #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #elif defined(STRICT_GNUC)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wredundant-decls"
@@ -83,5 +84,3 @@
 #elif defined(__INTEL_COMPILER)
   #pragma warning( pop )
 #endif
-
-#endif // nowarning_tuttest_decl_h

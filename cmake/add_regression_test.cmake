@@ -12,7 +12,9 @@
 
 function(softlink target link_name)
 
-  cmake_policy(SET CMP0153 OLD)
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.28")
+    cmake_policy(SET CMP0153 OLD)
+  endif()
   set(LN_COMMAND "ln -sf ${target} ${link_name}")
   exec_program(${LN_COMMAND} OUTPUT_VARIABLE ln_output RETURN_VALUE ln_retval)
 

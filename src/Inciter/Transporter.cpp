@@ -424,7 +424,7 @@ void
 Transporter::load( std::size_t meshid, std::size_t nelem )
 // *****************************************************************************
 // Reduction target: the mesh has been read from file on all PEs
-//! \param[in] meshid Mesh id (summed accross all compute nodes)
+//! \param[in] meshid Mesh id (summed across all compute nodes)
 //! \param[in] nelem Number of mesh elements per mesh (summed across all
 //!    compute nodes)
 // *****************************************************************************
@@ -675,7 +675,7 @@ Transporter::bndint( tk::real sx, tk::real sy, tk::real sz, tk::real cb,
 //! \param[in] sy Y component of vector summed
 //! \param[in] sz Z component of vector summed
 //! \param[in] cb Invoke callback if positive
-//! \param[in] summeshid Mesh id (summed accross all chares)
+//! \param[in] summeshid Mesh id (summed across all chares)
 //! \details This function aggregates partial surface integrals across the
 //!   boundary faces of the whole problem. After this global sum a
 //!   non-zero vector result indicates a leak, e.g., a hole in the boundary,
@@ -711,7 +711,7 @@ Transporter::refined( std::size_t summeshid,
                       std::size_t npoin )
 // *****************************************************************************
 // Reduction target: all chares have refined their mesh
-//! \param[in] summeshid Mesh id (summed accross all Refiner chares)
+//! \param[in] summeshid Mesh id (summed across all Refiner chares)
 //! \param[in] nelem Total number of elements in mesh summed across the
 //!   distributed mesh
 //! \param[in] npoin Total number of mesh points summed across the distributed
@@ -842,7 +842,7 @@ void
 Transporter::disccreated( std::size_t summeshid, std::size_t npoin )
 // *****************************************************************************
 // Reduction target: all Discretization constructors have been called
-//! \param[in] summeshid Mesh id (summed accross all chares)
+//! \param[in] summeshid Mesh id (summed across all chares)
 //! \param[in] npoin Total number of mesh points (summed across all chares)
 //!  Note that as opposed to npoin in refined(), this npoin is not
 //!  multi-counted, and thus should be correct in parallel.
@@ -1099,7 +1099,7 @@ Transporter::totalvol( tk::real v, tk::real initial, tk::real summeshid )
 //! \param[in] v Mesh volume summed across the distributed mesh
 //! \param[in] initial Sum of contributions from all chares. If larger than
 //!    zero, we are during setup, if zero, during time stepping.
-//! \param[in] summeshid Mesh id (summed accross the distributed mesh)
+//! \param[in] summeshid Mesh id (summed across the distributed mesh)
 // *****************************************************************************
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
@@ -1142,7 +1142,7 @@ void
 Transporter::minstat( tk::real d0, tk::real d1, tk::real d2, tk::real d3,
                       tk::real d4, tk::real d5, tk::real rmeshid )
 // *****************************************************************************
-// Reduction target yielding minimum mesh statistcs across all workers
+// Reduction target yielding minimum mesh statistics across all workers
 //! \param[in] d0 Minimum mesh statistics collected over all chares
 //! \param[in] d1 Minimum mesh statistics collected over all chares
 //! \param[in] d2 Minimum mesh statistics collected over all chares
@@ -1205,7 +1205,7 @@ Transporter::sumstat( tk::real d0, tk::real d1, tk::real d2, tk::real d3,
 //! \param[in] d6 Sum mesh statistics collected over all chares
 //! \param[in] d7 Sum mesh statistics collected over all chares
 //! \param[in] d8 Sum mesh statistics collected over all chares
-//! \param[in] summeshid Mesh id (summed accross the distributed mesh)
+//! \param[in] summeshid Mesh id (summed across the distributed mesh)
 // *****************************************************************************
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );
@@ -1351,7 +1351,7 @@ Transporter::boxvol( tk::real v, tk::real summeshid )
 // *****************************************************************************
 // Reduction target computing total volume of IC box(es)
 //! \param[in] v Total volume within user-specified IC box(es)
-//! \param[in] summeshid Mesh id as a real (summed accross the distributed mesh)
+//! \param[in] summeshid Mesh id as a real (summed across the distributed mesh)
 // *****************************************************************************
 {
   auto meshid = tk::cref_find( m_meshid, static_cast<std::size_t>(summeshid) );

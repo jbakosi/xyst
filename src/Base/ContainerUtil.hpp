@@ -132,7 +132,7 @@ operator+=( std::array< T, N >& dst, const std::array< T, N >& src ) {
 //! \details If src.size() > dst.size() will grow dst to that of src.size()
 //!   padding with zeros.
 //! \note Will throw exception in DEBUG if src is empty (to warn on no-op), and
-//!   if src.size() < dst.size() (to warn on loosing data).
+//!   if src.size() < dst.size() (to warn on losing data).
 template< class T, class Allocator >
 std::vector< T, Allocator >&
 operator+=( std::vector< T, Allocator >& dst,
@@ -154,7 +154,7 @@ operator+=( std::vector< T, Allocator >& dst,
 //! \details If src.size() > dst.size() will grow dst to that of src.size()
 //!   padding with zeros.
 //! \note Will throw exception in DEBUG if src is empty (to warn on no-op), and
-//!   if src.size() < dst.size() (to warn on loosing data).
+//!   if src.size() < dst.size() (to warn on losing data).
 template< class T, class Allocator >
 std::vector< T, Allocator >&
 operator-=( std::vector< T, Allocator >& dst,
@@ -176,7 +176,7 @@ operator-=( std::vector< T, Allocator >& dst,
 //! \details If src.size() > dst.size() will grow dst to that of src.size()
 //!   padding with zeros.
 //! \note Will throw exception in DEBUG if src is empty (to warn on no-op), and
-//!   if src.size() < dst.size() (to warn on loosing data).
+//!   if src.size() < dst.size() (to warn on losing data).
 template< class T, class Allocator >
 std::vector< T, Allocator >&
 operator/=( std::vector< T, Allocator >& dst,

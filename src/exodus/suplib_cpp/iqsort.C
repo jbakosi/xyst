@@ -32,7 +32,7 @@ template <typename T, typename INT> void index_qsort(const T v[], INT iv[], size
 namespace {
   /* The following 'indexed qsort' routine is modified from Sedgewicks
    * algorithm It selects the pivot based on the median of the left,
-   * right, and center values to try to avoid degenerate cases ocurring
+   * right, and center values to try to avoid degenerate cases occurring
    * when a single value is chosen.  It performs a quicksort on
    * intervals down to the QSORT_CUTOFF size and then performs a final
    * insertion sort on the almost sorted final array.  Based on data in

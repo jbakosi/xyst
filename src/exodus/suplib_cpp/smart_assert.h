@@ -262,7 +262,7 @@ private:
       The only reason logger & handlers are functions, are
       because you might use SMART_ASSERT before main().
 
-      In this case, since they're statics, they might not
+      In this case, since they're statistics, they might not
       be initialized. However, making them functions
       will make it work.
   */

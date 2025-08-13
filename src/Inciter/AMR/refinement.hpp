@@ -453,7 +453,7 @@ namespace AMR {
                 // Make new Tets
                 //  This is just the node opposite the face plus each pair
                 //  of the news nodes, and the old corner
-                //  FIXME: How to find that near corner programatically?
+                //  FIXME: How to find that near corner programmatically?
 
                 // Hard coded solution
                 // A AC AB D

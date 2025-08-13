@@ -79,7 +79,7 @@ int Zoltan_Cyclic(
   int *num_export,              /* Output: Number of objects to export. */
   ZOLTAN_ID_PTR *export_global_ids, /* Output: GIDs to export. */
   ZOLTAN_ID_PTR *export_local_ids,  /* Output: LIDs to export. */
-  int **export_procs,           /* Output: Processsors to export to. */
+  int **export_procs,           /* Output: Processors to export to. */
   int **export_to_part          /* Output: Partitions to export to. */
 )
 {

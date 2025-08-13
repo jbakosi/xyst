@@ -303,7 +303,7 @@ ____  ___                __    __      _____                .__    _________
     //! Return human-readable test result based on result code
     //! \param[in] code Result code
     //! \param[in] msg Message to append
-    //! \param[in] ex Expection message to attach to exceptions cases
+    //! \param[in] ex Exception message to attach to exceptions cases
     std::string result( const std::string& code,
                         const std::string& msg,
                         const std::string& ex ) const

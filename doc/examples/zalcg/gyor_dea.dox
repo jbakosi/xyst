@@ -95,7 +95,7 @@ domain. During time stepping partitions gradually reactivate where activity is
 detected on their boundaries of the active domain. This is combined with
 overdecomposition, which yields larger number fo partitions compared to the
 number of CPUs available. Turning on load balancing in Charm++, the dynamically
-changing heterogeneous parallel load is homogeneized across the simulation.
+changing heterogeneous parallel load is homogenized across the simulation.
 Combining deactivation, overdecomposition, and load balancing yields savings in
 CPU time.
 

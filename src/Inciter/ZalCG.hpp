@@ -241,7 +241,7 @@ class ZalCG : public CBase_ZalCG {
     int m_toreactivate;
     //! Flag: 1 if chare is deactivated, 0 if active
     int m_deactivated;
-    //! Deactived chares this chare communicates with
+    //! Deactivated chares this chare communicates with
     std::unordered_set< int > m_inactive;
     //! Boundary node lists mapped to side set ids used in the input file
     std::map< int, std::vector< std::size_t > > m_bnode;

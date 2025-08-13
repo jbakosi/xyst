@@ -21,13 +21,13 @@
 
 namespace tk {
 
-//! Simple progress class for outputing progress indicators during a task
+//! Simple progress class for outputting progress indicators during a task
 //! \details This is a helper class to abstract away the details of using
 //!   Print::progress() used to output progress reports to the screen during
 //!   a task consisting of multiple sub-tasks happening at the same time. The
 //!   template argument is a compile-time integer which is the number of
 //!   independent sub-tasks the progress indicator receives messages for and
-//!   counts them independtly toward multiple maxima.
+//!   counts them independently toward multiple maxima.
 template< std::size_t N >
 class Progress {
 
@@ -52,7 +52,7 @@ class Progress {
       m_done.fill( 0 ); 
     }
 
-   //! Start counting sub-tasks outputing an intial task message
+   //! Start counting sub-tasks outputting an initial task message
    //! \param[in] print Pretty printer object to use for printing progress
    //! \param[in] msg Message to output to screen. This message should be
    //!   descriptive of all the sub-tasks we are responsible for. I.e., this
@@ -72,7 +72,7 @@ class Progress {
      m_progress_size = 0;
    }
 
-   //! \brief Start counting sub-tasks outputing an intial task message and set
+   //! \brief Start counting sub-tasks outputting an initial task message and set
    //!   max number of items to be expected per sub-task
    //! \param[in] print Pretty printer object to use for printing progress
    //! \param[in] msg Message to output to screen. This message should be
@@ -106,7 +106,7 @@ class Progress {
    //! \details When this function is called, all sub-tasks are assumed to be
    //!   finished, i.e., assumed to have reached their respective maximum
    //!   values. Thus we update our 'done' array to be equal to 'max' and output
-   //!   the progress report one final time before outputing 'done'. When this
+   //!   the progress report one final time before outputting 'done'. When this
    //!   function is called it is possible that not all sub-task counters have
    //!   reached their maximum, which can happen if the final reduction (if
    //!   exists), signaling the absolute end of a task (consisting of multiple

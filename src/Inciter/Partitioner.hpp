@@ -102,7 +102,7 @@ class Partitioner : public CBase_Partitioner {
     // Compute total load across distributed mesh
     void load();
 
-    //! Reduction target to aggregate mesh partition assginments
+    //! Reduction target to aggregate mesh partition assignments
     void parts( CkReductionMsg* msg );
 
     //! Partition the computational mesh into a number of chares

@@ -41,7 +41,7 @@ namespace AMR {
 
 
         /**
-         * @brief function to find the mid point betwen two points (nodes)
+         * @brief function to find the mid point between two points (nodes)
          *
          * @param edge_node_A First node/point
          * @param edge_node_B Second node/point

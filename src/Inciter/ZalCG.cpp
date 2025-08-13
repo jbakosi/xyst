@@ -1832,7 +1832,7 @@ void
 ZalCG::deastat( int dea )
 // *****************************************************************************
 //  Receive aggregate deactivation status
-//! \param[in] dea Sum of deactived chares
+//! \param[in] dea Sum of deactivated chares
 // *****************************************************************************
 {
   auto d = Disc();

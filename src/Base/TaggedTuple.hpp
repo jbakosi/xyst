@@ -81,7 +81,7 @@ class TaggedTuple {
     //! Typedef defining self for identifying self
     using i_am_tagged_tuple = void;
 
-    //! Acces type in tuple behind tag
+    //! Access type in tuple behind tag
     template< typename Tag >
     using TupleElement =
       std::tuple_element_t< brigand::index_of<Keys,Tag>::value, Tuple >;

@@ -49,7 +49,7 @@ static constexpr auto largereal = std::numeric_limits< double >::max();
 void
 Config::cmdline( int argc, char** argv )
 // *****************************************************************************
-//! Contructor: parse inciter command line
+//! Constructor: parse inciter command line
 //! \param[in] argc Number of arguments to executable
 //! \param[in] argv Arguments to executable
 // *****************************************************************************
@@ -563,7 +563,7 @@ intergrid_( lua_State* L, Config& cfg,
             std::vector< std::vector< uint64_t > >& lays,
             std::vector< std::string >& syms )
 // *****************************************************************************
-// Parse integrid_* table from table for multple meshes
+// Parse integrid_* table from table for multiple meshes
 //! \param[in,out] L Lua state
 //! \param[in,out] cfg Config state
 //! \param[in,out] sets State to push back intergrid setids to (outer vec: mesh)
@@ -1109,7 +1109,7 @@ bc_noslip_( lua_State* L,
             std::size_t nf,
             bool global = false )
 // *****************************************************************************
-// Parse bc_noslip_* table from global scope or table for multple meshes
+// Parse bc_noslip_* table from global scope or table for multiple meshes
 //! \param[in,out] L Lua state
 //! \param[in,out] s State to push back no-slip BC setids to (outer vec: mesh)
 //! \param[in] nf Number of mesh files specified on command line

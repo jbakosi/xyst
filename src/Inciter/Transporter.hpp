@@ -185,7 +185,7 @@ class Transporter : public CBase_Transporter {
     //! Reduction target collecting diagnostics from pressure-based solvers
     void prediagnostics( CkReductionMsg* msg );
 
-    //! \brief Reduction target collecting diagnostics from artifical
+    //! \brief Reduction target collecting diagnostics from artificial
     //!   compressibility solvers
     void acdiagnostics( CkReductionMsg* msg );
 

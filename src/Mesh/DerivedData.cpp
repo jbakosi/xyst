@@ -266,7 +266,7 @@ genEdsup( const std::vector< std::size_t >& inpoel,
 //!   \endcode
 //! \note At first sight, this function seems to work for elements with more
 //!   vertices than that of tetrahedra. However, that is not the case since the
-//!   algorithm for nnpe > 4 would erronously identify any two combination of
+//!   algorithm for nnpe > 4 would erroneously identify any two combination of
 //!   vertices as a valid edge of an element. Since only triangles and
 //!   tetrahedra have no internal edges, this algorithm only works for triangle
 //!   and tetrahedra element connectivity.
@@ -367,7 +367,7 @@ genInpoed( const std::vector< std::size_t >& inpoel,
 //!   \endcode
 //! \note At first sight, this function seems to work for elements with more
 //!   vertices than that of tetrahedra. However, that is not the case since the
-//!   algorithm for nnpe > 4 would erronously identify any two combination of
+//!   algorithm for nnpe > 4 would erroneously identify any two combination of
 //!   vertices as a valid edge of an element. Since only triangles and
 //!   tetrahedra have no internal edges, this algorithm only works for triangle
 //!   and tetrahedra element connectivity.
@@ -640,7 +640,7 @@ genInedel( const std::vector< std::size_t >& inpoel,
 //!   \endcode
 //! \note At first sight, this function seems to work for elements with more
 //!   vertices than that of tetrahedra. However, that is not the case since the
-//!   algorithm for nnpe > 4 would erronously identify any two combination of
+//!   algorithm for nnpe > 4 would erroneously identify any two combination of
 //!   vertices as a valid edge of an element. Since only triangles and
 //!   tetrahedra have no internal edges, this algorithm only works for triangle
 //!   and tetrahedra element connectivity.
@@ -750,7 +750,7 @@ genEsued( const std::vector< std::size_t >& inpoel,
 //!   esued.size() equals the number of edges.
 //! \note At first sight, this function seems to work for elements with more
 //!   vertices than that of tetrahedra. However, that is not the case since the
-//!   algorithm for nnpe > 4 would erronously identify any two combination of
+//!   algorithm for nnpe > 4 would erroneously identify any two combination of
 //!   vertices as a valid edge of an element. Since only triangles and
 //!   tetrahedra have no internal edges, this algorithm only works for triangle
 //!   and tetrahedra element connectivity.

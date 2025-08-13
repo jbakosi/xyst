@@ -13873,7 +13873,7 @@ void luaF_closeupval (lua_State *L, StkId level) {
 
 
 /*
-** Remove first, flirt element from the tbclist plus its dummy nodes.
+** Remove first element from the tbclist plus its dummy nodes.
 */
 static void poptbclist (lua_State *L) {
   StkId tbc = L->tbclist;

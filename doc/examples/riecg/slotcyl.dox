@@ -44,7 +44,7 @@ equations with its software implementation.
 
 @section riecg_example_slotcyl_setup Problem setup
 
-The inital configuration for the scalar field, \f$c\f$, is depicted in the
+The initial configuration for the scalar field, \f$c\f$, is depicted in the
 figure below.
 @m_div{m-col-m-10 m-center-m}
 <img src="images/slotcyl_ic.png"/>

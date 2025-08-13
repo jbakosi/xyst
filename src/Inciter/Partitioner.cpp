@@ -131,7 +131,7 @@ Partitioner::Partitioner(
   }
   m_bnode = std::move(own_bnode);
 
-  // Compute unqiue mesh graph if needed
+  // Compute unique mesh graph if needed
   std::unordered_map< int, std::unordered_map< std::size_t,
                              std::unordered_set< std::size_t > > > graph;
   bool multi = g_cfg.get< tag::input >().size() > 1;
@@ -323,7 +323,7 @@ Partitioner::partition( int nchare )
     // Partition mesh with graph partitioner
     auto chp = graphPartMesh( m_ginpoel, m_graph, params, nchare );
 
-    // Aggregate partition assginments
+    // Aggregate partition assignments
     auto stream = tk::serialize( chp );
     contribute( stream.first, stream.second.get(), PartsMerger,
                 CkCallback( CkIndex_Partitioner::parts(nullptr), thisProxy ) );
@@ -742,7 +742,7 @@ Partitioner::distribution( int npart ) const
 //! \param[in] npart Total number of chares (partitions) to distribute
 //! \return Chunksize, i.e., number of chares per all compute nodes except the
 //!   last one, and the number of chares for this compute node.
-//! \details Chare ids are distributed to compute nodes in a linear continguous
+//! \details Chare ids are distributed to compute nodes in a linear contiguous
 //!   order with the last compute node taking the remainder if the number of
 //!   compute nodes is not divisible by the number chares. For example, if
 //!   nchare=7 and nnode=3, the chare distribution is node0: 0 1, node1: 2 3,

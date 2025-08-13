@@ -8495,7 +8495,7 @@ l_noret luaX_syntaxerror (LexState *ls, const char *msg) {
 ** ensuring there is only one copy of each unique string.  The table
 ** here is used as a set: the string enters as the key, while its value
 ** is irrelevant. We use the string itself as the value only because it
-** is a TValue readly available. Later, the code generation can change
+** is a TValue readily available. Later, the code generation can change
 ** this value.
 */
 TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
@@ -13588,7 +13588,7 @@ static int changedline (const Proto *p, int oldpc, int newpc) {
   if (p->lineinfo == NULL)  /* no debug information? */
     return 0;
   if (newpc - oldpc < MAXIWTHABS / 2) {  /* not too far apart? */
-    int delta = 0;  /* line diference */
+    int delta = 0;  /* line difference */
     int pc = oldpc;
     for (;;) {
       int lineinfo = p->lineinfo[++pc];
@@ -13873,7 +13873,7 @@ void luaF_closeupval (lua_State *L, StkId level) {
 
 
 /*
-** Remove firt element from the tbclist plus its dummy nodes.
+** Remove first, flirt element from the tbclist plus its dummy nodes.
 */
 static void poptbclist (lua_State *L) {
   StkId tbc = L->tbclist;
@@ -21100,7 +21100,7 @@ LUALIB_API void luaL_pushresultsize (luaL_Buffer *B, size_t sz) {
 ** box (if existent) is not on the top of the stack. So, instead of
 ** calling 'luaL_addlstring', it replicates the code using -2 as the
 ** last argument to 'prepbuffsize', signaling that the box is (or will
-** be) bellow the string being added to the buffer. (Box creation can
+** be) below the string being added to the buffer. (Box creation can
 ** trigger an emergency GC, so we should not remove the string from the
 ** stack before we have the space guaranteed.)
 */

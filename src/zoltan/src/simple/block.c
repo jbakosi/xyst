@@ -62,7 +62,7 @@ static void block_part(ZZ *zz, int num_obj, int wtflag, float *wgts,
 
 /* Block partitioning method.
  * Consider all objects as a linear sequence and do
- * a simple parallel (1d) block partitioning stategy.
+ * a simple parallel (1d) block partitioning strategy.
  */
 
 int Zoltan_Block(
@@ -78,7 +78,7 @@ int Zoltan_Block(
   int *num_export,              /* Output: Number of objects to export. */
   ZOLTAN_ID_PTR *export_global_ids, /* Output: GIDs to export. */
   ZOLTAN_ID_PTR *export_local_ids,  /* Output: LIDs to export. */
-  int **export_procs,           /* Output: Processsors to export to. */
+  int **export_procs,           /* Output: Processors to export to. */
   int **export_to_part          /* Output: Partitions to export to. */
 )
 {

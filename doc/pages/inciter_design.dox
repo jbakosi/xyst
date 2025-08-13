@@ -81,7 +81,7 @@ screen, collects statistics, and is the end-point of execution in
 _Group_ above means a Charm++ chare group. A group is a processor-aware chare
 collection, which means that there is guaranteed to be a single instance of a
 group per PE which does _not_ migrate. `MeshWriter` is a group because it calls
-the MPI-only library, ExodusII, for outputing mesh and mesh-based solution
+the MPI-only library, ExodusII, for outputting mesh and mesh-based solution
 field data to files. Note that while `MeshWriter` is a group, the way we use it
 makes it similar to a nodegroup but with group semantics: we call its Charm++
 entry method `MeshWriter::write()` from multiple array elements (from
@@ -137,7 +137,7 @@ among workers that migrate. Since array elements that are bound always appear
 together on a given PE, even after migration, they can also be thought of as
 part of the same class, because they can access data from each other (but still
 respecting the C++ rules of `public`, `private`, etc). However, dividing
-functionality into classes, as always, helps readibility and makes reasoning
+functionality into classes, as always, helps readability and makes reasoning
 about code easier.
 
 @section inciter_setup 3. Setup

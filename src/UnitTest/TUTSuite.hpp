@@ -48,7 +48,7 @@ class TUTSuite : public CBase_TUTSuite {
     std::size_t m_nskip;     //!< Number of skipped tests
     std::size_t m_nwarn;     //!< Number of tests with a warning
     std::size_t m_nexcp;     //!< Number of tests with an exception
-    std::size_t m_nspaw;     //!< Number of additionallly spawned tests ran
+    std::size_t m_nspaw;     //!< Number of additionally spawned tests ran
 
     //! \brief Charm++ test group names that spawn additional tests and number
     //!   of tests they spawn

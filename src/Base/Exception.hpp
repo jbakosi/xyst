@@ -9,7 +9,7 @@
   \brief     Exception class declaration
   \details   Exception class declaration. The basic functionality provided by
     the Exception class is to facilitate printing out a message, together with
-    the location of the exception (file, line, funcion name), as well as a call
+    the location of the exception (file, line, function name), as well as a call
     trace if available, when an exception is thrown. This file also defines
     three macros, Throw, Assert, and ErrChk, that help simplifying client code
     throwing exceptions.
@@ -33,7 +33,7 @@ static constexpr bool ndebug = false;
 //! \brief Throw macro that always throws an exception
 //! \details Throw Exception with arguments passed in. Add source filename,
 //!   function name, and line number where exception occurred. This macro
-//!   facilitates a throw of Exception that is somehwat cleaner at the point
+//!   facilitates a throw of Exception that is somewhat cleaner at the point
 //!   of invocation than a direct throw of Exception, as it hides the
 //!   file:func:line arguments. Whenever is possible, it should be used via the
 //!   Assert and ErrChk macros defined below.
@@ -71,7 +71,7 @@ enum ErrCode { SUCCESS = EXIT_SUCCESS, //!< Everything went fine
 //! \brief Basic exception class for producing file:func:line info + call trace
 //! \details The basic functionality provided by the Exception class is to
 //!   facilitate printing out a message, together with the location of the
-//!   exception (file, line, funcion name), as well as a call trace if
+//!   exception (file, line, function name), as well as a call trace if
 //!   available, when an exception is thrown.
 class Exception : public std::exception {
 

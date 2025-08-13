@@ -22,7 +22,7 @@ class LibTransfer : public CBase_LibTransfer {
 };
 
 //! Mesh configuration for a mesh involved in solution transfer
-//! \details Lightweight data structure identifing a mesh
+//! \details Lightweight data structure identifying a mesh
 class MeshData {
   public:
     //! Host proxy of mesh

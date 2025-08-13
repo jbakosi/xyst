@@ -521,11 +521,11 @@ class Discretization : public CBase_Discretization {
     std::vector< HistData > m_histdata;
     //! Current residual (during convergence to steady state)
     tk::real m_res;
-    //! Residual at previous ETA calcuation (during convergence to steady state)
+    //! Residual at previous ETA calculation (during convergence to steady state)
     tk::real m_res0;
-    //! Residual at next ETA calcuation (during convergence to steady state)
+    //! Residual at next ETA calculation (during convergence to steady state)
     tk::real m_res1;
-    //! Numberf of deactived chares
+    //! Numberf of deactivated chares
     int m_dea;
     //! Flag: 1 if deactivation procedure has started
     int m_deastarted;

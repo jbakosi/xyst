@@ -232,7 +232,7 @@ Refiner::reorder()
   coarseMesh();
 
   // WARNING: This re-creates the AMR lib which is probably not what we
-  // ultimately want, beacuse this deletes its history recorded during initial
+  // ultimately want, because this deletes its history recorded during initial
   // (t<0) refinement. However, this appears to correctly update the local mesh
   // based on the reordered one (from Sorter) at least when t0ref is off.
   const auto& ht = m_multi ? g_cfg.get< tag::href_ >()[ m_meshid ]

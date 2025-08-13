@@ -250,7 +250,7 @@ if(NOT ${GIT_HEAD_SHA1} STREQUAL "")
   message(STATUS "Git commit: ${GIT_HEAD_SHA1}")
 endif()
 
-option(BUILD_DOC "Build docmentation" OFF)
+option(BUILD_DOC "Build documentation" OFF)
 if (BUILD_DOC)
   # Find Python: required for code coverage (fastcov) and doc (m.css)
   find_package(Python3 3.6 QUIET)

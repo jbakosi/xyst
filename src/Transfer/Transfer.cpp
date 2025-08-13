@@ -200,7 +200,7 @@ void
 Transfer::distributeCollisions( int nColl, Collision* colls )
 // *****************************************************************************
 //  Called when all potential collisions have been found, and now need to be
-//  destributed to the chares in the destination mesh to determine actual
+//  distributed to the chares in the destination mesh to determine actual
 //  collisions.
 //! \param[in] nColl Number of potential collisions found
 //! \param[in] colls The list of potential collisions

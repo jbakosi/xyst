@@ -31,10 +31,10 @@ Exception::Exception( std::string&& message,
 //  Constructor: generate error message
 //! \param[in] message String (moved from) with an error message
 //! \param[in] file String (moved from) with the file name in which the
-//!   exception ocurred
+//!   exception occurred
 //! \param[in] function String (moved from) containing the name of the function
-//!   in which the exception ocurred
-//! \param[in] line Source code line number at which the exception ocurred
+//!   in which the exception occurred
+//! \param[in] line Source code line number at which the exception occurred
 //! \details While throwing exceptions is possible calling this constructor, the
 //!   easiest and recommend way is to use the Assert, ErrChk, and Throw macros.
 //!   Exception safety: no-throw guarantee: this member function never throws

@@ -12,7 +12,7 @@
    distributed nature of the mesh it operates on, i.e., it operates on mesh
    chunks. Thus it does not do parallel communication and also does not know
    about global vs local IDs. Instead this Charm++ chare array is the one that
-   does all parallel computing aspects, i.e., communcation, and using the mesh
+   does all parallel computing aspects, i.e., communication, and using the mesh
    refiner object as a library.
 */
 // *****************************************************************************
